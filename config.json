@@ -1,5 +1,4 @@
 {
-  "$schema": "./source/schema.json",
   "family_name": "Maple Mono",
   "use_hinted": true,
   "pool_size": 4,
@@ -18,8 +17,8 @@
     "bold": 700,
     "extrabold": 800
   },
-  "line_height": 1.0,
-  "width": "default",
+  "line_height": 1,
+  "width": "slim",
   "feature_freeze": {
     "cv01": "ignore",
     "cv02": "ignore",
@@ -70,7 +69,7 @@
     "zero": "ignore"
   },
   "nerd_font": {
-    "enable": true,
+    "enable": false,
     "version": "3.4.0",
     "mono": false,
     "propo": false,

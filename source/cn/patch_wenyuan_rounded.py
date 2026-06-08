@@ -448,7 +448,7 @@ def normalize_weight_axis(font: TTFont) -> None:
         return
 
     weight_axis = axes[0]
-    weight_axis.minValue = 50
+    weight_axis.minValue = 100
     weight_axis.defaultValue = 100
     weight_axis.maxValue = 800
     weight_axis.flags = 0

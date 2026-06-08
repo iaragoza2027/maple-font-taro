@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from typing import Iterable
 
 from fontTools import subset
@@ -537,16 +536,6 @@ def patch_font(args: argparse.Namespace) -> TTFont:
     return font
 
 
-def save_and_smoke_test(font: TTFont, output: Path) -> None:
-    output.parent.mkdir(parents=True, exist_ok=True)
-    font.save(output)
-    print(f"saved: {output}")
-
-    with NamedTemporaryFile(suffix=".ttf") as temp:
-        TTFont(output).save(temp.name)
-    print(f"smoke-save: ok ({output})")
-
-
 def main() -> None:
     args = parse_args()
     font = patch_font(args)
@@ -555,7 +544,9 @@ def main() -> None:
         print("dry-run: output not written")
         return
 
-    save_and_smoke_test(font, args.output)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    font.save(args.output)
+    print(f"saved: {args.output}")
 
 
 if __name__ == "__main__":

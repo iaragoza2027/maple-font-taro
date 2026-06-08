@@ -9,6 +9,7 @@ from fontTools import subset
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables.TupleVariation import TupleVariation
 from fontTools.varLib.instancer import instantiateVariableFont
+from fontTools.varLib.mutator import instantiateVariableFont as mutatorInstantiate
 
 
 DEFAULT_INPUT = Path("source/cn/WenYuanRoundedSCVF.ttf")
@@ -280,6 +281,163 @@ def ensure_gvar_entries(font: TTFont) -> None:
         font["gvar"].variations.setdefault(glyph_name, [])
 
 
+def replace_default_master(font: TTFont, source_weight: float) -> None:
+    """Replace the default master with an interpolated instance at source_weight."""
+    if "fvar" not in font or "gvar" not in font:
+        return
+
+    # Get the current default value (before we change it)
+    weight_axis = next((ax for ax in font["fvar"].axes if ax.axisTag == "wght"), None)
+    if not weight_axis:
+        return
+
+    old_default = weight_axis.defaultValue
+    if abs(old_default - source_weight) < 0.01:
+        return  # Already at target weight
+
+    # Calculate normalized position
+    old_norm = (old_default - weight_axis.minValue) / (
+        weight_axis.maxValue - weight_axis.minValue
+    )
+    new_norm = (source_weight - weight_axis.minValue) / (
+        weight_axis.maxValue - weight_axis.minValue
+    )
+    delta_norm = new_norm - old_norm
+
+    # Apply delta to default master for each glyph
+    gvar = font["gvar"]
+    glyf = font.get("glyf")
+    if not glyf:
+        return
+
+    for glyph_name in font.getGlyphOrder():
+        variations = gvar.variations.get(glyph_name, [])
+        if not variations:
+            continue
+
+        glyph = glyf[glyph_name]
+        if not hasattr(glyph, "coordinates") or glyph.coordinates is None:
+            try:
+                coords, _, _ = glyph.getCoordinates(glyf)
+            except Exception:
+                continue
+        else:
+            coords = glyph.coordinates
+
+        # Accumulate deltas from all variations that affect this position
+        total_delta_x = [0] * len(coords)
+        total_delta_y = [0] * len(coords)
+
+        for variation in variations:
+            wght_support = variation.axes.get("wght")
+            if not wght_support:
+                continue
+
+            # Calculate scalar based on where delta_norm falls in the support
+            peak = wght_support[1] if len(wght_support) > 1 else wght_support[0]
+            if len(wght_support) == 3:
+                min_support, peak, max_support = wght_support
+            else:
+                min_support = max_support = peak
+
+            # Calculate how much this variation contributes
+            if delta_norm == 0:
+                scalar = 0.0
+            elif delta_norm > 0:
+                if peak <= 0:
+                    scalar = 0.0
+                elif delta_norm <= peak:
+                    scalar = delta_norm / peak if peak != 0 else 0.0
+                elif delta_norm <= max_support:
+                    scalar = (max_support - delta_norm) / (max_support - peak) if max_support != peak else 1.0
+                else:
+                    scalar = 0.0
+            else:  # delta_norm < 0
+                if peak >= 0:
+                    scalar = 0.0
+                elif delta_norm >= peak:
+                    scalar = delta_norm / peak if peak != 0 else 0.0
+                elif delta_norm >= min_support:
+                    scalar = (min_support - delta_norm) / (min_support - peak) if min_support != peak else 1.0
+                else:
+                    scalar = 0.0
+
+            # Apply this variation's deltas
+            if scalar != 0 and variation.coordinates is not None:
+                for i, coord in enumerate(variation.coordinates):
+                    if coord is None:
+                        continue
+                    if i < len(total_delta_x):
+                        dx, dy = coord if isinstance(coord, tuple) else (coord, 0)
+                        total_delta_x[i] += dx * scalar
+                        total_delta_y[i] += dy * scalar
+
+        # Apply accumulated deltas to the default master
+        for i in range(len(coords)):
+            x, y = coords[i]
+            coords[i] = (x + round(total_delta_x[i]), y + round(total_delta_y[i]))
+
+        glyph.coordinates = coords
+        try:
+            glyph.recalcBounds(glyf)
+        except Exception:
+            pass
+
+    # Now adjust all variation deltas to be relative to the new default
+    for glyph_name in font.getGlyphOrder():
+        variations = gvar.variations.get(glyph_name, [])
+        if not variations:
+            continue
+
+        glyph = glyf[glyph_name]
+        if not hasattr(glyph, "coordinates") or glyph.coordinates is None:
+            continue
+
+        for variation in variations:
+            wght_support = variation.axes.get("wght")
+            if not wght_support or variation.coordinates is None:
+                continue
+
+            # Calculate the scalar we already applied
+            peak = wght_support[1] if len(wght_support) > 1 else wght_support[0]
+            if len(wght_support) == 3:
+                min_support, peak, max_support = wght_support
+            else:
+                min_support = max_support = peak
+
+            if delta_norm == 0:
+                scalar = 0.0
+            elif delta_norm > 0:
+                if peak <= 0:
+                    scalar = 0.0
+                elif delta_norm <= peak:
+                    scalar = delta_norm / peak if peak != 0 else 0.0
+                elif delta_norm <= max_support:
+                    scalar = (max_support - delta_norm) / (max_support - peak) if max_support != peak else 1.0
+                else:
+                    scalar = 0.0
+            else:
+                if peak >= 0:
+                    scalar = 0.0
+                elif delta_norm >= peak:
+                    scalar = delta_norm / peak if peak != 0 else 0.0
+                elif delta_norm >= min_support:
+                    scalar = (min_support - delta_norm) / (min_support - peak) if min_support != peak else 1.0
+                else:
+                    scalar = 0.0
+
+            # Subtract the applied delta from the variation
+            if scalar != 0:
+                new_coords = []
+                for i, coord in enumerate(variation.coordinates):
+                    if coord is None:
+                        new_coords.append(None)
+                        continue
+                    dx, dy = coord if isinstance(coord, tuple) else (coord, 0)
+                    new_coords.append((int(round(dx * (1 - scalar))), int(round(dy * (1 - scalar)))))
+                variation.coordinates = new_coords
+
+
 def normalize_weight_axis(font: TTFont) -> None:
     if "fvar" not in font:
         return
@@ -291,7 +449,7 @@ def normalize_weight_axis(font: TTFont) -> None:
 
     weight_axis = axes[0]
     weight_axis.minValue = 50
-    weight_axis.defaultValue = 50
+    weight_axis.defaultValue = 100
     weight_axis.maxValue = 800
     weight_axis.flags = 0
     weight_axis.axisNameID = WEIGHT_AXIS_NAME_ID
@@ -514,8 +672,9 @@ def patch_font(args: argparse.Namespace) -> TTFont:
         if table_tag in font:
             del font[table_tag]
 
-    normalize_weight_axis(font)
     ensure_gvar_entries(font)
+    replace_default_master(font, 160.0)  # 160 in source maps to 100 in user coordinates
+    normalize_weight_axis(font)
     subset_font(font, keep_codepoints, args.keep_gpos_kern)
     if "GSUB" in font:
         del font["GSUB"]

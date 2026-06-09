@@ -7,12 +7,10 @@ from typing import Any, Iterable
 
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables.TupleVariation import TupleVariation
-from fontTools.varLib.instancer import instantiateVariableFont
 
 
 FontInput = str | Path | TTFont
 GlyphCoordinates = Any
-GlyphEndpoint = tuple[GlyphCoordinates, GlyphCoordinates]
 
 
 def merge_vf(base_font: FontInput, extra_font: FontInput) -> tuple[TTFont, list[str], int]:
@@ -33,21 +31,23 @@ def weight_axis(font: TTFont):
     return next((axis for axis in font["fvar"].axes if axis.axisTag == "wght"), None)
 
 
-def rebuild_weight_masters(
+def rebuild_weight_masters_with_regular_default(
     font: TTFont,
-    default_master: TTFont,
+    min_master: TTFont,
+    regular_master: TTFont,
     max_master: TTFont | None = None,
     axis_tag: str = "wght",
 ) -> None:
-    """Replace weight masters with a sampled default and one linear max delta."""
+    """Replace weight masters with Regular as default and min/max deltas."""
     _require_tables(font, ("glyf", "hmtx", "gvar"))
 
-    _replace_gvar_with_linear_axis(
+    _replace_gvar_with_regular_default_axis(
         font,
         (
             (
                 glyph_name,
-                _glyph_coordinates(default_master, glyph_name),
+                _glyph_coordinates(min_master, glyph_name),
+                _glyph_coordinates(regular_master, glyph_name),
                 (
                     _glyph_coordinates(max_master, glyph_name)
                     if max_master is not None
@@ -58,7 +58,7 @@ def rebuild_weight_masters(
         ),
         axis_tag,
     )
-    _drop_tables(font, ("HVAR", "MVAR"))
+    _drop_tables(font, ("HVAR", "MVAR", "avar"))
 
 
 def normalize_weight_axis(
@@ -102,57 +102,6 @@ def normalize_weight_axis(
 
     font["fvar"].instances = new_instances
     _drop_tables(font, ("avar",))
-
-
-def change_default_master(
-    font: TTFont,
-    target_default: float,
-    instance_weights: dict[str, float] | None = None,
-    default_style: str = "Regular",
-) -> TTFont:
-    """Move the default master to target_default and keep one linear max delta."""
-    _require_tables(font, ("fvar", "gvar"))
-    axis = _require_weight_axis(font)
-
-    target_default = float(target_default)
-    axis_min = float(axis.minValue)
-    axis_max = float(axis.maxValue)
-    if not axis_min <= target_default <= axis_max:
-        raise ValueError(
-            f"Target default {target_default:g} is outside wght axis "
-            f"{axis_min:g}..{axis_max:g}"
-        )
-
-    adjusted_font = instantiateVariableFont(
-        font,
-        {"wght": (target_default, target_default, axis_max)},
-        inplace=False,
-        optimize=False,
-    )
-
-    _replace_gvar_with_linear_axis(
-        adjusted_font,
-        (
-            (
-                glyph_name,
-                _glyph_coordinates(adjusted_font, glyph_name),
-                _interpolated_coordinates(adjusted_font, glyph_name, "wght", 1.0),
-            )
-            for glyph_name in adjusted_font.getGlyphOrder()
-        ),
-    )
-
-    if instance_weights:
-        _remap_instance_values(adjusted_font, instance_weights)
-    _set_stat_default_value(adjusted_font, default_style)
-    _drop_tables(adjusted_font, ("HVAR", "avar"))
-
-    adjusted_axis = _require_weight_axis(adjusted_font)
-    adjusted_axis.minValue = target_default
-    adjusted_axis.defaultValue = target_default
-    adjusted_axis.maxValue = axis_max
-
-    return adjusted_font
 
 
 def _load_font(font: FontInput) -> TTFont:
@@ -324,9 +273,11 @@ def _expand_support(support: tuple[float, ...]) -> tuple[float, float, float]:
     return peak, peak, peak
 
 
-def _replace_gvar_with_linear_axis(
+def _replace_gvar_with_regular_default_axis(
     font: TTFont,
-    endpoints: Iterable[tuple[str, GlyphCoordinates, GlyphCoordinates]],
+    endpoints: Iterable[
+        tuple[str, GlyphCoordinates, GlyphCoordinates, GlyphCoordinates]
+    ],
     axis_tag: str = "wght",
 ) -> None:
     _require_tables(font, ("glyf", "hmtx", "gvar"))
@@ -336,13 +287,21 @@ def _replace_gvar_with_linear_axis(
     v_metrics = font["vmtx"].metrics if "vmtx" in font else None
     variations = {}
 
-    for glyph_name, default_coordinates, max_coordinates in endpoints:
-        glyf._setCoordinates(glyph_name, default_coordinates, h_metrics, v_metrics)
+    for (
+        glyph_name,
+        min_coordinates,
+        regular_coordinates,
+        max_coordinates,
+    ) in endpoints:
+        glyf._setCoordinates(glyph_name, regular_coordinates, h_metrics, v_metrics)
 
-        delta = _coordinate_delta(default_coordinates, max_coordinates, glyph_name)
+        min_delta = _coordinate_delta(regular_coordinates, min_coordinates, glyph_name)
+        max_delta = _coordinate_delta(regular_coordinates, max_coordinates, glyph_name)
         variations[glyph_name] = []
-        if _has_delta(delta):
-            variations[glyph_name].append(_linear_variation(axis_tag, delta))
+        if _has_delta(min_delta):
+            variations[glyph_name].append(_min_variation(axis_tag, min_delta))
+        if _has_delta(max_delta):
+            variations[glyph_name].append(_max_variation(axis_tag, max_delta))
 
     font["gvar"].variations = variations
 
@@ -368,7 +327,11 @@ def _has_delta(delta: list[tuple[int, int]]) -> bool:
     return any(dx or dy for dx, dy in delta)
 
 
-def _linear_variation(axis_tag: str, delta: list[tuple[int, int]]) -> TupleVariation:
+def _min_variation(axis_tag: str, delta: list[tuple[int, int]]) -> TupleVariation:
+    return TupleVariation({axis_tag: (-1.0, -1.0, 0.0)}, delta)
+
+
+def _max_variation(axis_tag: str, delta: list[tuple[int, int]]) -> TupleVariation:
     return TupleVariation({axis_tag: (0.0, 1.0, 1.0)}, delta)
 
 
@@ -406,38 +369,3 @@ def _find_instance_by_name(instances, instance_names: dict[int, str | None], nam
     if instance is None:
         raise ValueError(f"Missing wght instance: {name}")
     return instance
-
-
-def _remap_instance_values(
-    font: TTFont, style_weights: dict[str, float], axis_tag: str = "wght"
-) -> None:
-    _require_tables(font, ("fvar", "name"))
-
-    for instance in font["fvar"].instances:
-        style_name = font["name"].getDebugName(instance.subfamilyNameID)
-        weight_value = style_weights.get(style_name)
-        if weight_value is not None:
-            instance.coordinates[axis_tag] = float(weight_value)
-
-
-def _set_stat_default_value(font: TTFont, default_style: str = "Regular") -> None:
-    if "STAT" not in font:
-        return
-
-    stat = font["STAT"].table
-    axis_records = getattr(getattr(stat, "DesignAxisRecord", None), "Axis", [])
-    weight_axis_indices = {
-        index for index, axis in enumerate(axis_records) if axis.AxisTag == "wght"
-    }
-    axis_values = getattr(getattr(stat, "AxisValueArray", None), "AxisValue", None)
-    if not weight_axis_indices or not axis_values:
-        return
-
-    for axis_value in axis_values:
-        axis_index = getattr(axis_value, "AxisIndex", None)
-        if axis_index not in weight_axis_indices:
-            continue
-
-        value_name_id = getattr(axis_value, "ValueNameID", None)
-        value_name = font["name"].getDebugName(value_name_id) if value_name_id else None
-        axis_value.Flags = 2 if value_name == default_style else 0

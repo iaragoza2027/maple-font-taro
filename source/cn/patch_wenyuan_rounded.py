@@ -9,7 +9,11 @@ from fontTools import subset
 from fontTools.ttLib import TTFont
 from fontTools.varLib.instancer import instantiateVariableFont
 
-from vf_utils import merge_vf, normalize_weight_axis, rebuild_weight_masters
+from vf_utils import (
+    merge_vf,
+    normalize_weight_axis,
+    rebuild_weight_masters_with_regular_default,
+)
 
 
 DEFAULT_INPUT = Path("source/cn/WenYuanRoundedSCVF.ttf")
@@ -38,6 +42,10 @@ WIDTH_EXPANSION_OFFSET = 100
 VERTICAL_EXPANSION_OFFSET = -25
 WEIGHT_AXIS_NAME_ID = 256
 WEIGHT_AXIS_NAME = "Weight"
+OUTPUT_WEIGHT_MIN = 100
+OUTPUT_WEIGHT_REGULAR = 400
+WENYUAN_THIN_SOURCE_WEIGHT = 250
+WENYUAN_REGULAR_SOURCE_WEIGHT = 450
 MAPLE_HHEA_METRICS = {
     "ascent": 990,
     "descent": -270,
@@ -409,9 +417,16 @@ def patch_font(args: argparse.Namespace) -> TTFont:
     print(f"planned feature font glyph exclusions: {len(excluded_glyphs)}")
 
     font = instantiateVariableFont(source, {"ital": 0}, inplace=False)
-    default_master = instantiateVariableFont(
+    min_master = instantiateVariableFont(
         source,
-        {"ital": 0, "wght": 250},
+        {"ital": 0, "wght": WENYUAN_THIN_SOURCE_WEIGHT},
+        inplace=False,
+        optimize=False,
+        static=True,
+    )
+    regular_master = instantiateVariableFont(
+        source,
+        {"ital": 0, "wght": WENYUAN_REGULAR_SOURCE_WEIGHT},
         inplace=False,
         optimize=False,
         static=True,
@@ -421,13 +436,14 @@ def patch_font(args: argparse.Namespace) -> TTFont:
         if table_tag in font:
             del font[table_tag]
 
-    rebuild_weight_masters(font, default_master)
+    rebuild_weight_masters_with_regular_default(font, min_master, regular_master)
     normalize_weight_axis(
         font,
         axis_name_id=WEIGHT_AXIS_NAME_ID,
         axis_name=WEIGHT_AXIS_NAME,
         instance_weights=[weight for _, weight in WEIGHT_MAPPING_POINTS],
         instances=list(WEIGHT_INSTANCES),
+        default_value=OUTPUT_WEIGHT_REGULAR,
     )
     subset_font(font, keep_codepoints, args.keep_gpos_kern)
     if "GSUB" in font:
@@ -452,15 +468,16 @@ def patch_font(args: argparse.Namespace) -> TTFont:
 def main() -> None:
     args = parse_args()
     patched_font = patch_font(args)
-    merged_font, added_glyphs, added_codepoints = merge_vf(
-        args.feature_font, patched_font
-    )
+    # feature_font = adjusted_feature_font(args.feature_font)
+    feature_font = TTFont(args.feature_font)
+    merged_font, added_glyphs, added_codepoints = merge_vf(feature_font, patched_font)
     normalize_weight_axis(
         merged_font,
         axis_name_id=WEIGHT_AXIS_NAME_ID,
         axis_name=WEIGHT_AXIS_NAME,
         instance_weights=[weight for _, weight in WEIGHT_MAPPING_POINTS],
         instances=list(WEIGHT_INSTANCES),
+        default_value=OUTPUT_WEIGHT_REGULAR,
     )
     prune_stat(merged_font)
 

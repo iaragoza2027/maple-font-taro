@@ -4,10 +4,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from fontTools.ttLib import TTFont
-from fontTools.ttLib.tables.TupleVariation import TupleVariation
-from fontTools.varLib.instancer import OverlapMode, instantiateVariableFont
 
-from vf_merge import merge_vf
+from vf_utils import change_default_master, merge_vf, weight_axis
 
 
 INSTANCE_WEIGHT_VALUES = {
@@ -22,135 +20,17 @@ INSTANCE_WEIGHT_VALUES = {
 }
 
 
-def get_weight_axis(font: TTFont):
-    if "fvar" not in font:
-        return None
-    return next((axis for axis in font["fvar"].axes if axis.axisTag == "wght"), None)
-
-
-def get_gvar_coordinates(font: TTFont, glyph_name: str):
-    glyf = font["glyf"]
-    h_metrics = font["hmtx"].metrics
-    v_metrics = font["vmtx"].metrics if "vmtx" in font else None
-    coordinates, _ = glyf._getCoordinatesAndControls(glyph_name, h_metrics, v_metrics)
-    return coordinates
-
-
-def rebuild_linear_gvar(font: TTFont, max_weight_font: TTFont) -> None:
-    """Replace intermediate weight deltas with a single Thin-to-ExtraBold delta."""
-    if "gvar" not in font:
-        return
-
-    variations = {}
-    for glyph_name in font.getGlyphOrder():
-        default_coordinates = get_gvar_coordinates(font, glyph_name)
-        max_coordinates = get_gvar_coordinates(max_weight_font, glyph_name)
-
-        if len(default_coordinates) != len(max_coordinates):
-            raise ValueError(
-                f"Point count mismatch for {glyph_name}: "
-                f"{len(default_coordinates)} != {len(max_coordinates)}"
-            )
-
-        delta = [
-            (int(round(max_x - default_x)), int(round(max_y - default_y)))
-            for (default_x, default_y), (max_x, max_y) in zip(
-                default_coordinates, max_coordinates
-            )
-        ]
-        if any(dx or dy for dx, dy in delta):
-            variations[glyph_name] = [TupleVariation({"wght": (0.0, 1.0, 1.0)}, delta)]
-
-    font["gvar"].variations = variations
-
-
-def update_instance_weight_values(font: TTFont) -> None:
-    if "fvar" not in font:
-        return
-
-    for instance in font["fvar"].instances:
-        style_name = font["name"].getDebugName(instance.subfamilyNameID)
-        weight_value = INSTANCE_WEIGHT_VALUES.get(style_name)
-        if weight_value is not None:
-            instance.coordinates["wght"] = weight_value
-
-
-def update_stat_default_weight(font: TTFont, default_style: str = "Regular") -> None:
-    if "STAT" not in font:
-        return
-
-    stat = font["STAT"].table
-    axis_records = getattr(getattr(stat, "DesignAxisRecord", None), "Axis", [])
-    weight_axis_indices = {
-        index for index, axis in enumerate(axis_records) if axis.AxisTag == "wght"
-    }
-    axis_values = getattr(getattr(stat, "AxisValueArray", None), "AxisValue", None)
-    if not weight_axis_indices or not axis_values:
-        return
-
-    for axis_value in axis_values:
-        axis_index = getattr(axis_value, "AxisIndex", None)
-        if axis_index not in weight_axis_indices:
-            continue
-
-        value_name_id = getattr(axis_value, "ValueNameID", None)
-        value_name = font["name"].getDebugName(value_name_id) if value_name_id else None
-        if value_name == default_style:
-            axis_value.Flags = 2
-        else:
-            axis_value.Flags = 0
-
-
 def drop_intermediate_masters(font: TTFont, target_default: float) -> TTFont:
     """Drop the internal Regular weight master while keeping named instances."""
-    if "fvar" not in font or "gvar" not in font:
-        return font
-
-    weight_axis = get_weight_axis(font)
-    if not weight_axis:
-        return font
-
-    target_default = float(target_default)
-    axis_min = float(weight_axis.minValue)
-    axis_max = float(weight_axis.maxValue)
-    old_default = weight_axis.defaultValue
+    axis = weight_axis(font)
+    old_default = axis.defaultValue if axis else target_default
     print(f"Changing default from {old_default} to {target_default:g}")
-
-    if not axis_min <= target_default <= axis_max:
-        raise ValueError(
-            f"Target default {target_default:g} is outside wght axis "
-            f"{axis_min:g}..{axis_max:g}"
-        )
-
-    max_weight_font = instantiateVariableFont(
+    return change_default_master(
         font,
-        {"wght": axis_max},
-        inplace=False,
-        optimize=False,
-        overlap=OverlapMode.KEEP_AND_DONT_SET_FLAGS,
-        static=True,
+        target_default,
+        instance_weights=INSTANCE_WEIGHT_VALUES,
+        default_style="Regular",
     )
-    adjusted_font = instantiateVariableFont(
-        font,
-        {"wght": (target_default, target_default, axis_max)},
-        inplace=False,
-        optimize=False,
-    )
-
-    rebuild_linear_gvar(adjusted_font, max_weight_font)
-    update_instance_weight_values(adjusted_font)
-    update_stat_default_weight(adjusted_font)
-
-    for table_tag in ("HVAR", "avar"):
-        if table_tag in adjusted_font:
-            del adjusted_font[table_tag]
-
-    weight_axis = get_weight_axis(adjusted_font)
-    weight_axis.minValue = target_default
-    weight_axis.defaultValue = target_default
-    weight_axis.maxValue = axis_max
-
-    return adjusted_font
 
 
 def prepare_base_font(input_path: Path, target_default: float = 100) -> TTFont:
@@ -163,21 +43,21 @@ def prepare_base_font(input_path: Path, target_default: float = 100) -> TTFont:
         print("No fvar table found")
         return font
 
-    weight_axis = next((ax for ax in font["fvar"].axes if ax.axisTag == "wght"), None)
-    if not weight_axis:
+    axis = weight_axis(font)
+    if not axis:
         print("No wght axis found")
         return font
 
     print(
-        f"Current wght axis: {weight_axis.minValue}/{weight_axis.defaultValue}/{weight_axis.maxValue}"
+        f"Current wght axis: {axis.minValue}/{axis.defaultValue}/{axis.maxValue}"
     )
 
     # Drop intermediate masters and shift default
     font = drop_intermediate_masters(font, target_default)
-    weight_axis = get_weight_axis(font)
+    axis = weight_axis(font)
 
     print(
-        f"Adjusted wght axis: {weight_axis.minValue}/{weight_axis.defaultValue}/{weight_axis.maxValue}\n"
+        f"Adjusted wght axis: {axis.minValue}/{axis.defaultValue}/{axis.maxValue}\n"
     )
 
     return font
@@ -200,7 +80,7 @@ def merge_fonts(base: TTFont, extra: TTFont, output_path: Path) -> None:
         # Drop intermediate masters by shifting default to match extra
         if base_axis.defaultValue != extra_axis.defaultValue:
             base = drop_intermediate_masters(base, extra_axis.defaultValue)
-            base_axis = get_weight_axis(base)
+            base_axis = weight_axis(base)
 
         print(
             f"Base axis after: wght {base_axis.minValue}/{base_axis.defaultValue}/{base_axis.maxValue}"

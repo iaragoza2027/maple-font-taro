@@ -7,10 +7,9 @@ from typing import Iterable
 
 from fontTools import subset
 from fontTools.ttLib import TTFont
-from fontTools.ttLib.tables.TupleVariation import TupleVariation
 from fontTools.varLib.instancer import instantiateVariableFont
 
-from vf_merge import merge_vf
+from vf_utils import merge_vf, normalize_weight_axis, rebuild_weight_masters
 
 
 DEFAULT_INPUT = Path("source/cn/WenYuanRoundedSCVF.ttf")
@@ -223,144 +222,6 @@ def normalize_widths(font: TTFont) -> None:
         del font["HVAR"]
 
 
-def ensure_gvar_entries(font: TTFont) -> None:
-    if "gvar" not in font:
-        return
-
-    for glyph_name in font.getGlyphOrder():
-        font["gvar"].variations.setdefault(glyph_name, [])
-
-
-def gvar_coordinates(font: TTFont, glyph_name: str):
-    glyf = font["glyf"]
-    h_metrics = font["hmtx"].metrics
-    v_metrics = font["vmtx"].metrics if "vmtx" in font else None
-    coordinates, _ = glyf._getCoordinatesAndControls(glyph_name, h_metrics, v_metrics)
-    return coordinates
-
-
-def support_scalar_at_position(support: tuple[float, ...], position: float) -> float:
-    if len(support) == 3:
-        min_support, peak, max_support = support
-    else:
-        peak = support[0]
-        min_support = max_support = peak
-
-    if peak == 0:
-        return 0.0
-    if position == peak:
-        return 1.0
-    if position < peak:
-        if position < min_support or peak == min_support:
-            return 0.0
-        return (position - min_support) / (peak - min_support)
-    if position > max_support or max_support == peak:
-        return 0.0
-    return (max_support - position) / (max_support - peak)
-
-
-def current_max_weight_coordinates(font: TTFont, glyph_name: str):
-    coordinates = gvar_coordinates(font, glyph_name)
-    for variation in font["gvar"].variations.get(glyph_name, []):
-        support = variation.axes.get("wght")
-        if not support or variation.coordinates is None:
-            continue
-
-        scalar = support_scalar_at_position(support, 1.0)
-        if scalar == 0:
-            continue
-
-        for index, delta in enumerate(variation.coordinates):
-            if delta is None:
-                continue
-            dx, dy = delta
-            x, y = coordinates[index]
-            coordinates[index] = (x + dx * scalar, y + dy * scalar)
-
-    return coordinates
-
-
-def rebuild_weight_masters(font: TTFont, default_master: TTFont) -> None:
-    """Replace wght masters with sampled endpoints from static source instances."""
-    if "gvar" not in font or "glyf" not in font:
-        return
-
-    glyf = font["glyf"]
-    h_metrics = font["hmtx"].metrics
-    v_metrics = font["vmtx"].metrics if "vmtx" in font else None
-    variations = {}
-
-    for glyph_name in font.getGlyphOrder():
-        default_coordinates = gvar_coordinates(default_master, glyph_name)
-        max_coordinates = current_max_weight_coordinates(font, glyph_name)
-
-        if len(default_coordinates) != len(max_coordinates):
-            raise ValueError(
-                f"Point count mismatch for {glyph_name}: "
-                f"{len(default_coordinates)} != {len(max_coordinates)}"
-            )
-
-        glyf._setCoordinates(glyph_name, default_coordinates, h_metrics, v_metrics)
-
-        delta = [
-            (int(round(max_x - default_x)), int(round(max_y - default_y)))
-            for (default_x, default_y), (max_x, max_y) in zip(
-                default_coordinates, max_coordinates
-            )
-        ]
-        variations[glyph_name] = []
-        if any(dx or dy for dx, dy in delta):
-            variations[glyph_name].append(
-                TupleVariation({"wght": (0.0, 1.0, 1.0)}, delta)
-            )
-
-    font["gvar"].variations = variations
-    for table_tag in ("HVAR", "MVAR"):
-        if table_tag in font:
-            del font[table_tag]
-
-
-def normalize_weight_axis(font: TTFont) -> None:
-    if "fvar" not in font:
-        return
-
-    axes = [axis for axis in font["fvar"].axes if axis.axisTag == "wght"]
-    font["fvar"].axes = axes
-    if not axes:
-        return
-
-    weight_axis = axes[0]
-    weight_axis.minValue = 100
-    weight_axis.defaultValue = 100
-    weight_axis.maxValue = 800
-    weight_axis.flags = 0
-    weight_axis.axisNameID = WEIGHT_AXIS_NAME_ID
-    set_windows_name(font, WEIGHT_AXIS_NAME_ID, WEIGHT_AXIS_NAME)
-
-    roman_instances = [
-        instance
-        for instance in font["fvar"].instances
-        if instance.coordinates.get("ital", 0) == 0
-    ]
-    instance_by_name_id = {
-        instance.subfamilyNameID: instance for instance in roman_instances
-    }
-
-    instance_weights = [weight for _, weight in WEIGHT_MAPPING_POINTS]
-    new_instances = []
-    for instance_weight, (name_id, name) in zip(instance_weights, WEIGHT_INSTANCES):
-        instance = instance_by_name_id[name_id]
-        instance.coordinates = {"wght": float(instance_weight)}
-        instance.subfamilyNameID = name_id
-        instance.postscriptNameID = 0xFFFF
-        set_windows_name(font, name_id, name)
-        new_instances.append(instance)
-    font["fvar"].instances = new_instances
-
-    if "avar" in font:
-        del font["avar"]
-
-
 def prune_stat(font: TTFont) -> None:
     if "STAT" not in font:
         return
@@ -560,9 +421,14 @@ def patch_font(args: argparse.Namespace) -> TTFont:
         if table_tag in font:
             del font[table_tag]
 
-    ensure_gvar_entries(font)
     rebuild_weight_masters(font, default_master)
-    normalize_weight_axis(font)
+    normalize_weight_axis(
+        font,
+        axis_name_id=WEIGHT_AXIS_NAME_ID,
+        axis_name=WEIGHT_AXIS_NAME,
+        instance_weights=[weight for _, weight in WEIGHT_MAPPING_POINTS],
+        instances=list(WEIGHT_INSTANCES),
+    )
     subset_font(font, keep_codepoints, args.keep_gpos_kern)
     if "GSUB" in font:
         del font["GSUB"]
@@ -589,6 +455,14 @@ def main() -> None:
     merged_font, added_glyphs, added_codepoints = merge_vf(
         args.feature_font, patched_font
     )
+    normalize_weight_axis(
+        merged_font,
+        axis_name_id=WEIGHT_AXIS_NAME_ID,
+        axis_name=WEIGHT_AXIS_NAME,
+        instance_weights=[weight for _, weight in WEIGHT_MAPPING_POINTS],
+        instances=list(WEIGHT_INSTANCES),
+    )
+    prune_stat(merged_font)
 
     print_summary("merged", merged_font)
     print(f"merged added glyphs: {len(added_glyphs)}")

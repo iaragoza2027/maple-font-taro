@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from copy import deepcopy
 from pathlib import Path
 
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables.TupleVariation import TupleVariation
 from fontTools.varLib.instancer import OverlapMode, instantiateVariableFont
+
+from vf_merge import merge_vf
 
 
 INSTANCE_WEIGHT_VALUES = {
@@ -31,9 +32,7 @@ def get_gvar_coordinates(font: TTFont, glyph_name: str):
     glyf = font["glyf"]
     h_metrics = font["hmtx"].metrics
     v_metrics = font["vmtx"].metrics if "vmtx" in font else None
-    coordinates, _ = glyf._getCoordinatesAndControls(
-        glyph_name, h_metrics, v_metrics
-    )
+    coordinates, _ = glyf._getCoordinatesAndControls(glyph_name, h_metrics, v_metrics)
     return coordinates
 
 
@@ -60,9 +59,7 @@ def rebuild_linear_gvar(font: TTFont, max_weight_font: TTFont) -> None:
             )
         ]
         if any(dx or dy for dx, dy in delta):
-            variations[glyph_name] = [
-                TupleVariation({"wght": (0.0, 1.0, 1.0)}, delta)
-            ]
+            variations[glyph_name] = [TupleVariation({"wght": (0.0, 1.0, 1.0)}, delta)]
 
     font["gvar"].variations = variations
 
@@ -188,12 +185,6 @@ def prepare_base_font(input_path: Path, target_default: float = 100) -> TTFont:
 
 def merge_fonts(base: TTFont, extra: TTFont, output_path: Path) -> None:
     """Merge two variable fonts."""
-    # Validate
-    if base["head"].unitsPerEm != extra["head"].unitsPerEm:
-        raise ValueError(
-            f"UPEM mismatch: {base['head'].unitsPerEm} != {extra['head'].unitsPerEm}"
-        )
-
     # Check axes and adjust base font to match extra
     base_axis = next((ax for ax in base["fvar"].axes if ax.axisTag == "wght"), None)
     extra_axis = next((ax for ax in extra["fvar"].axes if ax.axisTag == "wght"), None)
@@ -215,69 +206,18 @@ def merge_fonts(base: TTFont, extra: TTFont, output_path: Path) -> None:
             f"Base axis after: wght {base_axis.minValue}/{base_axis.defaultValue}/{base_axis.maxValue}"
         )
 
-    # Find glyphs to add
     base_glyphs = set(base.getGlyphOrder())
-    extra_glyphs_to_add = [g for g in extra.getGlyphOrder() if g not in base_glyphs]
+    merged_font, added_glyphs, added_codepoints = merge_vf(base, extra)
 
     print(f"Base glyphs: {len(base_glyphs)}")
-    print(f"Extra glyphs to add: {len(extra_glyphs_to_add)}")
-
-    # Merge glyph data
-    base_glyf = base["glyf"]
-    extra_glyf = extra["glyf"]
-    base_hmtx = base["hmtx"]
-    extra_hmtx = extra["hmtx"]
-    base_gvar = base.get("gvar")
-    extra_gvar = extra.get("gvar")
-
-    for glyph_name in extra_glyphs_to_add:
-        base_glyf.glyphs[glyph_name] = deepcopy(extra_glyf.glyphs[glyph_name])
-        base_hmtx.metrics[glyph_name] = extra_hmtx.metrics[glyph_name]
-        if base_gvar and extra_gvar:
-            base_gvar.variations[glyph_name] = deepcopy(
-                extra_gvar.variations.get(glyph_name, [])
-            )
-
-    # Update glyph order
-    base.setGlyphOrder(list(base.getGlyphOrder()) + extra_glyphs_to_add)
-    base["maxp"].numGlyphs = len(base.getGlyphOrder())
-
-    # Merge cmap
-    base_cmap_entries = {}
-    for table in base["cmap"].tables:
-        if table.isUnicode():
-            base_cmap_entries.update(table.cmap)
-
-    extra_cmap_entries = {}
-    for table in extra["cmap"].tables:
-        if table.isUnicode():
-            extra_cmap_entries.update(table.cmap)
-
-    new_mappings = {
-        cp: glyph
-        for cp, glyph in extra_cmap_entries.items()
-        if glyph in extra_glyphs_to_add and cp not in base_cmap_entries
-    }
-
-    for table in base["cmap"].tables:
-        if table.isUnicode():
-            table.cmap.update(new_mappings)
-
-    print(f"Added {len(new_mappings)} new Unicode mappings")
-
-    # Recalculate
-    base["hhea"].numberOfHMetrics = len(base["hmtx"].metrics)
-    base["hhea"].recalc(base)
-    if "OS/2" in base:
-        base["OS/2"].recalcAvgCharWidth(base)
-        base["OS/2"].recalcUnicodeRanges(base)
-        base["OS/2"].recalcCodePageRanges(base)
+    print(f"Extra glyphs to add: {len(added_glyphs)}")
+    print(f"Added {added_codepoints} new Unicode mappings")
 
     # Save
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    base.save(output_path)
+    merged_font.save(output_path)
     print(f"Saved: {output_path}")
-    print(f"Total glyphs: {len(base.getGlyphOrder())}")
+    print(f"Total glyphs: {len(merged_font.getGlyphOrder())}")
 
 
 if __name__ == "__main__":
@@ -287,6 +227,6 @@ if __name__ == "__main__":
     )
     merge_fonts(
         base,
-        TTFont("source/cn/WenYuanRoundedSCVF-MapleCN.ttf"),
+        TTFont("source/cn/WenYuanRounded-CN-VF.ttf"),
         Path("fonts/MapleMono-CN-VF.ttf"),
     )

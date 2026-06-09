@@ -9,11 +9,12 @@ from fontTools import subset
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables.TupleVariation import TupleVariation
 from fontTools.varLib.instancer import instantiateVariableFont
-from fontTools.varLib.mutator import instantiateVariableFont as mutatorInstantiate
+
+from vf_merge import merge_vf
 
 
 DEFAULT_INPUT = Path("source/cn/WenYuanRoundedSCVF.ttf")
-DEFAULT_OUTPUT = Path("source/cn/WenYuanRoundedSCVF-MapleCN.ttf")
+DEFAULT_OUTPUT = Path("source/cn/WenYuanRounded-CN-VF.ttf")
 DEFAULT_FEATURE_FONT = Path("source/MapleMono-CN-feature-VF.ttf")
 
 BROAD_CJK_RANGES = (
@@ -35,6 +36,7 @@ BROAD_CJK_RANGES = (
 DROP_TABLES = ("BASE", "VVAR", "vhea", "vmtx")
 KEEP_GPOS_FEATURES = {"kern"}
 WIDTH_EXPANSION_OFFSET = 100
+VERTICAL_EXPANSION_OFFSET = -25
 WEIGHT_AXIS_NAME_ID = 256
 WEIGHT_AXIS_NAME = "Weight"
 MAPLE_HHEA_METRICS = {
@@ -63,35 +65,34 @@ MAPLE_POST_METRICS = {
     "italicAngle": 0,
 }
 WEIGHT_MAPPING_POINTS = (
-    (50, 50),
-    (100, 160),
-    (200, 240),
+    (100, 100),
+    (200, 210),
     (300, 320),
     (400, 400),
     (500, 490),
-    (600, 580),
-    (700, 670),
+    (600, 570),
+    (700, 680),
     (800, 800),
 )
 WEIGHT_INSTANCES = (
-    (100, 160, 261, "Thin"),
-    (200, 240, 262, "ExtraLight"),
-    (300, 320, 263, "Light"),
-    (400, 400, 259, "Regular"),
-    (500, 490, 265, "Medium"),
-    (600, 580, 266, "SemiBold"),
-    (700, 670, 267, "Bold"),
-    (800, 800, 268, "ExtraBold"),
+    (261, "Thin"),
+    (262, "ExtraLight"),
+    (263, "Light"),
+    (259, "Regular"),
+    (265, "Medium"),
+    (266, "SemiBold"),
+    (267, "Bold"),
+    (268, "ExtraBold"),
 )
 STAT_WEIGHT_VALUES = (
-    (261, "Thin", 160, 50, 200, 0),
-    (262, "ExtraLight", 240, 200, 280, 0),
-    (263, "Light", 320, 280, 360, 0),
+    (261, "Thin", 100, 100, 155, 0),
+    (262, "ExtraLight", 210, 155, 265, 0),
+    (263, "Light", 320, 265, 360, 0),
     (259, "Regular", 400, 360, 445, 2),
-    (265, "Medium", 490, 445, 535, 0),
-    (266, "SemiBold", 580, 535, 625, 0),
-    (267, "Bold", 670, 625, 735, 0),
-    (268, "ExtraBold", 800, 735, 800, 0),
+    (265, "Medium", 490, 445, 530, 0),
+    (266, "SemiBold", 570, 530, 625, 0),
+    (267, "Bold", 680, 625, 740, 0),
+    (268, "ExtraBold", 800, 740, 800, 0),
 )
 
 
@@ -115,6 +116,12 @@ def parse_args() -> argparse.Namespace:
         "--dry-run",
         action="store_true",
         help="Print planned changes without writing the output font.",
+    )
+    parser.add_argument(
+        "--patched-output",
+        type=Path,
+        default=None,
+        help="Optional debug path for the patched WenYuan font before feature merge.",
     )
     parser.add_argument(
         "--feature-font",
@@ -152,25 +159,6 @@ def set_windows_name(font: TTFont, name_id: int, value: str) -> None:
     font["name"].setName(value, name_id, 3, 1, 0x409)
 
 
-def normalized_weight(value: float) -> float:
-    if value <= 50:
-        return 0
-    if value >= 800:
-        return 1
-    return (value - 50) / 750
-
-
-def weight_axis_map() -> dict[float, float]:
-    result = {-1.0: -1.0}
-    result.update(
-        {
-            normalized_weight(user_weight): normalized_weight(design_weight)
-            for user_weight, design_weight in WEIGHT_MAPPING_POINTS
-        }
-    )
-    return result
-
-
 def apply_horizontal_metrics(font: TTFont) -> None:
     hhea = font["hhea"]
     for attr, value in MAPLE_HHEA_METRICS.items():
@@ -186,8 +174,10 @@ def apply_horizontal_metrics(font: TTFont) -> None:
         setattr(post, attr, value)
 
 
-def move_glyph_right(font: TTFont, glyph_name: str, offset: int) -> None:
-    if "glyf" not in font or offset == 0:
+def move_glyph_right(
+    font: TTFont, glyph_name: str, horizontal_shift: int, vertical_shift
+) -> None:
+    if "glyf" not in font or horizontal_shift == 0:
         return
 
     glyf = font["glyf"]
@@ -195,15 +185,15 @@ def move_glyph_right(font: TTFont, glyph_name: str, offset: int) -> None:
     if glyph.isComposite():
         for component in glyph.components:
             if hasattr(component, "x"):
-                component.x += offset
+                component.x += horizontal_shift
             elif hasattr(component, "arg1") and not component.flags & 0x0002:
-                component.arg1 += offset
+                component.arg1 += horizontal_shift
     elif getattr(glyph, "numberOfContours", 0) > 0:
         coordinates = glyph.coordinates
         if coordinates is None:
             coordinates, _, _ = glyph.getCoordinates(glyf)
             glyph.coordinates = coordinates
-        coordinates.translate((offset, 0))
+        coordinates.translate((horizontal_shift, vertical_shift))
 
     glyph.recalcBounds(glyf)
 
@@ -220,7 +210,9 @@ def normalize_widths(font: TTFont) -> None:
         _, lsb = font["hmtx"].metrics[glyph_name]
         width = 0 if glyph_name in zero_width_glyphs else 1200
         if width:
-            move_glyph_right(font, glyph_name, WIDTH_EXPANSION_OFFSET)
+            move_glyph_right(
+                font, glyph_name, WIDTH_EXPANSION_OFFSET, VERTICAL_EXPANSION_OFFSET
+            )
             lsb += WIDTH_EXPANSION_OFFSET
         font["hmtx"].metrics[glyph_name] = (width, lsb)
 
@@ -231,48 +223,6 @@ def normalize_widths(font: TTFont) -> None:
         del font["HVAR"]
 
 
-def normalize_user_weight(value: float) -> float:
-    return normalized_weight(value)
-
-
-def denormalize_source_weight(norm: float) -> float:
-    if norm <= -1:
-        return 50
-    return 50 + norm * 750
-
-
-def source_weight_to_public(value: float) -> float:
-    return value
-
-
-def remap_tuple_variation_axis(variation: TupleVariation) -> None:
-    peak = variation.axes.get("wght")
-    if peak is None:
-        return
-
-    remapped = []
-    for norm in peak:
-        source_weight = denormalize_source_weight(norm)
-        public_weight = source_weight_to_public(source_weight)
-        remapped.append(normalize_user_weight(public_weight))
-
-    variation.axes["wght"] = tuple(remapped)
-
-
-def remap_variation_data(font: TTFont) -> None:
-    if "gvar" in font:
-        for variations in font["gvar"].variations.values():
-            for variation in variations:
-                remap_tuple_variation_axis(variation)
-
-    if "cvar" in font:
-        for variation in font["cvar"].variations:
-            remap_tuple_variation_axis(variation)
-
-    # HVAR is removed during width normalization. If widths are preserved, leaving
-    # HVAR untouched is safer than partially rewriting device variation stores.
-
-
 def ensure_gvar_entries(font: TTFont) -> None:
     if "gvar" not in font:
         return
@@ -281,161 +231,93 @@ def ensure_gvar_entries(font: TTFont) -> None:
         font["gvar"].variations.setdefault(glyph_name, [])
 
 
-def replace_default_master(font: TTFont, source_weight: float) -> None:
-    """Replace the default master with an interpolated instance at source_weight."""
-    if "fvar" not in font or "gvar" not in font:
+def gvar_coordinates(font: TTFont, glyph_name: str):
+    glyf = font["glyf"]
+    h_metrics = font["hmtx"].metrics
+    v_metrics = font["vmtx"].metrics if "vmtx" in font else None
+    coordinates, _ = glyf._getCoordinatesAndControls(glyph_name, h_metrics, v_metrics)
+    return coordinates
+
+
+def support_scalar_at_position(support: tuple[float, ...], position: float) -> float:
+    if len(support) == 3:
+        min_support, peak, max_support = support
+    else:
+        peak = support[0]
+        min_support = max_support = peak
+
+    if peak == 0:
+        return 0.0
+    if position == peak:
+        return 1.0
+    if position < peak:
+        if position < min_support or peak == min_support:
+            return 0.0
+        return (position - min_support) / (peak - min_support)
+    if position > max_support or max_support == peak:
+        return 0.0
+    return (max_support - position) / (max_support - peak)
+
+
+def current_max_weight_coordinates(font: TTFont, glyph_name: str):
+    coordinates = gvar_coordinates(font, glyph_name)
+    for variation in font["gvar"].variations.get(glyph_name, []):
+        support = variation.axes.get("wght")
+        if not support or variation.coordinates is None:
+            continue
+
+        scalar = support_scalar_at_position(support, 1.0)
+        if scalar == 0:
+            continue
+
+        for index, delta in enumerate(variation.coordinates):
+            if delta is None:
+                continue
+            dx, dy = delta
+            x, y = coordinates[index]
+            coordinates[index] = (x + dx * scalar, y + dy * scalar)
+
+    return coordinates
+
+
+def rebuild_weight_masters(font: TTFont, default_master: TTFont) -> None:
+    """Replace wght masters with sampled endpoints from static source instances."""
+    if "gvar" not in font or "glyf" not in font:
         return
 
-    # Get the current default value (before we change it)
-    weight_axis = next((ax for ax in font["fvar"].axes if ax.axisTag == "wght"), None)
-    if not weight_axis:
-        return
-
-    old_default = weight_axis.defaultValue
-    if abs(old_default - source_weight) < 0.01:
-        return  # Already at target weight
-
-    # Calculate normalized position
-    old_norm = (old_default - weight_axis.minValue) / (
-        weight_axis.maxValue - weight_axis.minValue
-    )
-    new_norm = (source_weight - weight_axis.minValue) / (
-        weight_axis.maxValue - weight_axis.minValue
-    )
-    delta_norm = new_norm - old_norm
-
-    # Apply delta to default master for each glyph
-    gvar = font["gvar"]
-    glyf = font.get("glyf")
-    if not glyf:
-        return
+    glyf = font["glyf"]
+    h_metrics = font["hmtx"].metrics
+    v_metrics = font["vmtx"].metrics if "vmtx" in font else None
+    variations = {}
 
     for glyph_name in font.getGlyphOrder():
-        variations = gvar.variations.get(glyph_name, [])
-        if not variations:
-            continue
+        default_coordinates = gvar_coordinates(default_master, glyph_name)
+        max_coordinates = current_max_weight_coordinates(font, glyph_name)
 
-        glyph = glyf[glyph_name]
-        if not hasattr(glyph, "coordinates") or glyph.coordinates is None:
-            try:
-                coords, _, _ = glyph.getCoordinates(glyf)
-            except Exception:
-                continue
-        else:
-            coords = glyph.coordinates
+        if len(default_coordinates) != len(max_coordinates):
+            raise ValueError(
+                f"Point count mismatch for {glyph_name}: "
+                f"{len(default_coordinates)} != {len(max_coordinates)}"
+            )
 
-        # Accumulate deltas from all variations that affect this position
-        total_delta_x = [0] * len(coords)
-        total_delta_y = [0] * len(coords)
+        glyf._setCoordinates(glyph_name, default_coordinates, h_metrics, v_metrics)
 
-        for variation in variations:
-            wght_support = variation.axes.get("wght")
-            if not wght_support:
-                continue
+        delta = [
+            (int(round(max_x - default_x)), int(round(max_y - default_y)))
+            for (default_x, default_y), (max_x, max_y) in zip(
+                default_coordinates, max_coordinates
+            )
+        ]
+        variations[glyph_name] = []
+        if any(dx or dy for dx, dy in delta):
+            variations[glyph_name].append(
+                TupleVariation({"wght": (0.0, 1.0, 1.0)}, delta)
+            )
 
-            # Calculate scalar based on where delta_norm falls in the support
-            peak = wght_support[1] if len(wght_support) > 1 else wght_support[0]
-            if len(wght_support) == 3:
-                min_support, peak, max_support = wght_support
-            else:
-                min_support = max_support = peak
-
-            # Calculate how much this variation contributes
-            if delta_norm == 0:
-                scalar = 0.0
-            elif delta_norm > 0:
-                if peak <= 0:
-                    scalar = 0.0
-                elif delta_norm <= peak:
-                    scalar = delta_norm / peak if peak != 0 else 0.0
-                elif delta_norm <= max_support:
-                    scalar = (max_support - delta_norm) / (max_support - peak) if max_support != peak else 1.0
-                else:
-                    scalar = 0.0
-            else:  # delta_norm < 0
-                if peak >= 0:
-                    scalar = 0.0
-                elif delta_norm >= peak:
-                    scalar = delta_norm / peak if peak != 0 else 0.0
-                elif delta_norm >= min_support:
-                    scalar = (min_support - delta_norm) / (min_support - peak) if min_support != peak else 1.0
-                else:
-                    scalar = 0.0
-
-            # Apply this variation's deltas
-            if scalar != 0 and variation.coordinates is not None:
-                for i, coord in enumerate(variation.coordinates):
-                    if coord is None:
-                        continue
-                    if i < len(total_delta_x):
-                        dx, dy = coord if isinstance(coord, tuple) else (coord, 0)
-                        total_delta_x[i] += dx * scalar
-                        total_delta_y[i] += dy * scalar
-
-        # Apply accumulated deltas to the default master
-        for i in range(len(coords)):
-            x, y = coords[i]
-            coords[i] = (x + round(total_delta_x[i]), y + round(total_delta_y[i]))
-
-        glyph.coordinates = coords
-        try:
-            glyph.recalcBounds(glyf)
-        except Exception:
-            pass
-
-    # Now adjust all variation deltas to be relative to the new default
-    for glyph_name in font.getGlyphOrder():
-        variations = gvar.variations.get(glyph_name, [])
-        if not variations:
-            continue
-
-        glyph = glyf[glyph_name]
-        if not hasattr(glyph, "coordinates") or glyph.coordinates is None:
-            continue
-
-        for variation in variations:
-            wght_support = variation.axes.get("wght")
-            if not wght_support or variation.coordinates is None:
-                continue
-
-            # Calculate the scalar we already applied
-            peak = wght_support[1] if len(wght_support) > 1 else wght_support[0]
-            if len(wght_support) == 3:
-                min_support, peak, max_support = wght_support
-            else:
-                min_support = max_support = peak
-
-            if delta_norm == 0:
-                scalar = 0.0
-            elif delta_norm > 0:
-                if peak <= 0:
-                    scalar = 0.0
-                elif delta_norm <= peak:
-                    scalar = delta_norm / peak if peak != 0 else 0.0
-                elif delta_norm <= max_support:
-                    scalar = (max_support - delta_norm) / (max_support - peak) if max_support != peak else 1.0
-                else:
-                    scalar = 0.0
-            else:
-                if peak >= 0:
-                    scalar = 0.0
-                elif delta_norm >= peak:
-                    scalar = delta_norm / peak if peak != 0 else 0.0
-                elif delta_norm >= min_support:
-                    scalar = (min_support - delta_norm) / (min_support - peak) if min_support != peak else 1.0
-                else:
-                    scalar = 0.0
-
-            # Subtract the applied delta from the variation
-            if scalar != 0:
-                new_coords = []
-                for i, coord in enumerate(variation.coordinates):
-                    if coord is None:
-                        new_coords.append(None)
-                        continue
-                    dx, dy = coord if isinstance(coord, tuple) else (coord, 0)
-                    new_coords.append((int(round(dx * (1 - scalar))), int(round(dy * (1 - scalar)))))
-                variation.coordinates = new_coords
+    font["gvar"].variations = variations
+    for table_tag in ("HVAR", "MVAR"):
+        if table_tag in font:
+            del font[table_tag]
 
 
 def normalize_weight_axis(font: TTFont) -> None:
@@ -464,10 +346,11 @@ def normalize_weight_axis(font: TTFont) -> None:
         instance.subfamilyNameID: instance for instance in roman_instances
     }
 
+    instance_weights = [weight for _, weight in WEIGHT_MAPPING_POINTS]
     new_instances = []
-    for user_weight, _, name_id, name in WEIGHT_INSTANCES:
+    for instance_weight, (name_id, name) in zip(instance_weights, WEIGHT_INSTANCES):
         instance = instance_by_name_id[name_id]
-        instance.coordinates = {"wght": float(user_weight)}
+        instance.coordinates = {"wght": float(instance_weight)}
         instance.subfamilyNameID = name_id
         instance.postscriptNameID = 0xFFFF
         set_windows_name(font, name_id, name)
@@ -475,9 +358,7 @@ def normalize_weight_axis(font: TTFont) -> None:
     font["fvar"].instances = new_instances
 
     if "avar" in font:
-        font["avar"].segments = {"wght": weight_axis_map()}
-
-    remap_variation_data(font)
+        del font["avar"]
 
 
 def prune_stat(font: TTFont) -> None:
@@ -667,13 +548,20 @@ def patch_font(args: argparse.Namespace) -> TTFont:
     print(f"planned feature font glyph exclusions: {len(excluded_glyphs)}")
 
     font = instantiateVariableFont(source, {"ital": 0}, inplace=False)
+    default_master = instantiateVariableFont(
+        source,
+        {"ital": 0, "wght": 250},
+        inplace=False,
+        optimize=False,
+        static=True,
+    )
 
     for table_tag in DROP_TABLES:
         if table_tag in font:
             del font[table_tag]
 
     ensure_gvar_entries(font)
-    replace_default_master(font, 160.0)  # 160 in source maps to 100 in user coordinates
+    rebuild_weight_masters(font, default_master)
     normalize_weight_axis(font)
     subset_font(font, keep_codepoints, args.keep_gpos_kern)
     if "GSUB" in font:
@@ -697,14 +585,26 @@ def patch_font(args: argparse.Namespace) -> TTFont:
 
 def main() -> None:
     args = parse_args()
-    font = patch_font(args)
+    patched_font = patch_font(args)
+    merged_font, added_glyphs, added_codepoints = merge_vf(
+        args.feature_font, patched_font
+    )
+
+    print_summary("merged", merged_font)
+    print(f"merged added glyphs: {len(added_glyphs)}")
+    print(f"merged added unicodes: {added_codepoints}")
 
     if args.dry_run:
         print("dry-run: output not written")
         return
 
+    if args.patched_output:
+        args.patched_output.parent.mkdir(parents=True, exist_ok=True)
+        patched_font.save(args.patched_output)
+        print(f"saved patched font: {args.patched_output}")
+
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    font.save(args.output)
+    merged_font.save(args.output)
     print(f"saved: {args.output}")
 
 

@@ -4,33 +4,52 @@ from __future__ import annotations
 import argparse
 import math
 from copy import deepcopy
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
 from fontTools import subset
 from fontTools.ttLib import TTFont
-from fontTools.varLib.instancer import instantiateVariableFont
+from fontTools.varLib.instancer import instantiateVariableFont, otRound
 
 from vf_utils import (
+    get_cmap_codepoints,
+    get_unicode_cmap,
     merge_vf,
     normalize_weight_axis,
     rebuild_weight_masters_with_regular_default,
     weight_axis,
 )
 
+# ============================================================================
+# Configuration Constants
+# ============================================================================
 
 DEFAULT_WENYUAN_SOURCE = Path("source/cn/WenYuanRoundedSCVF.ttf")
 DEFAULT_FEATURE_FONT = Path("source/MapleMono-CN-feature-VF.ttf")
 DEFAULT_REGULAR_BASE = Path("fonts/Variable/MapleMono[wght].ttf")
 DEFAULT_ITALIC_BASE = Path("fonts/Variable/MapleMono-Italic[wght].ttf")
 DEFAULT_OUTPUT_DIR = Path("fonts/Variable")
-DEFAULT_ITALIC_ANGLE = -10
-DEFAULT_ITALIC_PIVOT_Y = 350
+DEFAULT_ITALIC_ANGLE = 10
 
-REGULAR_OUTPUT_NAME = "MapleMono-CN[wght].ttf"
-ITALIC_OUTPUT_NAME = "MapleMono-CN-Italic[wght].ttf"
 
-EXPECTED_WEIGHT_AXIS = (100.0, 400.0, 800.0)
+@dataclass(frozen=True)
+class BuildConfig:
+    """Build configuration constants."""
+    REGULAR_OUTPUT_NAME: str = "MapleMono-CN[wght].ttf"
+    ITALIC_OUTPUT_NAME: str = "MapleMono-CN-Italic[wght].ttf"
+    EXPECTED_WEIGHT_AXIS: tuple[float, float, float] = (100.0, 400.0, 800.0)
+    DROP_TABLES: tuple[str, ...] = ("BASE", "VVAR", "vhea", "vmtx")
+    WIDTH_EXPANSION_OFFSET: int = 100
+    VERTICAL_EXPANSION_OFFSET: int = -25
+    WEIGHT_AXIS_NAME_ID: int = 256
+    WEIGHT_AXIS_NAME: str = "Weight"
+    OUTPUT_WEIGHT_REGULAR: int = 400
+
+
+# Create singleton instance
+BUILD_CONFIG = BuildConfig()
+
 BROAD_CJK_RANGES = (
     (0x2460, 0x24FF),
     (0x2E80, 0x2EFF),
@@ -47,12 +66,17 @@ BROAD_CJK_RANGES = (
     (0xFF00, 0xFFEF),
 )
 
-DROP_TABLES = ("BASE", "VVAR", "vhea", "vmtx")
-WIDTH_EXPANSION_OFFSET = 100
-VERTICAL_EXPANSION_OFFSET = -25
-WEIGHT_AXIS_NAME_ID = 256
-WEIGHT_AXIS_NAME = "Weight"
-OUTPUT_WEIGHT_REGULAR = 400
+# Backward compatibility - expose BUILD_CONFIG constants at module level
+REGULAR_OUTPUT_NAME = BUILD_CONFIG.REGULAR_OUTPUT_NAME
+ITALIC_OUTPUT_NAME = BUILD_CONFIG.ITALIC_OUTPUT_NAME
+EXPECTED_WEIGHT_AXIS = BUILD_CONFIG.EXPECTED_WEIGHT_AXIS
+DROP_TABLES = BUILD_CONFIG.DROP_TABLES
+WIDTH_EXPANSION_OFFSET = BUILD_CONFIG.WIDTH_EXPANSION_OFFSET
+VERTICAL_EXPANSION_OFFSET = BUILD_CONFIG.VERTICAL_EXPANSION_OFFSET
+WEIGHT_AXIS_NAME_ID = BUILD_CONFIG.WEIGHT_AXIS_NAME_ID
+WEIGHT_AXIS_NAME = BUILD_CONFIG.WEIGHT_AXIS_NAME
+OUTPUT_WEIGHT_REGULAR = BUILD_CONFIG.OUTPUT_WEIGHT_REGULAR
+
 MAPLE_HHEA_METRICS = {
     "ascent": 990,
     "descent": -270,
@@ -110,6 +134,10 @@ STAT_WEIGHT_VALUES = (
 )
 
 
+# ============================================================================
+# CLI & Configuration
+# ============================================================================
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Build Maple Mono CN variable fonts from MapleMono and WenYuan."
@@ -123,53 +151,19 @@ def parse_args() -> argparse.Namespace:
         "--angle",
         type=float,
         default=DEFAULT_ITALIC_ANGLE,
-        help="Italic angle in degrees. Negative values lean right.",
-    )
-    parser.add_argument(
-        "--italic-pivot-y",
-        type=float,
-        default=DEFAULT_ITALIC_PIVOT_Y,
-        help="Y coordinate used as the fixed line for CJK italic shear.",
+        help="Right-leaning oblique angle in degrees.",
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Build and summarize fonts without writing output files.",
     )
-    parser.add_argument(
-        "--subset-output-dir",
-        type=Path,
-        default=None,
-        help="Optional debug output directory for small verification subsets.",
-    )
-    parser.add_argument(
-        "--subset-text",
-        default="中",
-        help="Text to keep in debug subsets.",
-    )
-    parser.add_argument(
-        "--subset-only",
-        action="store_true",
-        help="Only build debug subsets for --subset-text.",
-    )
     return parser.parse_args()
 
 
-def cmap_codepoints(font: TTFont) -> set[int]:
-    codepoints: set[int] = set()
-    for table in font["cmap"].tables:
-        if table.isUnicode():
-            codepoints.update(table.cmap)
-    return codepoints
-
-
-def cmap_items(font: TTFont) -> dict[int, str]:
-    result: dict[int, str] = {}
-    for table in font["cmap"].tables:
-        if table.isUnicode():
-            result.update(table.cmap)
-    return result
-
+# ============================================================================
+# Codepoint & Glyph Utilities
+# ============================================================================
 
 def allowed_codepoints(source_codepoints: Iterable[int]) -> set[int]:
     allowed: set[int] = set()
@@ -177,6 +171,10 @@ def allowed_codepoints(source_codepoints: Iterable[int]) -> set[int]:
         allowed.update(cp for cp in source_codepoints if start <= cp <= end)
     return allowed
 
+
+# ============================================================================
+# Naming & Metadata
+# ============================================================================
 
 def set_name(font: TTFont, name_id: int, value: str) -> None:
     records = [record for record in font["name"].names if record.nameID == name_id]
@@ -197,6 +195,10 @@ def set_name(font: TTFont, name_id: int, value: str) -> None:
 def replace_windows_name(font: TTFont, name_id: int, value: str) -> None:
     font["name"].setName(value, name_id, 3, 1, 0x409)
 
+
+# ============================================================================
+# Metrics & Horizontal Adjustments
+# ============================================================================
 
 def apply_horizontal_metrics(font: TTFont) -> None:
     hhea = font["hhea"]
@@ -238,7 +240,7 @@ def move_glyph(
 
 
 def normalize_widths(font: TTFont) -> None:
-    cmap = cmap_items(font)
+    cmap = get_unicode_cmap(font)
     zero_width_glyphs = {glyph for cp, glyph in cmap.items() if 0x0300 <= cp <= 0x036F}
     zero_width_glyphs.add(".notdef")
 
@@ -259,6 +261,24 @@ def normalize_widths(font: TTFont) -> None:
 
     if "HVAR" in font:
         del font["HVAR"]
+
+
+# ============================================================================
+# Font Subsetting & Pruning
+# ============================================================================
+
+def _make_subset_options() -> subset.Options:
+    """Create standard subset options for font subsetting."""
+    options = subset.Options()
+    options.layout_features = []
+    options.name_IDs = ["*"]
+    options.name_legacy = True
+    options.name_languages = ["*"]
+    options.recalc_bounds = True
+    options.recalc_timestamp = False
+    options.notdef_outline = True
+    options.recommended_glyphs = False
+    return options
 
 
 def prune_stat(font: TTFont) -> None:
@@ -299,15 +319,7 @@ def prune_stat(font: TTFont) -> None:
 def subset_font(font: TTFont, codepoints: set[int]) -> None:
     ensure_gvar_entries(font)
 
-    options = subset.Options()
-    options.layout_features = []
-    options.name_IDs = ["*"]
-    options.name_legacy = True
-    options.name_languages = ["*"]
-    options.recalc_bounds = True
-    options.recalc_timestamp = False
-    options.notdef_outline = True
-    options.recommended_glyphs = False
+    options = _make_subset_options()
 
     sub = subset.Subsetter(options=options)
     sub.populate(unicodes=codepoints)
@@ -325,19 +337,11 @@ def ensure_gvar_entries(font: TTFont) -> None:
 
 
 def keep_only_unicode_glyphs(font: TTFont, excluded_glyphs: set[str]) -> int:
-    glyphs = {".notdef", *cmap_items(font).values()}
+    glyphs = {".notdef", *get_unicode_cmap(font).values()}
     removed_glyphs = (glyphs - {".notdef"}) & excluded_glyphs
     glyphs -= removed_glyphs
 
-    options = subset.Options()
-    options.name_IDs = ["*"]
-    options.name_legacy = True
-    options.name_languages = ["*"]
-    options.recalc_bounds = True
-    options.recalc_timestamp = False
-    options.notdef_outline = True
-    options.recommended_glyphs = False
-    options.layout_features = []
+    options = _make_subset_options()
 
     sub = subset.Subsetter(options=options)
     sub.populate(glyphs=glyphs)
@@ -354,6 +358,10 @@ def glyphs_from_fonts(paths: Iterable[Path]) -> set[str]:
     glyphs.discard(".notdef")
     return glyphs
 
+
+# ============================================================================
+# Font Loading & Validation
+# ============================================================================
 
 def recalculate(font: TTFont) -> None:
     if "OS/2" in font:
@@ -380,7 +388,7 @@ def print_summary(prefix: str, font: TTFont) -> None:
             for axis in font["fvar"].axes
         ]
     print(f"{prefix} glyphs: {len(font.getGlyphOrder())}")
-    print(f"{prefix} unicodes: {len(cmap_codepoints(font))}")
+    print(f"{prefix} unicodes: {len(get_cmap_codepoints(font))}")
     print(f"{prefix} axes: {', '.join(axes) if axes else 'none'}")
     print(f"{prefix} GSUB features: {', '.join(feature_tags(font, 'GSUB')) or 'none'}")
     print(f"{prefix} GPOS features: {', '.join(feature_tags(font, 'GPOS')) or 'none'}")
@@ -404,12 +412,16 @@ def load_variable_font(input_path: Path) -> TTFont:
         raise ValueError(f"Font is missing fvar table: {input_path}")
 
     values = require_weight_axis_values(font, input_path)
-    if values != EXPECTED_WEIGHT_AXIS:
-        expected = "/".join(f"{value:g}" for value in EXPECTED_WEIGHT_AXIS)
+    if values != BUILD_CONFIG.EXPECTED_WEIGHT_AXIS:
+        expected = "/".join(f"{value:g}" for value in BUILD_CONFIG.EXPECTED_WEIGHT_AXIS)
         actual = "/".join(f"{value:g}" for value in values)
         raise ValueError(f"Expected wght axis {expected}, got {actual}: {input_path}")
     return font
 
+
+# ============================================================================
+# Weight Axis Normalization
+# ============================================================================
 
 def normalize_wght_axis(font: TTFont) -> None:
     normalize_weight_axis(
@@ -422,81 +434,76 @@ def normalize_wght_axis(font: TTFont) -> None:
     )
 
 
-def subset_for_text(font: TTFont, text: str) -> TTFont:
-    subset_font_copy = deepcopy(font)
-    for table_tag in ("HVAR", "MVAR", "avar"):
-        if table_tag in subset_font_copy:
-            del subset_font_copy[table_tag]
+# ============================================================================
+# Font Merging & Building
+# ============================================================================
 
-    options = subset.Options()
-    options.name_IDs = ["*"]
-    options.name_legacy = True
-    options.name_languages = ["*"]
-    options.recalc_bounds = True
-    options.recalc_timestamp = False
-    options.notdef_outline = True
-    options.recommended_glyphs = False
-    options.layout_features = ["*"]
-
-    sub = subset.Subsetter(options=options)
-    sub.populate(text=text)
-    sub.subset(subset_font_copy)
-    recalculate(subset_font_copy)
-    return subset_font_copy
-
-
-def save_debug_subset(
-    font: TTFont, output_dir: Path | None, filename: str, text: str
-) -> None:
-    if output_dir is None:
-        return
-
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / filename
-    subset_for_text(font, text).save(output_path)
-    print(f"saved debug subset: {output_path}")
-
-
-def patch_wenyuan(
-    wenyuan_source: Path,
-    excluded_glyphs: set[str],
-    dry_run: bool,
-    keep_codepoints: set[int] | None = None,
-) -> TTFont:
-    source = TTFont(wenyuan_source)
-    source_codepoints = cmap_codepoints(source)
-    is_debug_subset = keep_codepoints is not None
-    if keep_codepoints is None:
-        keep_codepoints = allowed_codepoints(source_codepoints)
-
-    print_summary("source", source)
-    print(f"planned unicode keep: {len(keep_codepoints)}")
-    print(f"planned unicode drop: {len(source_codepoints - keep_codepoints)}")
-    print(f"planned base/feature glyph exclusions: {len(excluded_glyphs)}")
-
-    if is_debug_subset:
-        subset_font(source, keep_codepoints)
-
+def _instantiate_wenyuan_static(source: TTFont) -> TTFont:
+    """Instantiate WenYuan to static ital=0 and drop unnecessary tables."""
     font = instantiateVariableFont(source, {"ital": 0}, inplace=False)
-    source.close()
-
     for table_tag in DROP_TABLES:
         if table_tag in font:
             del font[table_tag]
+    return font
 
-    normalize_wght_axis(font)
+
+def _subset_wenyuan_unicode(font: TTFont, keep_codepoints: set[int]) -> None:
+    """Apply unicode subsetting and remove GSUB/GPOS features."""
     subset_font(font, keep_codepoints)
     if "GSUB" in font:
         del font["GSUB"]
     if "GPOS" in font:
         del font["GPOS"]
 
-    removed_glyphs = keep_only_unicode_glyphs(font, excluded_glyphs)
-    print(f"removed base/feature glyphs: {removed_glyphs}")
+
+def _apply_wenyuan_finalization(font: TTFont) -> None:
+    """Apply final metrics, pruning, and recalculation."""
     prune_stat(font)
     apply_horizontal_metrics(font)
     normalize_widths(font)
     recalculate(font)
+
+
+def patch_wenyuan(
+    wenyuan_source: Path,
+    excluded_glyphs: set[str],
+    dry_run: bool,
+) -> TTFont:
+    """
+    Prepare WenYuan font for merging with Maple Mono base.
+
+    Returns a font with:
+    - CJK codepoints only (BROAD_CJK_RANGES)
+    - Normalized weight axis (100/400/800)
+    - No GSUB/GPOS features
+    - Maple Mono metrics applied
+    - All widths normalized to 1200 or 0
+    """
+    source = TTFont(wenyuan_source)
+    source_codepoints = get_cmap_codepoints(source)
+    keep_codepoints = allowed_codepoints(source_codepoints)
+
+    print_summary("source", source)
+    print(f"planned unicode keep: {len(keep_codepoints)}")
+    print(f"planned unicode drop: {len(source_codepoints - keep_codepoints)}")
+    print(f"planned base/feature glyph exclusions: {len(excluded_glyphs)}")
+
+    # Stage 1: Instantiate to static
+    font = _instantiate_wenyuan_static(source)
+    source.close()
+
+    # Stage 2: Normalize weight axis
+    normalize_wght_axis(font)
+
+    # Stage 3: Apply subsetting
+    _subset_wenyuan_unicode(font, keep_codepoints)
+
+    # Stage 4: Remove excluded glyphs
+    removed_glyphs = keep_only_unicode_glyphs(font, excluded_glyphs)
+    print(f"removed base/feature glyphs: {removed_glyphs}")
+
+    # Stage 5: Apply metrics and finalization
+    _apply_wenyuan_finalization(font)
 
     print_summary("patched WenYuan", font)
     if dry_run:
@@ -504,18 +511,12 @@ def patch_wenyuan(
     return font
 
 
-def subset_codepoints(text: str) -> set[int]:
-    return {ord(char) for char in text}
-
-
-def ot_round(value: float) -> int:
-    return (
-        int(math.floor(value + 0.5)) if value >= 0 else -int(math.floor(-value + 0.5))
-    )
-
+# ============================================================================
+# Italic Generation
+# ============================================================================
 
 def calculate_skew(italic_angle_deg: float) -> float:
-    return -math.tan(math.radians(italic_angle_deg))
+    return math.tan(math.radians(italic_angle_deg))
 
 
 def italic_name(value: str) -> str:
@@ -532,41 +533,54 @@ def italic_postscript_name(value: str) -> str:
     return f"{value}-Italic"
 
 
-def skew_glyph(
-    font: TTFont, glyph_name: str, skew_factor: float, pivot_y: float
+def component_matrix(component) -> tuple[float, float, float, float]:
+    if not hasattr(component, "transform"):
+        return (1, 0, 0, 1)
+    return (
+        component.transform[0][0],
+        component.transform[0][1],
+        component.transform[1][0],
+        component.transform[1][1],
+    )
+
+
+def transform_component(
+    component, transform: tuple[float, ...], update_position: bool = True
 ) -> None:
-    glyf_table = font["glyf"]
-    glyph = glyf_table[glyph_name]
-    transform = ((1, 0), (skew_factor, 1))
-    # x_shift = ot_round(-pivot_y * skew_factor)
+    xx1, xy1, yx1, yy1, dx1, dy1 = transform
+    xx2, xy2, yx2, yy2 = component_matrix(component)
+    x2 = getattr(component, "x", 0)
+    y2 = getattr(component, "y", 0)
 
-    if glyph.isComposite():
-        coordinates, end_pts, flags = glyph.getCoordinates(glyf_table)
-        glyph.coordinates = coordinates
-        glyph.endPtsOfContours = end_pts
-        glyph.flags = flags
-        glyph.numberOfContours = len(end_pts)
-        if hasattr(glyph, "components"):
-            del glyph.components
-    elif getattr(glyph, "numberOfContours", 0) > 0:
-        if not hasattr(glyph, "coordinates") or glyph.coordinates is None:
-            coordinates, _, _ = glyph.getCoordinates(glyf_table)
-            glyph.coordinates = coordinates
-        else:
-            coordinates = glyph.coordinates
+    xx = xx1 * xx2 + yx1 * xy2
+    xy = xy1 * xx2 + yy1 * xy2
+    yx = xx1 * yx2 + yx1 * yy2
+    yy = xy1 * yx2 + yy1 * yy2
+    if update_position:
+        component.x = otRound(xx1 * x2 + yx1 * y2 + dx1)
+        component.y = otRound(xy1 * x2 + yy1 * y2 + dy1)
+    component.transform = [[xx, xy], [yx, yy]]
+
+
+def skew_component(component, skew_factor: float) -> None:
+    """Specialized skew transformation for components (no scale/rotation)."""
+    transform = getattr(component, "transform", None)
+
+    if transform is None:
+        # Simple case: no existing transform, just add skew
+        component.transform = [[1, 0], [skew_factor, 1]]
     else:
-        glyph.recalcBounds(glyf_table)
-        return
-
-    glyph.coordinates.transform(transform)
-    # glyph.coordinates.translate((x_shift, 0))
-
-    glyph.recalcBounds(glyf_table)
+        # Existing transform: apply skew matrix multiplication
+        # Skew matrix is [[1, 0], [s, 1]]
+        # Result: [[xx, xy], [yx + s*xx, yy + s*xy]]
+        xx, xy = transform[0]
+        yx, yy = transform[1]
+        component.transform = [[xx, xy], [yx + skew_factor * xx, yy + skew_factor * xy]]
 
 
 def update_italic_metadata(font: TTFont, italic_angle_deg: float) -> None:
     if "post" in font:
-        font["post"].italicAngle = italic_angle_deg
+        font["post"].italicAngle = -italic_angle_deg
 
     if "OS/2" in font:
         os2 = font["OS/2"]
@@ -578,9 +592,7 @@ def update_italic_metadata(font: TTFont, italic_angle_deg: float) -> None:
     if "hhea" in font:
         hhea = font["hhea"]
         hhea.caretSlopeRise = 1000
-        hhea.caretSlopeRun = ot_round(
-            -math.tan(math.radians(italic_angle_deg)) * 1000
-        )
+        hhea.caretSlopeRun = otRound(calculate_skew(italic_angle_deg) * 1000)
 
     name_table = font["name"]
     subfamily_name = name_table.getDebugName(2)
@@ -598,16 +610,45 @@ def update_italic_metadata(font: TTFont, italic_angle_deg: float) -> None:
         set_name(font, 17, italic_name(preferred_style_name))
 
 
-def skew_glyphs(font: TTFont, italic_angle_deg: float, pivot_y: float) -> None:
+def skew_glyphs(font: TTFont, italic_angle_deg: float) -> None:
     skew_factor = calculate_skew(italic_angle_deg)
+    glyf_table = font["glyf"]
+    hmtx = font["hmtx"]
+    original_metrics = hmtx.metrics
+    composite_glyphs = []
 
     for glyph_name in font.getGlyphOrder():
-        skew_glyph(font, glyph_name, skew_factor, pivot_y)
+        glyph = glyf_table[glyph_name]
+        advance_width, _ = original_metrics.get(glyph_name, (0, 0))
+
+        if getattr(glyph, "numberOfContours", 0) == 0:
+            continue
+
+        if glyph.isComposite():
+            for component in glyph.components:
+                skew_component(component, skew_factor)
+            composite_glyphs.append(glyph_name)
+        else:
+            if not hasattr(glyph, "coordinates") or glyph.coordinates is None:
+                coordinates, _, _ = glyph.getCoordinates(glyf_table)
+                glyph.coordinates = coordinates
+
+            glyph.coordinates.transform(((1, 0), (skew_factor, 1), (0, 0)))
+            glyph.coordinates.translate((-otRound(skew_factor * advance_width / 2), 0))
+            glyph.xMin, glyph.yMin, glyph.xMax, glyph.yMax = (
+                glyph.coordinates.calcIntBounds()
+            )
+            hmtx[glyph_name] = (advance_width, glyph.xMin)
+
+    # Batch recalculate composite bounds after all glyphs processed
+    for glyph_name in composite_glyphs:
+        glyph = glyf_table[glyph_name]
+        glyph.recalcBounds(glyf_table)
+        advance_width, _ = original_metrics.get(glyph_name, (0, 0))
+        hmtx[glyph_name] = (advance_width, glyph.xMin)
 
 
-def italic_static_master(
-    font: TTFont, weight: int, italic_angle_deg: float, pivot_y: float
-) -> TTFont:
+def italic_static_master(font: TTFont, weight: int, italic_angle_deg: float) -> TTFont:
     master = instantiateVariableFont(
         font,
         {"wght": weight},
@@ -615,25 +656,24 @@ def italic_static_master(
         optimize=False,
         static=True,
     )
-    skew_glyphs(master, italic_angle_deg, pivot_y)
+    skew_glyphs(master, italic_angle_deg)
     update_italic_metadata(master, italic_angle_deg)
     recalculate(master)
     return master
 
 
-def make_italic(
-    font: TTFont, italic_angle_deg: float, pivot_y: float = DEFAULT_ITALIC_PIVOT_Y
-) -> TTFont:
+def make_italic(font: TTFont, italic_angle_deg: float) -> TTFont:
     italic_font = deepcopy(font)
     skew_factor = calculate_skew(italic_angle_deg)
     print(f"Italic angle: {italic_angle_deg:g} degrees")
     print(f"Skew factor: {skew_factor:.6f}")
-    print(f"Italic pivot Y: {pivot_y:g}")
-    print(f"Building italic masters from {len(font.getGlyphOrder())} CN extension glyphs...")
+    print(
+        f"Building italic masters from {len(font.getGlyphOrder())} CN extension glyphs..."
+    )
 
-    min_master = italic_static_master(italic_font, 100, italic_angle_deg, pivot_y)
-    regular_master = italic_static_master(italic_font, 400, italic_angle_deg, pivot_y)
-    max_master = italic_static_master(italic_font, 800, italic_angle_deg, pivot_y)
+    min_master = italic_static_master(italic_font, 100, italic_angle_deg)
+    regular_master = italic_static_master(italic_font, 400, italic_angle_deg)
+    max_master = italic_static_master(italic_font, 800, italic_angle_deg)
 
     rebuild_weight_masters_with_regular_default(
         italic_font, min_master, regular_master, max_master
@@ -642,6 +682,10 @@ def make_italic(
     recalculate(italic_font)
     return italic_font
 
+
+# ============================================================================
+# Font Merging & Building (continued)
+# ============================================================================
 
 def merge_fonts(base: TTFont, extra: TTFont, label: str) -> TTFont:
     base_axis = require_weight_axis_values(base)
@@ -676,76 +720,25 @@ def build_cn_extension(
     regular_base_path: Path,
     italic_base_path: Path,
     dry_run: bool,
-    subset_output_dir: Path | None,
-    subset_text: str,
-    keep_codepoints: set[int] | None = None,
 ) -> TTFont:
+    """
+    Build Chinese extension variable font.
+
+    Combines feature font with patched WenYuan source,
+    excluding glyphs already present in base fonts.
+
+    Returns:
+        Variable font with normalized weight axis ready for merging.
+    """
     excluded_glyphs = glyphs_from_fonts(
         (feature_font_path, regular_base_path, italic_base_path)
     )
-    patched_wenyuan = patch_wenyuan(
-        wenyuan_source, excluded_glyphs, dry_run, keep_codepoints
-    )
-    save_debug_subset(
-        patched_wenyuan,
-        subset_output_dir,
-        "patched-wenyuan-subset.ttf",
-        subset_text,
-    )
+    patched_wenyuan = patch_wenyuan(wenyuan_source, excluded_glyphs, dry_run)
     feature_font = load_variable_font(feature_font_path)
     cn_extension = merge_fonts(feature_font, patched_wenyuan, "regular CN extension")
     normalize_wght_axis(cn_extension)
     prune_stat(cn_extension)
     return cn_extension
-
-
-def build_debug_subsets(args: argparse.Namespace) -> None:
-    if args.subset_output_dir is None:
-        raise ValueError("--subset-only requires --subset-output-dir")
-
-    regular_base = load_variable_font(args.regular_base)
-    italic_base = load_variable_font(args.italic_base)
-    cn_extension = build_cn_extension(
-        args.feature_font,
-        args.wenyuan_source,
-        args.regular_base,
-        args.italic_base,
-        dry_run=True,
-        subset_output_dir=args.subset_output_dir,
-        subset_text=args.subset_text,
-        keep_codepoints=subset_codepoints(args.subset_text),
-    )
-    save_debug_subset(
-        cn_extension,
-        args.subset_output_dir,
-        "cn-extension-subset.ttf",
-        args.subset_text,
-    )
-
-    italic_cn_extension = make_italic(cn_extension, args.angle, args.italic_pivot_y)
-    save_debug_subset(
-        italic_cn_extension,
-        args.subset_output_dir,
-        "cn-extension-italic-subset.ttf",
-        args.subset_text,
-    )
-
-    regular_font = merge_fonts(regular_base, cn_extension, "regular final subset")
-    italic_font = merge_fonts(italic_base, italic_cn_extension, "italic final subset")
-    set_cn_names(regular_font, italic=False)
-    set_cn_names(italic_font, italic=True)
-    save_debug_subset(
-        regular_font,
-        args.subset_output_dir,
-        "MapleMono-CN-subset.ttf",
-        args.subset_text,
-    )
-    save_debug_subset(
-        italic_font,
-        args.subset_output_dir,
-        "MapleMono-CN-Italic-subset.ttf",
-        args.subset_text,
-    )
 
 
 def save_font(font: TTFont, output_path: Path, dry_run: bool) -> None:
@@ -760,12 +753,8 @@ def save_font(font: TTFont, output_path: Path, dry_run: bool) -> None:
 
 
 def build(args: argparse.Namespace) -> None:
-    if args.subset_only:
-        build_debug_subsets(args)
-        return
-
-    regular_output = args.output_dir / REGULAR_OUTPUT_NAME
-    italic_output = args.output_dir / ITALIC_OUTPUT_NAME
+    regular_output = args.output_dir / BUILD_CONFIG.REGULAR_OUTPUT_NAME
+    italic_output = args.output_dir / BUILD_CONFIG.ITALIC_OUTPUT_NAME
 
     regular_base = load_variable_font(args.regular_base)
     italic_base = load_variable_font(args.italic_base)
@@ -775,45 +764,21 @@ def build(args: argparse.Namespace) -> None:
         args.regular_base,
         args.italic_base,
         args.dry_run,
-        args.subset_output_dir,
-        args.subset_text,
     )
-    cn_extension.save('./test.ttf')
-    return
-    save_debug_subset(
-        cn_extension,
-        args.subset_output_dir,
-        "cn-extension-subset.ttf",
-        args.subset_text,
-    )
-    italic_cn_extension = make_italic(cn_extension, args.angle, args.italic_pivot_y)
-    save_debug_subset(
-        italic_cn_extension,
-        args.subset_output_dir,
-        "cn-extension-italic-subset.ttf",
-        args.subset_text,
-    )
+    italic_cn_extension = make_italic(cn_extension, args.angle)
 
     regular_font = merge_fonts(regular_base, cn_extension, "regular final")
     italic_font = merge_fonts(italic_base, italic_cn_extension, "italic final")
     set_cn_names(regular_font, italic=False)
     set_cn_names(italic_font, italic=True)
-    save_debug_subset(
-        regular_font,
-        args.subset_output_dir,
-        "MapleMono-CN-subset.ttf",
-        args.subset_text,
-    )
-    save_debug_subset(
-        italic_font,
-        args.subset_output_dir,
-        "MapleMono-CN-Italic-subset.ttf",
-        args.subset_text,
-    )
 
     save_font(regular_font, regular_output, args.dry_run)
     save_font(italic_font, italic_output, args.dry_run)
 
+
+# ============================================================================
+# Entry Point
+# ============================================================================
 
 def main() -> None:
     build(parse_args())

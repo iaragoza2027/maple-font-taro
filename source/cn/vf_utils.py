@@ -31,6 +31,24 @@ def weight_axis(font: TTFont):
     return next((axis for axis in font["fvar"].axes if axis.axisTag == "wght"), None)
 
 
+def get_unicode_cmap(font: TTFont) -> dict[int, str]:
+    """Extract unicode cmap entries from font."""
+    result: dict[int, str] = {}
+    for table in font["cmap"].tables:
+        if table.isUnicode():
+            result.update(table.cmap)
+    return result
+
+
+def get_cmap_codepoints(font: TTFont) -> set[int]:
+    """Extract all unicode codepoints from font."""
+    codepoints: set[int] = set()
+    for table in font["cmap"].tables:
+        if table.isUnicode():
+            codepoints.update(table.cmap)
+    return codepoints
+
+
 def rebuild_weight_masters_with_regular_default(
     font: TTFont,
     min_master: TTFont,
@@ -137,14 +155,6 @@ def _variable_axes(font: TTFont) -> list[tuple[str, float, float, float]]:
     ]
 
 
-def _unicode_cmap(font: TTFont) -> dict[int, str]:
-    result: dict[int, str] = {}
-    for table in font["cmap"].tables:
-        if table.isUnicode():
-            result.update(table.cmap)
-    return result
-
-
 def _validate_merge_inputs(base: TTFont, extra: TTFont) -> None:
     required_tables = ("glyf", "hmtx", "cmap", "fvar", "gvar")
     for font_role, font in (("Base", base), ("Extra", extra)):
@@ -168,10 +178,10 @@ def _validate_merge_inputs(base: TTFont, extra: TTFont) -> None:
 
 
 def _merge_cmap(base: TTFont, extra: TTFont, added_glyphs: set[str]) -> int:
-    base_codepoints = set(_unicode_cmap(base))
+    base_codepoints = set(get_unicode_cmap(base))
     extra_entries = {
         codepoint: glyph_name
-        for codepoint, glyph_name in _unicode_cmap(extra).items()
+        for codepoint, glyph_name in get_unicode_cmap(extra).items()
         if glyph_name in added_glyphs and codepoint not in base_codepoints
     }
 

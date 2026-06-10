@@ -36,6 +36,7 @@ DEFAULT_ITALIC_ANGLE = 10
 @dataclass(frozen=True)
 class BuildConfig:
     """Build configuration constants."""
+
     REGULAR_OUTPUT_NAME: str = "MapleMono-CN[wght].ttf"
     ITALIC_OUTPUT_NAME: str = "MapleMono-CN-Italic[wght].ttf"
     EXPECTED_WEIGHT_AXIS: tuple[float, float, float] = (100.0, 400.0, 800.0)
@@ -138,6 +139,7 @@ STAT_WEIGHT_VALUES = (
 # CLI & Configuration
 # ============================================================================
 
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Build Maple Mono CN variable fonts from MapleMono and WenYuan."
@@ -165,6 +167,7 @@ def parse_args() -> argparse.Namespace:
 # Codepoint & Glyph Utilities
 # ============================================================================
 
+
 def allowed_codepoints(source_codepoints: Iterable[int]) -> set[int]:
     allowed: set[int] = set()
     for start, end in BROAD_CJK_RANGES:
@@ -175,6 +178,7 @@ def allowed_codepoints(source_codepoints: Iterable[int]) -> set[int]:
 # ============================================================================
 # Naming & Metadata
 # ============================================================================
+
 
 def set_name(font: TTFont, name_id: int, value: str) -> None:
     records = [record for record in font["name"].names if record.nameID == name_id]
@@ -199,6 +203,7 @@ def replace_windows_name(font: TTFont, name_id: int, value: str) -> None:
 # ============================================================================
 # Metrics & Horizontal Adjustments
 # ============================================================================
+
 
 def apply_horizontal_metrics(font: TTFont) -> None:
     hhea = font["hhea"]
@@ -234,6 +239,7 @@ def move_glyph(
         if coordinates is None:
             coordinates, _, _ = glyph.getCoordinates(glyf)
             glyph.coordinates = coordinates
+        coordinates.scale((1.02, 1.05))
         coordinates.translate((horizontal_shift, vertical_shift))
 
     glyph.recalcBounds(glyf)
@@ -266,6 +272,7 @@ def normalize_widths(font: TTFont) -> None:
 # ============================================================================
 # Font Subsetting & Pruning
 # ============================================================================
+
 
 def _make_subset_options() -> subset.Options:
     """Create standard subset options for font subsetting."""
@@ -363,6 +370,7 @@ def glyphs_from_fonts(paths: Iterable[Path]) -> set[str]:
 # Font Loading & Validation
 # ============================================================================
 
+
 def recalculate(font: TTFont) -> None:
     if "OS/2" in font:
         font["OS/2"].recalcAvgCharWidth(font)
@@ -423,6 +431,7 @@ def load_variable_font(input_path: Path) -> TTFont:
 # Weight Axis Normalization
 # ============================================================================
 
+
 def normalize_wght_axis(font: TTFont) -> None:
     normalize_weight_axis(
         font,
@@ -437,6 +446,7 @@ def normalize_wght_axis(font: TTFont) -> None:
 # ============================================================================
 # Font Merging & Building
 # ============================================================================
+
 
 def _instantiate_wenyuan_static(source: TTFont) -> TTFont:
     """Instantiate WenYuan to static ital=0 and drop unnecessary tables."""
@@ -514,6 +524,7 @@ def patch_wenyuan(
 # ============================================================================
 # Italic Generation
 # ============================================================================
+
 
 def calculate_skew(italic_angle_deg: float) -> float:
     return math.tan(math.radians(italic_angle_deg))
@@ -687,6 +698,7 @@ def make_italic(font: TTFont, italic_angle_deg: float) -> TTFont:
 # Font Merging & Building (continued)
 # ============================================================================
 
+
 def merge_fonts(base: TTFont, extra: TTFont, label: str) -> TTFont:
     base_axis = require_weight_axis_values(base)
     extra_axis = require_weight_axis_values(extra)
@@ -779,6 +791,7 @@ def build(args: argparse.Namespace) -> None:
 # ============================================================================
 # Entry Point
 # ============================================================================
+
 
 def main() -> None:
     build(parse_args())

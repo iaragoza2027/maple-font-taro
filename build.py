@@ -294,6 +294,11 @@ def parse_args(args: list[str] | None = None):
         help="Reinstantiate variable CN base font",
     )
     build_group.add_argument(
+        "--cn-wenyuan",
+        action="store_true",
+        help="Use static-wenyuan directory instead of static for CN base fonts",
+    )
+    build_group.add_argument(
         "--archive",
         action="store_true",
         help="Build font archives with config and license. If it has the `--cache` flag, only archive NF and CN formats",
@@ -530,6 +535,10 @@ class FontConfig:
         if isinstance(self.cn["scale_factor"], (float, list)):
             self.cn["scale_factor"] = parse_scale_factor(self.cn["scale_factor"])
 
+        if args.cn_wenyuan:
+            self.cn["enable"] = True
+            self.cn["use_wenyuan"] = True
+
     def _apply_build_options(self, args):
         """Apply general build options."""
         self.archive = args.archive
@@ -724,6 +733,7 @@ class BuildOption:
 
         self.cn_variable_dir = f"{self.src_dir}/cn"
         self.cn_static_dir = f"{self.cn_variable_dir}/static"
+        self.cn_static_wenyuan_dir = f"{self.cn_variable_dir}/static-wenyuan"
 
         self.cn_suffix = None
         self.cn_suffix_compact = None
@@ -793,25 +803,38 @@ class BuildOption:
                 '\nNo `"cn.enable": true` in config.json or `--cn` / `--cn-both` in argv. Skip CN build.'
             )
             return False
-        return self.__ensure_cn_static_fonts(clean_cache=config.cn["clean_cache"])
+        return self.__ensure_cn_static_fonts(
+            clean_cache=config.cn["clean_cache"],
+            use_wenyuan=config.cn.get("use_wenyuan", False),
+        )
 
-    def __ensure_cn_static_fonts(self, clean_cache: bool) -> bool:
+    def __ensure_cn_static_fonts(
+        self, clean_cache: bool, use_wenyuan: bool = False
+    ) -> bool:
+        static_path = self.cn_static_wenyuan_dir if use_wenyuan else self.cn_static_dir
+
         if clean_cache:
-            print("Clean CN static fonts")
-            shutil.rmtree(self.cn_static_dir, ignore_errors=True)
+            print(f"Clean CN static fonts at {static_path}")
+            shutil.rmtree(static_path, ignore_errors=True)
 
-        if self.__check_cn_exists():
+        if self.__check_cn_exists(static_path):
             return True
+
+        # Only try downloading for non-wenyuan path
+        if use_wenyuan:
+            print(f"\n❗ CN WenYuan static fonts don't exist at {static_path}.")
+            print("Run `python task.py cn-wenyuan --rebuild` to generate them.")
+            return False
 
         tag = "cn-base"
         zip_path = "cn-base-static.zip"
         if download_cn_base_font(
             tag=tag,
             zip_path=zip_path,
-            target_dir=self.cn_static_dir,
+            target_dir=static_path,
             github_mirror=self.github_mirror,
         ):
-            if self.__check_cn_exists():
+            if self.__check_cn_exists(static_path):
                 return True
 
             print(
@@ -850,8 +873,7 @@ class BuildOption:
         print("\nCN base fonts don't exist. Skip CN build.")
         return False
 
-    def __check_cn_exists(self) -> bool:
-        static_path = self.cn_static_dir
+    def __check_cn_exists(self, static_path: str) -> bool:
         print(f"\nChecking CN static font directory {static_path}")
         if not path.exists(static_path):
             print("🔎 Does not exist")
@@ -1314,11 +1336,15 @@ def build_cn(f: str, font_config: FontConfig, build_option: BuildOption):
 
     print(f"👉 {build_option.cn_suffix_compact} version for {f}")
 
+    cn_static_dir = (
+        build_option.cn_static_wenyuan_dir
+        if font_config.cn.get("use_wenyuan", False)
+        else build_option.cn_static_dir
+    )
+
     cn_font = merge_ttfonts(
         base_font_path=joinPaths(build_option.cn_base_font_dir, f),
-        extra_font_path=joinPaths(
-            build_option.cn_static_dir, f"MapleMonoCN-{style_compact_cn}.ttf"
-        ),
+        extra_font_path=joinPaths(cn_static_dir, f"MapleMonoCN-{style_compact_cn}.ttf"),
         use_pyftmerge=True,
     )
 

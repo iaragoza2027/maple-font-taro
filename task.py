@@ -47,6 +47,9 @@ def main():
     )
     cn.add_argument("--rebuild", action="store_true", help="rebuild the CN static font")
 
+    cn_wenyuan = command.add_parser("cn-wenyuan", help="Rebuild CN WenYuan extension font")
+    cn_wenyuan.add_argument("--rebuild", action="store_true", help="rebuild the CN WenYuan extension font")
+
     publish_parser = command.add_parser(
         "publish", help="Publish the font archives to GitHub Release"
     )
@@ -81,6 +84,10 @@ def main():
         from source.py.task.cn import cn
 
         cn("./source/cn", args.pull, args.rebuild)
+    elif args.command == "cn-wenyuan":
+        from source.py.task.cn_wenyuan import cn_wenyuan
+
+        cn_wenyuan("./source/cn", args.rebuild)
     elif args.command == "publish":
         from source.py.task.publish import publish
 

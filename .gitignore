@@ -3,6 +3,7 @@ fonts
 release
 source/cn/**/*.ttf
 source/cn/**/*.vfc
+source/cn/temp/
 cdn
 
 __pycache__

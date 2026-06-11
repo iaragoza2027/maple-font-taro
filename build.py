@@ -827,7 +827,9 @@ class BuildOption:
             return False
 
         tag = "cn-base"
-        zip_path = "cn-base-static.zip"
+        zip_path = (
+            "cn-base-static.zip" if not use_wenyuan else "cn-base-static-wenyuan.zip"
+        )
         if download_cn_base_font(
             tag=tag,
             zip_path=zip_path,

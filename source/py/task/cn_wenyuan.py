@@ -21,6 +21,7 @@ from source.py.task._utils_vf import (
     recalculate_font_metrics,
     weight_axis,
 )
+from source.py.task.cn import archive
 from source.py.task.merge_vf import merge_vf
 from source.py.utils import get_directory_hash, joinPaths
 
@@ -672,5 +673,11 @@ def cn_wenyuan(cn_root: str, regenerate_vf: bool = True) -> None:
             file.flush()
         print(f"> Update {static_dir}.sha256")
         print("> CN WenYuan rebuild complete.")
+
+        archive(
+            static_dir,
+            joinPaths(cn_root, "cn-base-static-wenyuan.zip"),
+            lambda path: path.endswith(".ttf"),
+        )
     finally:
         FontBuildProcessPool.shutdown()

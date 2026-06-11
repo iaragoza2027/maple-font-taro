@@ -47,8 +47,14 @@ def main():
     )
     cn.add_argument("--rebuild", action="store_true", help="rebuild the CN static font")
 
-    cn_wenyuan = command.add_parser("cn-wenyuan", help="Rebuild CN WenYuan extension font")
-    cn_wenyuan.add_argument("--rebuild", action="store_true", help="rebuild the CN WenYuan extension font")
+    cn_wenyuan = command.add_parser(
+        "cn-wenyuan", help="Rebuild CN WenYuan extension font"
+    )
+    cn_wenyuan.add_argument(
+        "--cache",
+        action="store_true",
+        help="reuse existing variable fonts and skip static font regeneration if already exists",
+    )
 
     publish_parser = command.add_parser(
         "publish", help="Publish the font archives to GitHub Release"
@@ -60,6 +66,13 @@ def main():
     )
 
     command.add_parser("merge", help="Merge and instantiate fonts")
+
+    merge_vf = command.add_parser(
+        "merge-cn-vf", help="Merge Variable fonts with CN extension"
+    )
+    merge_vf.add_argument(
+        "--output", type=str, default="./fonts/Variable-CN", help="Output directory"
+    )
 
     args = parser.parse_args()
     if args.command == "nf":
@@ -87,7 +100,7 @@ def main():
     elif args.command == "cn-wenyuan":
         from source.py.task.cn_wenyuan import cn_wenyuan
 
-        cn_wenyuan("./source/cn", args.rebuild)
+        cn_wenyuan("./source/cn", not args.cache)
     elif args.command == "publish":
         from source.py.task.publish import publish
 
@@ -96,6 +109,10 @@ def main():
         from source.py.task.merge_font import main
 
         main()
+    elif args.command == "merge-cn-vf":
+        from source.py.task.merge_vf import merge_variable_fonts
+
+        merge_variable_fonts(args.output)
     else:
         print("Test only")
         from source.py.in_browser import main

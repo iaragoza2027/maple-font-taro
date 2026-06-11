@@ -448,9 +448,9 @@ def normalize_wght_axis(font: TTFont) -> None:
 # ============================================================================
 
 
-def _instantiate_wenyuan_static(source: TTFont) -> TTFont:
-    """Instantiate WenYuan to static ital=0 and drop unnecessary tables."""
-    font = instantiateVariableFont(source, {"ital": 0}, inplace=False)
+def _instantiate_wenyuan_static(source: TTFont, wght: int) -> TTFont:
+    """Instantiate WenYuan to static ital=0 at specified weight."""
+    font = instantiateVariableFont(source, {"ital": 0, "wght": wght}, inplace=False)
     for table_tag in DROP_TABLES:
         if table_tag in font:
             del font[table_tag]
@@ -498,11 +498,22 @@ def patch_wenyuan(
     print(f"planned unicode drop: {len(source_codepoints - keep_codepoints)}")
     print(f"planned base/feature glyph exclusions: {len(excluded_glyphs)}")
 
-    # Stage 1: Instantiate to static
-    font = _instantiate_wenyuan_static(source)
-    source.close()
+    # Stage 1: Instantiate three static masters at remapped source weights
+    min_master = _instantiate_wenyuan_static(source, 200)    # source 200 → axis 100
+    regular_master = _instantiate_wenyuan_static(source, 450) # source 450 → axis 400
+    max_master = _instantiate_wenyuan_static(source, 800)    # source 800 → axis 800
 
-    # Stage 2: Normalize weight axis
+    # Stage 2: Rebuild variable font from remapped masters
+    # Keep source as base (it has gvar), instantiate only ital=0
+    font = instantiateVariableFont(source, {"ital": 0}, inplace=False)
+    source.close()
+    for table_tag in DROP_TABLES:
+        if table_tag in font:
+            del font[table_tag]
+
+    rebuild_weight_masters_with_regular_default(
+        font, min_master, regular_master, max_master
+    )
     normalize_wght_axis(font)
 
     # Stage 3: Apply subsetting

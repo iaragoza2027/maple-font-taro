@@ -576,9 +576,12 @@ def cn_wenyuan(cn_root: str, regenerate_vf: bool = True) -> None:
             or not Path(var_italic_output).exists()
         ):
             # ── Regular path ──
-            cn_extension, wenyuan_master_paths = build_cn_base_font(
+            cn_regular, wenyuan_master_paths = build_cn_base_font(
                 feature_font_path, wenyuan_source, config, process_pool
             )
+            print(f"> Save regular variable fonts to {var_output}")
+            cn_regular.save(var_output)
+            cn_regular.close()
 
             # ── Italic path ──
             # Step A: Italic feature font
@@ -595,7 +598,7 @@ def cn_wenyuan(cn_root: str, regenerate_vf: bool = True) -> None:
                 feature_master_specs,
                 process_pool,
             )
-            italic_feature = make_italic_variable_font(
+            cn_italic = make_italic_variable_font(
                 feature_fresh,
                 config.DEFAULT_ITALIC_ANGLE,
                 config.TEMP_DIR,
@@ -629,43 +632,35 @@ def cn_wenyuan(cn_root: str, regenerate_vf: bool = True) -> None:
 
             # Step C: Merge slanted WenYuan masters into italic feature VF
             added_italic, added_italic_codepoints = merge_masters_into_vf(
-                italic_feature, slanted_min, slanted_reg, slanted_max
+                cn_italic, slanted_min, slanted_reg, slanted_max
             )
             print(f"italic path added glyphs: {len(added_italic)}")
             print(f"italic path added unicodes: {added_italic_codepoints}")
 
             # Step D: Post-process (re-assert italic metadata after
             # apply_horizontal_metrics which sets upright hhea/post values)
-            apply_horizontal_metrics(italic_feature, config)
-            update_italic_metadata(italic_feature, config.DEFAULT_ITALIC_ANGLE)
-            normalize_widths(italic_feature, config, glyph_names=set(added_italic))
-            prune_stat(italic_feature, config)
-            recalculate_font(italic_feature)
-            normalize_cn_weight_axis(italic_feature, config)
-            prune_stat(italic_feature, config)
-            recalculate_font(italic_feature)
+            apply_horizontal_metrics(cn_italic, config)
+            update_italic_metadata(cn_italic, config.DEFAULT_ITALIC_ANGLE)
+            normalize_widths(cn_italic, config, glyph_names=set(added_italic))
+            prune_stat(cn_italic, config)
+            recalculate_font(cn_italic)
+            normalize_cn_weight_axis(cn_italic, config)
+            prune_stat(cn_italic, config)
+            recalculate_font(cn_italic)
 
             slanted_min.close()
             slanted_reg.close()
             slanted_max.close()
 
-            italic_cn_extension = italic_feature
-
+            print(f"italic CN extension glyphs: {len(cn_italic.getGlyphOrder())}")
             print(
-                f"italic CN extension glyphs: "
-                f"{len(italic_cn_extension.getGlyphOrder())}"
-            )
-            print(
-                f"italic CN extension unicodes: "
-                f"{len(get_cmap_codepoints(italic_cn_extension))}"
+                f"italic CN extension unicodes: {len(get_cmap_codepoints(cn_italic))}"
             )
 
             # Save VFs
-            print(f"> Save variable fonts to {cn_root}")
-            cn_extension.save(var_output)
-            italic_cn_extension.save(var_italic_output)
-            cn_extension.close()
-            italic_cn_extension.close()
+            print(f"> Save italic variable fonts to {var_italic_output}")
+            cn_italic.save(var_italic_output)
+            cn_italic.close()
         else:
             print(f"> Reusing existing variable fonts from {cn_root}")
 

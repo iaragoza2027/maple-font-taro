@@ -20,9 +20,9 @@ from source.py.task._utils_vf import (
     rebuild_weight_masters_with_regular_default,
     recalculate_font_metrics,
     weight_axis,
+    merge_vf,
 )
-from source.py.task.cn import archive
-from source.py.task.merge_vf import merge_vf
+from source.py.task._utils import archive
 from source.py.utils import get_directory_hash, joinPaths
 
 
@@ -208,7 +208,10 @@ def get_wenyuan_keep_codepoints(
     source = TTFont(wenyuan_source)
     source_codepoints = get_cmap_codepoints(source)
     source.close()
-    return source_codepoints, allowed_codepoints(source_codepoints, config)
+    allowed: set[int] = set()
+    for start, end in config.BROAD_CJK_RANGES:
+        allowed.update(cp for cp in source_codepoints if start <= cp <= end)
+    return source_codepoints, allowed
 
 
 def instantiate_wenyuan_master_files(
@@ -279,16 +282,6 @@ def instantiate_static_font_file(
     instance.save(output_path)
     instance.close()
     var_font.close()
-
-
-def allowed_codepoints(
-    source_codepoints: Iterable[int], config: FontConfig
-) -> set[int]:
-    """Filter codepoints to CJK ranges only."""
-    allowed: set[int] = set()
-    for start, end in config.BROAD_CJK_RANGES:
-        allowed.update(cp for cp in source_codepoints if start <= cp <= end)
-    return allowed
 
 
 def apply_horizontal_metrics(font: TTFont, config: FontConfig) -> None:

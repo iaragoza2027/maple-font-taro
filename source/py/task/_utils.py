@@ -1,5 +1,8 @@
+from collections.abc import Callable
 import json
-from os import environ
+from os import environ, listdir
+from zipfile import ZIP_BZIP2, ZipFile
+
 
 default_weight_map = {
     "thin": 100,
@@ -52,3 +55,18 @@ def is_ci():
             return True
 
     return False
+
+
+def archive(source: str, target: str, filter: Callable[[str], bool]):
+    with ZipFile(target, "w", compression=ZIP_BZIP2, compresslevel=9) as zip_file:
+        for file in listdir(source):
+            file_path = joinPaths(source, file)
+            if filter(file_path):
+                zip_file.write(file_path, file)
+
+    zip_file.close()
+    print(f"📦 Package {target}")
+
+
+def joinPaths(*args: str) -> str:
+    return "/".join(args)

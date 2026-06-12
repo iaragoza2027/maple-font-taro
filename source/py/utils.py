@@ -7,7 +7,7 @@ from urllib.request import Request, urlopen
 from zipfile import ZIP_DEFLATED, ZipFile
 from fontTools.ttLib import TTFont, newTable
 from fontTools.merge import Merger
-from source.py.task._utils import is_ci, default_weight_map
+from source.py.task._utils import is_ci, default_weight_map, joinPaths
 
 
 def run(command: str | list[str], extra_args: list[str] | None = None, log=not is_ci()):
@@ -42,10 +42,6 @@ def get_font_name(font: TTFont, id: int) -> str:
 
 def del_font_name(font: TTFont, id: int):
     font["name"].removeNames(nameID=id)  # type: ignore
-
-
-def joinPaths(*args: str) -> str:
-    return "/".join(args)
 
 
 def is_windows():

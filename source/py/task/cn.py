@@ -2,8 +2,8 @@ from functools import partial
 from os import environ, listdir, makedirs, path, system
 import shutil
 from typing import Callable, Iterable
-from zipfile import ZIP_BZIP2, ZipFile
-from source.py.utils import download_zip_and_extract, get_directory_hash, joinPaths
+from source.py.task._utils import archive, joinPaths
+from source.py.utils import download_zip_and_extract, get_directory_hash
 
 
 def run_pool_process(fn: Callable, items: Iterable):
@@ -11,17 +11,6 @@ def run_pool_process(fn: Callable, items: Iterable):
 
     with Pool(processes=4) as pool:
         pool.map(fn, items)
-
-
-def archive(source: str, target: str, filter: Callable[[str], bool]):
-    with ZipFile(target, "w", compression=ZIP_BZIP2, compresslevel=9) as zip_file:
-        for file in listdir(source):
-            file_path = joinPaths(source, file)
-            if filter(file_path):
-                zip_file.write(file_path, file)
-
-    zip_file.close()
-    print(f"📦 Package {target}")
 
 
 def instantiate_cn_var(f: str, base_dir: str, static_dir: str, italic_tmp_dir: str):

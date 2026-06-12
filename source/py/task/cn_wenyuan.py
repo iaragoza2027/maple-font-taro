@@ -1,9 +1,7 @@
 from concurrent.futures import ProcessPoolExecutor
-from copy import deepcopy
 from dataclasses import dataclass, field
 from os import cpu_count, listdir, makedirs
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from typing import Iterable
 
 from fontTools import subset
@@ -15,12 +13,13 @@ from source.py.task._utils_vf import (
     get_cmap_codepoints,
     get_unicode_cmap,
     load_font_eager,
+    make_italic_master_file,
     make_italic_variable_font,
+    merge_masters_into_vf,
     normalize_weight_axis,
-    rebuild_weight_masters_with_regular_default,
     recalculate_font_metrics,
+    update_italic_metadata,
     weight_axis,
-    merge_vf,
 )
 from source.py.task._utils import archive
 from source.py.utils import get_directory_hash, joinPaths
@@ -37,10 +36,10 @@ STATIC_WEIGHT_MAP: dict[int, str] = {
     800: "ExtraBold",
 }
 
-MASTER_WEIGHTS: tuple[tuple[int, str], ...] = (
+MASTER_WEIGHTS: tuple[tuple[int, str], tuple[int, str], tuple[int, str]] = (
     (200, "min"),
     (450, "regular"),
-    (800, "max"),
+    (900, "max"),
 )
 
 
@@ -68,8 +67,8 @@ class FontBuildProcessPool:
 class FontConfig:
     """Configuration constants for WenYuan CN font building."""
 
-    DEFAULT_ITALIC_ANGLE: float = 10
-    EXPECTED_WEIGHT_AXIS: tuple[float, float, float] = (100.0, 400.0, 800.0)
+    DEFAULT_ITALIC_ANGLE: int = 10
+    EXPECTED_WEIGHT_AXIS: tuple[int, int, int] = (100, 400, 800)
     OUTPUT_WEIGHT_REGULAR: int = 400
     DROP_TABLES: tuple[str, ...] = ("BASE", "VVAR", "vhea", "vmtx")
     TEMP_DIR: Path = Path("source/cn/temp")
@@ -169,7 +168,7 @@ def cleanup_static_font_file(font_path: str) -> None:
 def instantiate_variable_font_file(
     input_path: str,
     output_path: str,
-    axes: dict[str, float],
+    axes: dict[str, int],
     static: bool = False,
     optimize: bool = True,
     drop_table_tags: Iterable[str] = (),
@@ -186,21 +185,6 @@ def instantiate_variable_font_file(
     font.close()
 
 
-def patch_wenyuan_font(
-    font: TTFont,
-    keep_codepoints: set[int],
-    excluded_glyphs: set[str],
-    config: FontConfig,
-) -> int:
-    """Apply the final WenYuan cleanup pipeline to one rebuilt VF."""
-    subset_font(font, keep_codepoints)
-    removed_glyphs = keep_only_unicode_glyphs(font, excluded_glyphs)
-    apply_horizontal_metrics(font, config)
-    normalize_widths(font, config)
-    recalculate_font(font)
-    return removed_glyphs
-
-
 def get_wenyuan_keep_codepoints(
     wenyuan_source: Path, config: FontConfig
 ) -> tuple[set[int], set[int]]:
@@ -214,43 +198,55 @@ def get_wenyuan_keep_codepoints(
     return source_codepoints, allowed
 
 
-def instantiate_wenyuan_master_files(
+def prepare_wenyuan_subset(
     wenyuan_source: Path,
-    tmp_path: Path,
+    keep_codepoints: set[int],
+    excluded_glyphs: set[str],
+    out_path: Path,
+) -> int:
+    """Subset the WenYuan source to CJK codepoints, remove overlapping feature
+    glyphs, and save the result to *out_path*.  Returns the number of removed
+    glyphs for logging.
+    """
+    font = load_font_eager(wenyuan_source)
+    subset_font(font, keep_codepoints)
+    removed = keep_only_unicode_glyphs(font, excluded_glyphs)
+    font.save(out_path)
+    font.close()
+    return removed
+
+
+def instantiate_masters_from_vf(
+    vf_path: Path,
+    output_dir: Path,
+    master_specs: tuple[tuple[dict[str, int], str], ...],
     process_pool: ProcessPoolExecutor,
-    config: FontConfig,
 ) -> tuple[Path, Path, Path]:
-    """Instantiate three upright static WenYuan masters for VF rebuilding."""
-    master_paths = {
-        name: tmp_path / f"wenyuan-{name}-master.ttf" for _, name in MASTER_WEIGHTS
-    }
-    futures = [
-        process_pool.submit(
-            instantiate_variable_font_file,
-            str(wenyuan_source),
-            str(master_paths[name]),
-            {"ital": 0, "wght": weight},
-            True,
-            False,
+    """Instantiate static masters from a variable font.
+
+    Each ``master_specs`` entry is an ``({axis: value}, name_stem)`` pair.
+    Masters are saved as ``output_dir / {name_stem}-master.ttf``.
+    Returns output paths in the same order as *master_specs*.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    paths: list[Path] = []
+    futures = []
+    for axes, name in master_specs:
+        output_path = output_dir / f"{name}-master.ttf"
+        paths.append(output_path)
+        futures.append(
+            process_pool.submit(
+                instantiate_variable_font_file,
+                str(vf_path),
+                str(output_path),
+                axes,
+                True,
+                False,
+            )
         )
-        for weight, name in MASTER_WEIGHTS
-    ]
     for future in futures:
         future.result()
-    return (
-        master_paths["min"],
-        master_paths["regular"],
-        master_paths["max"],
-    )
-
-
-def load_wenyuan_template(wenyuan_source: Path, config: FontConfig) -> TTFont:
-    """Load an upright variable template without saving an intermediate ital=0 file."""
-    font = load_font_eager(wenyuan_source)
-    template = instantiateVariableFont(font, {"ital": 0}, inplace=False)
-    font.close()
-    drop_font_tables(template, config.DROP_TABLES)
-    return template
+    return tuple(paths)  # type: ignore
 
 
 def instantiate_static_font_file(
@@ -317,12 +313,24 @@ def move_glyph(font: TTFont, glyph_name: str, h_shift: int, v_shift: int) -> Non
     glyph.recalcBounds(glyf)
 
 
-def normalize_widths(font: TTFont, config: FontConfig) -> None:
-    """Normalize all glyph widths to 1200 or 0."""
+def normalize_widths(
+    font: TTFont,
+    config: FontConfig,
+    glyph_names: set[str] | None = None,
+) -> None:
+    """Normalize glyph widths to 1200 or 0.
+
+    If *glyph_names* is given only those glyphs are processed;
+    combining-mark / ``.notdef`` detection always uses the full cmap.
+    Global tail (``hhea.advanceWidthMax``, HVAR deletion) runs unconditionally.
+    """
     cmap = get_unicode_cmap(font)
     zero_width_glyphs = {glyph for cp, glyph in cmap.items() if 0x0300 <= cp <= 0x036F}
     zero_width_glyphs.add(".notdef")
-    for glyph_name in font.getGlyphOrder():
+    target_glyphs = (
+        glyph_names if glyph_names is not None else set(font.getGlyphOrder())
+    )
+    for glyph_name in target_glyphs:
         if glyph_name not in font["hmtx"].metrics:
             continue
         _, lsb = font["hmtx"].metrics[glyph_name]
@@ -434,78 +442,6 @@ def load_variable_font(input_path: Path, config: FontConfig) -> TTFont:
     return font
 
 
-def patch_wenyuan(
-    wenyuan_source: Path,
-    excluded_glyphs: set[str],
-    config: FontConfig,
-    process_pool: ProcessPoolExecutor,
-) -> tuple[TTFont, tuple[Path, Path, Path]]:
-    """Rebuild a raw upright WenYuan variable font from three static masters."""
-    source = TTFont(wenyuan_source)
-    source_codepoints, keep_codepoints = get_wenyuan_keep_codepoints(
-        wenyuan_source, config
-    )
-    print(f"source glyphs: {len(source.getGlyphOrder())}")
-    print(f"source unicodes: {len(source_codepoints)}")
-    print(f"planned unicode keep: {len(keep_codepoints)}")
-    print(f"planned unicode drop: {len(source_codepoints - keep_codepoints)}")
-    print(f"planned base/feature glyph exclusions: {len(excluded_glyphs)}")
-    source.close()
-
-    config.TEMP_DIR.mkdir(parents=True, exist_ok=True)
-    with TemporaryDirectory(dir=config.TEMP_DIR) as tmp_dir:
-        tmp_path = Path(tmp_dir)
-        min_master_path, regular_master_path, max_master_path = (
-            instantiate_wenyuan_master_files(
-                wenyuan_source, tmp_path, process_pool, config
-            )
-        )
-
-        min_master = load_font_eager(min_master_path)
-        regular_master = load_font_eager(regular_master_path)
-        max_master = load_font_eager(max_master_path)
-
-        temp_master_dir = config.TEMP_DIR / "masters"
-        temp_master_dir.mkdir(parents=True, exist_ok=True)
-        saved_master_paths = (
-            temp_master_dir / "wenyuan-min-master.ttf",
-            temp_master_dir / "wenyuan-regular-master.ttf",
-            temp_master_dir / "wenyuan-max-master.ttf",
-        )
-        for source_path, destination_path in zip(
-            (min_master_path, regular_master_path, max_master_path), saved_master_paths
-        ):
-            destination_path.write_bytes(source_path.read_bytes())
-
-        font = load_wenyuan_template(wenyuan_source, config)
-        rebuild_weight_masters_with_regular_default(
-            font, min_master, regular_master, max_master
-        )
-
-    min_master.close()
-    regular_master.close()
-    max_master.close()
-    return font, saved_master_paths
-
-
-def merge_fonts(base: TTFont, extra: TTFont, label: str) -> TTFont:
-    """Merge extra font into base font."""
-    base_axis = weight_axis(base)
-    extra_axis = weight_axis(extra)
-    print(
-        f"{label} base axis: wght {base_axis.minValue:g}/{base_axis.defaultValue:g}/{base_axis.maxValue:g}"  # type: ignore
-    )
-    print(
-        f"{label} extra axis: wght {extra_axis.minValue:g}/{extra_axis.defaultValue:g}/{extra_axis.maxValue:g}"  # type: ignore
-    )
-    merged_font, added_glyphs, added_codepoints = merge_vf(base, extra)
-    print(f"{label} added glyphs: {len(added_glyphs)}")
-    print(f"{label} added unicodes: {added_codepoints}")
-    print(f"{label} glyphs: {len(merged_font.getGlyphOrder())}")
-    print(f"{label} unicodes: {len(get_cmap_codepoints(merged_font))}")
-    return merged_font
-
-
 def glyphs_from_fonts(paths: Iterable[Path]) -> set[str]:
     """Extract all glyph names from fonts."""
     glyphs: set[str] = set()
@@ -522,30 +458,70 @@ def build_cn_base_font(
     wenyuan_source: Path,
     config: FontConfig,
     process_pool: ProcessPoolExecutor,
-) -> tuple[TTFont, TTFont, tuple[Path, Path, Path]]:
-    """Build the upright WenYuan VF and the merged regular CN extension."""
+) -> tuple[TTFont, tuple[Path, Path, Path]]:
+    """Build the upright CN extension VF via the master-merge pipeline.
+
+    1. Subset the WenYuan source to CJK codepoints, drop overlapping feature glyphs.
+    2. Instantiate 3 static upright WenYuan masters from the subset.
+    3. Merge those masters directly into the feature font, computing *gvar*
+       deltas inline per added glyph.
+    4. Post-process: metrics, width normalization (scoped to added glyphs),
+       prune STAT, normalize the weight axis.
+
+    Returns ``(merged_font, wenyuan_master_paths)`` — the three saved upright
+    WenYuan master paths are reused by the italic path.
+    """
+    # 1. Compute excluded glyphs and keep codepoints
     excluded_glyphs = glyphs_from_fonts([feature_font_path])
     _, keep_codepoints = get_wenyuan_keep_codepoints(wenyuan_source, config)
-    upright_wenyuan, master_paths = patch_wenyuan(
-        wenyuan_source, excluded_glyphs, config, process_pool
-    )
-    upright_template = deepcopy(upright_wenyuan)
-    normalize_cn_weight_axis(upright_wenyuan, config)
-    removed_glyphs = patch_wenyuan_font(
-        upright_wenyuan, keep_codepoints, excluded_glyphs, config
-    )
-    print(f"removed base/feature glyphs: {removed_glyphs}")
-    prune_stat(upright_wenyuan, config)
-    recalculate_font(upright_wenyuan)
-    print(f"patched WenYuan glyphs: {len(upright_wenyuan.getGlyphOrder())}")
-    print(f"patched WenYuan unicodes: {len(get_cmap_codepoints(upright_wenyuan))}")
 
+    # 2. Subset WenYuan source first
+    subset_path = config.TEMP_DIR / "wenyuan-subset.ttf"
+    removed = prepare_wenyuan_subset(
+        wenyuan_source, keep_codepoints, excluded_glyphs, subset_path
+    )
+    print(f"removed base/feature glyphs from subset: {removed}")
+
+    # 3. Instantiate 3 upright static masters from the subset
+    wenyuan_master_dir = config.TEMP_DIR / "wenyuan-masters"
+    master_specs = tuple(
+        ({"ital": 0, "wght": float(weight)}, name) for weight, name in MASTER_WEIGHTS
+    )
+    wenyuan_master_paths = instantiate_masters_from_vf(
+        subset_path, wenyuan_master_dir, master_specs, process_pool
+    )
+
+    min_master = load_font_eager(wenyuan_master_paths[0])
+    regular_master = load_font_eager(wenyuan_master_paths[1])
+    max_master = load_font_eager(wenyuan_master_paths[2])
+
+    # 4. Load feature font and merge WenYuan masters directly into it
     feature_font = load_variable_font(feature_font_path, config)
-    cn_extension = merge_fonts(feature_font, upright_wenyuan, "regular CN extension")
-    normalize_cn_weight_axis(cn_extension, config)
-    prune_stat(cn_extension, config)
-    recalculate_font(cn_extension)
-    return cn_extension, upright_template, master_paths
+    added, added_codepoints = merge_masters_into_vf(
+        feature_font, min_master, regular_master, max_master
+    )
+    print(f"regular path added glyphs: {len(added)}")
+    print(f"regular path added unicodes: {added_codepoints}")
+
+    # 5. Post-process (width normalization scoped to added glyphs)
+    apply_horizontal_metrics(feature_font, config)
+    normalize_widths(feature_font, config, glyph_names=set(added))
+    prune_stat(feature_font, config)
+    recalculate_font(feature_font)
+
+    # 6. Normalize weight axis
+    normalize_cn_weight_axis(feature_font, config)
+    prune_stat(feature_font, config)
+    recalculate_font(feature_font)
+
+    print(f"regular CN extension glyphs: {len(feature_font.getGlyphOrder())}")
+    print(f"regular CN extension unicodes: {len(get_cmap_codepoints(feature_font))}")
+
+    min_master.close()
+    regular_master.close()
+    max_master.close()
+
+    return feature_font, wenyuan_master_paths
 
 
 def instantiate_wenyuan_static_fonts(
@@ -591,65 +567,113 @@ def cn_wenyuan(cn_root: str, regenerate_vf: bool = True) -> None:
         feature_font_path = Path("source/MapleMono-CN-feature-VF.ttf")
         wenyuan_source = Path("source/cn/WenYuanRoundedSCVF.ttf")
 
-        var_output = joinPaths(cn_root, "MapleMono-CN-Extension-VF.ttf")
-        var_italic_output = joinPaths(cn_root, "MapleMono-CN-Extension-Italic-VF.ttf")
+        var_output = joinPaths(cn_root, "MapleMono-CN-VF.ttf")
+        var_italic_output = joinPaths(cn_root, "MapleMono-CN-Italic-VF.ttf")
 
         if (
             regenerate_vf
             or not Path(var_output).exists()
             or not Path(var_italic_output).exists()
         ):
-            cn_extension, patched_wenyuan, master_paths = build_cn_base_font(
+            # ── Regular path ──
+            cn_extension, wenyuan_master_paths = build_cn_base_font(
                 feature_font_path, wenyuan_source, config, process_pool
             )
-            italic_patched_wenyuan = make_italic_variable_font(
-                patched_wenyuan,
+
+            # ── Italic path ──
+            # Step A: Italic feature font
+            feature_fresh = load_variable_font(feature_font_path, config)
+            feature_master_dir = config.TEMP_DIR / "feature-masters"
+            feature_master_specs = (
+                ({"wght": config.EXPECTED_WEIGHT_AXIS[0]}, "feature-min"),
+                ({"wght": config.EXPECTED_WEIGHT_AXIS[1]}, "feature-regular"),
+                ({"wght": config.EXPECTED_WEIGHT_AXIS[2]}, "feature-max"),
+            )
+            feature_master_paths = instantiate_masters_from_vf(
+                feature_font_path,
+                feature_master_dir,
+                feature_master_specs,
+                process_pool,
+            )
+            italic_feature = make_italic_variable_font(
+                feature_fresh,
                 config.DEFAULT_ITALIC_ANGLE,
                 config.TEMP_DIR,
                 process_pool,
-                master_paths,
+                feature_master_paths,
             )
-            excluded_glyphs = glyphs_from_fonts([feature_font_path])
-            _, keep_codepoints = get_wenyuan_keep_codepoints(wenyuan_source, config)
-            normalize_cn_weight_axis(italic_patched_wenyuan, config)
-            removed_glyphs = patch_wenyuan_font(
-                italic_patched_wenyuan,
-                keep_codepoints,
-                excluded_glyphs,
-                config,
-            )
-            print(f"italic removed base/feature glyphs: {removed_glyphs}")
-            print(
-                f"italic patched WenYuan glyphs: {len(italic_patched_wenyuan.getGlyphOrder())}"
-            )
-            print(
-                f"italic patched WenYuan unicodes: {len(get_cmap_codepoints(italic_patched_wenyuan))}"
-            )
-            prune_stat(italic_patched_wenyuan, config)
-            italic_feature_font = load_variable_font(feature_font_path, config)
-            italic_cn_extension = merge_fonts(
-                italic_feature_font,
-                italic_patched_wenyuan,
-                "italic CN extension",
-            )
-            normalize_cn_weight_axis(italic_cn_extension, config)
-            prune_stat(italic_cn_extension, config)
-            recalculate_font(italic_cn_extension)
+            feature_fresh.close()
 
+            # Step B: Italic WenYuan — slant the saved upright masters
+            italic_wenyuan_dir = config.TEMP_DIR / "wenyuan-italic-masters"
+            italic_wenyuan_dir.mkdir(parents=True, exist_ok=True)
+            italic_wenyuan_futures = []
+            italic_master_paths: list[Path] = []
+            for i, name in enumerate(("min", "regular", "max")):
+                out_path = italic_wenyuan_dir / f"wenyuan-italic-{name}-master.ttf"
+                italic_master_paths.append(out_path)
+                italic_wenyuan_futures.append(
+                    process_pool.submit(
+                        make_italic_master_file,
+                        str(wenyuan_master_paths[i]),
+                        str(out_path),
+                        config.DEFAULT_ITALIC_ANGLE,
+                    )
+                )
+            for future in italic_wenyuan_futures:
+                future.result()
+
+            slanted_min = load_font_eager(italic_master_paths[0])
+            slanted_reg = load_font_eager(italic_master_paths[1])
+            slanted_max = load_font_eager(italic_master_paths[2])
+
+            # Step C: Merge slanted WenYuan masters into italic feature VF
+            added_italic, added_italic_codepoints = merge_masters_into_vf(
+                italic_feature, slanted_min, slanted_reg, slanted_max
+            )
+            print(f"italic path added glyphs: {len(added_italic)}")
+            print(f"italic path added unicodes: {added_italic_codepoints}")
+
+            # Step D: Post-process (re-assert italic metadata after
+            # apply_horizontal_metrics which sets upright hhea/post values)
+            apply_horizontal_metrics(italic_feature, config)
+            update_italic_metadata(italic_feature, config.DEFAULT_ITALIC_ANGLE)
+            normalize_widths(italic_feature, config, glyph_names=set(added_italic))
+            prune_stat(italic_feature, config)
+            recalculate_font(italic_feature)
+            normalize_cn_weight_axis(italic_feature, config)
+            prune_stat(italic_feature, config)
+            recalculate_font(italic_feature)
+
+            slanted_min.close()
+            slanted_reg.close()
+            slanted_max.close()
+
+            italic_cn_extension = italic_feature
+
+            print(
+                f"italic CN extension glyphs: "
+                f"{len(italic_cn_extension.getGlyphOrder())}"
+            )
+            print(
+                f"italic CN extension unicodes: "
+                f"{len(get_cmap_codepoints(italic_cn_extension))}"
+            )
+
+            # Save VFs
             print(f"> Save variable fonts to {cn_root}")
             cn_extension.save(var_output)
             italic_cn_extension.save(var_italic_output)
             cn_extension.close()
-            patched_wenyuan.close()
-            italic_patched_wenyuan.close()
             italic_cn_extension.close()
         else:
             print(f"> Reusing existing variable fonts from {cn_root}")
 
+        # ── Static output (unchanged from prior pipeline) ──
         static_dir = joinPaths(cn_root, "static-wenyuan")
         var_font_names = [
-            "MapleMono-CN-Extension-VF.ttf",
-            "MapleMono-CN-Extension-Italic-VF.ttf",
+            "MapleMono-CN-VF.ttf",
+            "MapleMono-CN-Italic-VF.ttf",
         ]
 
         print("> Instantiating static fonts...")

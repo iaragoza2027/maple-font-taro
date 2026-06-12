@@ -12,12 +12,12 @@ def merge_variable_fonts(output_dir: str = "./fonts/Variable-CN"):
     pairs = [
         (
             "MapleMono[wght].ttf",
-            "MapleMono-CN-Extension-VF.ttf",
+            "MapleMono-CN-VF.ttf",
             "MapleMonoCN[wght].ttf",
         ),
         (
             "MapleMono-Italic[wght].ttf",
-            "MapleMono-CN-Extension-Italic-VF.ttf",
+            "MapleMono-CN-Italic-VF.ttf",
             "MapleMonoCN-Italic[wght].ttf",
         ),
     ]

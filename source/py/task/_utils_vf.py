@@ -120,6 +120,61 @@ def rebuild_weight_masters_with_regular_default(
             del font[table]
 
 
+def merge_masters_into_vf(
+    base: TTFont,
+    min_master: TTFont,
+    regular_master: TTFont,
+    max_master: TTFont,
+    axis_tag: str = "wght",
+) -> tuple[list[str], int]:
+    """Merge static masters into a variable font as new glyphs with gvar deltas.
+
+    For each glyph in *regular_master* not already in *base*:
+    - Copy glyf / hmtx from the regular master.
+    - Compute gvar deltas: min delta (-1 … 0) and max delta (0 … 1).
+    - Update cmap with any new codepoints.
+
+    Returns ``(added_glyph_names, added_codepoints)``.
+    """
+    if "glyf" not in base or "hmtx" not in base or "gvar" not in base:
+        raise ValueError("Base font is missing required tables")
+
+    base_glyphs = set(base.getGlyphOrder())
+    glyphs_to_add = [g for g in regular_master.getGlyphOrder() if g not in base_glyphs]
+
+    base_glyf = base["glyf"]
+    base_hmtx = base["hmtx"]
+    base_gvar = base["gvar"]
+    reg_glyf = regular_master["glyf"]
+    reg_hmtx = regular_master["hmtx"]
+
+    for glyph_name in glyphs_to_add:
+        base_glyf.glyphs[glyph_name] = deepcopy(reg_glyf.glyphs[glyph_name])
+        base_hmtx.metrics[glyph_name] = reg_hmtx.metrics[glyph_name]
+
+        reg_coords = _glyph_coordinates(regular_master, glyph_name)
+        min_coords = _glyph_coordinates(min_master, glyph_name)
+        max_coords = _glyph_coordinates(max_master, glyph_name)
+
+        min_delta = _coordinate_delta(reg_coords, min_coords, glyph_name)
+        max_delta = _coordinate_delta(reg_coords, max_coords, glyph_name)
+
+        variations = []
+        if any(dx or dy for dx, dy in min_delta):
+            variations.append(TupleVariation({axis_tag: (-1.0, -1.0, 0.0)}, min_delta))
+        if any(dx or dy for dx, dy in max_delta):
+            variations.append(TupleVariation({axis_tag: (0.0, 1.0, 1.0)}, max_delta))
+
+        base_gvar.variations[glyph_name] = variations
+
+    base.setGlyphOrder(base.getGlyphOrder() + glyphs_to_add)
+    base["maxp"].numGlyphs = len(base.getGlyphOrder())
+
+    added_codepoints = _merge_cmap(base, regular_master, set(glyphs_to_add))
+
+    return glyphs_to_add, added_codepoints
+
+
 def normalize_weight_axis(
     font: TTFont,
     axis_name_id: int,

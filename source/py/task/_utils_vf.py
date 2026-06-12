@@ -16,6 +16,12 @@ from fontTools.varLib.instancer import otRound
 
 FontInput = str | Path | TTFont
 
+WEIGHT_AXIS_TAG = "wght"
+MIN_WEIGHT_SUPPORT = (-1.0, -1.0, 0.0)
+MAX_WEIGHT_SUPPORT = (0.0, 1.0, 1.0)
+CORE_GLYF_TABLES = ("glyf", "hmtx")
+VARIABLE_GLYF_TABLES = (*CORE_GLYF_TABLES, "gvar")
+
 
 def load_font_eager(font_path: str | Path) -> TTFont:
     """Load a font without keeping lazy table reads tied to the source file."""
@@ -39,15 +45,29 @@ def drop_font_tables(font: TTFont, table_tags: Iterable[str]) -> bool:
 def merge_vf(
     base_font: FontInput, extra_font: FontInput
 ) -> tuple[TTFont, list[str], int]:
-    base = TTFont(base_font) if not isinstance(base_font, TTFont) else base_font
-    extra = TTFont(extra_font) if not isinstance(extra_font, TTFont) else extra_font
+    if isinstance(base_font, TTFont):
+        base, should_close_base = base_font, False
+    else:
+        base, should_close_base = load_font_eager(base_font), True
+    if isinstance(extra_font, TTFont):
+        extra, should_close_extra = extra_font, False
+    else:
+        extra, should_close_extra = load_font_eager(extra_font), True
 
-    _validate_merge_inputs(base, extra)
-    added_glyphs = _merge_glyph_tables(base, extra)
-    added_codepoints = _merge_cmap(base, extra, set(added_glyphs))
-    _recalculate_font(base)
+    try:
+        _validate_merge_inputs(base, extra)
+        added_glyphs = _merge_glyph_tables(base, extra)
+        added_codepoints = _merge_cmap(base, extra, set(added_glyphs))
+        recalculate_font_metrics(base)
 
-    return base, added_glyphs, added_codepoints
+        return base, added_glyphs, added_codepoints
+    except Exception:
+        if should_close_base:
+            base.close()
+        raise
+    finally:
+        if should_close_extra:
+            extra.close()
 
 
 def weight_axis(font: TTFont):
@@ -67,11 +87,7 @@ def get_unicode_cmap(font: TTFont) -> dict[int, str]:
 
 def get_cmap_codepoints(font: TTFont) -> set[int]:
     """Extract all unicode codepoints from font."""
-    codepoints: set[int] = set()
-    for table in font["cmap"].tables:
-        if table.isUnicode():
-            codepoints.update(table.cmap)
-    return codepoints
+    return set(get_unicode_cmap(font))
 
 
 def rebuild_weight_masters_with_regular_default(
@@ -82,13 +98,16 @@ def rebuild_weight_masters_with_regular_default(
     axis_tag: str = "wght",
 ) -> None:
     """Replace weight masters with Regular as default and min/max deltas."""
-    if "glyf" not in font or "hmtx" not in font or "gvar" not in font:
-        raise ValueError("Font is missing required table")
+    _require_tables(font, VARIABLE_GLYF_TABLES, "Font")
+    _require_tables(min_master, CORE_GLYF_TABLES, "Min master")
+    _require_tables(regular_master, CORE_GLYF_TABLES, "Regular master")
+    if max_master is not None:
+        _require_tables(max_master, CORE_GLYF_TABLES, "Max master")
 
     glyf = font["glyf"]
     h_metrics = font["hmtx"].metrics  # type: ignore
     v_metrics = font["vmtx"].metrics if "vmtx" in font else None  # type: ignore
-    variations = {}
+    variations: dict[str, list[TupleVariation]] = {}
 
     for glyph_name in font.getGlyphOrder():
         min_coords = _glyph_coordinates(min_master, glyph_name)
@@ -101,23 +120,13 @@ def rebuild_weight_masters_with_regular_default(
 
         glyf._setCoordinates(glyph_name, reg_coords, h_metrics, v_metrics)  # type: ignore
 
-        min_delta = _coordinate_delta(reg_coords, min_coords, glyph_name)
-        max_delta = _coordinate_delta(reg_coords, max_coords, glyph_name)
-        variations[glyph_name] = []
-        if any(dx or dy for dx, dy in min_delta):
-            variations[glyph_name].append(
-                TupleVariation({axis_tag: (-1.0, -1.0, 0.0)}, min_delta)
-            )
-        if any(dx or dy for dx, dy in max_delta):
-            variations[glyph_name].append(
-                TupleVariation({axis_tag: (0.0, 1.0, 1.0)}, max_delta)
-            )
+        variations[glyph_name] = _build_weight_variations(
+            reg_coords, min_coords, max_coords, glyph_name, axis_tag
+        )
 
     font["gvar"].variations = variations  # type: ignore
 
-    for table in ("HVAR", "MVAR", "avar"):
-        if table in font:
-            del font[table]
+    drop_font_tables(font, ("HVAR", "MVAR", "avar"))
 
 
 def merge_masters_into_vf(
@@ -136,11 +145,18 @@ def merge_masters_into_vf(
 
     Returns ``(added_glyph_names, added_codepoints)``.
     """
-    if "glyf" not in base or "hmtx" not in base or "gvar" not in base:
-        raise ValueError("Base font is missing required tables")
+    _require_tables(base, (*VARIABLE_GLYF_TABLES, "cmap", "maxp"), "Base font")
+    _require_tables(min_master, CORE_GLYF_TABLES, "Min master")
+    _require_tables(regular_master, (*CORE_GLYF_TABLES, "cmap"), "Regular master")
+    _require_tables(max_master, CORE_GLYF_TABLES, "Max master")
 
-    base_glyphs = set(base.getGlyphOrder())
-    glyphs_to_add = [g for g in regular_master.getGlyphOrder() if g not in base_glyphs]
+    base_glyph_order = base.getGlyphOrder()
+    base_glyphs = set(base_glyph_order)
+    glyphs_to_add = [
+        glyph_name
+        for glyph_name in regular_master.getGlyphOrder()
+        if glyph_name not in base_glyphs
+    ]
 
     base_glyf = base["glyf"]
     base_hmtx = base["hmtx"]
@@ -149,26 +165,18 @@ def merge_masters_into_vf(
     reg_hmtx = regular_master["hmtx"]
 
     for glyph_name in glyphs_to_add:
-        base_glyf.glyphs[glyph_name] = deepcopy(reg_glyf.glyphs[glyph_name])
-        base_hmtx.metrics[glyph_name] = reg_hmtx.metrics[glyph_name]
+        _copy_glyph_outline_and_metrics(
+            glyph_name, base_glyf, base_hmtx, reg_glyf, reg_hmtx
+        )
 
         reg_coords = _glyph_coordinates(regular_master, glyph_name)
         min_coords = _glyph_coordinates(min_master, glyph_name)
         max_coords = _glyph_coordinates(max_master, glyph_name)
+        base_gvar.variations[glyph_name] = _build_weight_variations(
+            reg_coords, min_coords, max_coords, glyph_name, axis_tag
+        )
 
-        min_delta = _coordinate_delta(reg_coords, min_coords, glyph_name)
-        max_delta = _coordinate_delta(reg_coords, max_coords, glyph_name)
-
-        variations = []
-        if any(dx or dy for dx, dy in min_delta):
-            variations.append(TupleVariation({axis_tag: (-1.0, -1.0, 0.0)}, min_delta))
-        if any(dx or dy for dx, dy in max_delta):
-            variations.append(TupleVariation({axis_tag: (0.0, 1.0, 1.0)}, max_delta))
-
-        base_gvar.variations[glyph_name] = variations
-
-    base.setGlyphOrder(base.getGlyphOrder() + glyphs_to_add)
-    base["maxp"].numGlyphs = len(base.getGlyphOrder())
+    _append_glyph_order(base, base_glyph_order, glyphs_to_add)
 
     added_codepoints = _merge_cmap(base, regular_master, set(glyphs_to_add))
 
@@ -278,7 +286,16 @@ def skew_glyphs(font: TTFont, italic_angle_deg: float) -> None:
             continue
         if glyph.isComposite():
             for component in glyph.components:
-                _skew_component(component, skew_factor)
+                transform = getattr(component, "transform", None)
+                if transform is None:
+                    component.transform = [[1, 0], [skew_factor, 1]]
+                else:
+                    xx, xy = transform[0]
+                    yx, yy = transform[1]
+                    component.transform = [
+                        [xx, xy],
+                        [yx + skew_factor * xx, yy + skew_factor * xy],
+                    ]
             composite_glyphs.append(glyph_name)
             continue
         if not hasattr(glyph, "coordinates") or glyph.coordinates is None:
@@ -296,20 +313,6 @@ def skew_glyphs(font: TTFont, italic_angle_deg: float) -> None:
         glyph.recalcBounds(glyf_table)
         advance_width, _ = original_metrics.get(glyph_name, (0, 0))
         hmtx[glyph_name] = (advance_width, glyph.xMin)
-
-
-def _skew_component(component, skew_factor: float) -> None:
-    transform = getattr(component, "transform", None)
-    if transform is None:
-        component.transform = [[1, 0], [skew_factor, 1]]
-        return
-
-    xx, xy = transform[0]
-    yx, yy = transform[1]
-    component.transform = [
-        [xx, xy],
-        [yx + skew_factor * xx, yy + skew_factor * xy],
-    ]
 
 
 def recalculate_font_metrics(font: TTFont) -> None:
@@ -332,13 +335,15 @@ def make_italic_master_file(
 ) -> None:
     """Load a prepared static master, skew it, and save an italic copy."""
     font = load_font_eager(input_path)
-    if drop_table_tags:
-        drop_font_tables(font, drop_table_tags)
-    skew_glyphs(font, italic_angle_deg)
-    update_italic_metadata(font, italic_angle_deg)
-    recalculate_font_metrics(font)
-    font.save(output_path)
-    font.close()
+    try:
+        if drop_table_tags:
+            drop_font_tables(font, drop_table_tags)
+        skew_glyphs(font, italic_angle_deg)
+        update_italic_metadata(font, italic_angle_deg)
+        recalculate_font_metrics(font)
+        font.save(output_path)
+    finally:
+        font.close()
 
 
 def make_italic_variable_font(
@@ -392,16 +397,16 @@ def make_italic_variable_font(
         for future in futures:
             future.result()
 
-        min_master = load_font_eager(min_master_path)
-        regular_master = load_font_eager(regular_master_path)
-        max_master = load_font_eager(max_master_path)
-
-        rebuild_weight_masters_with_regular_default(
-            italic_font, min_master, regular_master, max_master
-        )
-        min_master.close()
-        regular_master.close()
-        max_master.close()
+        masters: list[TTFont] = []
+        try:
+            for master_path in (min_master_path, regular_master_path, max_master_path):
+                masters.append(load_font_eager(master_path))
+            rebuild_weight_masters_with_regular_default(
+                italic_font, masters[0], masters[1], masters[2]
+            )
+        finally:
+            for master in masters:
+                master.close()
 
     update_italic_metadata(italic_font, italic_angle_deg)
     recalculate_font_metrics(italic_font)
@@ -463,42 +468,62 @@ def _interpolated_coordinates(
     return coordinates
 
 
-def _coordinate_delta(
-    from_coordinates: GlyphCoordinates,
-    to_coordinates: GlyphCoordinates,
+def _require_tables(font: TTFont, table_tags: Iterable[str], font_role: str) -> None:
+    for table_tag in table_tags:
+        if table_tag not in font:
+            raise ValueError(f"{font_role} is missing required table: {table_tag}")
+
+
+def _build_weight_variations(
+    default_coordinates: GlyphCoordinates,
+    min_coordinates: GlyphCoordinates,
+    max_coordinates: GlyphCoordinates,
     glyph_name: str,
-) -> list[tuple[int, int]]:
-    if len(from_coordinates) != len(to_coordinates):
+    axis_tag: str = WEIGHT_AXIS_TAG,
+) -> list[TupleVariation]:
+    variations: list[TupleVariation] = []
+
+    if len(default_coordinates) != len(min_coordinates):
         raise ValueError(
             f"Point count mismatch for {glyph_name}: "
-            f"{len(from_coordinates)} != {len(to_coordinates)}"
+            f"{len(default_coordinates)} != {len(min_coordinates)}"
         )
-
-    from_points = cast(Iterable[tuple[float, float]], from_coordinates)
-    to_points = cast(Iterable[tuple[float, float]], to_coordinates)
-    return [
-        (int(round(to_x - from_x)), int(round(to_y - from_y)))
+    from_points = cast(Iterable[tuple[float, float]], default_coordinates)
+    to_points = cast(Iterable[tuple[float, float]], min_coordinates)
+    min_delta = [
+        (otRound(to_x - from_x), otRound(to_y - from_y))
         for (from_x, from_y), (to_x, to_y) in zip(from_points, to_points)
     ]
 
+    if len(default_coordinates) != len(max_coordinates):
+        raise ValueError(
+            f"Point count mismatch for {glyph_name}: "
+            f"{len(default_coordinates)} != {len(max_coordinates)}"
+        )
+    from_points = cast(Iterable[tuple[float, float]], default_coordinates)
+    to_points = cast(Iterable[tuple[float, float]], max_coordinates)
+    max_delta = [
+        (otRound(to_x - from_x), otRound(to_y - from_y))
+        for (from_x, from_y), (to_x, to_y) in zip(from_points, to_points)
+    ]
+
+    if any(dx or dy for dx, dy in min_delta):
+        variations.append(TupleVariation({axis_tag: MIN_WEIGHT_SUPPORT}, min_delta))
+    if any(dx or dy for dx, dy in max_delta):
+        variations.append(TupleVariation({axis_tag: MAX_WEIGHT_SUPPORT}, max_delta))
+    return variations
+
 
 def _validate_merge_inputs(base: TTFont, extra: TTFont) -> None:
-    required_tables = ("glyf", "hmtx", "cmap", "fvar", "gvar")
-    for font_role, font in (("Base", base), ("Extra", extra)):
-        for table_tag in required_tables:
-            if table_tag not in font:
-                raise ValueError(
-                    f"{font_role} font is missing required table: {table_tag}"
-                )
+    required_tables = (*VARIABLE_GLYF_TABLES, "cmap", "fvar", "head", "maxp")
+    _require_tables(base, required_tables, "Base font")
+    _require_tables(extra, required_tables, "Extra font")
 
     if base["head"].unitsPerEm != extra["head"].unitsPerEm:  # type: ignore
         raise ValueError(
             "Cannot merge fonts with different UPEM values: "
             f"{base['head'].unitsPerEm} != {extra['head'].unitsPerEm}"  # type: ignore
         )
-
-    if "fvar" not in base:
-        raise ValueError("Font is missing required table: fvar")
 
     base_axes = [
         (axis.axisTag, axis.minValue, axis.defaultValue, axis.maxValue)
@@ -516,17 +541,8 @@ def _validate_merge_inputs(base: TTFont, extra: TTFont) -> None:
 
 
 def _merge_cmap(base: TTFont, extra: TTFont, added_glyphs: set[str]) -> int:
-    base_cmap: dict[int, str] = {}
-    for table in base["cmap"].tables:
-        if table.isUnicode():
-            base_cmap.update(table.cmap)
-
-    extra_cmap: dict[int, str] = {}
-    for table in extra["cmap"].tables:
-        if table.isUnicode():
-            extra_cmap.update(table.cmap)
-
-    base_codepoints = set(base_cmap)
+    base_codepoints = set(get_unicode_cmap(base))
+    extra_cmap = get_unicode_cmap(extra)
     extra_entries = {
         codepoint: glyph_name
         for codepoint, glyph_name in extra_cmap.items()
@@ -556,16 +572,31 @@ def _merge_glyph_tables(base: TTFont, extra: TTFont) -> list[str]:
     extra_gvar = extra["gvar"]
 
     for glyph_name in glyphs_to_add:
-        base_glyf.glyphs[glyph_name] = deepcopy(extra_glyf.glyphs[glyph_name])
-        base_hmtx.metrics[glyph_name] = extra_hmtx.metrics[glyph_name]
+        _copy_glyph_outline_and_metrics(
+            glyph_name, base_glyf, base_hmtx, extra_glyf, extra_hmtx
+        )
         base_gvar.variations[glyph_name] = deepcopy(
             extra_gvar.variations.get(glyph_name, [])
         )
 
-    base.setGlyphOrder(base_glyph_order + glyphs_to_add)
-    base["maxp"].numGlyphs = len(base.getGlyphOrder())
+    _append_glyph_order(base, base_glyph_order, glyphs_to_add)
     return glyphs_to_add
 
 
-def _recalculate_font(font: TTFont) -> None:
-    recalculate_font_metrics(font)
+def _copy_glyph_outline_and_metrics(
+    glyph_name: str,
+    target_glyf: Any,
+    target_hmtx: Any,
+    source_glyf: Any,
+    source_hmtx: Any,
+) -> None:
+    target_glyf.glyphs[glyph_name] = deepcopy(source_glyf.glyphs[glyph_name])
+    target_hmtx.metrics[glyph_name] = source_hmtx.metrics[glyph_name]
+
+
+def _append_glyph_order(
+    font: TTFont, base_glyph_order: list[str], glyphs_to_add: list[str]
+) -> None:
+    glyph_order = base_glyph_order + glyphs_to_add
+    font.setGlyphOrder(glyph_order)
+    font["maxp"].numGlyphs = len(glyph_order)

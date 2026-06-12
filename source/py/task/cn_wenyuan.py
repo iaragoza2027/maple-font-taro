@@ -459,7 +459,7 @@ def build_cn_base_font(
     config: FontConfig,
     process_pool: ProcessPoolExecutor,
 ) -> tuple[TTFont, tuple[Path, Path, Path]]:
-    """Build the upright CN extension VF via the master-merge pipeline.
+    """Build the upright CN base VF via the master-merge pipeline.
 
     1. Subset the WenYuan source to CJK codepoints, drop overlapping feature glyphs.
     2. Instantiate 3 static upright WenYuan masters from the subset.
@@ -514,8 +514,8 @@ def build_cn_base_font(
     prune_stat(feature_font, config)
     recalculate_font(feature_font)
 
-    print(f"regular CN extension glyphs: {len(feature_font.getGlyphOrder())}")
-    print(f"regular CN extension unicodes: {len(get_cmap_codepoints(feature_font))}")
+    print(f"regular CN base font glyphs: {len(feature_font.getGlyphOrder())}")
+    print(f"regular CN base font unicodes: {len(get_cmap_codepoints(feature_font))}")
 
     min_master.close()
     regular_master.close()
@@ -559,7 +559,7 @@ def instantiate_wenyuan_static_fonts(
 
 
 def cn_wenyuan(cn_root: str, regenerate_vf: bool = True) -> None:
-    print("> Building CN WenYuan extension fonts...")
+    print("> Building CN WenYuan fonts...")
 
     try:
         config = FontConfig()
@@ -652,9 +652,9 @@ def cn_wenyuan(cn_root: str, regenerate_vf: bool = True) -> None:
             slanted_reg.close()
             slanted_max.close()
 
-            print(f"italic CN extension glyphs: {len(cn_italic.getGlyphOrder())}")
+            print(f"italic CN base font glyphs: {len(cn_italic.getGlyphOrder())}")
             print(
-                f"italic CN extension unicodes: {len(get_cmap_codepoints(cn_italic))}"
+                f"italic CN base font unicodes: {len(get_cmap_codepoints(cn_italic))}"
             )
 
             # Save VFs

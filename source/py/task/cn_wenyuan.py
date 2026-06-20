@@ -37,8 +37,8 @@ STATIC_WEIGHT_MAP: dict[int, str] = {
 }
 
 MASTER_WEIGHTS: tuple[tuple[int, str], tuple[int, str], tuple[int, str]] = (
-    (200, "min"),
-    (450, "regular"),
+    (220, "min"),
+    (470, "regular"),
     (900, "max"),
 )
 

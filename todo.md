@@ -18,10 +18,16 @@
 - [ ] chess symbols #594
 - [ ] "♦", "♠", "♥", "♣" #771
 - [ ] U+2C6D, U+0E3F #772
-- [ ]   #713
 - [ ] U+21E0-U+21E3 #740
-- [ ] make u+E0B4 / u+E0B6 more rounded #780
+- [x] make u+E0B4 / u+E0B6 more rounded #780
 
 ### CN
 
-- [ ] 八卦符号 #580
+- [x] 易经六十四卦符号 #580
+
+## Note
+
+ChironGoRoundTCVF weight mapping:
+- 100 -> 250
+- 400 -> 620
+- 800 -> 900

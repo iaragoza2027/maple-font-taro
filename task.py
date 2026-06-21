@@ -51,9 +51,9 @@ def main():
         "cn-wenyuan", help="Rebuild CN WenYuan extension font"
     )
     cn_wenyuan.add_argument(
-        "--cache",
+        "--vf-only",
         action="store_true",
-        help="reuse existing variable fonts and skip static font regeneration if already exists",
+        help="only rebuild variable font and skip static font generation",
     )
 
     publish_parser = command.add_parser(

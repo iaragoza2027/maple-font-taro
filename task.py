@@ -56,6 +56,13 @@ def main():
         help="only rebuild variable font and skip static font generation",
     )
 
+    jp = command.add_parser("jp", help="Rebuild JP base font")
+    jp.add_argument(
+        "--vf-only",
+        action="store_true",
+        help="only rebuild variable font and skip static font generation",
+    )
+
     publish_parser = command.add_parser(
         "publish", help="Publish the font archives to GitHub Release"
     )
@@ -100,7 +107,11 @@ def main():
     elif args.command == "cn-wenyuan":
         from source.py.task.cn_wenyuan import cn_wenyuan
 
-        cn_wenyuan("./source/cn", not args.cache)
+        cn_wenyuan("./source/cn", args.vf_only)
+    elif args.command == "jp":
+        from source.py.task.jp import jp
+
+        jp("./source/jp", args.vf_only)
     elif args.command == "publish":
         from source.py.task.publish import publish
 

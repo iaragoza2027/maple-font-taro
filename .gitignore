@@ -4,6 +4,10 @@ release
 source/cn/**/*.ttf
 source/cn/**/*.vfc
 source/cn/temp/
+source/jp/**/*.ttf
+source/jp/**/*.otf
+source/jp/**/*.vfc
+source/jp/temp/
 cdn
 
 __pycache__

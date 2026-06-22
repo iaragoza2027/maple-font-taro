@@ -820,12 +820,6 @@ class BuildOption:
         if self.__check_cn_exists(static_path):
             return True
 
-        # Only try downloading for non-wenyuan path
-        if use_wenyuan:
-            print(f"\n❗ CN WenYuan static fonts don't exist at {static_path}.")
-            print("Run `python task.py cn-wenyuan --rebuild` to generate them.")
-            return False
-
         tag = "cn-base"
         zip_path = (
             "cn-base-static.zip" if not use_wenyuan else "cn-base-static-wenyuan.zip"

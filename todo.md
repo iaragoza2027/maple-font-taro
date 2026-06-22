@@ -25,9 +25,12 @@
 
 - [x] 易经六十四卦符号 #580
 
-## Note
+## CJK
 
-ChironGoRoundTCVF weight mapping:
-- 100 -> 250
-- 400 -> 620
-- 800 -> 900
+- [x] WenYuanRoundedSCVF as SC part
+- [ ] ChironGoRoundTCVF as TC + KR (range should reference from Pretendard) part
+  - Maple and ChironGoRoundTCVF weight mapping:
+    - 100 -> 250
+    - 400 -> 620
+    - 800 -> 900
+- [ ] M PLUS Rounded 1c variable as JP part

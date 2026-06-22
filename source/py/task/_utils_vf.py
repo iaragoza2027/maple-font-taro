@@ -301,8 +301,9 @@ def skew_glyphs(font: TTFont, italic_angle_deg: float) -> None:
         if not hasattr(glyph, "coordinates") or glyph.coordinates is None:
             coordinates, _, _ = glyph.getCoordinates(glyf_table)
             glyph.coordinates = coordinates
-        glyph.coordinates.transform(((1, 0), (skew_factor, 1), (0, 0)))
-        glyph.coordinates.translate((-otRound(skew_factor * advance_width / 2), 0))
+        glyph.coordinates.transform(
+            ((1, 0), (skew_factor, 1), (-otRound(skew_factor * advance_width / 2), 0))
+        )
         glyph.xMin, glyph.yMin, glyph.xMax, glyph.yMax = (
             glyph.coordinates.calcIntBounds()
         )

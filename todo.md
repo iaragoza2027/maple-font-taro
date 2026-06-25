@@ -20,6 +20,7 @@
 - [ ] U+2C6D, U+0E3F #772
 - [ ] U+21E0-U+21E3 #740
 - [x] make u+E0B4 / u+E0B6 more rounded #780
+- [ ] fill ALL sub and sup glyphs, fix wrong unicodes #789
 
 ### CN
 

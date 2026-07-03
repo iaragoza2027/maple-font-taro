@@ -4,6 +4,7 @@ from source.py.cjk.builder import (
     CJKBuildConfig,
     CJKOutputConfig,
     CJKSourceConfig,
+    CJKTransformConfig,
     CJKNamingConfig,
     CJKUnicodeConfig,
     DEFAULT_CJK_RANGES,
@@ -16,19 +17,19 @@ def cn_config(cn_root: str = "./source/cn") -> CJKBuildConfig:
     cn_dir = Path(cn_root)
     return CJKBuildConfig(
         source=CJKSourceConfig(
-            path=cn_dir / "WenYuanRoundedSCVF.ttf",
+            path=cn_dir / "WenYuanRoundedSCVF.otf",
             masters={
                 100: {"ital": 0, "wght": 220},
                 400: {"ital": 0, "wght": 470},
                 800: {"ital": 0, "wght": 900},
             },
-            outline_mode="glyf",
+            # outline_mode="glyf",
             drop_tables=("BASE", "VVAR", "vhea", "vmtx"),
         ),
         output=CJKOutputConfig(
             dir=cn_dir,
-            regular_variable="MapleMono-CN-VF.ttf",
-            italic_variable="MapleMono-CN-Italic-VF.ttf",
+            regular_variable="MapleMono-CN-VF.otf",
+            italic_variable="MapleMono-CN-Italic-VF.otf",
             static_dir="static-wenyuan",
             static_hash="static-wenyuan.sha256",
             archive_name="cn-base-static-wenyuan.zip",
@@ -37,6 +38,12 @@ def cn_config(cn_root: str = "./source/cn") -> CJKBuildConfig:
             family_name="Maple Mono CN",
             postscript_prefix="MapleMonoCN",
             static_file_prefix="MapleMonoCN",
+        ),
+        transform=CJKTransformConfig(
+            x_scale=1.02,
+            y_scale=1.05,
+            x_shift=100,
+            y_shift=-25,
         ),
         unicode=CJKUnicodeConfig(ranges=DEFAULT_CJK_RANGES),
         temp_dir=Path("source/cn/temp"),

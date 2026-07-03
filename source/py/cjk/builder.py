@@ -20,6 +20,7 @@ from fontTools.pens.transformPen import TransformPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.subset import parse_unicodes
 from fontTools.ttLib import TTFont, newTable
+from fontTools.ttLib.scaleUpem import scale_upem
 from fontTools.varLib.instancer import instantiateVariableFont
 
 if __package__ in {None, ""}:
@@ -40,7 +41,7 @@ from source.py.cjk.vf import (
     update_italic_metadata,
     weight_axis,
 )
-from source.py.utils import get_directory_hash
+from source.py.utils import get_directory_hash, update_font_names, set_font_name
 
 
 OutlineMode = Literal["auto", "glyf", "cff2"]
@@ -136,6 +137,7 @@ DEFAULT_KR_RANGES: tuple[tuple[int, int], ...] = (
     (0xFF00, 0xFFEF),
 )
 
+
 @dataclass(frozen=True)
 class CJKWeightInstance:
     """Named weight instance copied from the feature font."""
@@ -150,7 +152,11 @@ CJKMasterLocations = dict[int, dict[str, float]]
 
 def ordered_master_locations(
     masters: CJKMasterLocations,
-) -> tuple[tuple[int, dict[str, float]], tuple[int, dict[str, float]], tuple[int, dict[str, float]]]:
+) -> tuple[
+    tuple[int, dict[str, float]],
+    tuple[int, dict[str, float]],
+    tuple[int, dict[str, float]],
+]:
     """Return CJK master locations in output weight order."""
     missing = [weight for weight in CJK_MASTER_WEIGHTS if weight not in masters]
     if missing:
@@ -190,10 +196,10 @@ class CJKTransformConfig:
     """Width and outline normalization applied to added CJK glyphs."""
 
     target_advance_width: int = 1200
-    x_scale: float = 1.02
-    y_scale: float = 1.05
-    x_shift: int = 100
-    y_shift: int = -25
+    x_scale: float = 1
+    y_scale: float = 1
+    x_shift: int = 0
+    y_shift: int = 0
     italic_angle: float = 10
 
 
@@ -276,6 +282,7 @@ def instantiate_variable_font_file(
     static: bool = False,
     optimize: bool = True,
     drop_table_tags: Iterable[str] = (),
+    target_upem: int | None = None,
 ) -> None:
     """Instantiate a variable font from disk and save it to disk."""
     font = load_font_eager(input_path)
@@ -283,10 +290,22 @@ def instantiate_variable_font_file(
     instance = instantiateVariableFont(
         font, axes, inplace=False, optimize=optimize, static=static
     )
+    scale_font_to_upem(instance, target_upem)
     drop_font_tables(instance, drop_table_tags)
     instance.save(output_path)
     instance.close()
     font.close()
+
+
+def scale_font_to_upem(font: TTFont, target_upem: int | None) -> None:
+    """Scale a just-instantiated source font to the target UPEM when needed."""
+    if target_upem is None or "head" not in font:
+        return
+    source_upem = int(font["head"].unitsPerEm)
+    if source_upem == target_upem:
+        return
+    print(f"Scaling source font UPEM: {source_upem} -> {target_upem}")
+    scale_upem(font, target_upem)
 
 
 def instantiate_masters_from_vf(
@@ -296,6 +315,7 @@ def instantiate_masters_from_vf(
     process_pool: Executor,
     output_suffix: str = ".ttf",
     drop_table_tags: Iterable[str] = (),
+    target_upem: int | None = None,
 ) -> tuple[Path, Path, Path]:
     """Instantiate the configured static masters from a variable font."""
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -313,6 +333,7 @@ def instantiate_masters_from_vf(
                 True,
                 False,
                 tuple(drop_table_tags),
+                target_upem,
             )
         )
     for future in futures:
@@ -385,15 +406,21 @@ def prepare_source_subset(
     return removed
 
 
-def detect_outline_mode(font: TTFont, requested: OutlineMode) -> Literal["glyf", "cff2"]:
+def detect_outline_mode(
+    font: TTFont, requested: OutlineMode
+) -> Literal["glyf", "cff2"]:
     """Resolve an outline mode from config and font tables."""
     if requested == "glyf":
         if "glyf" not in font:
-            raise ValueError("Requested glyf outlines, but source font has no glyf table")
+            raise ValueError(
+                "Requested glyf outlines, but source font has no glyf table"
+            )
         return "glyf"
     if requested == "cff2":
         if "CFF2" not in font:
-            raise ValueError("Requested CFF2 outlines, but source font has no CFF2 table")
+            raise ValueError(
+                "Requested CFF2 outlines, but source font has no CFF2 table"
+            )
         return "cff2"
     if "glyf" in font:
         return "glyf"
@@ -462,7 +489,11 @@ def normalize_widths(
         if glyph_name not in font["hmtx"].metrics:
             continue
         _, lsb = font["hmtx"].metrics[glyph_name]
-        width = 0 if glyph_name in zero_width_glyphs else config.transform.target_advance_width
+        width = (
+            0
+            if glyph_name in zero_width_glyphs
+            else config.transform.target_advance_width
+        )
         if width:
             transform_glyph(font, glyph_name, config.transform)
             lsb += config.transform.x_shift
@@ -588,24 +619,43 @@ def load_feature_variable_font(input_path: Path, config: CJKBuildConfig) -> TTFo
     return font
 
 
-def update_variable_font_names(font: TTFont, subfamily: str, config: CJKBuildConfig) -> None:
+def update_variable_font_names(
+    font: TTFont, subfamily: str, config: CJKBuildConfig
+) -> None:
     """Update variable font naming after merging CJK glyphs into the feature base."""
     family_name = config.naming.family_name
     full_name = f"{family_name} {subfamily}"
     postscript_name = f"{config.naming.postscript_prefix}-{subfamily.replace(' ', '')}"
+    version_str = get_version_name(font)
 
     name_table = font["name"]
     move_fvar_instances_from_reserved_name_ids(font)
     for name_id in RESERVED_NAME_IDS:
         name_table.removeNames(nameID=name_id)
 
-    name_table.setName(family_name, 1, 3, 1, 0x409)
-    name_table.setName(subfamily, 2, 3, 1, 0x409)
-    name_table.setName(full_name, 4, 3, 1, 0x409)
-    name_table.setName(postscript_name, 6, 3, 1, 0x409)
-    name_table.setName(family_name, 16, 3, 1, 0x409)
-    name_table.setName(subfamily, 17, 3, 1, 0x409)
-    name_table.setName(config.naming.postscript_prefix, 25, 3, 1, 0x409)
+    update_font_names(
+        font=font,
+        family_name=family_name,
+        style_name=subfamily,
+        unique_identifier=get_unique_identifier(version_str, postscript_name),
+        full_name=full_name,
+        version_str=version_str,
+        postscript_name=postscript_name,
+        is_skip_subfamily=False,
+        preferred_family_name=family_name,
+        preferred_style_name=subfamily,
+    )
+    set_font_name(font, config.naming.postscript_prefix, 25)
+
+
+def get_version_name(font: TTFont) -> str:
+    """Read the existing version name, falling back to a valid name ID 5 value."""
+    return font["name"].getDebugName(5) or "Version 1.000"
+
+
+def get_unique_identifier(version_str: str, postscript_name: str) -> str:
+    """Build a stable unique identifier from the updated PostScript name."""
+    return f"{version_str};SUBF;{postscript_name};"
 
 
 def move_fvar_instances_from_reserved_name_ids(font: TTFont) -> None:
@@ -710,6 +760,7 @@ def prepare_source_masters(
     subset_path: Path,
     config: CJKBuildConfig,
     process_pool: Executor,
+    target_upem: int,
 ) -> tuple[Path, Path, Path]:
     """Instantiate glyf source masters for the master-merge pipeline."""
     subset_font = load_font_eager(subset_path)
@@ -730,6 +781,7 @@ def prepare_source_masters(
         config.source.masters,
         process_pool,
         ".ttf",
+        target_upem=target_upem,
     )
 
 
@@ -745,7 +797,9 @@ def finalize_variable_font(
     apply_horizontal_metrics(font, config)
     if is_italic:
         update_italic_metadata(font, config.transform.italic_angle)
-    normalize_widths(font, config, glyph_names=added_glyphs, protected_glyphs=protected_glyphs)
+    normalize_widths(
+        font, config, glyph_names=added_glyphs, protected_glyphs=protected_glyphs
+    )
     prune_stat(font)
     recalculate_font(font, config)
     update_variable_font_names(font, subfamily, config)
@@ -760,9 +814,7 @@ def source_weight_values(config: CJKBuildConfig) -> tuple[float, float, float]:
         values.append(float(axes["wght"]))
     min_weight, default_weight, max_weight = values
     if not min_weight <= default_weight <= max_weight:
-        raise ValueError(
-            "Source master wght values must be ordered 100 <= 400 <= 800"
-        )
+        raise ValueError("Source master wght values must be ordered 100 <= 400 <= 800")
     return min_weight, default_weight, max_weight
 
 
@@ -770,11 +822,7 @@ def cff2_variable_axis_limits(config: CJKBuildConfig) -> dict[str, Any]:
     """Pin non-weight source axes while preserving source weight coordinates."""
     min_weight, default_weight, max_weight = source_weight_values(config)
     regular_axes = config.source.masters[400]
-    limits = {
-        axis: value
-        for axis, value in regular_axes.items()
-        if axis != "wght"
-    }
+    limits = {axis: value for axis, value in regular_axes.items() if axis != "wght"}
     limits["wght"] = (min_weight, default_weight, max_weight)
     return limits
 
@@ -923,6 +971,7 @@ def build_cff2_cjk_fonts(
                 optimize=False,
                 static=False,
             )
+            scale_font_to_upem(regular_font, int(feature_font["head"].unitsPerEm))
         finally:
             subset_font_file.close()
 
@@ -973,7 +1022,12 @@ def build_regular_cjk_font(
     )
     print(f"Removed base/feature unicodes from CJK subset: {removed}")
 
-    master_paths = prepare_source_masters(subset_path, config, process_pool)
+    master_paths = prepare_source_masters(
+        subset_path,
+        config,
+        process_pool,
+        int(feature_font["head"].unitsPerEm),
+    )
     min_master = load_font_eager(master_paths[0])
     regular_master = load_font_eager(master_paths[1])
     max_master = load_font_eager(master_paths[2])
@@ -1129,21 +1183,17 @@ def instantiate_static_font_file(
         convert_cff_static_to_glyf(instance)
         recalculate_font(instance, config)
 
-    instance["name"].setName(config.naming.family_name, 1, 3, 1, 0x409)
-    instance["name"].setName(subfamily, 2, 3, 1, 0x409)
-    instance["name"].setName(
-        f"{config.naming.family_name} {subfamily}",
-        4,
-        3,
-        1,
-        0x409,
-    )
-    instance["name"].setName(
-        f"{config.naming.postscript_prefix}-{subfamily.replace(' ', '')}",
-        6,
-        3,
-        1,
-        0x409,
+    postscript_name = f"{config.naming.postscript_prefix}-{subfamily.replace(' ', '')}"
+    version_str = get_version_name(instance)
+    update_font_names(
+        font=instance,
+        family_name=config.naming.family_name,
+        style_name=subfamily,
+        unique_identifier=get_unique_identifier(version_str, postscript_name),
+        full_name=f"{config.naming.family_name} {subfamily}",
+        version_str=version_str,
+        postscript_name=postscript_name,
+        is_skip_subfamily=True,
     )
 
     drop_font_tables(instance, ("kern", "GPOS"))
@@ -1236,9 +1286,7 @@ def build_cjk_fonts(config: CJKBuildConfig, vf_only: bool = False) -> None:
         source_font = load_font_eager(config.source.path)
         try:
             if "fvar" not in source_font:
-                raise ValueError(
-                    f"Source font must be variable: {config.source.path}"
-                )
+                raise ValueError(f"Source font must be variable: {config.source.path}")
             outline_mode = detect_outline_mode(source_font, config.source.outline_mode)
         finally:
             source_font.close()
@@ -1374,7 +1422,9 @@ def parse_master_locations(value: Any) -> CJKMasterLocations:
         try:
             output_weight = int(raw_weight)
         except (TypeError, ValueError) as exc:
-            raise ValueError(f"Invalid source master output weight: {raw_weight}") from exc
+            raise ValueError(
+                f"Invalid source master output weight: {raw_weight}"
+            ) from exc
         if output_weight not in CJK_MASTER_WEIGHTS:
             raise ValueError(
                 "source.masters keys must be exactly output weights 100, 400, and 800"
@@ -1545,7 +1595,9 @@ def resolve_output_config(
     )
 
 
-def default_output_for_source(source_path: Path, outline_mode: OutlineMode) -> CJKOutputConfig:
+def default_output_for_source(
+    source_path: Path, outline_mode: OutlineMode
+) -> CJKOutputConfig:
     """Choose extension-safe default output names for a source font."""
     font = load_font_eager(source_path)
     try:
@@ -1559,7 +1611,9 @@ def default_output_for_source(source_path: Path, outline_mode: OutlineMode) -> C
     )
 
 
-def apply_cli_overrides(config: CJKBuildConfig, args: argparse.Namespace) -> CJKBuildConfig:
+def apply_cli_overrides(
+    config: CJKBuildConfig, args: argparse.Namespace
+) -> CJKBuildConfig:
     """Apply direct CLI overrides on top of a JSON or default config."""
     source_path = resolve_cli_path(getattr(args, "source", None)) or config.source.path
     fixed_axes = parse_axis_assignments(getattr(args, "axis", None))
@@ -1582,7 +1636,9 @@ def apply_cli_overrides(config: CJKBuildConfig, args: argparse.Namespace) -> CJK
         path=source_path,
         masters=masters,
         outline_mode=getattr(args, "outline_mode", None) or config.source.outline_mode,
-        drop_tables=tuple(getattr(args, "drop_table", None) or config.source.drop_tables),
+        drop_tables=tuple(
+            getattr(args, "drop_table", None) or config.source.drop_tables
+        ),
     )
 
     output = resolve_output_config(
@@ -1618,7 +1674,8 @@ def apply_cli_overrides(config: CJKBuildConfig, args: argparse.Namespace) -> CJK
         y_shift=getattr(args, "y_shift", None)
         if getattr(args, "y_shift", None) is not None
         else config.transform.y_shift,
-        italic_angle=getattr(args, "italic_angle", None) or config.transform.italic_angle,
+        italic_angle=getattr(args, "italic_angle", None)
+        or config.transform.italic_angle,
     )
 
     return replace(
@@ -1704,7 +1761,9 @@ def config_from_json(config_path: str | Path) -> CJKBuildConfig:
         ),
         output=CJKOutputConfig(
             dir=resolve_path(output_data.get("dir"), "source/cjk"),
-            regular_variable=output_data.get("regular_variable", "MapleMono-CJK-VF.ttf"),
+            regular_variable=output_data.get(
+                "regular_variable", "MapleMono-CJK-VF.ttf"
+            ),
             italic_variable=output_data.get(
                 "italic_variable", "MapleMono-CJK-Italic-VF.ttf"
             ),
@@ -1729,10 +1788,10 @@ def config_from_json(config_path: str | Path) -> CJKBuildConfig:
         ),
         transform=CJKTransformConfig(
             target_advance_width=int(transform_data.get("target_advance_width", 1200)),
-            x_scale=float(transform_data.get("x_scale", 1.02)),
-            y_scale=float(transform_data.get("y_scale", 1.05)),
-            x_shift=int(transform_data.get("x_shift", 100)),
-            y_shift=int(transform_data.get("y_shift", -25)),
+            x_scale=float(transform_data.get("x_scale", 1)),
+            y_scale=float(transform_data.get("y_scale", 1)),
+            x_shift=int(transform_data.get("x_shift", 0)),
+            y_shift=int(transform_data.get("y_shift", 0)),
             italic_angle=float(transform_data.get("italic_angle", 10)),
         ),
         temp_dir=resolve_path(data.get("temp_dir"), "source/cjk/temp"),
@@ -1800,7 +1859,9 @@ def add_cjk_arguments(parser: argparse.ArgumentParser) -> None:
         help="Source table tag to drop before subsetting; repeat as needed",
     )
     parser.add_argument("--output-dir", help="Output directory")
-    parser.add_argument("--regular-output", help="Regular variable output file name/path")
+    parser.add_argument(
+        "--regular-output", help="Regular variable output file name/path"
+    )
     parser.add_argument("--italic-output", help="Italic variable output file name/path")
     parser.add_argument("--static-dir", help="Static font output subdirectory")
     parser.add_argument("--static-hash", help="Static hash file name")

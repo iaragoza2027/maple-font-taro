@@ -484,28 +484,30 @@ def _build_weight_variations(
 ) -> list[TupleVariation]:
     variations: list[TupleVariation] = []
 
-    if len(default_coordinates) != len(min_coordinates):
+    if (
+        len(default_coordinates) != len(max_coordinates)
+        or len(default_coordinates) != len(min_coordinates)
+        or len(min_coordinates) != len(max_coordinates)
+    ):
         raise ValueError(
             f"Point count mismatch for {glyph_name}: "
-            f"{len(default_coordinates)} != {len(min_coordinates)}"
+            f"default={len(default_coordinates)}, min={len(min_coordinates)}, max={len(max_coordinates)}"
         )
-    from_points = cast(Iterable[tuple[float, float]], default_coordinates)
-    to_points = cast(Iterable[tuple[float, float]], min_coordinates)
+
     min_delta = [
         (otRound(to_x - from_x), otRound(to_y - from_y))
-        for (from_x, from_y), (to_x, to_y) in zip(from_points, to_points)
+        for (from_x, from_y), (to_x, to_y) in zip(
+            cast(Iterable[tuple[float, float]], default_coordinates),
+            cast(Iterable[tuple[float, float]], min_coordinates),
+        )
     ]
 
-    if len(default_coordinates) != len(max_coordinates):
-        raise ValueError(
-            f"Point count mismatch for {glyph_name}: "
-            f"{len(default_coordinates)} != {len(max_coordinates)}"
-        )
-    from_points = cast(Iterable[tuple[float, float]], default_coordinates)
-    to_points = cast(Iterable[tuple[float, float]], max_coordinates)
     max_delta = [
         (otRound(to_x - from_x), otRound(to_y - from_y))
-        for (from_x, from_y), (to_x, to_y) in zip(from_points, to_points)
+        for (from_x, from_y), (to_x, to_y) in zip(
+            cast(Iterable[tuple[float, float]], default_coordinates),
+            cast(Iterable[tuple[float, float]], max_coordinates),
+        )
     ]
 
     if any(dx or dy for dx, dy in min_delta):

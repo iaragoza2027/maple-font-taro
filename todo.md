@@ -28,6 +28,7 @@
 
 ## CJK
 
+- [ ] try not to convert CFF2 to glyf, directly use CFF2 to merge variable font and generate ttf when instantiating
 - [x] WenYuanRoundedSCVF as SC part
 - [ ] ChironGoRoundTCVF as TC + KR (range should reference from Pretendard) part
   - Maple and ChironGoRoundTCVF weight mapping:

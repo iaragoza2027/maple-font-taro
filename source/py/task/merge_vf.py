@@ -1,5 +1,5 @@
 from pathlib import Path
-from source.py.task._utils_vf import merge_vf
+from source.py.cjk.vf import merge_vf
 
 
 def merge_variable_fonts(output_dir: str = "./fonts/Variable-CN"):

@@ -47,10 +47,10 @@ def main():
     )
     cn.add_argument("--rebuild", action="store_true", help="rebuild the CN static font")
 
-    cn_wenyuan = command.add_parser(
-        "cn-wenyuan", help="Rebuild CN WenYuan extension font"
+    cn_extension = command.add_parser(
+        "cn-wenyuan", help="Rebuild CN CJK extension font"
     )
-    cn_wenyuan.add_argument(
+    cn_extension.add_argument(
         "--vf-only",
         action="store_true",
         help="only rebuild variable font and skip static font generation",
@@ -64,29 +64,9 @@ def main():
     )
 
     cjk = command.add_parser("cjk", help="Build custom CJK base font")
-    cjk.add_argument(
-        "--config",
-        type=str,
-        default="./source/cjk/config.json",
-        help="Path to custom CJK build config",
-    )
-    cjk.add_argument(
-        "--preset",
-        choices=["cn-wenyuan", "jp"],
-        help="Use a built-in CJK preset instead of a custom config",
-    )
-    cjk.add_argument(
-        "--unicodes",
-        help=(
-            "Unicode preset (cn, jp, tc, kr) or pyftsubset-style range, "
-            "for example 4E00-9FFF,3000-303F"
-        ),
-    )
-    cjk.add_argument(
-        "--vf-only",
-        action="store_true",
-        help="only rebuild variable font and skip static font generation",
-    )
+    from source.py.cjk.builder import add_cjk_arguments
+
+    add_cjk_arguments(cjk)
 
     publish_parser = command.add_parser(
         "publish", help="Publish the font archives to GitHub Release"
@@ -130,20 +110,17 @@ def main():
 
         cn("./source/cn", args.pull, args.rebuild)
     elif args.command == "cn-wenyuan":
-        from source.py.task.cn_wenyuan import cn_wenyuan
+        from source.py.cjk.cn import cn as cn_wenyuan
 
         cn_wenyuan("./source/cn", args.vf_only)
     elif args.command == "jp":
-        from source.py.task.jp import jp
+        from source.py.cjk.jp import jp
 
         jp("./source/jp", args.vf_only)
     elif args.command == "cjk":
-        from source.py.task.cjk import build_cjk_from_config_file, build_cjk_from_preset
+        from source.py.cjk.builder import build_cjk_from_args
 
-        if args.preset:
-            build_cjk_from_preset(args.preset, args.vf_only, args.unicodes)
-        else:
-            build_cjk_from_config_file(args.config, args.vf_only, args.unicodes)
+        build_cjk_from_args(args)
     elif args.command == "publish":
         from source.py.task.publish import publish
 

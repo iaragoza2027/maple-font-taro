@@ -1,8 +1,7 @@
 from pathlib import Path
 
-from source.py.task.cjk import (
+from source.py.cjk.builder import (
     CJKBuildConfig,
-    CJKMasterSpec,
     CJKOutputConfig,
     CJKSourceConfig,
     CJKNamingConfig,
@@ -18,11 +17,11 @@ def jp_config(jp_root: str = "./source/jp") -> CJKBuildConfig:
     return CJKBuildConfig(
         source=CJKSourceConfig(
             path=jp_dir / "ResourceHanRoundedJP-VF.otf",
-            masters=(
-                CJKMasterSpec("min", {"wght": 200, "ROND": 100}),
-                CJKMasterSpec("regular", {"wght": 400, "ROND": 100}),
-                CJKMasterSpec("max", {"wght": 900, "ROND": 100}),
-            ),
+            masters={
+                100: {"wght": 200, "ROND": 100},
+                400: {"wght": 400, "ROND": 100},
+                800: {"wght": 900, "ROND": 100},
+            },
             outline_mode="cff2",
             drop_tables=(
                 "BASE",
@@ -39,8 +38,8 @@ def jp_config(jp_root: str = "./source/jp") -> CJKBuildConfig:
         ),
         output=CJKOutputConfig(
             dir=jp_dir,
-            regular_variable="MapleMono-JP-VF.ttf",
-            italic_variable="MapleMono-JP-Italic-VF.ttf",
+            regular_variable="MapleMono-JP-VF.otf",
+            italic_variable="MapleMono-JP-Italic-VF.otf",
             static_dir="static",
             static_hash="static.sha256",
             archive_name="jp-base-static.zip",

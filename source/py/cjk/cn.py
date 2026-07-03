@@ -1,8 +1,7 @@
 from pathlib import Path
 
-from source.py.task.cjk import (
+from source.py.cjk.builder import (
     CJKBuildConfig,
-    CJKMasterSpec,
     CJKOutputConfig,
     CJKSourceConfig,
     CJKNamingConfig,
@@ -12,17 +11,17 @@ from source.py.task.cjk import (
 )
 
 
-def cn_wenyuan_config(cn_root: str = "./source/cn") -> CJKBuildConfig:
-    """Return the built-in CN WenYuan preset."""
+def cn_config(cn_root: str = "./source/cn") -> CJKBuildConfig:
+    """Return the built-in CN preset."""
     cn_dir = Path(cn_root)
     return CJKBuildConfig(
         source=CJKSourceConfig(
             path=cn_dir / "WenYuanRoundedSCVF.ttf",
-            masters=(
-                CJKMasterSpec("min", {"ital": 0, "wght": 220}),
-                CJKMasterSpec("regular", {"ital": 0, "wght": 470}),
-                CJKMasterSpec("max", {"ital": 0, "wght": 900}),
-            ),
+            masters={
+                100: {"ital": 0, "wght": 220},
+                400: {"ital": 0, "wght": 470},
+                800: {"ital": 0, "wght": 900},
+            },
             outline_mode="glyf",
             drop_tables=("BASE", "VVAR", "vhea", "vmtx"),
         ),
@@ -44,6 +43,6 @@ def cn_wenyuan_config(cn_root: str = "./source/cn") -> CJKBuildConfig:
     )
 
 
-def cn_wenyuan(cn_root: str, vf_only: bool = False) -> None:
-    """Build CN WenYuan fonts through the shared CJK pipeline."""
-    build_cjk_fonts(cn_wenyuan_config(cn_root), vf_only)
+def cn(cn_root: str, vf_only: bool = False) -> None:
+    """Build CN fonts through the shared CJK pipeline."""
+    build_cjk_fonts(cn_config(cn_root), vf_only)

@@ -1,14 +1,14 @@
 from pathlib import Path
 
-from source.py.cjk.builder import (
+from source.py.cjk.builder import build_cjk_fonts
+from source.py.cjk.config import (
     CJKBuildConfig,
     CJKOutputConfig,
     CJKSourceConfig,
-    CJKTransformConfig,
     CJKNamingConfig,
+    CJKTransformConfig,
     CJKUnicodeConfig,
     DEFAULT_CJK_RANGES,
-    build_cjk_fonts,
 )
 
 
@@ -28,8 +28,8 @@ def cn_config(cn_root: str = "./source/cn") -> CJKBuildConfig:
         ),
         output=CJKOutputConfig(
             dir=cn_dir,
-            regular_variable="MapleMono-CN-VF.otf",
-            italic_variable="MapleMono-CN-Italic-VF.otf",
+            regular_variable="MapleMono-CN-VF.ttf",
+            italic_variable="MapleMono-CN-Italic-VF.ttf",
             static_dir="static-wenyuan",
             static_hash="static-wenyuan.sha256",
             archive_name="cn-base-static-wenyuan.zip",

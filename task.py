@@ -64,7 +64,7 @@ def main():
     )
 
     cjk = command.add_parser("cjk", help="Build custom CJK base font")
-    from source.py.cjk.builder import add_cjk_arguments
+    from source.py.cjk.config import add_cjk_arguments
 
     add_cjk_arguments(cjk)
 

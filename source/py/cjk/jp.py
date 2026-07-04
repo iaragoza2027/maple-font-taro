@@ -1,13 +1,13 @@
 from pathlib import Path
 
-from source.py.cjk.builder import (
+from source.py.cjk.builder import build_cjk_fonts
+from source.py.cjk.config import (
     CJKBuildConfig,
     CJKOutputConfig,
     CJKSourceConfig,
     CJKNamingConfig,
     CJKUnicodeConfig,
     DEFAULT_JP_RANGES,
-    build_cjk_fonts,
 )
 
 
@@ -38,8 +38,8 @@ def jp_config(jp_root: str = "./source/jp") -> CJKBuildConfig:
         ),
         output=CJKOutputConfig(
             dir=jp_dir,
-            regular_variable="MapleMono-JP-VF.otf",
-            italic_variable="MapleMono-JP-Italic-VF.otf",
+            regular_variable="MapleMono-JP-VF.ttf",
+            italic_variable="MapleMono-JP-Italic-VF.ttf",
             static_dir="static",
             static_hash="static.sha256",
             archive_name="jp-base-static.zip",

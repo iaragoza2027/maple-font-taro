@@ -354,6 +354,7 @@ def make_italic_variable_font(
     process_pool: Any,
     master_paths: tuple[Path, Path, Path],
     drop_table_tags: tuple[str, ...] = (),
+    masters_are_italic: bool = False,
 ) -> TTFont:
     """Build an italic variable font from prepared static masters."""
     italic_font = deepcopy(font)
@@ -364,54 +365,72 @@ def make_italic_variable_font(
         f"Building italic masters from {len(font.getGlyphOrder())} CN extension glyphs..."
     )
 
-    temp_root.mkdir(parents=True, exist_ok=True)
-    with TemporaryDirectory(dir=temp_root) as tmp_dir:
-        tmp_path = Path(tmp_dir)
-        min_master_path = tmp_path / "italic-min-master.ttf"
-        regular_master_path = tmp_path / "italic-regular-master.ttf"
-        max_master_path = tmp_path / "italic-max-master.ttf"
-        min_source_path, regular_source_path, max_source_path = master_paths
-
-        futures = [
-            process_pool.submit(
-                make_italic_master_file,
-                str(min_source_path),
-                str(min_master_path),
-                italic_angle_deg,
-                drop_table_tags,
-            ),
-            process_pool.submit(
-                make_italic_master_file,
-                str(regular_source_path),
-                str(regular_master_path),
-                italic_angle_deg,
-                drop_table_tags,
-            ),
-            process_pool.submit(
-                make_italic_master_file,
-                str(max_source_path),
-                str(max_master_path),
-                italic_angle_deg,
-                drop_table_tags,
-            ),
-        ]
-        for future in futures:
-            future.result()
-
-        masters: list[TTFont] = []
-        try:
-            for master_path in (min_master_path, regular_master_path, max_master_path):
-                masters.append(load_font_eager(master_path))
-            rebuild_weight_masters_with_regular_default(
-                italic_font, masters[0], masters[1], masters[2]
+    if masters_are_italic:
+        italic_master_paths = master_paths
+    else:
+        temp_root.mkdir(parents=True, exist_ok=True)
+        with TemporaryDirectory(dir=temp_root) as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            italic_master_paths = (
+                tmp_path / "italic-min-master.ttf",
+                tmp_path / "italic-regular-master.ttf",
+                tmp_path / "italic-max-master.ttf",
             )
-        finally:
-            for master in masters:
-                master.close()
+            min_source_path, regular_source_path, max_source_path = master_paths
+
+            futures = [
+                process_pool.submit(
+                    make_italic_master_file,
+                    str(min_source_path),
+                    str(italic_master_paths[0]),
+                    italic_angle_deg,
+                    drop_table_tags,
+                ),
+                process_pool.submit(
+                    make_italic_master_file,
+                    str(regular_source_path),
+                    str(italic_master_paths[1]),
+                    italic_angle_deg,
+                    drop_table_tags,
+                ),
+                process_pool.submit(
+                    make_italic_master_file,
+                    str(max_source_path),
+                    str(italic_master_paths[2]),
+                    italic_angle_deg,
+                    drop_table_tags,
+                ),
+            ]
+            for future in futures:
+                future.result()
+
+            rebuild_weight_masters_from_paths(italic_font, italic_master_paths)
+            update_italic_metadata(italic_font, italic_angle_deg)
+            recalculate_font_metrics(italic_font)
+            return italic_font
+
+    rebuild_weight_masters_from_paths(italic_font, italic_master_paths)
 
     update_italic_metadata(italic_font, italic_angle_deg)
     recalculate_font_metrics(italic_font)
     return italic_font
+
+
+def rebuild_weight_masters_from_paths(
+    font: TTFont,
+    master_paths: tuple[Path, Path, Path],
+) -> None:
+    """Replace a variable font's weight masters from static master files."""
+    masters: list[TTFont] = []
+    try:
+        for master_path in master_paths:
+            masters.append(load_font_eager(master_path))
+        rebuild_weight_masters_with_regular_default(
+            font, masters[0], masters[1], masters[2]
+        )
+    finally:
+        for master in masters:
+            master.close()
 
 
 def _glyph_coordinates(font: TTFont, glyph_name: str) -> GlyphCoordinates:

@@ -643,11 +643,11 @@ For example, if you want to make regular font weight a little bit lighter, just 
 }
 ```
 
-### Chinese version
+### CJK-extended version
 
-The CN version is disabled by default. Run `python build.py` with the `--cn` flag, the CN base fonts (about 111 MB) will download from GitHub.
+CJK-extended builds are disabled by default. Run `python build.py --cjk cn` to generate Maple Mono + CN static fonts. The default output mode is `--cjk-format static`, while `--cjk-format variable` persists merged Maple Mono + locale variable fonts only. The legacy `--cn` flag is still accepted as a compatibility alias for selecting the `cn` locale.
 
-If you want to build CN base fonts from variable (about 27 MB), set `"cn.use_static_base_font": false` in [config.json](./config.json) and **BE PATIENT**, instantiation will take about 10-30 minutes.
+Use `cjk.enabled_locales` in [config.json](./config.json) to enable one or more locales (`cn`, `jp`, `tc`, `kr`) in config-driven builds.
 
 #### Narrow spacing in CN glyphs
 
@@ -739,7 +739,7 @@ uv sync
 # Dev
 uv run build.py --ttf-only --cn --debug
 # Update nerd font
-uv run task.py nerd-font
+uv run task.py nf
 # Update fea file
 uv run task.py fea
 # Update landing page info

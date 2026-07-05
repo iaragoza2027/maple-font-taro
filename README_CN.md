@@ -650,11 +650,11 @@ OpenType 特性可以控制字体的内置变体和连字。您可以通过修�
 }
 ```
 
-### 中文版本
+### CJK 扩展版本
 
-默认情况下不会生成中文字体，运行 `python build.py` 时添加 `--cn` 参数，中文基字（约 111 MB）将从 GitHub 下载。
+默认情况下不会生成 CJK 扩展字体。运行 `python build.py --cjk cn` 会生成 Maple Mono + 中文的静态字体。默认输出模式是 `--cjk-format static`，如果使用 `--cjk-format variable`，则只保留 Maple Mono + locale 的合并可变字体。旧的 `--cn` 仍然作为选择 `cn` locale 的兼容别名保留。
 
-如果您想从可变字体（约 27 MB）构建中文基字，请在 [config.json](./config.json) 中设置 `"cn.use_static_base_font": false` 并且**耐心等待**，可变字体静态化将花费大约 10-30 分钟。
+如果您想通过配置启用一个或多个 CJK locale，请在 [config.json](./config.json) 中使用 `cjk.enabled_locales`，可选值包括 `cn`、`jp`、`tc`、`kr`。
 
 #### 缩小中文字体的间距
 

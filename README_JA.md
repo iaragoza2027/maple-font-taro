@@ -644,11 +644,11 @@ Fira Codeに着想を得て、このフォントはv7.3からデフォルトで�
 }
 ```
 
-### 中国語バージョン
+### CJK 拡張バージョン
 
-CN バージョンはデフォルトで無効になっています。`python build.py` を `--cn` フラグで実行すると、CN ベースフォント（約 111 MB）が GitHub からダウンロードされます。
+CJK 拡張ビルドはデフォルトで無効です。`python build.py --cjk cn` を実行すると、Maple Mono + CN の静的フォントが生成されます。既定の出力モードは `--cjk-format static` で、`--cjk-format variable` を指定した場合は Maple Mono + locale のマージ済み可変フォントのみを保持します。従来の `--cn` も `cn` locale を選択するための互換エイリアスとして引き続き利用できます。
 
-可変（約 27 MB）から CN ベースフォントをビルドしたい場合は、[config.json](./config.json)で `"cn.use_static_base_font": false` を設定し、**忍耐強く待ってください**。インスタンス化には約 20〜30 分かかります。
+設定ファイルから CJK locale を有効化したい場合は、[config.json](./config.json) の `cjk.enabled_locales` を使用し、`cn` / `jp` / `tc` / `kr` を指定してください。
 
 #### CN グリフの間隔を狭くする
 

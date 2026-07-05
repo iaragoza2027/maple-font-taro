@@ -55,8 +55,7 @@ from source.py.cjk.vf import (
     update_italic_metadata,
     weight_axis,
 )
-from source.py.task._utils import archive
-from source.py.utils import get_directory_hash, set_font_name, update_font_names
+from source.py.utils import archive, get_directory_hash, set_font_name, update_font_names
 
 
 RESERVED_NAME_IDS = {1, 2, 4, 6, 16, 17, 25}

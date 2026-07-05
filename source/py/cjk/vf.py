@@ -59,6 +59,8 @@ def merge_vf(
         added_glyphs = _merge_glyph_tables(base, extra)
         added_codepoints = _merge_cmap(base, extra, set(added_glyphs))
         recalculate_font_metrics(base)
+        # Glyph-order dependent variation maps become stale after merge.
+        drop_font_tables(base, ("HVAR", "VVAR"))
 
         return base, added_glyphs, added_codepoints
     except Exception:
@@ -68,6 +70,57 @@ def merge_vf(
     finally:
         if should_close_extra:
             extra.close()
+
+
+def save_merged_variable_fonts(
+    output_dir: str = "./fonts/Variable-CN",
+    locale: str = "cn",
+) -> None:
+    """Compatibility helper to save merged Maple core + locale variable fonts."""
+    from source.py.build.paths import merged_variable_name
+    from source.py.cjk.presets import build_preset_config
+
+    base_dir = Path("fonts/Variable")
+    preset_config = build_preset_config(locale)
+    locale_tag = locale.upper()
+    out = Path(output_dir)
+    out.mkdir(exist_ok=True)
+
+    pairs = [
+        (
+            "MapleMono[wght].ttf",
+            preset_config.output.regular_variable,
+            merged_variable_name(f"MapleMono{locale_tag}", False),
+        ),
+        (
+            "MapleMono-Italic[wght].ttf",
+            preset_config.output.italic_variable,
+            merged_variable_name(f"MapleMono{locale_tag}", True),
+        ),
+    ]
+
+    for base_name, cjk_name, output_name in pairs:
+        base_path = base_dir / base_name
+        cjk_path = preset_config.output.dir / cjk_name
+        output_path = out / output_name
+
+        if not base_path.exists():
+            print(f"⚠️  Base font not found: {base_path}")
+            continue
+        if not cjk_path.exists():
+            print(f"⚠️  {locale_tag} extension not found: {cjk_path}")
+            continue
+
+        print(f"\n🔨 Merging {base_name} + {cjk_name}")
+        merged, added_glyphs, added_codepoints = merge_vf(base_path, cjk_path)
+        print(f"  Added glyphs: {len(added_glyphs)}")
+        print(f"  Added codepoints: {added_codepoints}")
+
+        merged.save(output_path)
+        merged.close()
+        print(f"✅ Saved: {output_path}")
+
+    print(f"\n✅ Variable font merge complete: {output_dir}")
 
 
 def weight_axis(font: TTFont):

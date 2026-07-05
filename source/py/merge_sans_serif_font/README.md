@@ -1,6 +1,4 @@
-# DEPRECATED
-
-## merge_font
+# merge_sans_serif_font
 
 Short utilities for merging and polishing TrueType/OpenType fonts used by the build tasks.
 
@@ -10,7 +8,7 @@ Short utilities for merging and polishing TrueType/OpenType fonts used by the bu
 
 ### Usage
 
-From Python build tasks:
+From the task runner:
 
 ```sh
 uv run task.py merge

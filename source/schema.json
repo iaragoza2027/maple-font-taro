@@ -29,6 +29,78 @@
         "Both stem widths and blue zone positions are slightly quantized to take discrete values. For example, stem values 50, 51, 72, 76, and 100 would become 50, 74, and 100 (or something similar). More glyph shape distortion but increased contrast.",
         "No adjustments to stem widths, discrete blue zone positioning. This is what FreeType uses for its \u2018light\u2019 (auto-)hinting mode. Essentially no glyph shape distortion, low contrast."
       ]
+    },
+    "cjk_locale_config": {
+      "type": "object",
+      "properties": {
+        "with_nerd_font": {
+          "type": "boolean",
+          "description": "Whether to patch Nerd-Font for this locale",
+          "default": true
+        },
+        "fix_meta_table": {
+          "type": "boolean",
+          "description": "Fix design language and supported languages in META table",
+          "default": true
+        },
+        "clean_cache": {
+          "type": "boolean",
+          "description": "Whether to clean locale cache before rebuild",
+          "default": false
+        },
+        "narrow": {
+          "type": "boolean",
+          "description": "Whether to narrow locale glyphs",
+          "default": false
+        },
+        "use_hinted": {
+          "type": "boolean",
+          "description": "Whether to hint locale fonts",
+          "default": false
+        },
+        "scale_factor": {
+          "type": [
+            "number",
+            "array"
+          ],
+          "description": "Scale factor for CJK glyphs with <factor> or [<width_factor>,<height_factor>]",
+          "default": 1.0
+        },
+        "source_override": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Optional source override path"
+        },
+        "output_override": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Optional output override path"
+        },
+        "transform_override": {
+          "type": "object",
+          "description": "Optional transform overrides passed to the preset"
+        }
+      }
+    },
+    "formats": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "ttf",
+          "otf",
+          "woff2"
+        ]
+      },
+      "default": [
+        "ttf",
+        "otf",
+        "woff2"
+      ]
     }
   },
   "properties": {
@@ -440,9 +512,52 @@
         "extra_args"
       ]
     },
+    "formats": {
+      "$ref": "#/definitions/formats"
+    },
+    "cjk": {
+      "type": "object",
+      "description": "Config for merged Maple Mono + CJK outputs",
+      "properties": {
+        "enabled_locales": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "cn",
+              "jp",
+              "tc",
+              "kr"
+            ]
+          },
+          "default": []
+        },
+        "locales": {
+          "type": "object",
+          "properties": {
+            "cn": {
+              "$ref": "#/definitions/cjk_locale_config"
+            },
+            "jp": {
+              "$ref": "#/definitions/cjk_locale_config"
+            },
+            "tc": {
+              "$ref": "#/definitions/cjk_locale_config"
+            },
+            "kr": {
+              "$ref": "#/definitions/cjk_locale_config"
+            }
+          }
+        }
+      },
+      "required": [
+        "enabled_locales",
+        "locales"
+      ]
+    },
     "cn": {
       "type": "object",
-      "description": "Config for Chinese font",
+      "description": "(Legacy) Config for Chinese font",
       "properties": {
         "enable": {
           "type": "boolean",
@@ -499,10 +614,21 @@
       ]
     }
   },
+  "anyOf": [
+    {
+      "required": [
+        "cjk"
+      ]
+    },
+    {
+      "required": [
+        "cn"
+      ]
+    }
+  ],
   "required": [
     "family_name",
     "use_hinted",
-    "nerd_font",
-    "cn"
+    "nerd_font"
   ]
 }

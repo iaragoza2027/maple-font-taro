@@ -1,55 +1,11 @@
-from pathlib import Path
-
-from source.py.cjk.builder import build_cjk_fonts
-from source.py.cjk.config import (
-    CJKBuildConfig,
-    CJKOutputConfig,
-    CJKSourceConfig,
-    CJKNamingConfig,
-    CJKTransformConfig,
-    CJKUnicodeConfig,
-    DEFAULT_CJK_RANGES,
-)
+from source.py.cjk.presets import build_preset, build_preset_config
 
 
-def cn_config(cn_root: str = "./source/cn") -> CJKBuildConfig:
+def cn_config(cn_root: str = "./source/cn"):
     """Return the built-in CN preset."""
-    cn_dir = Path(cn_root)
-    return CJKBuildConfig(
-        source=CJKSourceConfig(
-            path=cn_dir / "WenYuanRoundedSCVF.otf",
-            masters={
-                100: {"ital": 0, "wght": 220},
-                400: {"ital": 0, "wght": 470},
-                800: {"ital": 0, "wght": 900},
-            },
-            # outline_mode="glyf",
-            drop_tables=("BASE", "VVAR", "vhea", "vmtx"),
-        ),
-        output=CJKOutputConfig(
-            dir=cn_dir,
-            regular_variable="MapleMono-CN-VF.ttf",
-            italic_variable="MapleMono-CN-Italic-VF.ttf",
-            static_dir="static-wenyuan",
-            static_hash="static-wenyuan.sha256",
-            archive_name="cn-base-static-wenyuan.zip",
-        ),
-        naming=CJKNamingConfig(
-            family_name="Maple Mono CN",
-            postscript_prefix="MapleMonoCN",
-            static_file_prefix="MapleMonoCN",
-        ),
-        transform=CJKTransformConfig(
-            x_scale=1.02,
-            y_scale=1.05,
-            x_shift=100,
-            y_shift=-25,
-        ),
-        unicode=CJKUnicodeConfig(ranges=DEFAULT_CJK_RANGES),
-        temp_dir=Path("source/cn/temp"),
-    )
+    return build_preset_config("cn", cn_root)
 
 
 def cn(cn_root: str, vf_only: bool = False) -> None:
     """Build CN fonts through the shared CJK pipeline."""
-    build_cjk_fonts(cn_config(cn_root), vf_only)
+    build_preset("cn", vf_only=vf_only, root=cn_root)

@@ -14,8 +14,8 @@ from source.py.utils import (
     run,
     set_font_name,
     update_font_names,
+    default_weight_map,
 )
-from source.py.task._utils import default_weight_map
 from foundrytools import Font
 from foundrytools.app.var2static import run as var2static
 
@@ -119,7 +119,7 @@ def merge_fonts(
         [
             bin,
             "-script",
-            "source/py/task/merge_font/merger.py",
+            "source/py/merge_sans_serif_font/merger.py",
             config_path,
             merged_path,
         ]

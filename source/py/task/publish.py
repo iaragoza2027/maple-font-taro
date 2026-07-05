@@ -1,6 +1,22 @@
-from pathlib import Path
-from source.py.task._utils import is_ci
+from __future__ import annotations
+
+import argparse
 import subprocess
+from pathlib import Path
+
+from source.py.utils import is_ci
+
+
+def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):
+    parser = subparsers.add_parser(
+        "publish", help="Publish the font archives to GitHub Release"
+    )
+    parser.add_argument(
+        "--write",
+        action="store_true",
+        help="Write changelog to release note file (auto write in CI)",
+    )
+    return parser
 
 
 def get_output(cmd: list[str]) -> str:
@@ -8,18 +24,15 @@ def get_output(cmd: list[str]) -> str:
 
 
 def publish(write: bool, dry: bool = not is_ci()):
-    # get tag
     tag_list = get_output(["git", "tag", "--list", "--sort=committerdate"]).split("\n")
     prev_tag = tag_list[-2]
     tag = tag_list[-1]
     print(f"Tag: {prev_tag} -> {tag}")
 
-    # generate changelog
     changelog = get_output(
         ["git", "log", "--pretty=format:- %s\n%b", f"{prev_tag}..{tag}"]
     )
 
-    # build release command
     template_path = Path(".github/release_template.md")
     title = " ".join(part.capitalize() for part in tag.split("-"))
     cmd = [
@@ -35,7 +48,6 @@ def publish(write: bool, dry: bool = not is_ci()):
         "--draft",
     ]
 
-    # read release template
     template = (
         template_path.read_text()
         .replace("<!-- changelog -->", changelog)
@@ -51,3 +63,7 @@ def publish(write: bool, dry: bool = not is_ci()):
         print(f"changelog:\n{changelog}\n\nRun command: {' '.join(cmd)}")
     else:
         subprocess.run(cmd, check=True)
+
+
+def run(args: argparse.Namespace) -> None:
+    publish(args.write)

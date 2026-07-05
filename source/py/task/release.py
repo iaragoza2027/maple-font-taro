@@ -1,46 +1,53 @@
+from __future__ import annotations
+
+import argparse
 import os
 import re
 import shutil
 from typing import Callable
+
 from fontTools.ttLib import TTFont
-from source.py.task._utils import write_json, write_text, default_weight_map
-from source.py.utils import joinPaths, run
-from build import main
+
+from build import main as build_main
+from source.py.utils import default_weight_map, joinPaths, run, write_json, write_text
+
+
+def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):
+    parser = subparsers.add_parser("release", help="Release new version")
+    parser.add_argument("type", choices=["major", "minor"], help="Bump version type")
+    parser.add_argument("--dry", action="store_true", help="Dry run")
+    return parser
 
 
 def format_fontsource_name(filename: str):
     match = re.match(r"MapleMono-(.*)\.(.*)$", filename.replace(".ttf", ""))
-
     if not match:
         return None
 
     style = match.group(1)
-    # Remove 'Italic' only if it is a suffix
     if style.endswith("Italic") and style != "Italic":
-        base_style = style[:-6]  # Remove 'Italic' (6 chars)
+        base_style = style[:-6]
     else:
         base_style = style
-    # Fallback to 'Regular' if not found
+
     weight = default_weight_map.get(
         base_style.lower(), default_weight_map.get("regular", 400)
     )
-    suf = "italic" if "italic" in style.lower() else "normal"
-
-    new_filename = f"maple-mono-latin-{weight}-{suf}.{match.group(2)}"
-    return new_filename
+    suffix = "italic" if "italic" in style.lower() else "normal"
+    return f"maple-mono-latin-{weight}-{suffix}.{match.group(2)}"
 
 
 def format_woff2_name(filename: str):
     return filename.replace(".ttf.woff2", "-VF.woff2")
 
 
-def rename_woff_files(dir: str, fn: Callable[[str], str | None]):
-    for filename in os.listdir(dir):
+def rename_woff_files(dir_path: str, fn: Callable[[str], str | None]):
+    for filename in os.listdir(dir_path):
         if not filename.endswith(".woff") and not filename.endswith(".woff2"):
             continue
         new_name = fn(filename)
         if new_name:
-            os.rename(joinPaths(dir, filename), joinPaths(dir, new_name))
+            os.rename(joinPaths(dir_path, filename), joinPaths(dir_path, new_name))
             print(f"Renamed: {filename} -> {new_name}")
 
 
@@ -50,8 +57,8 @@ def parse_tag(type: str):
 
 
 def update_build_script_version(script_path: str, tag: str):
-    with open(script_path, "r", encoding="utf-8", newline="\n") as f:
-        content = re.sub(r'FONT_VERSION = ".*"', f'FONT_VERSION = "{tag}"', f.read())
+    with open(script_path, "r", encoding="utf-8", newline="\n") as file:
+        content = re.sub(r'FONT_VERSION = ".*"', f'FONT_VERSION = "{tag}"', file.read())
     write_text(script_path, content)
 
 
@@ -87,7 +94,6 @@ def write_unicode_map_json(font_path: str, output: str):
 
 def release(type: str, dry: bool):
     tag = parse_tag(type)
-    # prompt and wait for user input
     choose = input(f"{'[DRY] ' if dry else ''}Tag {tag}? (Y or n) ")
     if choose != "" and choose.lower() != "y":
         print("Aborted")
@@ -96,7 +102,7 @@ def release(type: str, dry: bool):
     script_path = "build.py"
     update_build_script_version(script_path, tag)
     target_fontsource_dir = "cdn/fontsource"
-    main(["--ttf-only", "--no-nerd-font", "--cn", "--no-hinted"], tag)
+    build_main(["--ttf-only", "--no-nerd-font", "--cn", "--no-hinted"], tag)
 
     shutil.rmtree("./cdn", ignore_errors=True)
     run(f"ftcli converter ft2wf -f woff2 ./fonts/TTF -out {target_fontsource_dir}")
@@ -118,11 +124,11 @@ def release(type: str, dry: bool):
     run(f"ftcli converter ft2wf -f woff2 ./fonts/Variable -out {woff2_dir}")
     rename_woff_files(woff2_dir, format_woff2_name)
 
-    # write_unicode_map_json(
-    #     "./fonts/TTF/MapleMono-Regular.ttf", "./resources/glyph-map.json"
-    # )
-
     if dry:
         print("Dry run")
     else:
         git_release_commit(tag, [script_path, "woff2", dep_file, "pyproject.toml"])
+
+
+def run(args: argparse.Namespace) -> None:
+    release(args.type, args.dry)

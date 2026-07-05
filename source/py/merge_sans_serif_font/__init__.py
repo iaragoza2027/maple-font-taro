@@ -5,7 +5,7 @@ import uuid
 import shutil
 
 from source.py.utils import joinPaths
-from source.py.task.merge_font.utils import instantiate, merge_fonts, polish
+from source.py.merge_sans_serif_font.utils import instantiate, merge_fonts, polish
 
 CONFIG_FILE = "config_merge.json"
 

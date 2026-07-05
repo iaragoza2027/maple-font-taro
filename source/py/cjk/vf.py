@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+from concurrent.futures import Executor
 from copy import deepcopy
 from io import BytesIO
 import math
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from typing import Any, Iterable, cast
 
 from fontTools.ttLib import TTFont
@@ -347,17 +347,49 @@ def make_italic_master_file(
         font.close()
 
 
+def generated_italic_master_paths(temp_root: Path) -> tuple[Path, Path, Path]:
+    """Return stable paths for generated italic masters."""
+    italic_master_dir = temp_root / "italic-masters"
+    italic_master_dir.mkdir(parents=True, exist_ok=True)
+    return (
+        italic_master_dir / "italic-min-master.ttf",
+        italic_master_dir / "italic-regular-master.ttf",
+        italic_master_dir / "italic-max-master.ttf",
+    )
+
+
+def make_italic_master_files(
+    source_paths: tuple[Path, Path, Path],
+    output_paths: tuple[Path, Path, Path],
+    italic_angle_deg: float,
+    process_pool: Executor,
+    drop_table_tags: tuple[str, ...] = (),
+) -> None:
+    """Build italic copies of the configured static masters in parallel."""
+    futures = [
+        process_pool.submit(
+            make_italic_master_file,
+            str(source_path),
+            str(output_path),
+            italic_angle_deg,
+            drop_table_tags,
+        )
+        for source_path, output_path in zip(source_paths, output_paths)
+    ]
+    for future in futures:
+        future.result()
+
+
 def make_italic_variable_font(
     font: TTFont,
     italic_angle_deg: float,
     temp_root: Path,
-    process_pool: Any,
+    process_pool: Executor,
     master_paths: tuple[Path, Path, Path],
     drop_table_tags: tuple[str, ...] = (),
     masters_are_italic: bool = False,
 ) -> TTFont:
-    """Build an italic variable font from prepared static masters."""
-    italic_font = deepcopy(font)
+    """Convert a loaded variable font into an italic variable font in place."""
     skew_factor = math.tan(math.radians(italic_angle_deg))
     print(f"Italic angle: {italic_angle_deg:g} degrees")
     print(f"Skew factor: {skew_factor:.6f}")
@@ -368,52 +400,20 @@ def make_italic_variable_font(
     if masters_are_italic:
         italic_master_paths = master_paths
     else:
-        temp_root.mkdir(parents=True, exist_ok=True)
-        with TemporaryDirectory(dir=temp_root) as tmp_dir:
-            tmp_path = Path(tmp_dir)
-            italic_master_paths = (
-                tmp_path / "italic-min-master.ttf",
-                tmp_path / "italic-regular-master.ttf",
-                tmp_path / "italic-max-master.ttf",
-            )
-            min_source_path, regular_source_path, max_source_path = master_paths
+        italic_master_paths = generated_italic_master_paths(temp_root)
+        make_italic_master_files(
+            master_paths,
+            italic_master_paths,
+            italic_angle_deg,
+            process_pool,
+            drop_table_tags,
+        )
 
-            futures = [
-                process_pool.submit(
-                    make_italic_master_file,
-                    str(min_source_path),
-                    str(italic_master_paths[0]),
-                    italic_angle_deg,
-                    drop_table_tags,
-                ),
-                process_pool.submit(
-                    make_italic_master_file,
-                    str(regular_source_path),
-                    str(italic_master_paths[1]),
-                    italic_angle_deg,
-                    drop_table_tags,
-                ),
-                process_pool.submit(
-                    make_italic_master_file,
-                    str(max_source_path),
-                    str(italic_master_paths[2]),
-                    italic_angle_deg,
-                    drop_table_tags,
-                ),
-            ]
-            for future in futures:
-                future.result()
+    rebuild_weight_masters_from_paths(font, italic_master_paths)
 
-            rebuild_weight_masters_from_paths(italic_font, italic_master_paths)
-            update_italic_metadata(italic_font, italic_angle_deg)
-            recalculate_font_metrics(italic_font)
-            return italic_font
-
-    rebuild_weight_masters_from_paths(italic_font, italic_master_paths)
-
-    update_italic_metadata(italic_font, italic_angle_deg)
-    recalculate_font_metrics(italic_font)
-    return italic_font
+    update_italic_metadata(font, italic_angle_deg)
+    recalculate_font_metrics(font)
+    return font
 
 
 def rebuild_weight_masters_from_paths(

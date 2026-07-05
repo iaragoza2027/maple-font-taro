@@ -3,6 +3,15 @@
 This package contains the shared CJK build pipeline and the built-in CN/JP
 presets.
 
+## Architecture
+
+- `CJKBuilder` in `builder.py` owns the top-level build flow, path planning, and
+  executor lifecycle.
+- Process-pool tasks still run through top-level worker functions so spawn/pickle
+  behavior stays stable across platforms.
+- Worker-local state is explicitly grouped as cache containers instead of loose
+  module globals.
+
 ## Files
 
 | File | Purpose |

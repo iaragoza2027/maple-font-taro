@@ -2,13 +2,16 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
+from multiprocessing import current_process
 import sys
+import threading
 from array import array
 from concurrent.futures import Executor, ProcessPoolExecutor, ThreadPoolExecutor
 from copy import deepcopy
 from os import cpu_count, makedirs
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any, Iterable, Sequence, TypeVar
 
 from fontTools import subset
 from fontTools.misc.transform import Transform
@@ -58,9 +61,89 @@ from source.py.utils import get_directory_hash, set_font_name, update_font_names
 
 RESERVED_NAME_IDS = {1, 2, 4, 6, 16, 17, 25}
 CFF_GLYPH_CHUNK_SIZE = 256
+_T = TypeVar("_T")
 
-_CFF_CHUNK_WORKER_FONTS: tuple[TTFont, TTFont, TTFont] | None = None
-_CFF_CHUNK_WORKER_LABELS: dict[str, str] | None = None
+
+@dataclass(frozen=True)
+class MasterBuildJob:
+    input_path: str
+    output_path: str
+    axes: dict[str, float]
+    static: bool = True
+    optimize: bool = False
+    drop_table_tags: tuple[str, ...] = ()
+    target_upem: int | None = None
+    transform_config: CJKBuildConfig | None = None
+    convert_cff_to_glyf: bool = True
+
+
+@dataclass(frozen=True)
+class ItalicMasterJob:
+    input_path: str
+    output_path: str
+    axes: dict[str, float]
+    italic_angle: float
+
+
+@dataclass(frozen=True)
+class StaticInstanceJob:
+    input_path: str
+    output_path: str
+    coordinate: float
+    name: str
+    is_italic: bool
+    config: CJKBuildConfig
+
+
+@dataclass(frozen=True)
+class SourceBuildState:
+    outline_mode: str
+    subset_path: Path
+    source_codepoints: set[int]
+    keep_codepoints: set[int]
+    master_paths: tuple[Path, Path, Path]
+
+
+@dataclass(frozen=True)
+class BuildStats:
+    added_glyphs: tuple[str, ...]
+    added_codepoints: int
+    incompatible_glyphs: int = 0
+
+
+class CFFChunkWorkerState:
+    """Worker-local CFF conversion state initialized once per process."""
+
+    fonts: tuple[TTFont, TTFont, TTFont] | None = None
+    labels: dict[str, str] | None = None
+
+    @classmethod
+    def initialize(cls, input_paths: tuple[str, str, str]) -> None:
+        fonts = tuple(load_font_eager(path) for path in input_paths)
+        cls.fonts = fonts  # type: ignore[assignment]
+        cls.labels = glyph_labels(fonts[0], fonts[0].getGlyphOrder())
+
+    @classmethod
+    def require(cls) -> tuple[tuple[TTFont, TTFont, TTFont], dict[str, str]]:
+        if cls.fonts is None or cls.labels is None:
+            raise RuntimeError("CFF glyph chunk worker fonts are not initialized")
+        return cls.fonts, cls.labels
+
+
+class StaticFontCache:
+    """Worker-local cache for repeated variable font instantiation."""
+
+    _fonts: dict[tuple[str, int], TTFont] = {}
+
+    @classmethod
+    def get(cls, input_path: str) -> TTFont:
+        cache_key = (input_path, threading.get_ident())
+        font = cls._fonts.get(cache_key)
+        if font is None:
+            font = load_font_eager(input_path)
+            drop_font_tables(font, ("STAT",))
+            cls._fonts[cache_key] = font
+        return font
 
 
 def create_font_executor() -> Executor:
@@ -114,15 +197,29 @@ def instantiate_variable_font_file(
             if transform_config:
                 apply_source_master_transform(instance, transform_config)
                 normalize_widths(instance, transform_config)
-                recalculate_font(instance, transform_config)
                 if convert_cff_to_glyf and "CFF " in instance:
                     convert_cff_static_to_glyf(instance)
-                    recalculate_font(instance, transform_config)
+                recalculate_font(instance, transform_config)
             instance.save(output_path)
         finally:
             instance.close()
     finally:
         font.close()
+
+
+def instantiate_variable_font_job(job: MasterBuildJob) -> None:
+    """Top-level process-pool entrypoint for source master instantiation."""
+    instantiate_variable_font_file(
+        job.input_path,
+        job.output_path,
+        job.axes,
+        job.static,
+        job.optimize,
+        job.drop_table_tags,
+        job.target_upem,
+        job.transform_config,
+        job.convert_cff_to_glyf,
+    )
 
 
 def instantiate_masters_from_vf(
@@ -143,19 +240,19 @@ def instantiate_masters_from_vf(
     for output_weight, axes in ordered_master_locations(masters):
         output_path = output_dir / f"{output_weight}-master{output_suffix}"
         paths.append(output_path)
+        job = MasterBuildJob(
+            input_path=str(vf_path),
+            output_path=str(output_path),
+            axes=axes,
+            static=True,
+            optimize=False,
+            drop_table_tags=tuple(drop_table_tags),
+            target_upem=target_upem,
+            transform_config=transform_config,
+            convert_cff_to_glyf=convert_cff_to_glyf,
+        )
         futures.append(
-            process_pool.submit(
-                instantiate_variable_font_file,
-                str(vf_path),
-                str(output_path),
-                axes,
-                True,
-                False,
-                tuple(drop_table_tags),
-                target_upem,
-                transform_config,
-                convert_cff_to_glyf,
-            )
+            process_pool.submit(instantiate_variable_font_job, job)
         )
     for future in futures:
         future.result()
@@ -191,6 +288,16 @@ def instantiate_italic_master_file(
         font.close()
 
 
+def instantiate_italic_master_job(job: ItalicMasterJob) -> None:
+    """Top-level process-pool entrypoint for italic master instantiation."""
+    instantiate_italic_master_file(
+        job.input_path,
+        job.output_path,
+        job.axes,
+        job.italic_angle,
+    )
+
+
 def instantiate_italic_masters_from_vf(
     vf_path: Path,
     output_dir: Path,
@@ -205,14 +312,14 @@ def instantiate_italic_masters_from_vf(
     for output_weight, axes in ordered_master_locations(masters):
         output_path = output_dir / f"{output_weight}-italic-master.ttf"
         paths.append(output_path)
+        job = ItalicMasterJob(
+            input_path=str(vf_path),
+            output_path=str(output_path),
+            axes=axes,
+            italic_angle=italic_angle,
+        )
         futures.append(
-            process_pool.submit(
-                instantiate_italic_master_file,
-                str(vf_path),
-                str(output_path),
-                axes,
-                italic_angle,
-            )
+            process_pool.submit(instantiate_italic_master_job, job)
         )
     for future in futures:
         future.result()
@@ -447,7 +554,7 @@ def build_glyf_table(glyph_order: list[str]):
     return glyf
 
 
-def chunked[T](items: Sequence[T], chunk_size: int) -> tuple[tuple[T, ...], ...]:
+def chunked(items: Sequence[_T], chunk_size: int) -> tuple[tuple[_T, ...], ...]:
     """Split items into stable non-empty chunks."""
     if chunk_size <= 0:
         raise ValueError("chunk_size must be positive")
@@ -671,22 +778,18 @@ def convert_cff_fonts_to_glyf(fonts: Sequence[TTFont]) -> None:
 
 def init_cff_glyph_chunk_worker(input_paths: tuple[str, str, str]) -> None:
     """Load CFF masters once per conversion worker process."""
-    global _CFF_CHUNK_WORKER_FONTS, _CFF_CHUNK_WORKER_LABELS
-    fonts = tuple(load_font_eager(path) for path in input_paths)
-    _CFF_CHUNK_WORKER_FONTS = fonts  # type: ignore[assignment]
-    _CFF_CHUNK_WORKER_LABELS = glyph_labels(fonts[0], fonts[0].getGlyphOrder())
+    CFFChunkWorkerState.initialize(input_paths)
 
 
 def convert_cff_glyph_chunk_from_worker(
     glyph_names: tuple[str, ...],
 ) -> dict[str, tuple[Any, ...]]:
     """Convert a glyph chunk using worker-local CFF masters."""
-    if _CFF_CHUNK_WORKER_FONTS is None or _CFF_CHUNK_WORKER_LABELS is None:
-        raise RuntimeError("CFF glyph chunk worker fonts are not initialized")
+    fonts, labels = CFFChunkWorkerState.require()
     return convert_cff_glyphs_from_loaded_fonts(
-        _CFF_CHUNK_WORKER_FONTS,
+        fonts,
         glyph_names,
-        _CFF_CHUNK_WORKER_LABELS,
+        labels,
     )
 
 
@@ -730,6 +833,10 @@ def convert_cff_master_files_to_glyf_tables_parallel(
     chunk_size: int = CFF_GLYPH_CHUNK_SIZE,
 ) -> tuple[Any, Any, Any]:
     """Convert compatible CFF masters into glyf tables with glyph chunks."""
+    if current_process().name != "MainProcess":
+        raise RuntimeError(
+            "CFF glyph chunk conversion must run from the main process"
+        )
     if not glyph_order:
         return tuple(build_glyf_table([]) for _ in input_paths)  # type: ignore[return-value]
 
@@ -994,12 +1101,22 @@ def prepare_source_masters(
         config.temp_dir / "source-masters" / f"{weight}-master.ttf"
         for weight, _ in ordered_master_locations(config.source.masters)
     )
+    cff_master_path_strings = (
+        str(cff_master_paths[0]),
+        str(cff_master_paths[1]),
+        str(cff_master_paths[2]),
+    )
+    ttf_master_path_strings = (
+        str(ttf_master_paths[0]),
+        str(ttf_master_paths[1]),
+        str(ttf_master_paths[2]),
+    )
     convert_cff_master_files_to_glyf(
-        tuple(str(path) for path in cff_master_paths),
-        tuple(str(path) for path in ttf_master_paths),
+        cff_master_path_strings,
+        ttf_master_path_strings,
         config,
     )
-    return ttf_master_paths
+    return (ttf_master_paths[0], ttf_master_paths[1], ttf_master_paths[2])
 
 
 def finalize_variable_font(
@@ -1060,25 +1177,68 @@ def feature_weight_instances(feature_font: TTFont) -> tuple[CJKWeightInstance, .
     return tuple(sorted(instances, key=lambda item: item.coordinate))
 
 
-def build_regular_cjk_font(
-    feature_font_path: Path,
-    source_path: Path,
-    config: CJKBuildConfig,
-    process_pool: Executor,
-) -> tuple[TTFont, tuple[Path, Path, Path]]:
-    """Build the upright CJK base VF via the master-merge pipeline."""
-    feature_font = load_feature_variable_font(feature_font_path)
-    try:
+class CJKBuilder:
+    """Coordinate the shared CJK build pipeline without holding live fonts."""
+
+    def __init__(self, config: CJKBuildConfig) -> None:
+        self.config = config
+        self.process_pool: Executor | None = None
+        self.regular_output = config.output.dir / config.output.regular_variable
+        self.italic_output = config.output.dir / config.output.italic_variable
+        self.static_dir = config.output.dir / config.output.static_dir
+
+    def build(self, vf_only: bool = False) -> None:
+        print("> Building CJK fonts...")
+        self.process_pool = create_font_executor()
+        try:
+            self.config.output.dir.mkdir(parents=True, exist_ok=True)
+            regular_font, source_state = self._build_regular_variable_font()
+            try:
+                italic_font = self._build_italic_variable_font(source_state)
+                try:
+                    self._write_variable_outputs(regular_font, italic_font)
+                finally:
+                    italic_font.close()
+            finally:
+                regular_font.close()
+
+            if vf_only:
+                print("> Skipping static font generation (--vf-only)")
+                return
+
+            print("> Instantiating static fonts...")
+            static_dir = self._build_static_fonts(
+                (self.config.output.regular_variable, self.config.output.italic_variable)
+            )
+            self._write_static_artifacts(static_dir)
+            print("> CJK rebuild complete.")
+        finally:
+            if self.process_pool is not None:
+                self.process_pool.shutdown(wait=True, cancel_futures=True)
+                self.process_pool = None
+
+    def _require_process_pool(self) -> Executor:
+        if self.process_pool is None:
+            raise RuntimeError("CJKBuilder process pool is not initialized")
+        return self.process_pool
+
+    def _prepare_source_build_state(
+        self,
+        feature_font: TTFont,
+    ) -> tuple[SourceBuildState, set[str]]:
         base_codepoints = get_cmap_codepoints(feature_font)
         protected_glyphs = set(get_unicode_cmap(feature_font).values())
 
-        source_font = load_font_eager(source_path)
+        source_font = load_font_eager(self.config.source.path)
         try:
             if "fvar" not in source_font:
-                raise ValueError(f"Source font must be variable: {source_path}")
-            outline_mode = detect_outline_mode(source_font, config.source.outline_mode)
+                raise ValueError(f"Source font must be variable: {self.config.source.path}")
+            outline_mode = detect_outline_mode(
+                source_font,
+                self.config.source.outline_mode,
+            )
             source_codepoints = get_cmap_codepoints(source_font)
-            keep_codepoints = get_allowed_codepoints(source_font, config)
+            keep_codepoints = get_allowed_codepoints(source_font, self.config)
         finally:
             source_font.close()
 
@@ -1087,149 +1247,287 @@ def build_regular_cjk_font(
         print(f"CJK source unicodes: {len(source_codepoints)}")
         print(f"CJK selected unicodes: {len(keep_codepoints)}")
 
-        subset_path = config.temp_dir / (
+        subset_path = self.config.temp_dir / (
             "source-subset.otf" if outline_mode == "cff2" else "source-subset.ttf"
         )
         removed = prepare_source_subset(
-            source_path, keep_codepoints, base_codepoints, config, subset_path
+            self.config.source.path,
+            keep_codepoints,
+            base_codepoints,
+            self.config,
+            subset_path,
         )
         print(f"Removed base/feature unicodes from CJK subset: {removed}")
 
         master_paths = prepare_source_masters(
             subset_path,
-            config,
-            process_pool,
+            self.config,
+            self._require_process_pool(),
             int(feature_font["head"].unitsPerEm),  # type: ignore
             outline_mode,
         )
-        min_master = load_font_eager(master_paths[0])
-        regular_master = load_font_eager(master_paths[1])
-        max_master = load_font_eager(master_paths[2])
+        return (
+            SourceBuildState(
+                outline_mode=outline_mode,
+                subset_path=subset_path,
+                source_codepoints=source_codepoints,
+                keep_codepoints=keep_codepoints,
+                master_paths=master_paths,
+            ),
+            protected_glyphs,
+        )
+
+    def _build_regular_variable_font(self) -> tuple[TTFont, SourceBuildState]:
+        feature_font = load_feature_variable_font(self.config.feature_font_path)
+        try:
+            source_state, protected_glyphs = self._prepare_source_build_state(feature_font)
+            stats = self._merge_master_paths(feature_font, source_state.master_paths)
+            self._log_build_stats("Regular", stats)
+            finalize_variable_font(
+                feature_font,
+                set(stats.added_glyphs),
+                protected_glyphs,
+                "Regular",
+                self.config,
+            )
+            print(f"Regular CJK base font glyphs: {len(feature_font.getGlyphOrder())}")
+            print(
+                f"Regular CJK base font unicodes: {len(get_cmap_codepoints(feature_font))}"
+            )
+            return feature_font, source_state
+        except Exception:
+            feature_font.close()
+            raise
+
+    def _build_italic_variable_font(self, source_state: SourceBuildState) -> TTFont:
+        feature_font = load_feature_variable_font(self.config.feature_font_path)
+        try:
+            protected_glyphs = set(get_unicode_cmap(feature_font).values())
+            feature_axis = weight_axis(feature_font)
+            if feature_axis is None:
+                raise ValueError("Feature font is missing wght axis")
+            feature_masters = {
+                100: {"wght": float(feature_axis.minValue)},
+                400: {"wght": float(feature_axis.defaultValue)},
+                800: {"wght": float(feature_axis.maxValue)},
+            }
+            feature_master_paths = instantiate_italic_masters_from_vf(
+                self.config.feature_font_path,
+                self.config.temp_dir / "feature-italic-masters",
+                feature_masters,
+                self._require_process_pool(),
+                self.config.transform.italic_angle,
+            )
+            italic_font = make_italic_variable_font(
+                feature_font,
+                self.config.transform.italic_angle,
+                self.config.temp_dir,
+                self._require_process_pool(),
+                feature_master_paths,
+                masters_are_italic=True,
+            )
+        except Exception:
+            feature_font.close()
+            raise
+
+        try:
+            italic_master_paths = self._build_source_italic_master_paths(
+                source_state.master_paths
+            )
+            stats = self._merge_master_paths(italic_font, italic_master_paths)
+            self._log_build_stats("Italic", stats)
+            finalize_variable_font(
+                italic_font,
+                set(stats.added_glyphs),
+                protected_glyphs,
+                "Italic",
+                self.config,
+                is_italic=True,
+            )
+            print(f"Italic CJK base font glyphs: {len(italic_font.getGlyphOrder())}")
+            print(
+                f"Italic CJK base font unicodes: {len(get_cmap_codepoints(italic_font))}"
+            )
+            return italic_font
+        except Exception:
+            italic_font.close()
+            raise
+
+    def _build_source_italic_master_paths(
+        self,
+        source_master_paths: tuple[Path, Path, Path],
+    ) -> tuple[Path, Path, Path]:
+        italic_master_dir = self.config.temp_dir / "source-italic-masters"
+        italic_master_dir.mkdir(parents=True, exist_ok=True)
+        italic_master_paths = (
+            italic_master_dir / "source-italic-min-master.ttf",
+            italic_master_dir / "source-italic-regular-master.ttf",
+            italic_master_dir / "source-italic-max-master.ttf",
+        )
+        futures = []
+        for source_path, output_path in zip(source_master_paths, italic_master_paths):
+            futures.append(
+                self._require_process_pool().submit(
+                    make_italic_master_file,
+                    str(source_path),
+                    str(output_path),
+                    self.config.transform.italic_angle,
+                )
+            )
+        for future in futures:
+            future.result()
+        return italic_master_paths
+
+    def _merge_master_paths(
+        self,
+        base_font: TTFont,
+        master_paths: tuple[Path, Path, Path],
+    ) -> BuildStats:
+        masters = [load_font_eager(master_path) for master_path in master_paths]
         try:
             added, added_codepoints, incompatible_glyphs = merge_cjk_masters_into_vf(
-                feature_font,
-                min_master,
-                regular_master,
-                max_master,
-                config.allow_incompatible_glyphs,
+                base_font,
+                masters[0],
+                masters[1],
+                masters[2],
+                self.config.allow_incompatible_glyphs,
+            )
+            return BuildStats(
+                added_glyphs=tuple(added),
+                added_codepoints=added_codepoints,
+                incompatible_glyphs=incompatible_glyphs,
             )
         finally:
-            min_master.close()
-            regular_master.close()
-            max_master.close()
+            for master in masters:
+                master.close()
 
-        print(f"Regular CJK path added glyphs: {len(added)}")
-        print(f"Regular CJK path added unicodes: {added_codepoints}")
-        if incompatible_glyphs:
-            print(f"Regular CJK path fixed-weight glyphs: {incompatible_glyphs}")
+    def _log_build_stats(self, label: str, stats: BuildStats) -> None:
+        print(f"{label} CJK path added glyphs: {len(stats.added_glyphs)}")
+        print(f"{label} CJK path added unicodes: {stats.added_codepoints}")
+        if stats.incompatible_glyphs:
+            print(f"{label} CJK path fixed-weight glyphs: {stats.incompatible_glyphs}")
 
-        finalize_variable_font(
-            feature_font,
-            set(added),
-            protected_glyphs,
-            "Regular",
-            config,
+    def _write_variable_outputs(self, regular_font: TTFont, italic_font: TTFont) -> None:
+        print(f"> Save regular variable font to {self.regular_output}")
+        regular_font.save(self.regular_output)
+        print(f"> Save italic variable font to {self.italic_output}")
+        italic_font.save(self.italic_output)
+
+    def _build_static_fonts(self, var_font_names: Iterable[str]) -> Path:
+        static_dir = self.static_dir
+        makedirs(static_dir, exist_ok=True)
+        futures = []
+        feature_font = load_feature_variable_font(self.config.feature_font_path)
+        try:
+            feature_axis = weight_axis(feature_font)
+            if feature_axis is None:
+                raise ValueError("Feature font is missing wght axis")
+            feature_instances = feature_weight_instances(feature_font)
+            for font_name in var_font_names:
+                is_italic = "Italic" in font_name
+                input_path = self.config.output.dir / font_name
+                var_font = load_font_eager(input_path)
+                try:
+                    var_axis = weight_axis(var_font)
+                    if var_axis is None:
+                        raise ValueError(
+                            "Both variable and feature fonts must contain wght axis"
+                        )
+                    mapped_instances = tuple(
+                        CJKWeightInstance(
+                            instance.name,
+                            map_weight_coordinate(
+                                instance.coordinate,
+                                float(feature_axis.minValue),
+                                float(feature_axis.defaultValue),
+                                float(feature_axis.maxValue),
+                                float(var_axis.minValue),
+                                float(var_axis.defaultValue),
+                                float(var_axis.maxValue),
+                            ),
+                        )
+                        for instance in feature_instances
+                    )
+                finally:
+                    var_font.close()
+
+                for instance in mapped_instances:
+                    output_name = (
+                        f"{self.config.naming.static_file_prefix}-{instance.name}"
+                        f"{'Italic' if is_italic else ''}.ttf"
+                    ).replace("RegularItalic", "Italic")
+                    job = StaticInstanceJob(
+                        input_path=str(input_path),
+                        output_path=str(static_dir / output_name),
+                        coordinate=instance.coordinate,
+                        name=instance.name,
+                        is_italic=is_italic,
+                        config=self.config,
+                    )
+                    futures.append(
+                        self._require_process_pool().submit(
+                            instantiate_static_font_job,
+                            job,
+                        )
+                    )
+        finally:
+            feature_font.close()
+
+        for future in futures:
+            future.result()
+        return static_dir
+
+    def _write_static_artifacts(self, static_dir: Path) -> None:
+        hash_path = self.config.output.dir / self.config.output.static_hash
+        with open(hash_path, "w") as file:
+            file.write(get_directory_hash(str(static_dir)))
+            file.flush()
+        print(f"> Update {hash_path}")
+
+        archive(
+            str(static_dir),
+            str(self.config.output.dir / self.config.output.archive_name),
+            lambda path: path.endswith(".ttf"),
         )
-        print(f"Regular CJK base font glyphs: {len(feature_font.getGlyphOrder())}")
-        print(
-            f"Regular CJK base font unicodes: {len(get_cmap_codepoints(feature_font))}"
-        )
-        return feature_font, master_paths
-    except Exception:
-        feature_font.close()
-        raise
 
 
-def build_italic_cjk_font(
-    feature_font_path: Path,
-    source_master_paths: tuple[Path, Path, Path],
+def finalize_static_font_instance(
+    instance: TTFont,
+    output_path: str,
+    name: str,
+    is_italic: bool,
     config: CJKBuildConfig,
-    process_pool: Executor,
-) -> TTFont:
-    """Build the italic CJK base VF by slanting feature and source masters."""
-    feature_fresh = load_feature_variable_font(feature_font_path)
-    try:
-        protected_glyphs = set(get_unicode_cmap(feature_fresh).values())
-        feature_axis = weight_axis(feature_fresh)
-        if feature_axis is None:
-            raise ValueError("Feature font is missing wght axis")
-        feature_masters = {
-            100: {"wght": float(feature_axis.minValue)},
-            400: {"wght": float(feature_axis.defaultValue)},
-            800: {"wght": float(feature_axis.maxValue)},
-        }
-        feature_master_paths = instantiate_italic_masters_from_vf(
-            feature_font_path,
-            config.temp_dir / "feature-italic-masters",
-            feature_masters,
-            process_pool,
-            config.transform.italic_angle,
-        )
-        italic_font = make_italic_variable_font(
-            feature_fresh,
-            config.transform.italic_angle,
-            config.temp_dir,
-            process_pool,
-            feature_master_paths,
-            masters_are_italic=True,
-        )
-    finally:
-        feature_fresh.close()
-
-    italic_master_dir = config.temp_dir / "source-italic-masters"
-    italic_master_dir.mkdir(parents=True, exist_ok=True)
-    italic_master_paths = [
-        italic_master_dir / "source-italic-min-master.ttf",
-        italic_master_dir / "source-italic-regular-master.ttf",
-        italic_master_dir / "source-italic-max-master.ttf",
-    ]
-    futures = [
-        process_pool.submit(
-            make_italic_master_file,
-            str(source_master_paths[index]),
-            str(italic_master_paths[index]),
-            config.transform.italic_angle,
-        )
-        for index in range(3)
-    ]
-    for future in futures:
-        future.result()
-
-    slanted_min = load_font_eager(italic_master_paths[0])
-    slanted_regular = load_font_eager(italic_master_paths[1])
-    slanted_max = load_font_eager(italic_master_paths[2])
-    try:
-        added, added_codepoints, incompatible_glyphs = merge_cjk_masters_into_vf(
-            italic_font,
-            slanted_min,
-            slanted_regular,
-            slanted_max,
-            config.allow_incompatible_glyphs,
-        )
-    except Exception:
-        italic_font.close()
-        raise
-    finally:
-        slanted_min.close()
-        slanted_regular.close()
-        slanted_max.close()
-
-    print(f"Italic CJK path added glyphs: {len(added)}")
-    print(f"Italic CJK path added unicodes: {added_codepoints}")
-    if incompatible_glyphs:
-        print(f"Italic CJK path fixed-weight glyphs: {incompatible_glyphs}")
-
-    finalize_variable_font(
-        italic_font,
-        set(added),
-        protected_glyphs,
-        "Italic",
-        config,
-        is_italic=True,
+) -> None:
+    """Apply static font cleanup and save one instantiated font."""
+    subfamily = (f"{name} Italic" if is_italic else name).replace(
+        "Regular Italic", "Italic"
     )
-    print(f"Italic CJK base font glyphs: {len(italic_font.getGlyphOrder())}")
-    print(f"Italic CJK base font unicodes: {len(get_cmap_codepoints(italic_font))}")
-    return italic_font
+    if "CFF " in instance:
+        if is_italic:
+            update_italic_metadata(instance, config.transform.italic_angle)
+        convert_cff_static_to_glyf(instance)
+        recalculate_font(instance, config)
+
+    version_str = get_version_name(instance)
+    postscript_name = f"{config.naming.postscript_prefix}-{subfamily.replace(' ', '')}"
+    update_font_names(
+        font=instance,
+        family_name=config.naming.family_name,
+        style_name=subfamily,
+        unique_identifier=get_unique_identifier(version_str, postscript_name),
+        full_name=f"{config.naming.family_name} {subfamily}",
+        version_str=version_str,
+        postscript_name=postscript_name,
+        is_skip_subfamily=True,
+    )
+    drop_font_tables(instance, ("kern", "GPOS"))
+    remove_mac_name_records(instance)
+    instance.save(output_path)
+
+
+def get_static_worker_font(input_path: str) -> TTFont:
+    """Load each variable font once per worker process or thread."""
+    return StaticFontCache.get(input_path)
 
 
 def instantiate_static_font_file(
@@ -1241,178 +1539,36 @@ def instantiate_static_font_file(
     config: CJKBuildConfig,
 ) -> None:
     """Instantiate one static CJK font and apply final naming cleanup."""
-    instance: TTFont | None = None
     print(f"Instantiating {name} {'Italic' if is_italic else ''}...")
-    var_font = load_font_eager(input_path)
+    var_font = get_static_worker_font(input_path)
+    instance = instantiateVariableFont(
+        var_font,
+        {"wght": coordinate},
+        inplace=False,
+        static=True,
+        downgradeCFF2="CFF2" in var_font,
+    )
     try:
-        drop_font_tables(var_font, ("STAT",))
-        instance = instantiateVariableFont(
-            var_font,
-            {"wght": coordinate},
-            inplace=False,
-            static=True,
-            downgradeCFF2="CFF2" in var_font,
-        )
-    finally:
-        var_font.close()
-
-    try:
-        subfamily = (f"{name} Italic" if is_italic else name).replace(
-            "Regular Italic", "Italic"
-        )
-        if "CFF " in instance:
-            if is_italic:
-                update_italic_metadata(instance, config.transform.italic_angle)
-            recalculate_font(instance, config)
-            convert_cff_static_to_glyf(instance)
-            recalculate_font(instance, config)
-
-        version_str = get_version_name(instance)
-        postscript_name = (
-            f"{config.naming.postscript_prefix}-{subfamily.replace(' ', '')}"
-        )
-        update_font_names(
-            font=instance,
-            family_name=config.naming.family_name,
-            style_name=subfamily,
-            unique_identifier=get_unique_identifier(version_str, postscript_name),
-            full_name=f"{config.naming.family_name} {subfamily}",
-            version_str=version_str,
-            postscript_name=postscript_name,
-            is_skip_subfamily=True,
-        )
-        drop_font_tables(instance, ("kern", "GPOS"))
-        remove_mac_name_records(instance)
-        instance.save(output_path)
+        finalize_static_font_instance(instance, output_path, name, is_italic, config)
     finally:
         instance.close()
 
 
-def instantiate_static_fonts(
-    config: CJKBuildConfig,
-    var_font_names: Iterable[str],
-    process_pool: Executor,
-) -> Path:
-    """Instantiate all static fonts for the generated regular and italic VFs."""
-    static_dir = config.output.dir / config.output.static_dir
-    makedirs(static_dir, exist_ok=True)
-    futures = []
-    feature_font = load_feature_variable_font(config.feature_font_path)
-    try:
-        feature_axis = weight_axis(feature_font)
-        if feature_axis is None:
-            raise ValueError("Feature font is missing wght axis")
-        feature_instances = feature_weight_instances(feature_font)
-        for font_name in var_font_names:
-            is_italic = "Italic" in font_name
-            input_path = config.output.dir / font_name
-            var_font = load_font_eager(input_path)
-            try:
-                var_axis = weight_axis(var_font)
-                if var_axis is None:
-                    raise ValueError(
-                        "Both variable and feature fonts must contain wght axis"
-                    )
-                mapped_instances = tuple(
-                    CJKWeightInstance(
-                        instance.name,
-                        map_weight_coordinate(
-                            instance.coordinate,
-                            float(feature_axis.minValue),
-                            float(feature_axis.defaultValue),
-                            float(feature_axis.maxValue),
-                            float(var_axis.minValue),
-                            float(var_axis.defaultValue),
-                            float(var_axis.maxValue),
-                        ),
-                    )
-                    for instance in feature_instances
-                )
-            finally:
-                var_font.close()
-
-            for instance in mapped_instances:
-                output_name = (
-                    f"{config.naming.static_file_prefix}-{instance.name}"
-                    f"{'Italic' if is_italic else ''}.ttf"
-                ).replace("RegularItalic", "Italic")
-                futures.append(
-                    process_pool.submit(
-                        instantiate_static_font_file,
-                        str(input_path),
-                        str(static_dir / output_name),
-                        instance.coordinate,
-                        instance.name,
-                        is_italic,
-                        config,
-                    )
-                )
-    finally:
-        feature_font.close()
-
-    for future in futures:
-        future.result()
-    return static_dir
+def instantiate_static_font_job(job: StaticInstanceJob) -> None:
+    """Top-level process-pool entrypoint for static font instantiation."""
+    instantiate_static_font_file(
+        job.input_path,
+        job.output_path,
+        job.coordinate,
+        job.name,
+        job.is_italic,
+        job.config,
+    )
 
 
 def build_cjk_fonts(config: CJKBuildConfig, vf_only: bool = False) -> None:
     """Build regular, italic, and optionally static CJK fonts."""
-    print("> Building CJK fonts...")
-    process_pool: Executor | None = None
-    try:
-        process_pool = create_font_executor()
-        config.output.dir.mkdir(parents=True, exist_ok=True)
-
-        regular_output = config.output.dir / config.output.regular_variable
-        italic_output = config.output.dir / config.output.italic_variable
-
-        regular_font, source_master_paths = build_regular_cjk_font(
-            config.feature_font_path,
-            config.source.path,
-            config,
-            process_pool,
-        )
-        italic_font = build_italic_cjk_font(
-            config.feature_font_path,
-            source_master_paths,
-            config,
-            process_pool,
-        )
-
-        print(f"> Save regular variable font to {regular_output}")
-        regular_font.save(regular_output)
-        regular_font.close()
-
-        print(f"> Save italic variable font to {italic_output}")
-        italic_font.save(italic_output)
-        italic_font.close()
-
-        if vf_only:
-            print("> Skipping static font generation (--vf-only)")
-            return
-
-        print("> Instantiating static fonts...")
-        static_dir = instantiate_static_fonts(
-            config,
-            (config.output.regular_variable, config.output.italic_variable),
-            process_pool,
-        )
-
-        hash_path = config.output.dir / config.output.static_hash
-        with open(hash_path, "w") as file:
-            file.write(get_directory_hash(str(static_dir)))
-            file.flush()
-        print(f"> Update {hash_path}")
-
-        archive(
-            str(static_dir),
-            str(config.output.dir / config.output.archive_name),
-            lambda path: path.endswith(".ttf"),
-        )
-        print("> CJK rebuild complete.")
-    finally:
-        if process_pool:
-            process_pool.shutdown(wait=True, cancel_futures=True)
+    CJKBuilder(config).build(vf_only=vf_only)
 
 
 def build_cjk_from_config_file(

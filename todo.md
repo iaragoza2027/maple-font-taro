@@ -13,7 +13,7 @@
 
 ## Unicode
 
-- [ ] U+22C4–U+22FF, reference from Julia Mono's math symbols #709
+- [x] U+2200–U+22FF, reference from Julia Mono's math symbols #709
 - [ ] u+266a, u+2303, u+23ce #762
 - [ ] chess symbols #594
 - [ ] "♦", "♠", "♥", "♣" #771

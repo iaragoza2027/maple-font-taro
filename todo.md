@@ -14,18 +14,24 @@
 ## Unicode
 
 - [x] U+2200–U+22FF, reference from Julia Mono's math symbols #709
-- [ ] `─→` should horizonly aligned
-- [ ] u+266a, u+2303, u+23ce #762
-- [ ] chess symbols #594
-- [ ] "♦", "♠", "♥", "♣" #771
-- [ ] U+2C6D, U+0E3F #772
-- [ ] U+21E0-U+21E3 #740
+- [x] `─→` should horizonly aligned
+- [x] u+266a, u+2303, u+23ce #762
+- [x] chess symbols #594
+- [x] "♦", "♠", "♥", "♣" #771
+- [x] U+2C6D, U+0E3F #772
+- [x] U+21E0-U+21E3 #740
 - [x] make u+E0B4 / u+E0B6 more rounded #780
 - [ ] fill ALL sub and sup glyphs, fix wrong unicodes #789
+  - [ ] pass verify_sup_sub.md visual page
 
 ### CN
 
 - [x] 易经六十四卦符号 #580
+
+## Build
+
+- [ ] cleanup
+- [ ] mermaid dataflow graph, add more details
 
 ## CJK
 

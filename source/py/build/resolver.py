@@ -264,10 +264,10 @@ class BuildConfigResolver:
         config.behavior.least_styles = bool(args.least_styles)
         config.behavior.apply_fea_file = bool(args.apply_fea_file)
         config.behavior.cjk_output_format = args.cjk_format
-        config.behavior.use_cn_both = bool(args.cn_both)
+        config.behavior.use_cjk_both = bool(args.cjk_both or args.cn_both)
 
         if args.cn_both:
-            print("⚠️ `--cn-both` is deprecated and kept for compatibility only.")
+            print("⚠️ `--cn-both` is deprecated. Use `--cjk-both` instead.")
 
         if args.formats is not None:
             config.behavior.formats = list(args.formats)

@@ -179,7 +179,7 @@ class BuildBehaviorConfig:
     apply_fea_file: bool = False
     cjk_output_format: CJKOutputFormat = "static"
     formats: list[BuildFormatId] = field(default_factory=lambda: list(BUILD_FORMATS))
-    use_cn_both: bool = False
+    use_cjk_both: bool = False
 
 
 @dataclass(slots=True)
@@ -316,8 +316,12 @@ class ResolvedBuildConfig:
         return self.behavior.formats
 
     @property
+    def use_cjk_both(self) -> bool:
+        return self.behavior.use_cjk_both
+
+    @property
     def use_cn_both(self) -> bool:
-        return self.behavior.use_cn_both
+        return self.behavior.use_cjk_both
 
     @property
     def family_name(self) -> str:

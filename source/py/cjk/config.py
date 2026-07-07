@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Iterable, Literal
@@ -16,6 +17,7 @@ OutlineMode = Literal["auto", "glyf", "cff2"]
 UnicodePreset = Literal["cn", "jp", "tc", "kr"]
 CJK_MASTER_WEIGHTS = (100, 400, 800)
 CJKMasterLocations = dict[int, dict[str, float]]
+LOCALE_NAME_PATTERN = re.compile(r"^[A-Za-z0-9]+$")
 
 
 DEFAULT_MAPLE_HHEA_METRICS: dict[str, int] = {
@@ -194,6 +196,7 @@ class CJKBuildConfig:
     """Complete CJK build configuration."""
 
     source: CJKSourceConfig
+    locale_name: str = "CJK"
     feature_font_path: Path = Path("source/MapleMono-CN-feature-VF.ttf")
     output: CJKOutputConfig = field(default_factory=CJKOutputConfig)
     naming: CJKNamingConfig = field(default_factory=CJKNamingConfig)
@@ -432,54 +435,40 @@ def resolve_cli_path(value: str | None) -> Path | None:
     return Path(value).expanduser() if value else None
 
 
-def resolve_output_config(
-    base: CJKOutputConfig,
-    output_dir: str | None = None,
-    regular_output: str | None = None,
-    italic_output: str | None = None,
-    static_dir: str | None = None,
-    static_hash: str | None = None,
-    archive_name: str | None = None,
-) -> CJKOutputConfig:
-    """Resolve CLI output overrides into the shared output directory model."""
-    directory = Path(output_dir).expanduser() if output_dir else base.dir
-    regular_name = base.regular_variable
-    italic_name = base.italic_variable
+def validate_locale_name(value: Any) -> str:
+    """Validate the compact locale suffix used to derive CJK output names."""
+    if not isinstance(value, str) or not value:
+        raise ValueError("locale_name must be a non-empty ASCII token")
+    if not LOCALE_NAME_PATTERN.fullmatch(value):
+        raise ValueError("locale_name must contain only ASCII letters and digits")
+    return value
 
-    for raw_output, attr in (
-        (regular_output, "regular"),
-        (italic_output, "italic"),
-    ):
-        if not raw_output:
-            continue
-        output_path = Path(raw_output).expanduser()
-        if output_path.parent != Path("."):
-            if output_dir and output_path.parent != directory:
-                raise ValueError(
-                    f"{attr} output parent conflicts with --output-dir: {output_path}"
-                )
-            directory = output_path.parent
-        if attr == "regular":
-            regular_name = output_path.name
-        else:
-            italic_name = output_path.name
 
+def output_config_from_locale(locale_name: str) -> CJKOutputConfig:
+    """Derive uncustomizable output paths from the locale suffix."""
+    locale_dir = locale_name.lower()
     return CJKOutputConfig(
-        dir=directory,
-        regular_variable=regular_name,
-        italic_variable=italic_name,
-        static_dir=static_dir or base.static_dir,
-        static_hash=static_hash or base.static_hash,
-        archive_name=archive_name or base.archive_name,
+        dir=Path("source/cjk") / locale_dir,
+        regular_variable=f"MapleMono-{locale_name}-VF.ttf",
+        italic_variable=f"MapleMono-{locale_name}-Italic-VF.ttf",
+        static_dir="static",
+        static_hash=f"static-{locale_dir}.sha256",
+        archive_name=f"{locale_dir}-base-static.zip",
     )
 
 
-def default_output_config() -> CJKOutputConfig:
-    """Choose default output names for generated TTF variable fonts."""
-    return CJKOutputConfig(
-        regular_variable="MapleMono-CJK-VF.ttf",
-        italic_variable="MapleMono-CJK-Italic-VF.ttf",
+def naming_config_from_locale(locale_name: str) -> CJKNamingConfig:
+    """Derive uncustomizable CJK font naming from the locale suffix."""
+    return CJKNamingConfig(
+        family_name=f"Maple Mono {locale_name}",
+        postscript_prefix=f"MapleMono{locale_name}",
+        static_file_prefix=f"MapleMono{locale_name}",
     )
+
+
+def temp_dir_from_locale(locale_name: str) -> Path:
+    """Derive the uncustomizable temporary directory from the locale suffix."""
+    return Path("source/cjk") / locale_name.lower() / "temp"
 
 
 def apply_cli_overrides(
@@ -512,22 +501,6 @@ def apply_cli_overrides(
         ),
     )
 
-    output = resolve_output_config(
-        config.output,
-        getattr(args, "output_dir", None),
-        getattr(args, "regular_output", None),
-        getattr(args, "italic_output", None),
-        getattr(args, "static_dir", None),
-        getattr(args, "static_hash", None),
-        getattr(args, "archive_name", None),
-    )
-    naming = CJKNamingConfig(
-        family_name=getattr(args, "family_name", None) or config.naming.family_name,
-        postscript_prefix=getattr(args, "postscript_prefix", None)
-        or config.naming.postscript_prefix,
-        static_file_prefix=getattr(args, "static_file_prefix", None)
-        or config.naming.static_file_prefix,
-    )
     unicode = config.unicode
     if getattr(args, "filter_encoding", None) is not None:
         unicode = replace(unicode, filter_encoding=args.filter_encoding)
@@ -554,13 +527,9 @@ def apply_cli_overrides(
         source=source,
         feature_font_path=resolve_cli_path(getattr(args, "feature_font", None))
         or config.feature_font_path,
-        output=output,
-        naming=naming,
         unicode=unicode,
         transform=transform,
-        temp_dir=resolve_cli_path(getattr(args, "temp_dir", None)) or config.temp_dir,
-        allow_incompatible_glyphs=getattr(args, "allow_incompatible_glyphs", False)
-        or config.allow_incompatible_glyphs,
+        allow_incompatible_glyphs=False,
     )
 
 
@@ -570,7 +539,7 @@ def config_from_cli(args: argparse.Namespace) -> CJKBuildConfig:
     if source_path is None:
         raise ValueError("--source is required when --config is not provided")
     outline_mode = getattr(args, "outline_mode", None) or "auto"
-    output = default_output_config()
+    locale_name = validate_locale_name(getattr(args, "locale_name", None) or "CJK")
     config = CJKBuildConfig(
         source=CJKSourceConfig(
             path=source_path,
@@ -584,9 +553,13 @@ def config_from_cli(args: argparse.Namespace) -> CJKBuildConfig:
             outline_mode=outline_mode,
             drop_tables=tuple(getattr(args, "drop_table", None) or ()),
         ),
+        locale_name=locale_name,
         feature_font_path=resolve_cli_path(getattr(args, "feature_font", None))
         or Path("source/MapleMono-CN-feature-VF.ttf"),
-        output=output,
+        output=output_config_from_locale(locale_name),
+        naming=naming_config_from_locale(locale_name),
+        temp_dir=temp_dir_from_locale(locale_name),
+        allow_incompatible_glyphs=False,
     )
     return apply_cli_overrides(config, args)
 
@@ -596,6 +569,22 @@ def config_from_json(config_path: str | Path) -> CJKBuildConfig:
     path = Path(config_path)
     data = json.loads(path.read_text())
     base_dir = path.parent
+    allowed_keys = {
+        "$schema",
+        "locale_name",
+        "feature_font",
+        "source",
+        "unicode",
+        "transform",
+    }
+    unknown_keys = sorted(set(data) - allowed_keys)
+    if unknown_keys:
+        raise ValueError(
+            "Unsupported CJK config field(s): "
+            f"{', '.join(unknown_keys)}. "
+            "Output, naming, temp_dir, and incompatible glyph behavior are derived "
+            "from locale_name and are not customizable."
+        )
 
     def resolve_config_path(value: str | None, default: str) -> Path:
         raw = Path(value or default)
@@ -609,14 +598,13 @@ def config_from_json(config_path: str | Path) -> CJKBuildConfig:
     source_data = data.get("source", {})
     if not source_data.get("path"):
         raise ValueError("source.path is required")
+    locale_name = validate_locale_name(data.get("locale_name"))
     outline_mode = source_data.get("outline_mode", "auto")
     if outline_mode not in {"auto", "glyf", "cff2"}:
         raise ValueError("source.outline_mode must be one of: auto, glyf, cff2")
 
     unicode_data = data.get("unicode", {})
     transform_data = data.get("transform", {})
-    output_data = data.get("output", {})
-    naming_data = data.get("naming", {})
 
     return CJKBuildConfig(
         source=CJKSourceConfig(
@@ -628,23 +616,9 @@ def config_from_json(config_path: str | Path) -> CJKBuildConfig:
         feature_font_path=resolve_config_path(
             data.get("feature_font"), "source/MapleMono-CN-feature-VF.ttf"
         ),
-        output=CJKOutputConfig(
-            dir=resolve_config_path(output_data.get("dir"), "source/cjk"),
-            regular_variable=output_data.get(
-                "regular_variable", "MapleMono-CJK-VF.ttf"
-            ),
-            italic_variable=output_data.get(
-                "italic_variable", "MapleMono-CJK-Italic-VF.ttf"
-            ),
-            static_dir=output_data.get("static_dir", "static"),
-            static_hash=output_data.get("static_hash", "static.sha256"),
-            archive_name=output_data.get("archive_name", "cjk-base-static.zip"),
-        ),
-        naming=CJKNamingConfig(
-            family_name=naming_data.get("family_name", "Maple Mono CJK"),
-            postscript_prefix=naming_data.get("postscript_prefix", "MapleMonoCJK"),
-            static_file_prefix=naming_data.get("static_file_prefix", "MapleMonoCJK"),
-        ),
+        locale_name=locale_name,
+        output=output_config_from_locale(locale_name),
+        naming=naming_config_from_locale(locale_name),
         unicode=CJKUnicodeConfig(
             ranges=validate_ranges(
                 parse_range(item) for item in unicode_data.get("ranges", [])
@@ -663,8 +637,8 @@ def config_from_json(config_path: str | Path) -> CJKBuildConfig:
             y_shift=int(transform_data.get("y_shift", 0)),
             italic_angle=float(transform_data.get("italic_angle", 10)),
         ),
-        temp_dir=resolve_config_path(data.get("temp_dir"), "source/cjk/temp"),
-        allow_incompatible_glyphs=bool(data.get("allow_incompatible_glyphs", False)),
+        temp_dir=temp_dir_from_locale(locale_name),
+        allow_incompatible_glyphs=False,
     )
 
 
@@ -679,6 +653,11 @@ def add_cjk_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--feature-font",
         help="Feature variable font used as the source of weight/name metadata",
+    )
+    parser.add_argument(
+        "--locale-name",
+        default="CJK",
+        help="Compact locale suffix used for derived output names in direct CLI builds",
     )
     parser.add_argument(
         "--outline-mode",
@@ -702,17 +681,6 @@ def add_cjk_arguments(parser: argparse.ArgumentParser) -> None:
         action="append",
         help="Source table tag to drop before subsetting; repeat as needed",
     )
-    parser.add_argument("--output-dir", help="Output directory")
-    parser.add_argument(
-        "--regular-output", help="Regular variable output file name/path"
-    )
-    parser.add_argument("--italic-output", help="Italic variable output file name/path")
-    parser.add_argument("--static-dir", help="Static font output subdirectory")
-    parser.add_argument("--static-hash", help="Static hash file name")
-    parser.add_argument("--archive-name", help="Static archive file name")
-    parser.add_argument("--family-name", help="Output family name")
-    parser.add_argument("--postscript-prefix", help="Output PostScript name prefix")
-    parser.add_argument("--static-file-prefix", help="Static font file prefix")
     parser.add_argument("--filter-encoding", help="Optional Unicode encoding filter")
     parser.add_argument(
         "--include-feature-codepoints",
@@ -732,12 +700,6 @@ def add_cjk_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--x-shift", type=int, help="CJK glyph X shift")
     parser.add_argument("--y-shift", type=int, help="CJK glyph Y shift")
     parser.add_argument("--italic-angle", type=float, help="Generated italic angle")
-    parser.add_argument("--temp-dir", help="Temporary build directory")
-    parser.add_argument(
-        "--allow-incompatible-glyphs",
-        action="store_true",
-        help="Keep incompatible glyf glyphs fixed instead of failing",
-    )
     parser.add_argument(
         "--vf-only",
         action="store_true",

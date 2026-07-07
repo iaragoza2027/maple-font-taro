@@ -60,14 +60,14 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
         dest="hinted",
         default=None,
         action="store_true",
-        help="Use hinted font as base font in NF / CN / NF-CN (default)",
+        help="Use hinted font as base font in NF / CJK / NF-CJK (default)",
     )
     hint_group.add_argument(
         "--no-hinted",
         dest="hinted",
         default=None,
         action="store_false",
-        help="Use unhinted font as base font in NF / CN / NF-CN",
+        help="Use unhinted font as base font in NF / CJK / NF-CJK",
     )
     liga_group = feature_group.add_mutually_exclusive_group()
     liga_group.add_argument(
@@ -141,7 +141,7 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
     build_group.add_argument(
         "--archive",
         action="store_true",
-        help="Build font archives with config and license. If it has the `--cache` flag, only archive NF and CN formats",
+        help="Build font archives with config and license. If it has the `--cache` flag, only archive NF and CJK formats",
     )
 
     nerd_font_group = parser.add_argument_group("Nerd Font Options")
@@ -200,6 +200,11 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
         type=parse_scale_factor,
         help="Scale factor for selected CJK locales. Format: <factor> or <width_factor>,<height_factor>.",
     )
+    cjk_group.add_argument(
+        "--cjk-both",
+        action="store_true",
+        help="When Nerd Font is enabled, build both NF CJK and non-NF CJK outputs.",
+    )
 
     deprecated_cn_group = parser.add_argument_group("Deprecated CN Options")
     cn_group = deprecated_cn_group.add_mutually_exclusive_group()
@@ -230,7 +235,7 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
     deprecated_cn_group.add_argument(
         "--cn-both",
         action="store_true",
-        help="Deprecated compatibility mode for building both `Maple Mono CN` and `Maple Mono NF CN`.",
+        help="Deprecated alias for `--cjk-both`.",
     )
     deprecated_cn_group.add_argument(
         "--cn-rebuild",

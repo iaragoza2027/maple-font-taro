@@ -1,0 +1,33 @@
+{
+  "$schema": "./cjk_schema.json",
+  "locale_name": "TC",
+  "feature_font": "../MapleMono-CN-feature-VF.ttf",
+  "source": {
+    "path": "ChironGoRoundTCVF.ttf",
+    "outline_mode": "cff2",
+    "drop_tables": ["BASE", "VVAR", "vhea", "vmtx"],
+    "masters": {
+      "100": {
+        "wght": 250
+      },
+      "400": {
+        "wght": 620
+      },
+      "800": {
+        "wght": 900
+      }
+    }
+  },
+  "unicode": {
+    "ranges": ["0x2460-0x24FF", "0x2E80-0x2EFF", "0x2F00-0x2FDF", "0x2FF0-0x2FFF", "0x3000-0x303F", "0x3100-0x312F", "0x31A0-0x31EF", "0x3200-0x33FF", "0x3400-0x4DBF", "0x4E00-0x9FFF", "0xF900-0xFAFF", "0xFE30-0xFE6F", "0xFF00-0xFFEF"],
+    "exclude_feature_codepoints": true
+  },
+  "transform": {
+    "target_advance_width": 1200,
+    "x_scale": 1,
+    "y_scale": 1,
+    "x_shift": 0,
+    "y_shift": 0,
+    "italic_angle": 10
+  }
+}

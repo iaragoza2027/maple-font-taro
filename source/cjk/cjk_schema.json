@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/subframe7536/maple-font/source/cjk/cjk_schema.json",
+  "title": "Maple Mono CJK Build Config",
+  "description": "JSON config consumed by source.py.cjk.config.config_from_json(). Output paths, font naming, temporary paths, and incompatible glyph behavior are derived from locale_name and are not customizable.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["locale_name", "source"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema URI for editor validation."
+    },
+    "locale_name": {
+      "$ref": "#/$defs/localeName",
+      "description": "Compact locale suffix used to derive output paths and font names, for example CN, JP, TC, KR, or HK."
+    },
+    "feature_font": {
+      "$ref": "#/$defs/path",
+      "default": "source/MapleMono-CN-feature-VF.ttf",
+      "description": "Feature variable font used as the source of Maple weight metadata, static instance names, and feature glyphs."
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "masters"],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/path",
+          "description": "Input CJK glyf or CFF2 variable font."
+        },
+        "masters": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["100", "400", "800"],
+          "properties": {
+            "100": {
+              "$ref": "#/$defs/masterLocation"
+            },
+            "400": {
+              "$ref": "#/$defs/masterLocation"
+            },
+            "800": {
+              "$ref": "#/$defs/masterLocation"
+            }
+          },
+          "description": "Source axis locations keyed by Maple output weights. Keys must be exactly 100, 400, and 800."
+        },
+        "outline_mode": {
+          "type": "string",
+          "enum": ["auto", "glyf", "cff2"],
+          "default": "auto",
+          "description": "Expected source outline format. auto detects glyf or CFF2 from the source font."
+        },
+        "drop_tables": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9/ ]{1,32}$"
+          },
+          "uniqueItems": true,
+          "default": [],
+          "description": "OpenType tables removed from the source subset before merge work."
+        }
+      }
+    },
+    "unicode": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ranges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/unicodeRange"
+          },
+          "default": [],
+          "description": "Unicode ranges copied from the source font. Empty or omitted falls back to the default CJK ranges."
+        },
+        "filter_encoding": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "default": null,
+          "description": "Optional Python codec name used to keep only codepoints encodable by that encoding, for example cp932."
+        },
+        "exclude_feature_codepoints": {
+          "type": "boolean",
+          "default": true,
+          "description": "When true, removes source glyphs whose codepoints are already supplied by the Maple feature font."
+        }
+      }
+    },
+    "transform": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "target_advance_width": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1200,
+          "description": "Target advance width for imported CJK glyphs before downstream Maple width handling."
+        },
+        "x_scale": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 1,
+          "description": "Horizontal scale applied to imported CJK outlines."
+        },
+        "y_scale": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 1,
+          "description": "Vertical scale applied to imported CJK outlines."
+        },
+        "x_shift": {
+          "type": "integer",
+          "default": 0,
+          "description": "Horizontal shift applied to imported CJK outlines."
+        },
+        "y_shift": {
+          "type": "integer",
+          "default": 0,
+          "description": "Vertical shift applied to imported CJK outlines."
+        },
+        "italic_angle": {
+          "type": "number",
+          "default": 10,
+          "description": "Italic slant angle used when generating italic CJK base fonts."
+        }
+      }
+    }
+  },
+  "$defs": {
+    "localeName": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9]+$"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Absolute path, repository-relative source/ path, or path relative to the JSON config file."
+    },
+    "axisTag": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4,
+      "pattern": "^[ -~]+$"
+    },
+    "masterLocation": {
+      "type": "object",
+      "required": ["wght"],
+      "propertyNames": {
+        "$ref": "#/$defs/axisTag"
+      },
+      "additionalProperties": {
+        "type": "number"
+      },
+      "description": "Source font axis coordinates for one Maple output weight. Must include wght."
+    },
+    "codepoint": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1114111
+        },
+        {
+          "type": "string",
+          "pattern": "^(0[xX][0-9A-Fa-f]{1,6}|[0-9]+)$"
+        }
+      ]
+    },
+    "unicodeRange": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "description": "A single codepoint, a hyphen or '..' range, or one pyftsubset-style unicode range entry."
+        },
+        {
+          "type": "array",
+          "prefixItems": [
+            {
+              "$ref": "#/$defs/codepoint"
+            },
+            {
+              "$ref": "#/$defs/codepoint"
+            }
+          ],
+          "items": false,
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    }
+  }
+}

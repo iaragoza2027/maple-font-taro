@@ -33,12 +33,10 @@ from source.py.build.util import (
     rename_glyph_name,
 )
 from source.py.cjk.builder import (
-    StaticInstanceJob,
     build_cjk_fonts,
     create_font_executor,
     feature_weight_instances,
     get_static_worker_font,
-    instantiate_static_font_job,
 )
 from source.py.cjk.config import CJKBuildConfig
 from source.py.cjk.presets import build_preset_config, get_preset
@@ -891,63 +889,6 @@ def load_cached_cjk_static_fonts(
     return cached_fonts
 
 
-def ensure_cached_cjk_static_fonts_from_variable(
-    locale: str,
-    preset_config: CJKBuildConfig,
-    font_config: ResolvedBuildConfig,
-) -> Path:
-    regular_path, italic_path = cached_cjk_variable_paths(preset_config)
-    missing_variables = [
-        str(font_path)
-        for font_path in (regular_path, italic_path)
-        if not font_path.exists()
-    ]
-    preset_spec = get_preset(locale)
-    if missing_variables:
-        raise FileNotFoundError(
-            f"Cannot generate cached {preset_spec.family_suffix} static fonts. "
-            f"Missing CJK variable font(s): {', '.join(missing_variables)}"
-        )
-
-    static_dir = preset_config.output.dir / preset_config.output.static_dir
-    static_dir.mkdir(parents=True, exist_ok=True)
-    print(
-        f"♻️ Generate cached {preset_spec.family_suffix} static fonts from variable fonts: "
-        f"{regular_path.name}, {italic_path.name}"
-    )
-
-    jobs: list[StaticInstanceJob] = []
-    for is_italic, input_path in ((False, regular_path), (True, italic_path)):
-        var_font = load_font_eager(input_path)
-        try:
-            instances = feature_weight_instances(var_font)
-        finally:
-            var_font.close()
-
-        for instance in instances:
-            output_name = (
-                f"{preset_config.naming.static_file_prefix}-{instance.name}"
-                f"{'Italic' if is_italic else ''}.ttf"
-            ).replace("RegularItalic", "Italic")
-            jobs.append(
-                StaticInstanceJob(
-                    input_path=str(input_path),
-                    output_path=str(static_dir / output_name),
-                    coordinate=instance.coordinate,
-                    name=instance.name,
-                    is_italic=is_italic,
-                    config=preset_config,
-                )
-            )
-
-    run_process_jobs(
-        font_config.pool_size,
-        instantiate_static_font_job,
-        jobs,
-    )
-    return static_dir
-
-
 def build_cjk_extended_static_fonts_from_cache(
     locale: str,
     font_config: ResolvedBuildConfig,
@@ -991,11 +932,8 @@ def build_cjk_extended_static_fonts_from_cache(
                 f"⚠️ Cached {preset_spec.family_suffix} static fonts are incomplete: "
                 f"{', '.join(missing_styles)}"
             )
-        cache_dir = ensure_cached_cjk_static_fonts_from_variable(
-            locale,
-            preset_config,
-            font_config,
-        )
+        build_cjk_fonts(preset_config)
+        cache_dir = preset_config.output.dir / preset_config.output.static_dir
         cached_fonts = load_cached_cjk_static_fonts(cache_dir, static_file_prefix)
         missing_styles = [
             style for style in required_styles if style not in cached_fonts

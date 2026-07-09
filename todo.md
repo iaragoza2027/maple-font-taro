@@ -14,12 +14,12 @@
 ## Unicode
 
 - [x] U+2200–U+22FF, reference from Julia Mono's math symbols #709
-- [ ] claude code:
+- [x] claude code:
   - [x] spinner: U+273B, U+2605, U+273D, U+2733, U+2722, U+2736, U+2726
-  - [ ] progress: U+25D0-25D3
-  - [ ] figures: U+21BB, U+21AF
-  - [ ] play/pause: U+23F5, U+23FA, U+23F8
-  - [ ] alarm/symbol: U+29C9, U+2694, U+2620, U+2691, U+26F6, U+26DD, U+2764
+  - [x] progress: U+25D0-25D3
+  - [x] figures: U+21BB, U+21AF
+  - [x] play/pause: U+23F5, U+23FA, U+23F8
+  - [x] alarm/symbol: U+29C9, U+2694, U+2691, U+26F6, U+26DD, U+2764
 - [x] `─→` should horizonly aligned
 - [x] u+266a, u+2303, u+23ce #762
 - [x] chess symbols #594

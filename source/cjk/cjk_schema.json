@@ -4,7 +4,7 @@
   "title": "Maple Mono CJK Build Config",
   "description": "JSON config consumed by source.py.cjk.config.config_from_json(). Output paths, font naming, temporary paths, and incompatible glyph behavior are derived from locale_name and are not customizable.",
   "type": "object",
-  "additionalProperties": false,
+  "unevaluatedProperties": false,
   "required": ["locale_name", "source"],
   "properties": {
     "$schema": {
@@ -14,11 +14,6 @@
     "locale_name": {
       "$ref": "#/$defs/localeName",
       "description": "Compact locale suffix used to derive output paths and font names, for example CN, JP, TC, KR, or HK."
-    },
-    "feature_font": {
-      "$ref": "#/$defs/path",
-      "default": "source/MapleMono-CN-feature-VF.ttf",
-      "description": "Feature variable font used as the source of Maple weight metadata, static instance names, and feature glyphs."
     },
     "source": {
       "type": "object",

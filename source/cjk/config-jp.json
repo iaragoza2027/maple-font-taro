@@ -1,7 +1,6 @@
 {
   "$schema": "./cjk_schema.json",
   "locale_name": "JP",
-  "feature_font": "../MapleMono-CN-feature-VF.ttf",
   "source": {
     "path": "ResourceHanRoundedJP-VF.otf",
     "outline_mode": "cff2",

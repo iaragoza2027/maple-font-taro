@@ -3,11 +3,17 @@ from __future__ import annotations
 import argparse
 from dataclasses import asdict, dataclass, field
 from os import getenv
-from typing import Any, Literal
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Literal
 
 from fontTools.feaLib.builder import addOpenTypeFeatures, addOpenTypeFeaturesFromString
 from fontTools.ttLib import TTFont
 
+from source.py.cjk.config import (
+    CJKBuildConfig,
+    config_from_data,
+    serialize_cjk_build_config,
+)
 from source.py.feature import (
     generate_fea_string,
     get_freeze_moving_rules,
@@ -16,9 +22,12 @@ from source.py.feature import (
 from source.py.freeze import freeze_feature, get_freeze_config_str, is_enable
 from source.py.utils import default_weight_map, joinPaths
 
+if TYPE_CHECKING:
+    from source.py.cjk.presets import CJKPresetSpec
 
-CJKLocaleId = Literal["cn", "jp", "tc", "kr"]
-CJK_LOCALES: tuple[CJKLocaleId, ...] = ("cn", "jp", "tc", "kr")
+
+BuiltinCJKLocaleId = Literal["cn", "jp", "tc", "kr"]
+BUILTIN_CJK_LOCALES: tuple[BuiltinCJKLocaleId, ...] = ("cn", "jp", "tc", "kr")
 BuildFormatId = Literal["ttf", "otf", "woff2"]
 BUILD_FORMATS: tuple[BuildFormatId, ...] = ("ttf", "otf", "woff2")
 CJKOutputFormat = Literal["static", "variable"]
@@ -139,7 +148,7 @@ def normalize_build_formats(value: Any) -> list[BuildFormatId]:
     return normalized or list(BUILD_FORMATS)
 
 
-def normalize_cjk_locale_list(value: Any) -> list[CJKLocaleId]:
+def normalize_cjk_locale_list(value: Any) -> list[BuiltinCJKLocaleId]:
     if value is None:
         return []
 
@@ -150,11 +159,11 @@ def normalize_cjk_locale_list(value: Any) -> list[CJKLocaleId]:
         for raw in value:
             items.extend(item.strip().lower() for item in str(raw).split(","))
 
-    normalized: list[CJKLocaleId] = []
+    normalized: list[BuiltinCJKLocaleId] = []
     for item in items:
         if not item:
             continue
-        if item not in CJK_LOCALES:
+        if item not in BUILTIN_CJK_LOCALES:
             raise ValueError(f"Unsupported CJK locale: {item}")
         locale = item  # type: ignore[assignment]
         if locale not in normalized:
@@ -166,7 +175,7 @@ def normalize_cjk_locale_list(value: Any) -> list[CJKLocaleId]:
 class BuildCliOptions:
     dry: bool = False
     debug: bool = False
-    cjk: list[CJKLocaleId] = field(default_factory=list)
+    cjk: list[BuiltinCJKLocaleId] = field(default_factory=list)
     formats: list[BuildFormatId] = field(default_factory=lambda: list(BUILD_FORMATS))
 
 
@@ -212,46 +221,93 @@ class NerdFontBuildConfig:
 
 
 @dataclass(slots=True)
-class CJKLocaleConfig:
-    enabled: bool = False
+class CJKCommonBuildOptions:
     with_nerd_font: bool = True
     fix_meta_table: bool = True
     clean_cache: bool = False
     narrow: bool = False
     use_hinted: bool = False
     scale_factor: tuple[float, float] = (1.0, 1.0)
-    source_override: str | None = None
-    output_override: str | None = None
-    transform_override: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self, *, include_enabled: bool = True) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
         data["scale_factor"] = list(self.scale_factor)
-        if not include_enabled:
-            data.pop("enabled", None)
         return data
 
 
 @dataclass(slots=True)
-class CJKBuildSelection:
-    enabled_locales: list[CJKLocaleId] = field(default_factory=list)
-    locales: dict[CJKLocaleId, CJKLocaleConfig] = field(
-        default_factory=lambda: {locale: CJKLocaleConfig() for locale in CJK_LOCALES}
-    )
+class CustomCJKEntryConfig:
+    enable: bool
+    build_config: CJKBuildConfig
 
-    def sync_enabled(self) -> None:
-        enabled = set(self.enabled_locales)
-        self.enabled_locales = [locale for locale in CJK_LOCALES if locale in enabled]
-        for locale in CJK_LOCALES:
-            self.locales[locale].enabled = locale in enabled
+    def to_dict(self) -> dict[str, Any]:
+        data = serialize_cjk_build_config(self.build_config)
+        data["enable"] = self.enable
+        return data
 
-    def to_dict(self, *, include_enabled: bool = True) -> dict[str, Any]:
+
+@dataclass(slots=True)
+class CJKLocaleSelection:
+    cn: bool = False
+    jp: bool = False
+    tc: bool = False
+    kr: bool = False
+    custom: list[CustomCJKEntryConfig] = field(default_factory=list)
+
+    def builtin_enabled_locales(self) -> list[BuiltinCJKLocaleId]:
+        return [
+            locale
+            for locale in BUILTIN_CJK_LOCALES
+            if bool(getattr(self, locale))
+        ]
+
+    def set_builtin_enabled(self, locale: BuiltinCJKLocaleId, enabled: bool) -> None:
+        setattr(self, locale, enabled)
+
+    def to_dict(self) -> dict[str, Any]:
         return {
-            "enabled_locales": list(self.enabled_locales),
-            "locales": {
-                locale: config.to_dict(include_enabled=include_enabled)
-                for locale, config in self.locales.items()
-            },
+            "cn": self.cn,
+            "jp": self.jp,
+            "tc": self.tc,
+            "kr": self.kr,
+            "custom": [entry.to_dict() for entry in self.custom],
+        }
+
+
+@dataclass(slots=True)
+class ResolvedCJKBuildEntry:
+    entry_id: str
+    locale_name: str
+    build_config: CJKBuildConfig
+    common_options: CJKCommonBuildOptions
+    is_builtin: bool
+    preset_id: BuiltinCJKLocaleId | None = None
+    preset_spec: CJKPresetSpec | None = None
+
+    @property
+    def display_name(self) -> str:
+        if self.preset_spec is not None:
+            return self.preset_spec.family_suffix
+        return self.locale_name
+
+    @property
+    def download_locale(self) -> BuiltinCJKLocaleId | None:
+        return self.preset_id if self.is_builtin else None
+
+
+@dataclass(slots=True)
+class CJKBuildSelection:
+    locales: CJKLocaleSelection = field(default_factory=CJKLocaleSelection)
+    common_options: CJKCommonBuildOptions = field(default_factory=CJKCommonBuildOptions)
+    entries: list[ResolvedCJKBuildEntry] = field(default_factory=list)
+
+    def selected_entries(self) -> list[ResolvedCJKBuildEntry]:
+        return list(self.entries)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "locales": self.locales.to_dict(),
+            **self.common_options.to_dict(),
         }
 
 
@@ -383,10 +439,6 @@ class ResolvedBuildConfig:
     def vertical_metric(self) -> tuple[int, int]:
         return self.metrics.vertical_metric
 
-    @vertical_metric.setter
-    def vertical_metric(self, value: tuple[int, int]) -> None:
-        self.metrics.vertical_metric = value
-
     @property
     def glyph_width(self) -> int:
         return self.metrics.glyph_width
@@ -404,18 +456,11 @@ class ResolvedBuildConfig:
         return self.metrics.github_mirror
 
     @property
-    def cn(self) -> CJKLocaleConfig:
-        return self.cjk.locales["cn"]
-
-    @property
     def freeze_config_str(self) -> str:
         return get_freeze_config_str(self.feature_freeze, self.enable_ligature)
 
     def get_target_width(self) -> int:
         return WIDTH_MAP.get(self.width, WIDTH_MAP["default"])
-
-    def target_width(self) -> int:
-        return self.get_target_width()
 
     def get_width_name(self) -> str | None:
         if self.width == "narrow":
@@ -424,14 +469,8 @@ class ResolvedBuildConfig:
             return "SL"
         return None
 
-    def width_name(self) -> str | None:
-        return self.get_width_name()
-
-    def get_selected_cjk_locales(self) -> list[str]:
-        return list(self.cjk.enabled_locales)
-
-    def selected_cjk_locales(self) -> list[str]:
-        return self.get_selected_cjk_locales()
+    def get_selected_cjk_entries(self) -> list[ResolvedCJKBuildEntry]:
+        return self.cjk.selected_entries()
 
     def wants_format(self, build_format: str) -> bool:
         return build_format in self.formats
@@ -449,31 +488,26 @@ class ResolvedBuildConfig:
             return "Propo"
         return ""
 
-    def nf_suffix(self) -> Literal["Mono", "Propo", ""]:
-        return self.get_nf_suffix()
-
-    def should_build_nf_cn(self) -> bool:
-        return self.cn.with_nerd_font and self.nerd_font.enable
-
-    def get_valid_glyph_width_list(self, cn: bool = False) -> list[int]:
+    def get_valid_glyph_width_list(
+        self,
+        is_cjk: bool = False,
+        cjk_narrow: bool = False,
+    ) -> list[int]:
         result = [0]
         width_name = self.get_width_name()
         if width_name:
             width = self.get_target_width()
             result.append(width)
-            if cn:
+            if is_cjk:
                 result.append(width * 2)
             return result
 
         result.append(self.glyph_width)
-        if cn:
+        if is_cjk:
             result.append(
-                self.glyph_width_cn_narrow if self.cn.narrow else 2 * self.glyph_width
+                self.glyph_width_cn_narrow if cjk_narrow else 2 * self.glyph_width
             )
         return result
-
-    def valid_glyph_widths(self, is_cjk: bool = False) -> list[int]:
-        return self.get_valid_glyph_width_list(is_cjk)
 
     def freeze_feature_static(self, font: TTFont, is_variable: bool) -> None:
         if not is_variable:
@@ -574,12 +608,12 @@ class ResolvedBuildConfig:
             "formats": list(self.formats),
             "nerd_font": self.nerd_font.to_dict(include_enable=False),
             "cjk_format": self.cjk_output_format,
-            "cjk": self.cjk.to_dict(include_enabled=False),
+            "cjk": self.cjk.to_dict(),
         }
 
 
 def default_cjk_config() -> dict[str, Any]:
-    return CJKBuildSelection().to_dict(include_enabled=False)
+    return CJKBuildSelection().to_dict()
 
 
 def normalize_cjk_config(
@@ -587,63 +621,86 @@ def normalize_cjk_config(
     legacy_cn: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     selection = CJKBuildSelection()
-    if raw_cjk:
-        selection.enabled_locales = normalize_cjk_locale_list(
-            raw_cjk.get("enabled_locales", [])
-        )
+    if raw_cjk and isinstance(raw_cjk, dict):
         raw_locales = raw_cjk.get("locales", {})
-        for locale in CJK_LOCALES:
-            override = raw_locales.get(locale, {})
-            if not isinstance(override, dict):
-                continue
-            config = selection.locales[locale]
-            for key, value in override.items():
-                if key == "use_wenyuan":
-                    continue
-                if key == "scale_factor":
-                    config.scale_factor = parse_scale_factor(value)
-                elif hasattr(config, key):
-                    setattr(config, key, value)
+        if isinstance(raw_locales, dict):
+            for locale in BUILTIN_CJK_LOCALES:
+                selection.locales.set_builtin_enabled(
+                    locale,
+                    bool(raw_locales.get(locale, False)),
+                )
+            raw_custom = raw_locales.get("custom", [])
+            if isinstance(raw_custom, list):
+                for entry in raw_custom:
+                    if not isinstance(entry, dict):
+                        continue
+                    entry_data = dict(entry)
+                    enable = bool(entry_data.pop("enable", True))
+                    selection.locales.custom.append(
+                        CustomCJKEntryConfig(
+                            enable=enable,
+                            build_config=config_from_data(entry_data, Path(".")),
+                        )
+                    )
 
-    if legacy_cn:
-        cn_config = selection.locales["cn"]
-        for key, value in legacy_cn.items():
-            if key in {"enable", "use_wenyuan"}:
-                continue
-            if key == "scale_factor":
-                cn_config.scale_factor = parse_scale_factor(value)
-            elif hasattr(cn_config, key):
-                setattr(cn_config, key, value)
-        if legacy_cn.get("enable"):
-            selection.enabled_locales = normalize_cjk_locale_list(
-                selection.enabled_locales + ["cn"]
+        for key in (
+            "with_nerd_font",
+            "fix_meta_table",
+            "clean_cache",
+            "narrow",
+            "use_hinted",
+        ):
+            if key in raw_cjk:
+                setattr(selection.common_options, key, bool(raw_cjk[key]))
+        if "scale_factor" in raw_cjk:
+            selection.common_options.scale_factor = parse_scale_factor(
+                raw_cjk["scale_factor"]
             )
 
-    selection.sync_enabled()
+    if legacy_cn and isinstance(legacy_cn, dict):
+        if legacy_cn.get("enable"):
+            selection.locales.cn = True
+        for key in (
+            "with_nerd_font",
+            "fix_meta_table",
+            "clean_cache",
+            "narrow",
+            "use_hinted",
+        ):
+            if key in legacy_cn:
+                setattr(selection.common_options, key, bool(legacy_cn[key]))
+        if "scale_factor" in legacy_cn:
+            selection.common_options.scale_factor = parse_scale_factor(
+                legacy_cn["scale_factor"]
+            )
+
     return selection.to_dict()
 
 
 def serialize_cjk_config(cjk_config: CJKBuildSelection | dict[str, Any]) -> dict[str, Any]:
     if isinstance(cjk_config, CJKBuildSelection):
-        return cjk_config.to_dict(include_enabled=False)
+        return cjk_config.to_dict()
     return normalize_cjk_config(cjk_config)
 
 
 __all__ = [
     "BUILD_FORMATS",
-    "CJK_LOCALES",
+    "BUILTIN_CJK_LOCALES",
     "WIDTH_MAP",
     "BuildBehaviorConfig",
     "BuildCliOptions",
     "BuildFormatId",
     "BuildIdentityConfig",
     "BuildMetricsConfig",
+    "BuiltinCJKLocaleId",
     "CJKBuildSelection",
-    "CJKLocaleConfig",
-    "CJKLocaleId",
+    "CJKCommonBuildOptions",
+    "CJKLocaleSelection",
+    "CustomCJKEntryConfig",
     "FeatureBuildConfig",
     "NerdFontBuildConfig",
     "ResolvedBuildConfig",
+    "ResolvedCJKBuildEntry",
     "default_cjk_config",
     "default_feature_freeze",
     "default_weight_mapping",

@@ -15,11 +15,10 @@
 
 - [x] U+2200–U+22FF, reference from Julia Mono's math symbols #709
 - [ ] claude code:
-  - [ ] spinner: U+273B, U+2605, U+273D, U+2733, U+2722, U+2736, U+2726
+  - [x] spinner: U+273B, U+2605, U+273D, U+2733, U+2722, U+2736, U+2726
   - [ ] progress: U+25D0-25D3
   - [ ] figures: U+21BB, U+21AF
   - [ ] play/pause: U+23F5, U+23FA, U+23F8
-  - [ ] check/cross: U+2705, U+274C
   - [ ] alarm/symbol: U+29C9, U+2694, U+2620, U+2691, U+26F6, U+26DD, U+2764
 - [x] `─→` should horizonly aligned
 - [x] u+266a, u+2303, u+23ce #762
@@ -28,8 +27,8 @@
 - [x] U+2C6D, U+0E3F #772
 - [x] U+21E0-U+21E3 #740
 - [x] make u+E0B4 / u+E0B6 more rounded #780
-- [ ] fill ALL sub and sup glyphs, fix wrong unicodes #789
-  - [ ] pass verify_sup_sub.md visual page
+- [x] fill ALL sub and sup glyphs, fix wrong unicodes #789
+  - [x] pass verify_sup_sub.md visual page
 
 ### CN
 
@@ -37,11 +36,11 @@
 
 ## Build
 
-- [ ] cleanup
-- [ ] add more details in mermaid dataflow graph
-- [ ] customziable locale name
-- [ ] fix cjk base font load priority regression: local cache > download from github release > instantiate from variable font > error
-  - [ ] find a way to stablize directory hash
+- [x] cleanup
+- [x] add more details in mermaid dataflow graph
+- [x] customizable locale name
+- [x] fix cjk base font load priority regression: local cache > download from github release > instantiate from variable font > error
+  - [x] stabilize directory hash with config-derived static hash files
 
 ## CJK
 

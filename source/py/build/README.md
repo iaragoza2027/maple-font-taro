@@ -11,8 +11,8 @@ resolution, runtime path planning, and shared build helpers.
   dataclasses so spawn/pickle behavior stays stable across platforms.
 - `util.py` contains helper functions that do not own the pipeline lifecycle,
   including font naming, CJK post-processing, and style/path selection helpers.
-- `resolver.py` converts config file and CLI inputs into a resolved build config
-  plus runtime output paths.
+- `resolver.py` converts config file and CLI inputs into a resolved build config,
+  runtime output paths, and CJK static base resolution decisions.
 
 ## Files
 
@@ -22,7 +22,7 @@ resolution, runtime path planning, and shared build helpers.
 | `config.py` | Build dataclasses, defaults, normalization, and serialization helpers. |
 | `paths.py` | Shared output path and merged variable filename helpers. |
 | `pipeline.py` | Main Maple Mono build pipeline, process-pool jobs, and public `main` entrypoint. |
-| `resolver.py` | Config-file and CLI override resolution into runtime-ready settings. |
+| `resolver.py` | Config-file and CLI override resolution, runtime paths, and CJK static base fallback planning. |
 | `util.py` | Pure/helper build functions shared by pipeline phases. |
 
 ## Pipeline Flow
@@ -34,7 +34,7 @@ flowchart TD
     PARSE --> PIPE_MAIN["pipeline.main(parsed_args, version)"]
     PIPE_MAIN --> CHECK["check_ftcli"]
     CHECK --> RESOLVE["BuildConfigResolver.resolve"]
-    RESOLVE --> PLAN["RuntimeBuildPlan.from_config"]
+    RESOLVE --> PLAN["BuildRuntimeContext.from_config"]
 
     PLAN --> DRY{"dry run?"}
     DRY -->|"yes, CI"| DRY_CI["print config JSON"]
@@ -43,28 +43,40 @@ flowchart TD
     DRY_LOCAL --> END
 
     DRY -->|"no"| PIPE["MapleBuildPipeline(config, plan).build"]
-    PIPE --> PREP["_prepare_outputs"]
+    PIPE --> PREP["prepare_output_root"]
     PREP --> CACHE_CLEAN{"cache disabled?"}
     CACHE_CLEAN -->|"yes"| CLEAN["remove fonts and fonts/Woff2"]
     CACHE_CLEAN -->|"no"| DIRS
     CLEAN --> DIRS["ensure base output dirs"]
-    DIRS --> START_TIMER["_start_build"]
+    DIRS --> START_TIMER["start_build_timer"]
 
-    START_TIMER --> BASE_DECISION{"cache enabled and has_cache?"}
-    BASE_DECISION -->|"yes"| SKIP_BASE["skip base rebuild"]
-    BASE_DECISION -->|"no"| BASE_OUTPUTS["_build_base_outputs"]
-    BASE_OUTPUTS --> VARIABLE["build_variable_fonts"]
-    VARIABLE --> BASE_TTF["build_base_fonts"]
-    BASE_TTF --> VARIANTS["_build_variant_outputs"]
-    SKIP_BASE --> VARIANTS
+    START_TIMER --> BASE_DECISION{"should_build_base_outputs?"}
+    BASE_DECISION -->|"yes"| VARIABLE["build_variable_outputs"]
+    VARIABLE --> BASE_TTF["build_static_base_outputs"]
+    BASE_DECISION -->|"no"| SKIP_BASE["reuse_base_output_cache"]
+    BASE_TTF --> NF_DECISION{"should_build_nerd_fonts?"}
+    SKIP_BASE --> NF_DECISION
 
-    VARIANTS --> NF["build_nerd_fonts"]
-    NF --> CJK["build_cjk_extended_outputs"]
-    CJK --> CLEAN_FORMATS["cleanup_unselected_base_formats"]
-    CLEAN_FORMATS --> RECORD["_write_build_config"]
+    NF_DECISION -->|"yes"| NF["build_nerd_font_outputs"]
+    NF_DECISION -->|"no"| SKIP_NF["skip_nerd_font_outputs"]
+    NF --> CJK_DECISION{"should_build_cjk_outputs?"}
+    SKIP_NF --> CJK_DECISION
 
-    RECORD --> ARCHIVE["_archive_outputs"]
-    ARCHIVE --> FINISH["_finish_build"]
+    CJK_DECISION -->|"no"| SKIP_CJK["skip_cjk_outputs"]
+    CJK_DECISION -->|"yes"| CJK_MODE{"should_persist_cjk_variable_outputs?"}
+    CJK_MODE -->|"yes"| CJK_VAR["build_cjk_variable_outputs"]
+    CJK_MODE -->|"no"| CJK_STATIC["build_cjk_static_outputs"]
+    SKIP_CJK --> CLEAN_DECISION{"should_cleanup_base_static_formats?"}
+    CJK_VAR --> CLEAN_DECISION
+    CJK_STATIC --> CLEAN_DECISION
+
+    CLEAN_DECISION -->|"yes"| CLEAN_FORMATS["cleanup_base_static_formats"]
+    CLEAN_DECISION -->|"no"| RECORD
+    CLEAN_FORMATS --> RECORD["write_build_record"]
+    RECORD --> ARCHIVE_DECISION{"should_archive_outputs?"}
+    ARCHIVE_DECISION -->|"yes"| ARCHIVE["archive_outputs"]
+    ARCHIVE_DECISION -->|"no"| FINISH
+    ARCHIVE --> FINISH["finish_build"]
     FINISH --> END
 ```
 
@@ -173,102 +185,68 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["build_cjk_extended_outputs"] --> B["selected locales from config"]
-    B --> C{"no locales?"}
-    C -->|"yes"| Z["return"]
-    C -->|"no"| D["persist_variable = cjk_output_format == variable"]
-    D --> E["For each locale"]
+    A["MapleBuildPipeline CJK decision"] --> B["resolved CJK build entries"]
+    B --> C{"no entries?"}
+    C -->|"yes"| Z["skip_cjk_outputs"]
+    C -->|"no"| D{"cjk_output_format == variable?"}
 
-    E --> F{"static output?"}
-    F -->|"yes"| G["build_cjk_extended_static_fonts_from_cache"]
-    G --> H["source/cjk/{locale}/static"]
-    H --> I["Resolve static base profiles<br/>NF-CJK when NF was built;<br/>plain CJK also when cjk_both"]
-    I --> J["Collect profile base fonts by style<br/>fonts/NF MapleMono-NF or TTF MapleMono"]
-    J --> K{"all core styles present in cache<br/>and clean_cache is false?"}
-    K -->|"no"| L["generate source/cjk/{locale}/static<br/>from locale CJK variable fonts"]
-    L --> LC{"source/cjk/{locale}/MapleMono-{Locale} VFs exist?"}
-    LC -->|"no"| LD["raise FileNotFoundError<br/>and exit build"]
-    LC -->|"yes"| LE["process_pool: instantiate_static_font_job<br/>for regular and italic instances"]
-    LE --> LF["reload generated static cache"]
-    LF --> LG{"required styles generated?"}
-    LG -->|"no"| LD
-    LG -->|"yes"| M
-    K -->|"yes"| M["Create CJKStaticMergeJob list<br/>for each base profile"]
-    M --> N["process_pool: merge_cached_cjk_static_font_job"]
-    N --> NA["merge_ttfonts core static + cached CJK static"]
-    NA --> NB["postprocess CJK static font"]
-    NB --> O["save fonts/NF-LOCALE or fonts/LOCALE static output"]
-    O --> P{"use_hinted?"}
-    P -->|"yes"| Q["ftcli ttf autohint fonts/LOCALE"]
-    P -->|"no"| R["skip CJK autohint"]
-    Q --> S["built_any = True"]
-    R --> S
-    S --> E
+    D -->|"yes"| VAR["build_cjk_extended_variable_outputs"]
+    VAR --> V0["For each resolved entry"]
+    V0 --> V1["entry.build_config<br/>locale_name derives output names"]
+    V1 --> V2["ensure_cjk_variable_fonts"]
+    V2 --> V3{"preset CJK VFs exist<br/>and clean_cache is false?"}
+    V3 -->|"yes"| V4["reuse preset regular and italic CJK VFs"]
+    V3 -->|"no"| V5["build_cjk_fonts(vf_only=True)"]
+    V4 --> V6["merge_vf core Maple VF + CJK VF"]
+    V5 --> V6
+    V6 --> V7["name merged VF with locale_name"]
+    V7 --> V8["save fonts/Variable-LOCALE"]
+    V8 --> V0
 
-    F -->|"no"| T{"persist variable?"}
-    T -->|"yes"| U["output dir fonts/Variable-LOCALE"]
-    T -->|"no"| V["output dir fonts/.cjk-temp/LOCALE"]
-    U --> W["build_cjk_extended_variable_fonts"]
-    V --> W
+    D -->|"no"| STAT["build_cjk_extended_static_outputs"]
+    STAT --> S0["For each selected locale"]
+    S0 --> S1["Resolve static base profiles<br/>NF-CJK and/or plain CJK"]
+    S1 --> S2["Collect required styles from core static fonts"]
+    S2 --> S3["BuildRuntimeContext.resolve_cjk_static_base"]
+    S3 --> S4{"valid local cache?"}
+    S4 -->|"yes"| S8["load static CJK base fonts"]
+    S4 -->|"no"| S5{"download supported locale?"}
+    S5 -->|"yes"| S6["download cjk-base/{locale}-static.zip<br/>then verify config-derived hash"]
+    S5 -->|"no"| S7["skip download"]
+    S6 --> S8
+    S7 --> S9["build_cjk_fonts from variable source<br/>skip hash validation"]
+    S6 -->|"invalid or incomplete"| S9
+    S9 --> S8
+    S8 --> S10{"required styles present?"}
+    S10 -->|"no"| SERR["raise FileNotFoundError"]
+    S10 -->|"yes"| S11["Create CJKStaticMergeJob list"]
+    S11 --> S12["process_pool: merge core static + CJK static"]
+    S12 --> S13["postprocess names with locale_name"]
+    S13 --> S14["save fonts/LOCALE or fonts/NF-LOCALE"]
+    S14 --> S15{"use_hinted?"}
+    S15 -->|"yes"| S16["ftcli ttf autohint output dirs"]
+    S15 -->|"no"| S17["skip CJK autohint"]
+    S16 --> S0
+    S17 --> S0
 
-    W --> X["build_preset_config locale"]
-    X --> XA["load source/cjk/config-{locale}.json<br/>locale_name derives CJK base paths"]
-    XA --> Y["ensure_cjk_variable_fonts"]
-    Y --> AA{"source/cjk/{locale}/MapleMono-{Locale} VFs exist<br/>and clean_cache false?"}
-    AA -->|"yes"| AB["reuse preset locale CJK regular and italic VFs"]
-    AA -->|"no"| AC["build_cjk_fonts preset vf_only=True"]
-    AC --> AD{"CJK VFs generated?"}
-    AD -->|"no"| AE["print skip warning<br/>return None"]
-    AD -->|"yes"| AF["use generated CJK VFs"]
-    AB --> AG["merge regular and italic pairs"]
-    AF --> AG
-
-    AG --> AH["merge_vf core Maple VF + CJK VF"]
-    AH --> AI["update merged variable names"]
-    AI --> AJ{"fix_meta_table?"}
-    AJ -->|"yes"| AK["apply_cjk_meta_table"]
-    AJ -->|"no"| AL["skip meta table"]
-    AK --> AM["save merged variable output"]
-    AL --> AM
-    AM --> AN{"merged paths returned?"}
-    AE --> E
-    AN -->|"no"| E
-    AN -->|"yes"| AO["built_any = True"]
-
-    AO --> AP{"persist variable?"}
-    AP -->|"yes"| E
-    AP -->|"no"| AQ["instantiate_cjk_extended_static_fonts"]
-    AQ --> AR["for regular and italic merged VFs"]
-    AR --> AS["feature_weight_instances"]
-    AS --> AT["instantiateVariableFont static=True"]
-    AT --> AU["postprocess_cjk_extended_static_font"]
-    AU --> AV["save fonts/LOCALE static output"]
-    AV --> AW["remove locale temp variable dir"]
-    AW --> E
-
-    E --> AX["After all locales"]
-    AX --> AY{"not persist_variable?"}
-    AY -->|"yes"| AZ["remove fonts/.cjk-temp"]
-    AY -->|"no"| BA["keep variable output dirs"]
-    AZ --> BB["plan.is_cjk_built = built_any"]
-    BA --> BB
+    VAR --> DONE["plan.is_cjk_built = built_any"]
+    STAT --> CLEAN["remove fonts/.cjk-temp"]
+    CLEAN --> DONE
 ```
 
 ## Finish and Archive Flow
 
 ```mermaid
 flowchart TD
-    A["After variant outputs"] --> B["cleanup_unselected_base_formats"]
-    B --> C{"ttf format wanted?"}
-    C -->|"yes"| D["keep TTF and TTF-AutoHint"]
-    C -->|"no"| E["remove TTF and TTF-AutoHint"]
-    D --> F["_write_build_config"]
+    A["After NF and CJK decisions"] --> B{"should_cleanup_base_static_formats?"}
+    B -->|"no"| D["keep TTF and TTF-AutoHint"]
+    B -->|"yes"| E["cleanup_base_static_formats"]
+    D --> F["write_build_record"]
     E --> F
     F --> G["write fonts/build-config.json"]
-    G --> H["_archive_outputs"]
-    H --> I{"archive enabled?"}
-    I -->|"no"| Q["_finish_build"]
-    I -->|"yes"| J["create fonts/archive"]
+    G --> I{"should_archive_outputs?"}
+    I -->|"no"| Q["finish_build"]
+    I -->|"yes"| J["archive_outputs<br/>create fonts/archive"]
     J --> K["iterate fonts output entries"]
     K --> L{"archive dir or json?"}
     L -->|"yes"| K
@@ -291,7 +269,7 @@ flowchart TD
 | Keep process-pool workers at module top level | Avoid pickling bound methods, closures, or partials. |
 | Use explicit job dataclasses | Make each parallel task's inputs visible and serializable. |
 | Keep helper logic in `util.py` | Reduce pipeline size while keeping lifecycle and worker code in one place. |
-| Reuse cached static CJK bases when possible | Avoid unnecessary variable CJK merge work for static-only CJK builds. |
+| Resolve CJK static bases in `BuildRuntimeContext` | Keep cache, download, hash, and variable fallback decisions outside the execution pipeline. |
 
 ## Main Phases
 
@@ -299,6 +277,7 @@ flowchart TD
 | ----- | ---------- |
 | Config and CLI | `cli.py`, `BuildConfigResolver` |
 | Runtime orchestration | `MapleBuildPipeline` |
+| CJK static base resolution | `BuildRuntimeContext.resolve_cjk_static_base` |
 | Variable font build | `build_variable_fonts` |
 | Static TTF instantiation | `MapleStaticInstanceJob`, `instantiate_maple_static_font_job` |
 | Base TTF postprocess | `MonoBuildJob`, `build_mono_job` |

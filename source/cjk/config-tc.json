@@ -1,7 +1,6 @@
 {
   "$schema": "./cjk_schema.json",
   "locale_name": "TC",
-  "feature_font": "../MapleMono-CN-feature-VF.ttf",
   "source": {
     "path": "ChironGoRoundTCVF.ttf",
     "outline_mode": "cff2",

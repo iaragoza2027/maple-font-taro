@@ -86,52 +86,21 @@
     "woff2"
   ],
   "cjk": {
-    "enabled_locales": [],
     "locales": {
-      "cn": {
-        "with_nerd_font": true,
-        "fix_meta_table": true,
-        "clean_cache": false,
-        "narrow": false,
-        "use_hinted": false,
-        "scale_factor": [
-          1.0,
-          1.0
-        ]
-      },
-      "jp": {
-        "with_nerd_font": true,
-        "fix_meta_table": true,
-        "clean_cache": false,
-        "narrow": false,
-        "use_hinted": false,
-        "scale_factor": [
-          1.0,
-          1.0
-        ]
-      },
-      "tc": {
-        "with_nerd_font": true,
-        "fix_meta_table": true,
-        "clean_cache": false,
-        "narrow": false,
-        "use_hinted": false,
-        "scale_factor": [
-          1.0,
-          1.0
-        ]
-      },
-      "kr": {
-        "with_nerd_font": true,
-        "fix_meta_table": true,
-        "clean_cache": false,
-        "narrow": false,
-        "use_hinted": false,
-        "scale_factor": [
-          1.0,
-          1.0
-        ]
-      }
-    }
+      "cn": false,
+      "jp": false,
+      "tc": false,
+      "kr": false,
+      "custom": []
+    },
+    "with_nerd_font": true,
+    "fix_meta_table": true,
+    "clean_cache": false,
+    "narrow": false,
+    "use_hinted": false,
+    "scale_factor": [
+      1.0,
+      1.0
+    ]
   }
 }

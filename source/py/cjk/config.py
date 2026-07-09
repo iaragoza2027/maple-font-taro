@@ -108,6 +108,8 @@ DEFAULT_KR_RANGES: tuple[tuple[int, int], ...] = (
     (0xFF00, 0xFFEF),
 )
 
+DEFAULT_FEATURE_FONT_PATH = Path("source/MapleMono-CN-feature-VF.ttf")
+
 
 @dataclass(frozen=True)
 class CJKWeightInstance:
@@ -197,7 +199,7 @@ class CJKBuildConfig:
 
     source: CJKSourceConfig
     locale_name: str = "CJK"
-    feature_font_path: Path = Path("source/MapleMono-CN-feature-VF.ttf")
+    feature_font_path: Path = DEFAULT_FEATURE_FONT_PATH
     output: CJKOutputConfig = field(default_factory=CJKOutputConfig)
     naming: CJKNamingConfig = field(default_factory=CJKNamingConfig)
     unicode: CJKUnicodeConfig = field(default_factory=CJKUnicodeConfig)
@@ -471,6 +473,17 @@ def temp_dir_from_locale(locale_name: str) -> Path:
     return Path("source/cjk") / locale_name.lower() / "temp"
 
 
+def resolve_config_path(base_dir: Path, value: str | None, default: str) -> Path:
+    """Resolve a config path relative to the repo root or the config file."""
+    raw = Path(value or default)
+    if raw.is_absolute():
+        return raw
+    repo_relative = Path.cwd() / raw
+    if repo_relative.exists() or str(raw).startswith("source/"):
+        return repo_relative
+    return base_dir / raw
+
+
 def apply_cli_overrides(
     config: CJKBuildConfig, args: argparse.Namespace
 ) -> CJKBuildConfig:
@@ -525,8 +538,6 @@ def apply_cli_overrides(
     return replace(
         config,
         source=source,
-        feature_font_path=resolve_cli_path(getattr(args, "feature_font", None))
-        or config.feature_font_path,
         unicode=unicode,
         transform=transform,
         allow_incompatible_glyphs=False,
@@ -554,8 +565,6 @@ def config_from_cli(args: argparse.Namespace) -> CJKBuildConfig:
             drop_tables=tuple(getattr(args, "drop_table", None) or ()),
         ),
         locale_name=locale_name,
-        feature_font_path=resolve_cli_path(getattr(args, "feature_font", None))
-        or Path("source/MapleMono-CN-feature-VF.ttf"),
         output=output_config_from_locale(locale_name),
         naming=naming_config_from_locale(locale_name),
         temp_dir=temp_dir_from_locale(locale_name),
@@ -563,16 +572,12 @@ def config_from_cli(args: argparse.Namespace) -> CJKBuildConfig:
     )
     return apply_cli_overrides(config, args)
 
-
-def config_from_json(config_path: str | Path) -> CJKBuildConfig:
-    """Load a CJK build config from JSON."""
-    path = Path(config_path)
-    data = json.loads(path.read_text())
-    base_dir = path.parent
+def config_from_data(data: dict[str, Any], base_dir: str | Path = ".") -> CJKBuildConfig:
+    """Load a CJK build config from a parsed JSON object."""
+    config_base_dir = Path(base_dir)
     allowed_keys = {
         "$schema",
         "locale_name",
-        "feature_font",
         "source",
         "unicode",
         "transform",
@@ -585,15 +590,6 @@ def config_from_json(config_path: str | Path) -> CJKBuildConfig:
             "Output, naming, temp_dir, and incompatible glyph behavior are derived "
             "from locale_name and are not customizable."
         )
-
-    def resolve_config_path(value: str | None, default: str) -> Path:
-        raw = Path(value or default)
-        if raw.is_absolute():
-            return raw
-        repo_relative = Path.cwd() / raw
-        if repo_relative.exists() or str(raw).startswith("source/"):
-            return repo_relative
-        return base_dir / raw
 
     source_data = data.get("source", {})
     if not source_data.get("path"):
@@ -608,13 +604,10 @@ def config_from_json(config_path: str | Path) -> CJKBuildConfig:
 
     return CJKBuildConfig(
         source=CJKSourceConfig(
-            path=resolve_config_path(source_data.get("path"), ""),
+            path=resolve_config_path(config_base_dir, source_data.get("path"), ""),
             masters=parse_master_locations(source_data.get("masters")),
             outline_mode=outline_mode,
             drop_tables=tuple(source_data.get("drop_tables", ())),
-        ),
-        feature_font_path=resolve_config_path(
-            data.get("feature_font"), "source/MapleMono-CN-feature-VF.ttf"
         ),
         locale_name=locale_name,
         output=output_config_from_locale(locale_name),
@@ -642,6 +635,41 @@ def config_from_json(config_path: str | Path) -> CJKBuildConfig:
     )
 
 
+def config_from_json(config_path: str | Path) -> CJKBuildConfig:
+    """Load a CJK build config from JSON."""
+    path = Path(config_path)
+    data = json.loads(path.read_text())
+    return config_from_data(data, path.parent)
+
+
+def serialize_cjk_build_config(config: CJKBuildConfig) -> dict[str, Any]:
+    """Serialize the customizable portion of a CJK build config."""
+    return {
+        "locale_name": config.locale_name,
+        "source": {
+            "path": str(config.source.path),
+            "masters": {
+                str(weight): dict(axes) for weight, axes in config.source.masters.items()
+            },
+            "outline_mode": config.source.outline_mode,
+            "drop_tables": list(config.source.drop_tables),
+        },
+        "unicode": {
+            "ranges": [list(range_pair) for range_pair in config.unicode.ranges],
+            "filter_encoding": config.unicode.filter_encoding,
+            "exclude_feature_codepoints": config.unicode.exclude_feature_codepoints,
+        },
+        "transform": {
+            "target_advance_width": config.transform.target_advance_width,
+            "x_scale": config.transform.x_scale,
+            "y_scale": config.transform.y_scale,
+            "x_shift": config.transform.x_shift,
+            "y_shift": config.transform.y_shift,
+            "italic_angle": config.transform.italic_angle,
+        },
+    }
+
+
 def add_cjk_arguments(parser: argparse.ArgumentParser) -> None:
     """Add custom CJK build arguments to an argparse parser."""
     parser.add_argument(
@@ -650,10 +678,6 @@ def add_cjk_arguments(parser: argparse.ArgumentParser) -> None:
         help="Path to a CJK build JSON config",
     )
     parser.add_argument("--source", help="Source glyf/CFF2 variable font path")
-    parser.add_argument(
-        "--feature-font",
-        help="Feature variable font used as the source of weight/name metadata",
-    )
     parser.add_argument(
         "--locale-name",
         default="CJK",

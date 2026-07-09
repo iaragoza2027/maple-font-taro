@@ -30,32 +30,32 @@
         "No adjustments to stem widths, discrete blue zone positioning. This is what FreeType uses for its \u2018light\u2019 (auto-)hinting mode. Essentially no glyph shape distortion, low contrast."
       ]
     },
-    "cjk_locale_config": {
+    "cjk_common_config": {
       "type": "object",
       "properties": {
         "with_nerd_font": {
           "type": "boolean",
-          "description": "Whether to patch Nerd-Font for this locale",
+          "description": "Whether to patch Nerd-Font for selected CJK entries",
           "default": true
         },
         "fix_meta_table": {
           "type": "boolean",
-          "description": "Fix design language and supported languages in META table",
+          "description": "Fix design language and supported languages in META table for built-in CJK presets",
           "default": true
         },
         "clean_cache": {
           "type": "boolean",
-          "description": "Whether to clean locale cache before rebuild",
+          "description": "Whether to clean CJK cache before rebuild",
           "default": false
         },
         "narrow": {
           "type": "boolean",
-          "description": "Whether to narrow locale glyphs",
+          "description": "Whether to narrow CJK glyphs",
           "default": false
         },
         "use_hinted": {
           "type": "boolean",
-          "description": "Whether to hint locale fonts",
+          "description": "Whether to hint CJK fonts",
           "default": false
         },
         "scale_factor": {
@@ -65,24 +65,6 @@
           ],
           "description": "Scale factor for CJK glyphs with <factor> or [<width_factor>,<height_factor>]",
           "default": 1.0
-        },
-        "source_override": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Optional source override path"
-        },
-        "output_override": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Optional output override path"
-        },
-        "transform_override": {
-          "type": "object",
-          "description": "Optional transform overrides passed to the preset"
         }
       }
     },
@@ -519,41 +501,62 @@
       "type": "object",
       "description": "Config for merged Maple Mono + CJK outputs",
       "properties": {
-        "enabled_locales": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "enum": [
-              "cn",
-              "jp",
-              "tc",
-              "kr"
-            ]
-          },
-          "default": []
-        },
         "locales": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "cn": {
-              "$ref": "#/definitions/cjk_locale_config"
+              "type": "boolean",
+              "default": false
             },
             "jp": {
-              "$ref": "#/definitions/cjk_locale_config"
+              "type": "boolean",
+              "default": false
             },
             "tc": {
-              "$ref": "#/definitions/cjk_locale_config"
+              "type": "boolean",
+              "default": false
             },
             "kr": {
-              "$ref": "#/definitions/cjk_locale_config"
+              "type": "boolean",
+              "default": false
+            },
+            "custom": {
+              "type": "array",
+              "default": [],
+              "items": {
+                "allOf": [
+                  {
+                    "$ref": "./cjk/cjk_schema.json"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "enable": {
+                        "type": "boolean",
+                        "default": true
+                      }
+                    }
+                  }
+                ]
+              }
             }
-          }
+          },
+          "required": [
+            "cn",
+            "jp",
+            "tc",
+            "kr",
+            "custom"
+          ]
         }
       },
-      "required": [
-        "enabled_locales",
-        "locales"
-      ]
+      "allOf": [
+        {
+          "$ref": "#/definitions/cjk_common_config"
+        }
+      ],
+      "required": ["locales"]
     },
     "cn": {
       "type": "object",

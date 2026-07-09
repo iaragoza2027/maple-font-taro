@@ -647,11 +647,11 @@ For example, if you want to make regular font weight a little bit lighter, just 
 
 CJK-extended builds are disabled by default. Run `python build.py --cjk cn` to generate Maple Mono + CN static fonts. The default output mode is `--cjk-format static`, while `--cjk-format variable` persists merged Maple Mono + locale variable fonts only. The legacy `--cn` flag is still accepted as a compatibility alias for selecting the `cn` locale.
 
-Use `cjk.enabled_locales` in [config.json](./config.json) to enable one or more locales (`cn`, `jp`, `tc`, `kr`) in config-driven builds.
+Use `cjk.locales.cn|jp|tc|kr` in [config.json](./config.json) to enable built-in locales in config-driven builds. Add extra custom CJK entries to `cjk.locales.custom`, and set `enable: true` on each entry you want `build.py` to merge automatically.
 
 #### Narrow spacing in CN glyphs
 
-If you think that **CN glyphs spacing is TOOOOOO large**, there is a build option `cn.narrow` or cli flag `--cn-narrow` to narrow spacing in CN glyphs, but this will make the font cannot be recognized as a monospaced font. You can see the effect in [#249](https://github.com/subframe7536/maple-font/issues/249#issuecomment-2871260476).
+If you think that **CN glyph spacing is TOOOOOO large**, use the shared `cjk.narrow` config option or the CLI flag `--cjk-narrow`. This will make the font no longer be recognized as monospaced. You can see the effect in [#249](https://github.com/subframe7536/maple-font/issues/249#issuecomment-2871260476).
 
 And if you want to change the Latin letters' width as well, use [`--width` option](#narrow-glyph-width)
 

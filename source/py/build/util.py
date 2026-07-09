@@ -7,9 +7,13 @@ from pathlib import Path
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables._m_e_t_a import table__m_e_t_a
 
-from source.py.build.config import ResolvedBuildConfig
-from source.py.build.resolver import RuntimeBuildPlan
-from source.py.cjk.presets import get_preset
+from source.py.build.config import (
+    CJKCommonBuildOptions,
+    ResolvedBuildConfig,
+    ResolvedCJKBuildEntry,
+)
+from source.py.build.errors import BuildDependencyError
+from source.py.build.resolver import BuildRuntimeContext
 from source.py.transform import change_glyph_width_or_scale
 from source.py.utils import (
     adjust_line_height,
@@ -20,6 +24,13 @@ from source.py.utils import (
 )
 
 
+def parse_major_version(version: str) -> int | None:
+    try:
+        return int(version.split(".", 1)[0])
+    except (TypeError, ValueError):
+        return None
+
+
 def check_ftcli() -> None:
     package_name_v1 = "foundryToolsCLI"
     package_spec_v1 = importlib.util.find_spec(package_name_v1)
@@ -27,24 +38,26 @@ def check_ftcli() -> None:
     package_spec_v2 = importlib.util.find_spec(package_name_v2)
 
     if not package_spec_v1 and not package_spec_v2:
-        print(
-            "❗ foundrytools-cli is not found. Please run `pip install foundrytools-cli`"
+        raise BuildDependencyError(
+            "foundrytools-cli is not found. Please run `pip install foundrytools-cli`"
         )
-        exit(1)
 
     try:
         installed_package = importlib.import_module(
             package_name_v2 if package_spec_v2 else package_name_v1
         )
         version = getattr(installed_package, "__version__", None)
-        if version and version < "2":
-            print(
-                f"❗ foundrytools-cli version {version} is too old. Please run `pip install --upgrade foundrytools-cli`"
+        major_version = parse_major_version(version) if version else None
+        if major_version is not None and major_version < 2:
+            raise BuildDependencyError(
+                f"foundrytools-cli version {version} is too old. Please run `pip install --upgrade foundrytools-cli`"
             )
-            exit(1)
     except Exception as e:
-        print(f"❗ Error checking foundrytools-cli version: {e}")
-        exit(1)
+        if isinstance(e, BuildDependencyError):
+            raise
+        raise BuildDependencyError(
+            f"Error checking foundrytools-cli version: {e}"
+        ) from e
 
 
 def rename_glyph_name(
@@ -174,19 +187,29 @@ def apply_cjk_names(
     return postscript_name
 
 
-def apply_cjk_metrics(font: TTFont, font_config: ResolvedBuildConfig) -> None:
+def apply_cjk_metrics(
+    font: TTFont,
+    font_config: ResolvedBuildConfig,
+    runtime_context: BuildRuntimeContext,
+) -> None:
     font["OS/2"].xAvgCharWidth = font_config.get_target_width()  # type: ignore
-    adjust_line_height(font, font_config.line_height, font_config.vertical_metric)
+    adjust_line_height(
+        font, font_config.line_height, runtime_context.resolved_vertical_metric
+    )
 
 
 def apply_cjk_width_transform(
     font: TTFont,
     font_config: ResolvedBuildConfig,
-    locale_config,
+    common_options: CJKCommonBuildOptions,
 ) -> bool:
-    target_width = font_config.glyph_width_cn_narrow if locale_config.narrow else None
+    target_width = (
+        font_config.glyph_width_cn_narrow if common_options.narrow else None
+    )
     scale_factor: tuple[float, float] | None = (
-        locale_config.scale_factor if locale_config.scale_factor != (1.0, 1.0) else None
+        common_options.scale_factor
+        if common_options.scale_factor != (1.0, 1.0)
+        else None
     )
     special_scale_names = [
         "ellipsis.full",
@@ -239,56 +262,58 @@ def verify_cjk_widths(
     font_config: ResolvedBuildConfig,
     file_name: str,
     skip_verify: bool,
+    cjk_narrow: bool,
 ) -> None:
     if skip_verify:
         return
     verify_glyph_width(
         font=font,
-        expect_widths=font_config.get_valid_glyph_width_list(True),
+        expect_widths=font_config.get_valid_glyph_width_list(True, cjk_narrow),
         file_name=file_name,
     )
 
 
 def postprocess_cjk_extended_static_font(
     font: TTFont,
-    locale: str,
+    entry: ResolvedCJKBuildEntry,
     font_config: ResolvedBuildConfig,
-    build_option: RuntimeBuildPlan,
+    runtime_context: BuildRuntimeContext,
     style_compact: str,
+    locale_suffix: str | None = None,
 ) -> str:
-    locale_config = font_config.cjk.locales[locale]
-    preset_spec = get_preset(locale)
     remove_target_glyph(font, ".1")
     postscript_name = apply_cjk_names(
         font,
         font_config,
-        preset_spec.family_suffix,
+        locale_suffix or entry.locale_name,
         style_compact,
-        locale_config.narrow,
+        entry.common_options.narrow,
     )
-    skip_verify = apply_cjk_width_transform(font, font_config, locale_config)
-    if locale_config.fix_meta_table:
+    skip_verify = apply_cjk_width_transform(font, font_config, entry.common_options)
+    if entry.is_builtin and entry.common_options.fix_meta_table and entry.preset_spec:
         apply_cjk_meta_table(
             font,
-            preset_spec.meta_languages,
-            preset_spec.code_page_range1,
+            entry.preset_spec.meta_languages,
+            entry.preset_spec.code_page_range1,
         )
-    apply_cjk_metrics(font, font_config)
+    apply_cjk_metrics(font, font_config, runtime_context)
     font_config.patch_font_feature(
         font=font,
-        issue_fea_dir=build_option.output_dir,
+        issue_fea_dir=runtime_context.output_dir,
         is_italic="Italic" in style_compact,
         is_cn=True,
         is_variable=False,
         is_hinted=False,
-        fea_path=build_option.feature_file_path("Italic" in style_compact, True),
+        fea_path=runtime_context.feature_file_path("Italic" in style_compact, True),
     )
-    verify_cjk_widths(font, font_config, postscript_name, skip_verify)
+    verify_cjk_widths(
+        font,
+        font_config,
+        postscript_name,
+        skip_verify,
+        entry.common_options.narrow,
+    )
     return postscript_name
-
-
-def get_cached_cjk_static_dir(locale: str) -> Path:
-    return Path("source/cjk") / locale / "static"
 
 
 def get_static_style_name(font_path: Path, static_file_prefix: str) -> str | None:

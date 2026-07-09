@@ -14,6 +14,13 @@
 ## Unicode
 
 - [x] U+2200–U+22FF, reference from Julia Mono's math symbols #709
+- [ ] claude code:
+  - [ ] spinner: U+273B, U+2605, U+273D, U+2733, U+2722, U+2736, U+2726
+  - [ ] progress: U+25D0-25D3
+  - [ ] figures: U+21BB, U+21AF
+  - [ ] play/pause: U+23F5, U+23FA, U+23F8
+  - [ ] check/cross: U+2705, U+274C
+  - [ ] alarm/symbol: U+29C9, U+2694, U+2620, U+2691, U+26F6, U+26DD, U+2764
 - [x] `─→` should horizonly aligned
 - [x] u+266a, u+2303, u+23ce #762
 - [x] chess symbols #594
@@ -31,7 +38,10 @@
 ## Build
 
 - [ ] cleanup
-- [ ] mermaid dataflow graph, add more details
+- [ ] add more details in mermaid dataflow graph
+- [ ] customziable locale name
+- [ ] fix cjk base font load priority regression: local cache > download from github release > instantiate from variable font > error
+  - [ ] find a way to stablize directory hash
 
 ## CJK
 
@@ -42,4 +52,4 @@
     - 100 -> 250
     - 400 -> 620
     - 800 -> 900
-- [ ] M PLUS Rounded 1c variable as JP part
+- [ ] Resource Han Sans JP as JP part

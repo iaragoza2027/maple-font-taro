@@ -475,6 +475,12 @@ class ResolvedBuildConfig:
     def wants_format(self, build_format: str) -> bool:
         return build_format in self.formats
 
+    def get_nf_suffix_compact(self) -> str:
+        full = self.get_nf_suffix()
+        if not full:
+            return ""
+        return full[1]
+
     def get_nf_suffix(self) -> Literal["Mono", "Propo", ""]:
         extra_args = self.nerd_font.extra_args
         if (

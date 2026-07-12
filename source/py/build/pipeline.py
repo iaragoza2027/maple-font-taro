@@ -365,7 +365,7 @@ def build_nf(
         )
     )
 
-    nf_sym = f"NF{font_config.get_nf_suffix()}"
+    nf_sym = f"NF{font_config.get_nf_suffix_compact()}"
     postscript_name = f"{font_config.family_name_compact}-{nf_sym}-{style_compact_nf}"
 
     update_font_names(
@@ -745,7 +745,11 @@ def build_cjk_extended_variable_fonts(
                 ),
                 is_skip_subfamily=True,
             )
-            if entry.is_builtin and entry.common_options.fix_meta_table and entry.preset_spec:
+            if (
+                entry.is_builtin
+                and entry.common_options.fix_meta_table
+                and entry.preset_spec
+            ):
                 apply_cjk_meta_table(
                     merged_font,
                     entry.preset_spec.meta_languages,
@@ -776,7 +780,7 @@ def cjk_static_base_profiles(
         runtime_context.is_nf_built and entry.common_options.with_nerd_font
     )
     if should_build_nf_cjk:
-        nf_suffix = f"NF{font_config.get_nf_suffix()}"
+        nf_suffix = f"NF{font_config.get_nf_suffix_compact()}"
         nf_font_config = deepcopy(font_config)
         nf_font_config.identity.family_name = f"{font_config.family_name} {nf_suffix}"
         nf_font_config.identity.family_name_compact = (
@@ -1303,7 +1307,8 @@ class MapleBuildPipeline:
 
             suffix = ""
             cjk_locale_names = {
-                entry.locale_name for entry in self.font_config.get_selected_cjk_entries()
+                entry.locale_name
+                for entry in self.font_config.get_selected_cjk_entries()
             }
             cjk_archive_dirs = {locale_name.upper() for locale_name in cjk_locale_names}
             nf_cjk_archive_dirs = {

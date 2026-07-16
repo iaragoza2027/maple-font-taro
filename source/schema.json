@@ -279,7 +279,11 @@
           "$ref": "#/definitions/freeze_options"
         },
         "cv11": {
-          "description": "[v7.7] Alternative 'f' with bottom bar",
+          "description": "[v7.7] Alternative 'f' with bottom bar, no effect in italic style",
+          "$ref": "#/definitions/freeze_options"
+        },
+        "cv12": {
+          "description": "[v8.0] Alternative 'u' without tail, no effect in italic style",
           "$ref": "#/definitions/freeze_options"
         },
         "cv31": {
@@ -338,6 +342,10 @@
           "description": "[v7.7] Alternative Italic 'f' with bottom bar",
           "$ref": "#/definitions/freeze_options"
         },
+        "cv45": {
+          "description": "[v8.0] Alternative italic 'u' without tail",
+          "$ref": "#/definitions/freeze_options"
+        },
         "cv61": {
           "description": "[v7.1] Alternative ',' and ';' with straight tail",
           "$ref": "#/definitions/freeze_options"
@@ -360,6 +368,10 @@
         },
         "cv66": {
           "description": "[v7.8] Alternative pipe arrows",
+          "$ref": "#/definitions/freeze_options"
+        },
+        "cv67": {
+          "description": "[v8.0] Alternative longer bar",
           "$ref": "#/definitions/freeze_options"
         },
         "cv96": {
@@ -420,6 +432,14 @@
         },
         "ss11": {
           "description": "[v7.1] Equal and extra punctuation ligatures ('|=', '/=', '?=', '&=', ...)",
+          "$ref": "#/definitions/freeze_options"
+        },
+        "ss12": {
+          "description": "[v8.0] Bulgarian Cyrillic forms",
+          "$ref": "#/definitions/freeze_options"
+        },
+        "ss13": {
+          "description": "[v8.0] Serbian Cyrillic forms",
           "$ref": "#/definitions/freeze_options"
         },
         "zero": {
@@ -556,7 +576,9 @@
           "$ref": "#/definitions/cjk_common_config"
         }
       ],
-      "required": ["locales"]
+      "required": [
+        "locales"
+      ]
     },
     "cn": {
       "type": "object",

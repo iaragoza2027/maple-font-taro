@@ -125,7 +125,7 @@ def generate_fea_string(
         [
             class_list,
             get_lang_list(),
-            get_base_features(calt_feat, is_cn=is_cn),
+            get_base_features(calt_feat, is_cn=is_cn, is_italic=is_italic),
             cv_ss_list,
         ],
     )

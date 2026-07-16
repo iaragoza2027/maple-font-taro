@@ -1,9 +1,9 @@
 import source.py.feature.ast as ast
-from source.py.feature.base.locl import lookup_tw
+from source.py.feature.base.locl import lookup_TW
 
 
 def cv99_subst():
-    return [lookup_tw.use()]
+    return [lookup_TW.use()]
 
 
 cv99_name = "Traditional centered punctuations"

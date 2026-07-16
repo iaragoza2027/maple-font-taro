@@ -24,6 +24,7 @@ GLYPHS_A = [
     "atilde",
     "a-cy",
     "ordfeminine",
+    "ainferior",
 ]
 
 GLYPHS_I = [
@@ -45,16 +46,10 @@ GLYPHS_I = [
     "iogonekdotless",
     "i-cy",
     "yi-cy",
+    "i.superior",
 ]
 
-GLYPHS_L = [
-    "l",
-    "lacute",
-    "lcaron",
-    "lcommaaccent",
-    "ldot",
-    "lslash",
-]
+GLYPHS_L = ["l", "lacute", "lcaron", "lcommaaccent", "ldot", "lslash", "linferior"]
 
 GLYPHS_1 = [
     "one",
@@ -94,6 +89,36 @@ GLYPHS_R = [
     "racute",
     "rcaron",
     "rcommaaccent",
+]
+
+GLYPHS_U = [
+    "u",
+    "uacute",
+    "ubreve",
+    "ucaron",
+    "ucircumflex",
+    "udieresis",
+    "udieresisacute",
+    "udieresiscaron",
+    "udieresisgrave",
+    "udieresismacron",
+    "udotbelow",
+    "ugrave",
+    "uhookabove",
+    "uhorn",
+    "uhornacute",
+    "uhorndotbelow",
+    "uhorngrave",
+    "uhornhookabove",
+    "uhorntilde",
+    "uhungarumlaut",
+    "umacron",
+    "uogonek",
+    "uring",
+    "utilde",
+    "upsilontonos",
+    "upsilondieresis",
+    "upsilondieresistonos",
 ]
 
 GLYPHS_Z_z = [

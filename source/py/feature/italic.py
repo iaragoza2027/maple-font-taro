@@ -11,6 +11,7 @@ from source.py.feature.cv import (
     cv09,
     cv10,
     cv11,
+    cv12,
     cv31,
     cv32,
     cv33,
@@ -25,12 +26,14 @@ from source.py.feature.cv import (
     cv42,
     cv43,
     cv44,
+    cv45,
     cv61,
     cv62,
     cv63,
     cv64,
     cv65,
     cv66,
+    cv67,
 )
 from source.py.feature.ss import (
     ss01,
@@ -44,6 +47,8 @@ from source.py.feature.ss import (
     ss09,
     ss10,
     ss11,
+    ss12,
+    ss13,
 )
 from source.py.feature.base.clazz import base_class_list, cls_digit
 
@@ -145,6 +150,7 @@ def cv_list_italic(full: bool = False):
             ast.clone_empty(cv09.cv09_feat_regular, regular_prefix),
             ast.clone_empty(cv10.cv10_feat_regular, regular_prefix),
             ast.clone_empty(cv11.cv11_feat_regular, regular_prefix),
+            ast.clone_empty(cv12.cv12_feat_regular, regular_prefix),
             cv31.cv31_feat_italic,
             cv32.cv32_feat_italic,
             cv33.cv33_feat_italic,
@@ -159,12 +165,14 @@ def cv_list_italic(full: bool = False):
             cv42.cv42_feat_italic,
             cv43.cv43_feat_italic,
             cv44.cv44_feat_italic,
+            cv45.cv45_feat_italic,
             cv61.cv61_feat,
             cv62.cv62_feat,
             cv63.cv63_feat,
             cv64.cv64_feat,
             cv65.cv65_feat,
             cv66.cv66_feat,
+            cv67.cv67_feat,
         ],
         full,
     )
@@ -184,6 +192,8 @@ def ss_list_italic(full: bool = False):
             ss09.ss09_feat,
             ss10.ss10_feat,
             ss11.ss11_feat,
+            ss12.ss12_feat(italic=True),
+            ss13.ss13_feat(italic=True),
         ],
         full,
     )

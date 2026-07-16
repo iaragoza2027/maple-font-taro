@@ -52,6 +52,7 @@ def default_feature_freeze() -> dict[str, str]:
         "cv09": "ignore",
         "cv10": "ignore",
         "cv11": "ignore",
+        "cv12": "ignore",
         "cv31": "ignore",
         "cv32": "ignore",
         "cv33": "ignore",
@@ -66,12 +67,14 @@ def default_feature_freeze() -> dict[str, str]:
         "cv42": "ignore",
         "cv43": "ignore",
         "cv44": "ignore",
+        "cv45": "ignore",
         "cv61": "ignore",
         "cv62": "ignore",
         "cv63": "ignore",
         "cv64": "ignore",
         "cv65": "ignore",
         "cv66": "ignore",
+        "cv67": "ignore",
         "cv96": "ignore",
         "cv97": "ignore",
         "cv98": "ignore",
@@ -87,6 +90,8 @@ def default_feature_freeze() -> dict[str, str]:
         "ss09": "ignore",
         "ss10": "ignore",
         "ss11": "ignore",
+        "ss12": "ignore",
+        "ss13": "ignore",
         "zero": "ignore",
     }
 
@@ -255,11 +260,7 @@ class CJKLocaleSelection:
     custom: list[CustomCJKEntryConfig] = field(default_factory=list)
 
     def builtin_enabled_locales(self) -> list[BuiltinCJKLocaleId]:
-        return [
-            locale
-            for locale in BUILTIN_CJK_LOCALES
-            if bool(getattr(self, locale))
-        ]
+        return [locale for locale in BUILTIN_CJK_LOCALES if bool(getattr(self, locale))]
 
     def set_builtin_enabled(self, locale: BuiltinCJKLocaleId, enabled: bool) -> None:
         setattr(self, locale, enabled)
@@ -683,7 +684,9 @@ def normalize_cjk_config(
     return selection.to_dict()
 
 
-def serialize_cjk_config(cjk_config: CJKBuildSelection | dict[str, Any]) -> dict[str, Any]:
+def serialize_cjk_config(
+    cjk_config: CJKBuildSelection | dict[str, Any],
+) -> dict[str, Any]:
     if isinstance(cjk_config, CJKBuildSelection):
         return cjk_config.to_dict()
     return normalize_cjk_config(cjk_config)

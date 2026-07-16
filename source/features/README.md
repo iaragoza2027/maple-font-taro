@@ -38,60 +38,62 @@ Setup in your VSCode settings json file
 
 <!-- CALT -->
 <table>
-<tr><td><code>::</code></td><td><code>?.</code></td><td><code>&lt;#--</code></td></tr>
-<tr><td><code>:::</code></td><td><code>..&lt;</code></td><td><code>&lt;!----&gt;</code></td></tr>
-<tr><td><code>?:</code></td><td><code>.=</code></td><td><code>&lt;-&gt;</code></td></tr>
-<tr><td><code>:?</code></td><td><code>&lt;~</code></td><td><code>&lt;--&gt;</code></td></tr>
-<tr><td><code>:?&gt;</code></td><td><code>~&gt;</code></td><td><code>-&gt;</code></td></tr>
-<tr><td><code>&lt;:</code></td><td><code>~~</code></td><td><code>&lt;-</code></td></tr>
-<tr><td><code>:&gt;</code></td><td><code>&lt;~&gt;</code></td><td><code>--&gt;</code></td></tr>
-<tr><td><code>:&lt;</code></td><td><code>&lt;~~</code></td><td><code>&lt;--</code></td></tr>
-<tr><td><code>&lt;:&lt;</code></td><td><code>~~&gt;</code></td><td><code>&gt;-&gt;</code></td></tr>
-<tr><td><code>&gt;:&gt;</code></td><td><code>-~</code></td><td><code>&lt;-&lt;</code></td></tr>
-<tr><td><code>__</code></td><td><code>~-</code></td><td><code>|-&gt;</code></td></tr>
-<tr><td><code>#{</code></td><td><code>~@</code></td><td><code>&lt;-|</code></td></tr>
-<tr><td><code>#[</code></td><td><code>~~~~~~~</code></td><td><code>-------</code></td></tr>
-<tr><td><code>#(</code></td><td><code>0xA12 0x56 1920x1080</code></td><td><code>&gt;--</code></td></tr>
-<tr><td><code>#?</code></td><td><code>&lt;&gt;</code></td><td><code>--&lt;</code></td></tr>
-<tr><td><code>#!</code></td><td><code>&lt;/</code></td><td><code>&lt;|||</code></td></tr>
-<tr><td><code>#:</code></td><td><code>/&gt;</code></td><td><code>|||&gt;</code></td></tr>
-<tr><td><code>#=</code></td><td><code>&lt;/&gt;</code></td><td><code>&lt;||</code></td></tr>
-<tr><td><code>#_</code></td><td><code>&lt;+</code></td><td><code>||&gt;</code></td></tr>
-<tr><td><code>#__</code></td><td><code>+&gt;</code></td><td><code>&lt;|</code></td></tr>
-<tr><td><code>#_(</code></td><td><code>&lt;+&gt;</code></td><td><code>|&gt;</code></td></tr>
-<tr><td><code>]#</code></td><td><code>&lt;*</code></td><td><code>&lt;|&gt;</code></td></tr>
-<tr><td><code>#######</code></td><td><code>*&gt;</code></td><td><code>_|_</code></td></tr>
-<tr><td><code>&lt;&lt;</code></td><td><code>&lt;*&gt;</code></td><td><code>[TRACE]</code></td></tr>
-<tr><td><code>&lt;&lt;&lt;</code></td><td><code>&gt;=</code></td><td><code>[DEBUG]</code></td></tr>
-<tr><td><code>&gt;&gt;</code></td><td><code>&lt;=</code></td><td><code>[INFO]</code></td></tr>
-<tr><td><code>&gt;&gt;&gt;</code></td><td><code>&lt;=&lt;</code></td><td><code>[WARN]</code></td></tr>
-<tr><td><code>{{</code></td><td><code>&gt;=&gt;</code></td><td><code>[ERROR]</code></td></tr>
-<tr><td><code>}}</code></td><td><code>==</code></td><td><code>[FATAL]</code></td></tr>
-<tr><td><code>{|</code></td><td><code>===</code></td><td><code>[TODO]</code></td></tr>
-<tr><td><code>|}</code></td><td><code>!=</code></td><td><code>[FIXME]</code></td></tr>
-<tr><td><code>{{--</code></td><td><code>!==</code></td><td><code>[NOTE]</code></td></tr>
-<tr><td><code>{{!--</code></td><td><code>=/=</code></td><td><code>[HACK]</code></td></tr>
-<tr><td><code>--}}</code></td><td><code>=!=</code></td><td><code>[MARK]</code></td></tr>
-<tr><td><code>[|</code></td><td><code>|=</code></td><td><code>[EROR]</code></td></tr>
-<tr><td><code>|]</code></td><td><code>&lt;=&gt;</code></td><td><code>[WARNING]</code></td></tr>
-<tr><td><code>!!</code></td><td><code>&lt;==&gt;</code></td><td><code>todo))</code></td></tr>
-<tr><td><code>||</code></td><td><code>&lt;==</code></td><td><code>fixme))</code></td></tr>
-<tr><td><code>??</code></td><td><code>==&gt;</code></td><td><code><em>Cl</em></code></td></tr>
-<tr><td><code>???</code></td><td><code>=&gt;</code></td><td><code><em>al</em></code></td></tr>
-<tr><td><code>&amp;&amp;</code></td><td><code>&lt;=|</code></td><td><code><em>cl</em></code></td></tr>
-<tr><td><code>&amp;&amp;&amp;</code></td><td><code>|=&gt;</code></td><td><code><em>el</em></code></td></tr>
-<tr><td><code>//</code></td><td><code>=&lt;=</code></td><td><code><em>il</em></code></td></tr>
-<tr><td><code>///</code></td><td><code>=&gt;=</code></td><td><code><em>tl</em></code></td></tr>
-<tr><td><code>/*</code></td><td><code>=======</code></td><td><code><em>ul</em></code></td></tr>
-<tr><td><code>/**</code></td><td><code>&gt;=&lt;</code></td><td><code><em>xl</em></code></td></tr>
-<tr><td><code>*/</code></td><td><code>:=</code></td><td><code><em>ff</em></code></td></tr>
-<tr><td><code>++</code></td><td><code>=:</code></td><td><code><em>tt</em></code></td></tr>
-<tr><td><code>+++</code></td><td><code>:=:</code></td><td><code><em>all</em></code></td></tr>
-<tr><td><code>;;</code></td><td><code>=:=</code></td><td><code><em>ell</em></code></td></tr>
-<tr><td><code>;;;</code></td><td><code>\\ \&#x27; \.</code></td><td><code><em>ill</em></code></td></tr>
-<tr><td><code>..</code></td><td><code>--</code></td><td><code><em>ull</em></code></td></tr>
-<tr><td><code>...</code></td><td><code>---</code></td><td><code><em>ll</em></code></td></tr>
-<tr><td><code>.?</code></td><td><code>&lt;!--</code></td><td></td></tr>
+<tr><td><code>::</code></td><td><code>.=</code></td><td><code>-&gt;</code></td></tr>
+<tr><td><code>:::</code></td><td><code>&lt;~</code></td><td><code>&lt;-</code></td></tr>
+<tr><td><code>?:</code></td><td><code>~&gt;</code></td><td><code>--&gt;</code></td></tr>
+<tr><td><code>:?</code></td><td><code>~~</code></td><td><code>&lt;--</code></td></tr>
+<tr><td><code>:?&gt;</code></td><td><code>&lt;~&gt;</code></td><td><code>&gt;-&gt;</code></td></tr>
+<tr><td><code>&lt;:</code></td><td><code>&lt;~~</code></td><td><code>&lt;-&lt;</code></td></tr>
+<tr><td><code>:&gt;</code></td><td><code>~~&gt;</code></td><td><code>|-&gt;</code></td></tr>
+<tr><td><code>:&lt;</code></td><td><code>-~</code></td><td><code>&lt;-|</code></td></tr>
+<tr><td><code>&lt;:&lt;</code></td><td><code>~-</code></td><td><code>-------</code></td></tr>
+<tr><td><code>&gt;:&gt;</code></td><td><code>~@</code></td><td><code>&gt;--</code></td></tr>
+<tr><td><code>__</code></td><td><code>~~~~~~~</code></td><td><code>--&lt;</code></td></tr>
+<tr><td><code>#{</code></td><td><code>0xA12 0x56 1920x1080</code></td><td><code>&lt;|||</code></td></tr>
+<tr><td><code>#[</code></td><td><code>&lt;&gt;</code></td><td><code>|||&gt;</code></td></tr>
+<tr><td><code>#(</code></td><td><code>&lt;/</code></td><td><code>&lt;||</code></td></tr>
+<tr><td><code>#?</code></td><td><code>/&gt;</code></td><td><code>||&gt;</code></td></tr>
+<tr><td><code>#!</code></td><td><code>&lt;/&gt;</code></td><td><code>&lt;|</code></td></tr>
+<tr><td><code>#:</code></td><td><code>&lt;+</code></td><td><code>|&gt;</code></td></tr>
+<tr><td><code>#=</code></td><td><code>+&gt;</code></td><td><code>&lt;|&gt;</code></td></tr>
+<tr><td><code>#_</code></td><td><code>&lt;+&gt;</code></td><td><code>_|_</code></td></tr>
+<tr><td><code>#__</code></td><td><code>&lt;*</code></td><td><code>[TRACE]</code></td></tr>
+<tr><td><code>#_(</code></td><td><code>*&gt;</code></td><td><code>[DEBUG]</code></td></tr>
+<tr><td><code>]#</code></td><td><code>&lt;*&gt;</code></td><td><code>[INFO]</code></td></tr>
+<tr><td><code>#######</code></td><td><code>&gt;=</code></td><td><code>[WARN]</code></td></tr>
+<tr><td><code>&lt;&lt;</code></td><td><code>&lt;=</code></td><td><code>[ERROR]</code></td></tr>
+<tr><td><code>&lt;&lt;&lt;</code></td><td><code>&lt;=&lt;</code></td><td><code>[FATAL]</code></td></tr>
+<tr><td><code>&gt;&gt;</code></td><td><code>&gt;=&gt;</code></td><td><code>[TODO]</code></td></tr>
+<tr><td><code>&gt;&gt;&gt;</code></td><td><code>==</code></td><td><code>[FIXME]</code></td></tr>
+<tr><td><code>{{</code></td><td><code>===</code></td><td><code>[NOTE]</code></td></tr>
+<tr><td><code>}}</code></td><td><code>!=</code></td><td><code>[HACK]</code></td></tr>
+<tr><td><code>{|</code></td><td><code>!==</code></td><td><code>[MARK]</code></td></tr>
+<tr><td><code>|}</code></td><td><code>=/=</code></td><td><code>[EROR]</code></td></tr>
+<tr><td><code>{{--</code></td><td><code>=!=</code></td><td><code>[WARNING]</code></td></tr>
+<tr><td><code>{{!--</code></td><td><code>|=</code></td><td><code>[ERRO]</code></td></tr>
+<tr><td><code>--}}</code></td><td><code>&lt;=&gt;</code></td><td><code>[DBUG]</code></td></tr>
+<tr><td><code>[|</code></td><td><code>&lt;==&gt;</code></td><td><code>[CRIT]</code></td></tr>
+<tr><td><code>|]</code></td><td><code>&lt;==</code></td><td><code>[ALERT]</code></td></tr>
+<tr><td><code>!!</code></td><td><code>==&gt;</code></td><td><code>[SUCCESS]</code></td></tr>
+<tr><td><code>||</code></td><td><code>=&gt;</code></td><td><code>[TRACING]</code></td></tr>
+<tr><td><code>??</code></td><td><code>&lt;=|</code></td><td><code>[CRITICAL]</code></td></tr>
+<tr><td><code>???</code></td><td><code>|=&gt;</code></td><td><code>todo))</code></td></tr>
+<tr><td><code>&amp;&amp;</code></td><td><code>=&lt;=</code></td><td><code>fixme))</code></td></tr>
+<tr><td><code>&amp;&amp;&amp;</code></td><td><code>=&gt;=</code></td><td><code><em>Cl</em></code></td></tr>
+<tr><td><code>//</code></td><td><code>=======</code></td><td><code><em>al</em></code></td></tr>
+<tr><td><code>///</code></td><td><code>&gt;=&lt;</code></td><td><code><em>cl</em></code></td></tr>
+<tr><td><code>/*</code></td><td><code>:=</code></td><td><code><em>el</em></code></td></tr>
+<tr><td><code>/**</code></td><td><code>=:</code></td><td><code><em>il</em></code></td></tr>
+<tr><td><code>*/</code></td><td><code>:=:</code></td><td><code><em>tl</em></code></td></tr>
+<tr><td><code>++</code></td><td><code>=:=</code></td><td><code><em>ul</em></code></td></tr>
+<tr><td><code>+++</code></td><td><code>\\ \&#x27; \.</code></td><td><code><em>xl</em></code></td></tr>
+<tr><td><code>;;</code></td><td><code>--</code></td><td><code><em>ff</em></code></td></tr>
+<tr><td><code>;;;</code></td><td><code>---</code></td><td><code><em>tt</em></code></td></tr>
+<tr><td><code>..</code></td><td><code>&lt;!--</code></td><td><code><em>all</em></code></td></tr>
+<tr><td><code>...</code></td><td><code>&lt;#--</code></td><td><code><em>ell</em></code></td></tr>
+<tr><td><code>.?</code></td><td><code>&lt;!----&gt;</code></td><td><code><em>ill</em></code></td></tr>
+<tr><td><code>?.</code></td><td><code>&lt;-&gt;</code></td><td><code><em>ull</em></code></td></tr>
+<tr><td><code>..&lt;</code></td><td><code>&lt;--&gt;</code></td><td><code><em>ll</em></code></td></tr>
 </table>
 <!-- CALT -->
 
@@ -114,13 +116,15 @@ Setup in your VSCode settings json file
 - [v7.1] cv08: Alternative `r` with bottom bar, no effect in italic style
 - [v7.5] cv09: Alternative `7` with middle bar, no effect in italic style
 - [v7.5] cv10: Alternative `Z` and `z` with middle bar, no effect in italic style
-- [v7.7] cv11: Alternative `f` with bottom bar
+- [v7.7] cv11: Alternative `f` with bottom bar, no effect in italic style
+- [v8.0] cv12: Alternative `u` without tail, no effect in italic style
 - [v7.1] cv61: Alternative `,` and `;` with straight tail
 - [v7.1] cv62: Alternative `?` with larger openings
 - [v7.1] cv63: Alternative `<=` in arrow style
 - [v7.3] cv64: Alternative `<=` and `>=` with horizen bottom bar
 - [v7.3] cv65: Alternative `&` in handwriting style
 - [v7.8] cv66: Alternative pipe arrows
+- [v8.0] cv67: Alternative longer bar
 - [v7.0] zero: Dot style `0`
 <!-- CV -->
 
@@ -141,6 +145,7 @@ Setup in your VSCode settings json file
 - [v7.5] cv42: Alternative italic _`7`_ with middle bar
 - [v7.5] cv43: Alternative italic _`Z`_ and _`z`_ with middle bar
 - [v7.7] cv44: Alternative Italic _`f`_ with bottom bar
+- [v8.0] cv45: Alternative italic _`u`_ without tail
 <!-- CV-IT -->
 
 #### CN Only
@@ -166,4 +171,6 @@ Setup in your VSCode settings json file
 - [v7.1] ss09: Asciitilde equal as not equal to ligature (`~=`)
 - [v7.1] ss10: Approximately equal to and approximately not equal to ligatures (`=~`, `!~`)
 - [v7.1] ss11: Equal and extra punctuation ligatures (`|=`, `/=`, `?=`, `&=`, ...)
+- [v8.0] ss12: Bulgarian Cyrillic forms
+- [v8.0] ss13: Serbian Cyrillic forms
 <!-- SS -->

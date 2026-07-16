@@ -24,7 +24,7 @@ st_acc = ast.subst_map(
     ["S", "s", "T", "t"], source_suffix="cedilla", target_suffix="commaaccent"
 )
 
-locl_1 = ast.Lookup(
+locl_LATN = ast.Lookup(
     "locl_latn_1",
     None,
     [
@@ -38,7 +38,7 @@ locl_1 = ast.Lookup(
 
 glyph_2 = "periodcentered"
 
-locl_2 = ast.Lookup(
+locl_CAT = ast.Lookup(
     "locl_latn_2",
     None,
     [
@@ -49,7 +49,7 @@ locl_2 = ast.Lookup(
     ],
 )
 
-locl_3 = ast.Lookup(
+locl_NLD = ast.Lookup(
     "locl_latn_3",
     None,
     [
@@ -60,12 +60,75 @@ locl_3 = ast.Lookup(
     ],
 )
 
+lookup_CY_BGR = ast.Lookup(
+    "CyrillicBGR",
+    None,
+    ast.subst_map(
+        [
+            "De-cy",
+            "El-cy",
+            "Ef-cy",
+            "ve-cy",
+            "ge-cy",
+            "de-cy",
+            "zhe-cy",
+            "ze-cy",
+            "ii-cy",
+            "iishort-cy",
+            "igravecyr",
+            "ka-cy",
+            "el-cy",
+            "pe-cy",
+            "te-cy",
+            "tse-cy",
+            "sha-cy",
+            "shcha-cy",
+            "softsign-cy",
+            "hardsign-cy",
+            "iu-cy",
+        ],
+        target_suffix=".loclBGR",
+    ),
+)
 
-lookup_tw_name = "PunctuationTW"
+lookup_CY_BGR_ITALIC = ast.Lookup(
+    "CyrillicBGR",
+    None,
+    ast.subst_map(
+        [
+            "De-cy",
+            "El-cy",
+            "Ef-cy",
+            "de-cy",
+            "zhe-cy",
+            "ze-cy",
+            "ii-cy",
+            "ka-cy",
+            "te-cy",
+            "iu-cy",
+        ],
+        target_suffix=".loclBGR",
+    ),
+)
+
+lookup_CY_SRB = ast.Lookup(
+    "CyrillicSRB",
+    None,
+    ast.subst_map(["be-cy"], target_suffix=".loclSRB"),
+)
+
+lookup_CY_SRB_ITALIC = ast.Lookup(
+    "CyrillicSRB",
+    None,
+    ast.subst_map(
+        ["be-cy", "de-cy", "ge-cy", "pe-cy", "te-cy"], target_suffix=".loclSRB"
+    ),
+)
+
 
 # Must before all features
-lookup_tw = ast.Lookup(
-    lookup_tw_name,
+lookup_TW = ast.Lookup(
+    "PunctuationTW",
     "Centered punctuations",
     ast.subst_map(
         [
@@ -81,28 +144,37 @@ lookup_tw = ast.Lookup(
     ),
 )
 
-__locl = [
-    locl_0,
-    locl_1,
-    locl_2,
-    locl_3,
-]
 
 __locl_cn_only = [
     ast.lang("ZHH"),
-    lookup_tw.use(),
+    lookup_TW.use(),
     ast.lang("ZHT"),
-    lookup_tw.use(),
+    lookup_TW.use(),
 ]
 
 
-def get_locl_feature_list(cn: bool, cn_only: bool = False):
-    if not cn:
-        return [ast.Feature("locl", __locl, "7.0")]
+def get_locl_feature_list(cn: bool, cn_only: bool = False, italic: bool = False):
+    lookup_bgr = lookup_CY_BGR_ITALIC if italic else lookup_CY_BGR
+    lookup_srb = lookup_CY_SRB_ITALIC if italic else lookup_CY_SRB
+    locl = [
+        locl_0,
+        locl_LATN,
+        locl_CAT,
+        locl_NLD,
+        ast.script("cyrl"),
+        ast.lang("BGR"),
+        lookup_bgr.use(),
+        ast.lang("SRB"),
+        lookup_srb.use(),
+    ]
 
-    content = __locl_cn_only if cn_only else __locl + __locl_cn_only
+    if not cn:
+        return [lookup_bgr, lookup_srb, ast.Feature("locl", locl, "7.0")]
+
+    content = __locl_cn_only if cn_only else locl + __locl_cn_only
     return [
-        lookup_tw,
+        *([] if cn_only else [lookup_bgr, lookup_srb]),
+        lookup_TW,
         ast.Feature("locl", content, "7.0"),
-        ast.Feature("cpct", lookup_tw.use(), "8.0"),
+        ast.Feature("cpct", lookup_TW.use(), "8.0"),
     ]

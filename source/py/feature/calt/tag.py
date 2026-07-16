@@ -15,6 +15,13 @@ built_in_tag_text = [
     "mark",
     "eror",
     "warning",
+    "erro",
+    "dbug",
+    "crit",
+    "alert",
+    "success",
+    "tracing",
+    "critical",
 ]
 
 

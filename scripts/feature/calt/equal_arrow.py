@@ -1,12 +1,12 @@
 from scripts.feature import ast
 from scripts.feature.base.clazz import cls_question
-from scripts.feature.calt._infinite_utils import infinite_helper, infinite_rules
+from scripts.feature.calt._infinite_utils import InfiniteOptions, infinite_rules
 
 
 # Inspired by Fira Code, source:
 # https://github.com/tonsky/FiraCode/blob/master/features/calt/equal_arrows.fea
-def infinite_equals():
-    if not infinite_helper.get():
+def infinite_equals(options: InfiniteOptions):
+    if not options.enabled:
         return None
 
     eq_start = ast.gly_seq("=", "sta")
@@ -76,9 +76,9 @@ def infinite_equals():
     )
 
 
-def get_lookup(cls_var: ast.Clazz):
+def get_lookup(cls_var: ast.Clazz, options: InfiniteOptions):
     return [
-        infinite_helper.ignore_when_enabled(
+        options.ignore_when_enabled(
             ast.subst_liga(
                 "<=>",
                 ign_prefix=ast.cls("<", "="),
@@ -109,7 +109,7 @@ def get_lookup(cls_var: ast.Clazz):
                 ast.ign(["(", cls_question], "<", "="),
             ],
         ),
-        infinite_helper.ignore_when_enabled(
+        options.ignore_when_enabled(
             ast.subst_liga(
                 "<==",
                 ign_prefix=ast.cls("<", "="),
@@ -155,7 +155,7 @@ def get_lookup(cls_var: ast.Clazz):
             ign_prefix=ast.cls(">", "="),
             ign_suffix=ast.cls(">", "="),
         ),
-        infinite_helper.ignore_when_enabled(
+        options.ignore_when_enabled(
             ast.subst_liga(
                 "<=|",
                 ign_prefix="<",
@@ -188,7 +188,7 @@ def get_lookup(cls_var: ast.Clazz):
                 ast.ign(["(", cls_question, "<"], "=", ["=", "="]),
             ],
         ),
-        infinite_helper.ignore_when_disabled(
+        options.ignore_when_disabled(
             ast.subst_liga(
                 "===",
                 lookup_name=ast.gly("===", "__ALT__"),
@@ -235,7 +235,7 @@ def get_lookup(cls_var: ast.Clazz):
                 ast.ign(["(", cls_question, "<"], "=", ["!", "="]),
             ],
         ),
-        infinite_helper.ignore_when_enabled(
+        options.ignore_when_enabled(
             ast.subst_liga(
                 "=<=",
                 ign_prefix=ast.cls("=", ">", "<", "|"),
@@ -258,5 +258,5 @@ def get_lookup(cls_var: ast.Clazz):
             ign_prefix=ast.cls("|", "="),
             ign_suffix=ast.cls(">", "|", "="),
         ),
-        infinite_equals(),
+        infinite_equals(options),
     ]

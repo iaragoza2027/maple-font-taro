@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import unittest
 
-from scripts.feature import (
+from scripts.feature.compiler import (
     generate_fea_string,
     generate_fea_string_cn_only,
     get_all_calt_text,

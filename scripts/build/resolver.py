@@ -28,12 +28,13 @@ from scripts.build.config import (
     parse_scale_factor,
 )
 from scripts.build.errors import BuildDependencyError
-from scripts.cjk.config import CJKBuildConfig, config_from_data
+from scripts.cjk.config import config_from_data
+from scripts.cjk.models import CJKBuildConfig
 from scripts.cjk.presets import build_preset_config, get_preset
 from scripts.common.downloads import check_font_patcher, download_zip_and_extract
 from scripts.common.files import join_path
 from scripts.common.process import get_font_forge_bin
-from scripts.feature import normal_enabled_features
+from scripts.feature.compiler import normal_enabled_features
 from scripts.font.operations import (
     get_directory_hash,
 )
@@ -210,7 +211,7 @@ class BuildRuntimeContext:
         self,
         preset_config: CJKBuildConfig,
     ) -> None:
-        from scripts.cjk.builder import build_cjk_fonts
+        from scripts.cjk.pipeline import build_cjk_fonts
 
         build_cjk_fonts(preset_config)
 
@@ -582,11 +583,12 @@ class BuildConfigResolver:
 
         for preset_id in locale_selection.builtin_enabled_locales():
             preset_spec = get_preset(preset_id)
+            preset_config = build_preset_config(preset_id)
             entries.append(
                 ResolvedCJKBuildEntry(
                     entry_id=preset_id,
-                    locale_name=preset_spec.family_suffix,
-                    build_config=build_preset_config(preset_id),
+                    locale_name=preset_config.locale_name,
+                    build_config=preset_config,
                     common_options=replace(common_options),
                     is_builtin=True,
                     preset_id=preset_id,

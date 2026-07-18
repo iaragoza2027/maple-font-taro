@@ -9,8 +9,8 @@ from fontTools.feaLib.builder import (
 )
 from fontTools.ttLib import TTFont
 
-from scripts.feature import generate_fea_string, get_freeze_moving_rules
-from scripts.freeze import freeze_feature, is_enable
+from scripts.feature.compiler import generate_fea_string, get_freeze_moving_rules
+from scripts.feature.freeze import freeze_feature, is_enable
 
 if TYPE_CHECKING:
     from scripts.build.config import ResolvedBuildConfig

@@ -8,7 +8,7 @@ import sys
 
 from python_minifier import minify
 
-from scripts.feature import (
+from scripts.feature.compiler import (
     get_cv_cn_version_info,
     get_cv_italic_version_info,
     get_cv_version_info,

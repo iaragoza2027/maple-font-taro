@@ -32,13 +32,13 @@ from scripts.build.font_ops import (
     postprocess_cjk_extended_static_font,
     rename_glyph_name,
 )
-from scripts.cjk.builder import (
+from scripts.cjk.pipeline import (
     build_cjk_fonts,
     create_font_executor,
     feature_weight_instances,
     get_static_worker_font,
 )
-from scripts.cjk.vf import load_font_eager, merge_vf
+from scripts.cjk.variable import load_font_eager, merge_vf
 from scripts.common.files import join_path
 from scripts.common.process import is_ci, run
 from scripts.feature.apply import patch_font_feature

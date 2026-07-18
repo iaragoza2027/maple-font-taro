@@ -1,4 +1,5 @@
 import scripts.feature.ast as ast
+from scripts.feature.calt._infinite_utils import InfiniteOptions
 from scripts.feature.cv import (
     cv01,
     cv02,
@@ -136,10 +137,12 @@ class_list_italic = [
 regular_prefix = "[Regular Only]"
 
 
-def cv_list_italic(full: bool = False):
+def cv_list_italic(
+    full: bool = False, infinite_options: InfiniteOptions = InfiniteOptions()
+):
     return ast.filter_empty(
         [
-            cv01.cv01_feat(),
+            cv01.cv01_feat(infinite_options),
             ast.clone_empty(cv02.cv02_feat_regular, regular_prefix),
             ast.clone_empty(cv03.cv03_feat_regular, regular_prefix),
             cv04.cv04_feat_italic,

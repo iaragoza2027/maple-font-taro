@@ -1,5 +1,6 @@
 from scripts.feature import ast
 from scripts.feature.base.clazz import cls_question
+from scripts.feature.calt._infinite_utils import InfiniteOptions
 from scripts.feature.calt.whitespace import (
     brace,
     colon,
@@ -141,10 +142,10 @@ def get_base_lookup():
     ]
 
 
-def get_lookup(cls_var: ast.Clazz):
+def get_lookup(cls_var: ast.Clazz, options: InfiniteOptions):
     return (
         upper.get_lookup()
-        + colon.get_lookup()
+        + colon.get_lookup(options)
         + numbersign_underscore.get_lookup()
         + multiple_compare.get_lookup(cls_var)
         + brace.get_lookup()

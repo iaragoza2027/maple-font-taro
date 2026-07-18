@@ -13,7 +13,7 @@ from scripts.build.pipeline import (
     prune_build_files,
 )
 from scripts.build.resolver import BuildConfigResolver, BuildRuntimeContext
-from scripts.cjk.config import CJKBuildConfig, CJKSourceConfig
+from scripts.cjk.models import CJKBuildConfig, CJKSourceConfig
 from scripts.cjk.presets import CJKPresetId, build_preset_config, get_preset
 
 
@@ -42,10 +42,11 @@ def make_runtime_context(tmp_path: Path) -> BuildRuntimeContext:
 
 
 def make_builtin_entry(locale: CJKPresetId = "cn") -> ResolvedCJKBuildEntry:
+    preset_config = build_preset_config(locale)
     return ResolvedCJKBuildEntry(
         entry_id=locale,
-        locale_name=get_preset(locale).family_suffix,
-        build_config=build_preset_config(locale),
+        locale_name=preset_config.locale_name,
+        build_config=preset_config,
         common_options=CJKCommonBuildOptions(),
         is_builtin=True,
         preset_id=locale,

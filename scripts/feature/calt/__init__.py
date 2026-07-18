@@ -1,4 +1,5 @@
 from scripts.feature import ast
+from scripts.feature.calt._infinite_utils import InfiniteOptions
 from scripts.feature.calt import (
     asciitilde,
     cross,
@@ -20,15 +21,16 @@ def get_calt_lookup(
     normal: bool = False,
     enable_tag: bool = True,
     remove_italic_calt: bool = False,
+    infinite_options: InfiniteOptions = InfiniteOptions(),
 ) -> list[list[ast.Lookup]]:
     lookup = [
-        whitespace.get_lookup(cls_var),
+        whitespace.get_lookup(cls_var, infinite_options),
         asciitilde.get_lookup(),
         cross.get_lookup(cls_hex_letter),
         markup_like.get_lookup(),
-        equal_arrow.get_lookup(cls_var),
+        equal_arrow.get_lookup(cls_var, infinite_options),
         escape.get_lookup(),
-        hyphen_arrow.get_lookup(cls_var),
+        hyphen_arrow.get_lookup(cls_var, infinite_options),
         pipe.get_lookup(),
     ]
 
@@ -48,6 +50,7 @@ def get_calt(
     is_normal: bool = False,
     enable_tag: bool = True,
     remove_italic_calt: bool = False,
+    infinite_options: InfiniteOptions = InfiniteOptions(),
 ) -> ast.Feature:
     return ast.Feature(
         "calt",
@@ -58,6 +61,7 @@ def get_calt(
             is_normal,
             enable_tag,
             remove_italic_calt,
+            infinite_options,
         ),
         "7.0",
     )

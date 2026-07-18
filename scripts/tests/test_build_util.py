@@ -13,7 +13,7 @@ from scripts.build.config import (
 from scripts.build.errors import BuildDependencyError
 from scripts.build.resolver import BuildConfigResolver, BuildRuntimeContext
 from scripts.build.font_ops import check_ftcli, postprocess_cjk_extended_static_font
-from scripts.cjk.config import CJKBuildConfig, CJKSourceConfig
+from scripts.cjk.models import CJKBuildConfig, CJKSourceConfig
 from scripts.cjk.presets import build_preset_config, get_preset
 
 

@@ -6,10 +6,32 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.cjk.config import add_cjk_arguments, config_from_json
+from scripts.cjk.config import (
+    add_cjk_arguments,
+    apply_cli_overrides,
+    config_from_json,
+)
+from scripts.cjk.presets import build_preset_config
 
 
 class CJKConfigSurfaceTest(unittest.TestCase):
+    def test_zero_italic_angle_is_an_explicit_override(self) -> None:
+        parser = argparse.ArgumentParser()
+        add_cjk_arguments(parser)
+        args = parser.parse_args(["--italic-angle", "0"])
+
+        config = apply_cli_overrides(build_preset_config("cn"), args)
+
+        self.assertEqual(config.transform.italic_angle, 0)
+
+    def test_non_positive_scale_is_rejected(self) -> None:
+        parser = argparse.ArgumentParser()
+        add_cjk_arguments(parser)
+        args = parser.parse_args(["--x-scale", "0"])
+
+        with self.assertRaisesRegex(ValueError, "scale factors"):
+            apply_cli_overrides(build_preset_config("cn"), args)
+
     def test_config_from_json_rejects_feature_font(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             config_path = Path(tmp) / "custom.json"

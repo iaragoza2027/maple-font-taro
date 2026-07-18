@@ -1,34 +1,24 @@
 import scripts.feature.ast as ast
+from dataclasses import dataclass
 from typing import TypeVar
 
 
 _T = TypeVar("_T")
 
 
-class InfiniteHelper:
-    __USE_INFINITE_ARROW: bool
-
-    def __init__(self) -> None:
-        self.__USE_INFINITE_ARROW = True
-
-    def get(self) -> bool:
-        return self.__USE_INFINITE_ARROW
-
-    def set(self, val: bool) -> None:
-        self.__USE_INFINITE_ARROW = val
+@dataclass(frozen=True)
+class InfiniteOptions:
+    enabled: bool = True
 
     def ignore_when_enabled(self, *items: _T) -> list[_T]:
-        if self.get():
+        if self.enabled:
             return []
         return list(items)
 
     def ignore_when_disabled(self, *items: _T) -> list[_T]:
-        if not self.get():
+        if not self.enabled:
             return []
         return list(items)
-
-
-infinite_helper = InfiniteHelper()
 
 
 def infinite_rules(

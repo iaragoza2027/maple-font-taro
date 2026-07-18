@@ -1,12 +1,12 @@
 from scripts.feature import ast
 from scripts.feature.base.clazz import cls_digit, cls_question
-from scripts.feature.calt._infinite_utils import infinite_helper, infinite_rules
+from scripts.feature.calt._infinite_utils import InfiniteOptions, infinite_rules
 
 
 # Inspirde by Fira Code, source:
 # https://github.com/tonsky/FiraCode/blob/master/features/calt/hyphen_arrows.fea
-def infinite_hyphens(cls_var: ast.Clazz):
-    if not infinite_helper.get():
+def infinite_hyphens(cls_var: ast.Clazz, options: InfiniteOptions):
+    if not options.enabled:
         return None
 
     hy_start = ast.gly_seq("-", "sta")
@@ -93,7 +93,7 @@ def infinite_hyphens(cls_var: ast.Clazz):
     )
 
 
-def get_lookup(cls_var: ast.Clazz):
+def get_lookup(cls_var: ast.Clazz, options: InfiniteOptions):
     return [
         ast.subst_liga(
             "--",
@@ -122,7 +122,7 @@ def get_lookup(cls_var: ast.Clazz):
                 (None, ["<", cls_var]),
             ],
         ),
-        infinite_helper.ignore_when_disabled(
+        options.ignore_when_disabled(
             ast.subst_liga(
                 "--",
                 lookup_name=ast.gly("--", "__ALT__"),
@@ -141,7 +141,7 @@ def get_lookup(cls_var: ast.Clazz):
                 ast.ign("<", "-", ["-", "-", ">"]),
             ],
         ),
-        infinite_helper.ignore_when_disabled(
+        options.ignore_when_disabled(
             ast.subst_liga(
                 "---",
                 lookup_name=ast.gly("---", "__ALT__"),
@@ -166,7 +166,7 @@ def get_lookup(cls_var: ast.Clazz):
             ign_suffix="-",
         ),
         ast.subst_liga("<!---->", target="xml_empty_comment.liga"),
-        infinite_helper.ignore_when_enabled(
+        options.ignore_when_enabled(
             ast.subst_liga(
                 "<->",
                 ign_prefix=ast.cls("<", "-"),
@@ -213,5 +213,5 @@ def get_lookup(cls_var: ast.Clazz):
                 ign_suffix=ast.cls(">", "-"),
             ),
         ),
-        infinite_hyphens(cls_var),
+        infinite_hyphens(cls_var, options),
     ]

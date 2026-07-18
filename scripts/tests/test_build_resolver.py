@@ -12,7 +12,7 @@ from scripts.build.cli import parse_args
 from scripts.build.config import CJKCommonBuildOptions, ResolvedCJKBuildEntry
 from scripts.build.errors import BuildDependencyError
 from scripts.build.resolver import BuildConfigResolver, BuildRuntimeContext
-from scripts.cjk.config import (
+from scripts.cjk.models import (
     CJKBuildConfig,
     CJKNamingConfig,
     CJKOutputConfig,

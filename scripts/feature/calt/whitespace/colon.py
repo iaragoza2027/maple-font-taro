@@ -1,9 +1,9 @@
 from scripts.feature import ast
 from scripts.feature.base.clazz import cls_question
-from scripts.feature.calt._infinite_utils import infinite_helper
+from scripts.feature.calt._infinite_utils import InfiniteOptions
 
 
-def get_lookup():
+def get_lookup(options: InfiniteOptions):
     cls_ign_colon = ast.Clazz("IgnoreColon", ["<", ":", ">", "="])
     cls_ign_markup = ast.Clazz("IgnoreMarkup", ["<", "/", ">"])
 
@@ -43,7 +43,7 @@ def get_lookup():
             cls_ign_colon,
             cls_ign_markup,
         ),
-        infinite_helper.ignore_when_enabled(
+        options.ignore_when_enabled(
             ast.subst_liga(
                 ":=",
                 ign_prefix=ast.cls(cls_ign_colon, cls_question),

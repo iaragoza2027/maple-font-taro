@@ -1,11 +1,11 @@
 import scripts.feature.ast as ast
-from scripts.feature.calt._infinite_utils import infinite_helper
+from scripts.feature.calt._infinite_utils import InfiniteOptions
 
 
 sfx = ".cv01"
 
 
-def cv01_subst():
+def cv01_subst(options: InfiniteOptions):
     return [
         ast.subst_map(
             "$",
@@ -34,7 +34,7 @@ def cv01_subst():
                 "<!--",
                 "<#--",
                 "xml_empty_comment.liga",  # <!---->
-                *infinite_helper.ignore_when_enabled(
+                *options.ignore_when_enabled(
                     "=>",
                     "<==",
                     "==>",
@@ -52,7 +52,7 @@ def cv01_subst():
                     ">->",
                     "<->",
                 ),
-                *infinite_helper.ignore_when_disabled(
+                *options.ignore_when_disabled(
                     ast.gly_seq("<=", "sta"),
                     ast.gly_seq(">=", "end"),
                     ast.gly_seq("<-", "sta"),
@@ -64,8 +64,8 @@ def cv01_subst():
     ]
 
 
-def cv01_feat():
+def cv01_feat(options: InfiniteOptions = InfiniteOptions()):
     cv01_desc = "Normalize special symbols (`@ $ & % Q => ->`)"
     return ast.CharacterVariant(
-        id=1, desc=cv01_desc, content=cv01_subst(), version="7.0", example="@$&"
+        id=1, desc=cv01_desc, content=cv01_subst(options), version="7.0", example="@$&"
     )

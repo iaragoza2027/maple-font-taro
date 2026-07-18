@@ -8,7 +8,6 @@ import sys
 import threading
 from array import array
 from concurrent.futures import Executor, ProcessPoolExecutor, ThreadPoolExecutor
-from copy import deepcopy
 from os import cpu_count, makedirs
 from pathlib import Path
 from typing import Any, Iterable, Sequence, TypeVar, cast
@@ -29,10 +28,6 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from scripts.cjk.config import (
-    CJKBuildConfig,
-    CJKMasterLocations,
-    CJKTransformConfig,
-    CJKWeightInstance,
     add_cjk_arguments,
     apply_cli_overrides,
     apply_unicode_override,
@@ -41,9 +36,13 @@ from scripts.cjk.config import (
     detect_outline_mode,
     ordered_master_locations,
 )
-from scripts.cjk.vf import (
-    _build_weight_variations,
-    _glyph_coordinates,
+from scripts.cjk.models import (
+    CJKBuildConfig,
+    CJKMasterLocations,
+    CJKTransformConfig,
+    CJKWeightInstance,
+)
+from scripts.cjk.variable import (
     drop_font_tables,
     get_cmap_codepoints,
     get_unicode_cmap,
@@ -1023,64 +1022,6 @@ def find_name_id(name_table: Any, value: str, excluded: set[int]) -> int | None:
     return None
 
 
-def merge_cjk_masters_into_vf(
-    base: TTFont,
-    min_master: TTFont,
-    regular_master: TTFont,
-    max_master: TTFont,
-    allow_incompatible_glyphs: bool,
-) -> tuple[list[str], int, int]:
-    """Merge source masters into a VF, optionally keeping incompatible glyphs fixed."""
-    if not allow_incompatible_glyphs:
-        added, added_codepoints = merge_masters_into_vf(
-            base, min_master, regular_master, max_master
-        )
-        return added, added_codepoints, 0
-
-    base_glyph_order = base.getGlyphOrder()
-    base_glyphs = set(base_glyph_order)
-    glyphs_to_add = [
-        glyph_name
-        for glyph_name in regular_master.getGlyphOrder()
-        if glyph_name not in base_glyphs
-    ]
-
-    base_glyf = base["glyf"]
-    base_hmtx = base["hmtx"]
-    base_gvar = base["gvar"]
-    regular_glyf = regular_master["glyf"]
-    regular_hmtx = regular_master["hmtx"]
-
-    incompatible_glyphs = 0
-    for glyph_name in glyphs_to_add:
-        base_glyf.glyphs[glyph_name] = deepcopy(regular_glyf.glyphs[glyph_name])
-        base_hmtx.metrics[glyph_name] = regular_hmtx.metrics[glyph_name]
-        try:
-            base_gvar.variations[glyph_name] = _build_weight_variations(
-                _glyph_coordinates(regular_master, glyph_name),
-                _glyph_coordinates(min_master, glyph_name),
-                _glyph_coordinates(max_master, glyph_name),
-                glyph_name,
-            )
-        except ValueError:
-            base_gvar.variations[glyph_name] = []
-            incompatible_glyphs += 1
-
-    glyph_order = base_glyph_order + glyphs_to_add
-    base.setGlyphOrder(glyph_order)
-    base["maxp"].numGlyphs = len(glyph_order)
-    base_codepoints = set(get_unicode_cmap(base))
-    extra_entries = {
-        codepoint: glyph_name
-        for codepoint, glyph_name in get_unicode_cmap(regular_master).items()
-        if glyph_name in glyphs_to_add and codepoint not in base_codepoints
-    }
-    for table in base["cmap"].tables:
-        if table.isUnicode():
-            table.cmap.update(extra_entries)
-    return glyphs_to_add, len(extra_entries), incompatible_glyphs
-
-
 def prepare_source_masters(
     subset_path: Path,
     config: CJKBuildConfig,
@@ -1404,17 +1345,15 @@ class CJKBuilder:
     ) -> BuildStats:
         masters = [load_font_eager(master_path) for master_path in master_paths]
         try:
-            added, added_codepoints, incompatible_glyphs = merge_cjk_masters_into_vf(
+            added, added_codepoints = merge_masters_into_vf(
                 base_font,
                 masters[0],
                 masters[1],
                 masters[2],
-                self.config.allow_incompatible_glyphs,
             )
             return BuildStats(
                 added_glyphs=tuple(added),
                 added_codepoints=added_codepoints,
-                incompatible_glyphs=incompatible_glyphs,
             )
         finally:
             for master in masters:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-from scripts.cjk.builder import build_cjk_fonts
+from scripts.cjk.pipeline import build_cjk_fonts
 from scripts.cjk.config import (
     add_cjk_arguments,
     apply_cli_overrides,
@@ -30,6 +30,6 @@ def run(args: argparse.Namespace) -> None:
         build_cjk_fonts(config, args.vf_only)
         return
 
-    from scripts.cjk.builder import build_cjk_from_args
+    from scripts.cjk.pipeline import build_cjk_from_args
 
     build_cjk_from_args(args)

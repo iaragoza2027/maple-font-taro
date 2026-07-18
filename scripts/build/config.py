@@ -7,14 +7,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 from scripts.cjk.config import (
-    CJKBuildConfig,
     config_from_data,
     serialize_cjk_build_config,
 )
-from scripts.feature import (
+from scripts.cjk.models import CJKBuildConfig
+from scripts.feature.compiler import (
     normal_enabled_features,
 )
-from scripts.freeze import get_freeze_config_str
+from scripts.feature.freeze import get_freeze_config_str
 from scripts.font.operations import default_weight_map
 
 if TYPE_CHECKING:
@@ -282,8 +282,6 @@ class ResolvedCJKBuildEntry:
 
     @property
     def display_name(self) -> str:
-        if self.preset_spec is not None:
-            return self.preset_spec.family_suffix
         return self.locale_name
 
     @property

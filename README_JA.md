@@ -613,7 +613,7 @@ cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
 
 OpenType テクニカルを使用すると、フォントの内蔵されたバリエーションや連結文字を制御できます。OpenType テクニカルを変更することで、不要な連結文字や特徴を削除したり、特徴のトリガールールを変更したり、新しいルールを追加したりできます。
 
-デフォルトでは、`[source/py/feature/`](./source/py/feature) 内のPythonモジュールがOpenTypeテクニカルの文字列を生成し、ビルド時に読み込まれます。ここで機能を変更したり、カスタムのラベルを定義することができます。
+デフォルトでは、`[scripts/feature/`](./scripts/feature) 内のPythonモジュールがOpenTypeテクニカルの文字列を生成し、ビルド時に読み込まれます。ここで機能を変更したり、カスタムのラベルを定義することができます。
 
 OpenTypeテクニカルファイルを直接変更して実装したい場合は、`build.py` を実行する際に `--apply-fea-file` パラメータを指定してください。これにより、`[source/features/{regular,italic}{_cn,}.fea`](./source/features) 内のテクニカルファイルが読み込まれます。
 

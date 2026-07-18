@@ -619,7 +619,7 @@ cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
 
 OpenType 特性可以控制字体的内置变体和连字。您可以通过修改 OpenType 特性来删除一些不需要的连字或特征，修改特征的触发规则或添加一些新规则。
 
-默认情况下，[`source/py/feature/`](./source/py/feature) 中的 Python 模块会生成 OpenType 特性字符串并在构建时加载。您可以在此处修改功能或自定义标签。
+默认情况下，[`scripts/feature/`](./scripts/feature) 中的 Python 模块会生成 OpenType 特性字符串并在构建时加载。您可以在此处修改功能或自定义标签。
 
 如果你想通过修改 OpenType 特性文件实现，运行 `build.py` 时添加 `--apply-fea-file` 参数，会读取 [`source/features/{regular,italic}{_cn,}.fea`](./source/features) 的特性文件并加载。
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from source.py.task import main
+from scripts.task import main
 
 
 if __name__ == "__main__":

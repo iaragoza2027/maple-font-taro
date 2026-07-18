@@ -1,0 +1,141 @@
+from __future__ import annotations
+
+import argparse
+import os
+import re
+import shutil
+from typing import Callable
+
+from fontTools.ttLib import TTFont
+
+from build import main as build_main
+from scripts.utils import (
+    default_weight_map,
+    joinPaths,
+    run as run_command,
+    write_json,
+    write_text,
+)
+
+
+def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):
+    parser = subparsers.add_parser("release", help="Release new version")
+    parser.add_argument("type", choices=["major", "minor"], help="Bump version type")
+    parser.add_argument("--dry", action="store_true", help="Dry run")
+    return parser
+
+
+def format_fontsource_name(filename: str):
+    match = re.match(r"MapleMono-(.*)\.(.*)$", filename.replace(".ttf", ""))
+    if not match:
+        return None
+
+    style = match.group(1)
+    if style.endswith("Italic") and style != "Italic":
+        base_style = style[:-6]
+    else:
+        base_style = style
+
+    weight = default_weight_map.get(
+        base_style.lower(), default_weight_map.get("regular", 400)
+    )
+    suffix = "italic" if "italic" in style.lower() else "normal"
+    return f"maple-mono-latin-{weight}-{suffix}.{match.group(2)}"
+
+
+def format_woff2_name(filename: str):
+    return filename.replace(".ttf.woff2", "-VF.woff2")
+
+
+def rename_woff_files(dir_path: str, fn: Callable[[str], str | None]):
+    for filename in os.listdir(dir_path):
+        if not filename.endswith(".woff") and not filename.endswith(".woff2"):
+            continue
+        new_name = fn(filename)
+        if new_name:
+            os.rename(joinPaths(dir_path, filename), joinPaths(dir_path, new_name))
+            print(f"Renamed: {filename} -> {new_name}")
+
+
+def parse_tag(type: str):
+    out = os.popen(f"uv version --bump {type}").readline()
+    return "v" + out.split(" ")[-1][:-1]
+
+
+def update_build_script_version(script_path: str, tag: str):
+    with open(script_path, "r", encoding="utf-8", newline="\n") as file:
+        content = re.sub(r'FONT_VERSION = ".*"', f'FONT_VERSION = "{tag}"', file.read())
+    write_text(script_path, content)
+
+
+def git_release_commit(tag, files):
+    run_command(f"git add {' '.join(files)}")
+    run_command(["git", "commit", "-m", f"Release {tag}"])
+    run_command(f"git tag {tag}")
+    print("Committed and tagged")
+
+    run_command("git push origin")
+    run_command(f"git push origin {tag}")
+    print("Pushed to origin")
+
+
+def format_font_map_key(key: int) -> str:
+    formatted_key = f"{key:05X}"
+    if formatted_key.startswith("0"):
+        return formatted_key[1:]
+    return formatted_key
+
+
+def write_unicode_map_json(font_path: str, output: str):
+    font = TTFont(font_path)
+    cmap = font.getBestCmap() or {}
+    font_map = {format_font_map_key(k): v for k, v in cmap.items() if k is not None}
+    write_json(output, font_map)
+    print(f"Write font map to {output}")
+    font.close()
+
+
+def release(type: str, dry: bool):
+    tag = parse_tag(type)
+    choose = input(f"{'[DRY] ' if dry else ''}Tag {tag}? (Y or n) ")
+    if choose != "" and choose.lower() != "y":
+        print("Aborted")
+        return
+
+    script_path = "build.py"
+    update_build_script_version(script_path, tag)
+    target_fontsource_dir = "cdn/fontsource"
+    build_main(["--ttf-only", "--no-nerd-font", "--cn", "--no-hinted"], tag)
+
+    shutil.rmtree("./cdn", ignore_errors=True)
+    run_command(
+        f"ftcli converter ft2wf -f woff2 ./fonts/TTF -out {target_fontsource_dir}"
+    )
+    run_command(
+        f"ftcli converter ft2wf -f woff ./fonts/TTF -out {target_fontsource_dir}"
+    )
+    rename_woff_files(target_fontsource_dir, format_fontsource_name)
+    print("Generate fontsource files")
+
+    dep_file = "requirements.txt"
+    run_command(
+        f"uv export --format requirements-txt --no-hashes --output-file {dep_file} --quiet"
+    )
+
+    shutil.copytree("./fonts/CN", "./cdn/cn")
+    print("Generate CN files")
+
+    woff2_dir = "woff2/var"
+    if os.path.exists(target_fontsource_dir):
+        shutil.rmtree(woff2_dir)
+    run_command(f"ftcli converter ft2wf -f woff2 ./fonts/Variable -out {woff2_dir}")
+    rename_woff_files(woff2_dir, format_woff2_name)
+
+    if dry:
+        print("Dry run")
+    else:
+        git_release_commit(tag, [script_path, "woff2", dep_file, "pyproject.toml"])
+
+
+def run(args: argparse.Namespace) -> None:
+    release(args.type, args.dry)

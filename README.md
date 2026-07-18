@@ -612,7 +612,7 @@ There are three kinds of options for feature freeze ([Why](https://github.com/su
 
 OpenType Feature is used to control the font's built-in variants and ligatures. You can remove some ligatures or features you don't want to, change a feature's trigger rule, or add some new rules by modifying the OpenType Feature.
 
-By default, the Python module in [`source/py/feature/`](./source/py/feature) will generate a feature rule string and load it at build time. You can modify the features or customize tags there.
+By default, the Python module in [`scripts/feature/`](./scripts/feature) will generate a feature rule string and load it at build time. You can modify the features or customize tags there.
 
 If you would like to modify the feature file instead, run `build.py` with `--apply-fea-file` flag, the feature file from [`source/features/{regular,italic}{_cn,}.fea`](./source/features) will be loaded.
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from source.py.build.cli import main
+from scripts.cli import main
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/subframe7536/maple-font/source/cjk/cjk_schema.json",
   "title": "Maple Mono CJK Build Config",
-  "description": "JSON config consumed by source.py.cjk.config.config_from_json(). Output paths, font naming, temporary paths, and incompatible glyph behavior are derived from locale_name and are not customizable.",
+  "description": "JSON config consumed by scripts.cjk.config.config_from_json(). Output paths, font naming, temporary paths, and incompatible glyph behavior are derived from locale_name and are not customizable.",
   "type": "object",
   "unevaluatedProperties": false,
   "required": ["locale_name", "source"],

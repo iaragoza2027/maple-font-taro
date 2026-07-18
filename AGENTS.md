@@ -1,63 +1,45 @@
 # AGENTS.md
 
-Guidance for AI coding agents working in this repository.
+## Purpose
 
-## Project Overview
+Maple Mono is an open-source monospace font project. Keep changes small, deterministic, and scoped to the requested build, feature, CJK, or landing-page behavior.
 
-Maple Mono is an open-source monospace font project. The repository contains:
+## Working Rules
 
-- Font source files and build scripts for Maple Mono.
-- OpenType feature generation logic.
-- Chinese and Nerd Font merge/build tasks.
-- The Astro/Solid landing page in `maple-font-page/`.
+- Write code, comments, documentation, and commit messages in English. Reply to the repository owner in Chinese unless asked otherwise.
+- Preserve unrelated user changes. Run `git status --short` before broad edits and inspect the final diff before finishing.
+- Do not add dependencies or change package managers without a clear need. Use `uv` for Python and Bun for `maple-font-page/`.
+- Do not manually edit font binaries, UFO sources, or generated outputs when the repository provides a generator.
+- Avoid changing font names, versioning, release packaging, or output layout unless the request explicitly requires it.
 
-Prefer small, maintainable changes that follow the existing project structure.
+## Repository Map
 
-## Language
-
-- Write code, comments, commit messages, and documentation in English.
-- If interacting with the repository owner in chat, respond in Chinese unless asked otherwise.
-
-## Repository Layout
-
-- `build.py`: Main font builder and CLI for custom builds.
-- `task.py`: Task runner for feature generation, CN rebuilds, page data updates, publishing, and merge utilities.
+- `build.py`: Public font-build CLI.
+- `task.py`: Public task-runner CLI.
+- `scripts/`: Python implementation package. Use `scripts.*` imports for cross-module imports.
+  - Build configuration, resolution, pipeline, and helpers live directly in `scripts/`.
+  - `scripts/cjk/`: CJK configuration and build pipeline.
+  - `scripts/feature/`: OpenType feature generation.
+  - `scripts/task/`: Task-runner commands.
+  - `scripts/tests/`: Python unit tests.
+- `source/`: Font sources, CJK assets, schema, and generated `.fea` output in `source/features/`.
 - `config.json`: Default build configuration, validated by `source/schema.json`.
-- `requirements.txt` and `pyproject.toml`: Python dependencies.
-- `source/`: Font sources, generated feature files, Python build logic, schema, and CN assets.
-- `source/py/feature/`: Python modules that generate OpenType feature rules.
-- `source/features/`: Generated `.fea` files and feature documentation.
-- `source/py/task/`: Build task implementations.
-- `fonts/`: Generated font outputs. Treat as build artifacts unless a task explicitly requires them.
-- `maple-font-page/`: Astro 5 site with Solid components and UnoCSS.
-- `resources/`: Images and visual assets used by README/docs.
+- `fonts/`: Generated build artifacts; never edit manually.
+- `maple-font-page/`: Astro 5, Solid 1.x, TypeScript, and UnoCSS landing-page submodule.
 
-## Development Setup
+## Setup and Commands
 
-Use the existing toolchains:
+Use the smallest command that validates the change.
 
 ```sh
 uv sync
+uv run ruff format --check .
+uv run ruff check .
+uv run pyright
+uv run python -m unittest discover -s scripts/tests
 ```
 
-For environments without `uv`:
-
-```sh
-pip install -r requirements.txt
-```
-
-For the landing page:
-
-```sh
-cd maple-font-page
-bun install
-```
-
-Do not introduce a new package manager or dependency system unless the maintainer asks for it.
-
-## Common Commands
-
-Python/font tasks:
+Useful build commands:
 
 ```sh
 uv run build.py --dry
@@ -65,122 +47,67 @@ uv run build.py --ttf-only --debug
 uv run build.py --ttf-only --cn --debug
 uv run task.py fea
 uv run task.py page
-uv run task.py merge
-uv run task.py release minor --dry
 ```
 
-Landing page tasks:
+For landing-page work:
 
 ```sh
 cd maple-font-page
-bun run dev
-bun run build
-bun run format
-```
-
-Use the smallest command that validates the change. Full font builds can be slow and may download large assets.
-
-## Validation Guidelines
-
-- For Python syntax-only changes, run targeted checks such as:
-
-```sh
-python -m compileall build.py task.py source/py
-```
-
-- For feature generation changes, run:
-
-```sh
-uv run task.py fea
-```
-
-Then inspect generated `.fea`, README, schema, config, and `source/py/in_browser.py` diffs.
-
-- For build configuration or font build behavior, start with:
-
-```sh
-uv run build.py --dry
-```
-
-Run heavier builds only when necessary.
-
-- For `maple-font-page/` changes, run:
-
-```sh
-cd maple-font-page
+bun install
 bun run format
 bun run build
 ```
 
-If dependencies are missing and network access is unavailable, clearly report which validation could not be run.
+`maple-font-page/` and the downloaded `FontPatcher/` tool are intentionally excluded from root Python Ruff and Pyright checks. Validate landing-page code with its Bun commands instead; never lint, format, or type-check FontPatcher as project code.
 
-## Generated Files and Artifacts
+## Validation by Change Type
 
-Some files are generated together. Keep them synchronized:
+- **Python changes:** Run Ruff format check, Ruff lint, Pyright, and the unit suite. Apply formatting with `uv run ruff format <paths>` when needed; do not hand-format generated files.
+- **FontTools type-adaptation changes:** Run `uv run pyright` and verify the changed code in Pylance. Both read `pyrightconfig.json`; keep table-field types in `scripts/fonttools_types.py` precise enough to expose invalid field names and values.
+- **Feature changes under `scripts/feature/`:** Run `uv run task.py fea`, then inspect all generated changes before keeping them.
+- **Build configuration or pipeline changes:** Start with `uv run build.py --dry`. Use `--debug`, `--ttf-only`, and `--least-styles` before attempting a full build.
+- **CJK changes:** Avoid full CJK builds unless required; they may download large source archives and take a long time.
+- **Landing-page changes:** Run Bun formatting and build from `maple-font-page/`. Do not rely on root Python checks for this submodule.
 
-- Changes under `source/py/feature/` often require `uv run task.py fea`.
-- `uv run task.py fea` can update:
-  - `source/features/*.fea`
-  - `source/features/README.md`
-  - `source/schema.json`
-  - `config.json`
-  - `README.md`
-  - `README_CN.md`
-  - `README_JA.md`
-  - `source/py/in_browser.py`
-- `uv run task.py page` updates landing page data from built fonts.
-- Font outputs under `fonts/` are generated artifacts. Do not edit them manually.
+## Safe Auto-fix Workflow
 
-Avoid committing generated churn unless it is required by the source change.
+After a validation command reports fixable Python issues, use this order:
 
-## Font Build Notes
+```sh
+uv run ruff check . --fix
+uv run ruff format .
+uv run ruff format --check .
+uv run ruff check .
+uv run pyright
+```
 
-- CN builds can download large base font archives and take a long time.
-- Nerd Font builds may depend on external patcher assets or FontForge.
-- `config.json` CLI options are overridden by `build.py` arguments.
-- The CN version is disabled by default. Enable with `--cn` only when the change requires it.
-- Use `--debug`, `--ttf-only`, and `--least-styles` for faster local validation when appropriate.
-- Do not change font naming, versioning, or release packaging behavior casually.
+Ruff auto-fixes are limited to its default safe fixes. Pyright reports type diagnostics but does not rewrite code. Do not pass `--unsafe-fixes` or add diagnostic suppressions; review the resulting diff and run the relevant unit tests or build validation before keeping any automated edit.
 
-## Python Code Style
+## Generated Outputs
 
-- Keep functions focused and names explicit.
-- Prefer existing helpers in `source/py/utils.py`, `source/py/task/_utils.py`, and nearby modules.
-- Avoid adding dependencies for small parsing or file operations.
-- Use structured parsing for JSON/YAML/font data instead of ad hoc string manipulation.
-- Keep generated-output ordering stable to reduce noisy diffs.
-- Add comments only when they explain non-obvious font/build logic.
+`uv run task.py fea` can update `source/features/`, `source/schema.json`, `config.json`, the localized READMEs, and `scripts/in_browser.py`. Keep these outputs synchronized when the feature source changes.
 
-## Frontend Code Style
+`uv run task.py page` writes generated data in `maple-font-page/`, including feature metadata, configuration, and the minified browser script. Run it only when those generated page artifacts are intended to change.
 
-The landing page uses Astro, Solid 1.x, TypeScript, and UnoCSS.
+Treat `fonts/` as disposable build output. Do not commit generated churn unless it is necessary for the requested source change.
 
-- Follow existing component patterns in `maple-font-page/src/`.
-- Prefer existing UI components in `maple-font-page/src/components/ui/`.
-- Keep localized text in the existing locale files.
-- Use UnoCSS utilities and project presets instead of one-off CSS when possible.
-- Do not add marketing-style landing sections unless the requested change needs them.
-- Validate responsive behavior for visible UI changes.
+## Code Conventions
 
-## Dependency and Network Policy
+- Keep APIs focused and names explicit. Reuse nearby helpers such as `scripts/utils.py` instead of adding one-off wrappers.
+- Keep import paths rooted at `scripts.*`; do not reintroduce the previous package namespace or filesystem paths.
+- Keep output ordering stable to minimize generated diffs.
+- Use structured parsing for JSON and font data. Add comments only for non-obvious font or build behavior.
+- Pyright checks FontTools table fields through `scripts/fonttools_types.py`. Add only verified fields and use narrow `Protocol` casts at the table boundary instead of suppressing diagnostics or casting to `Any`.
+- Pylance and `uv run pyright` share `pyrightconfig.json` and its default attribute-access diagnostics. Do not add editor-only suppressions for FontTools table fields.
 
-- Do not add Python, Bun, or frontend dependencies without a clear need.
-- Prefer existing libraries already declared in `pyproject.toml`, `requirements.txt`, or `maple-font-page/package.json`.
-- Commands that download CN base fonts, Nerd Font assets, npm/bun packages, or release data require network access. Ask for approval when the environment blocks network access.
+## Dependencies, Network, and Release Safety
 
-## Editing Rules
+- Python runtime dependencies belong in `pyproject.toml` and `requirements.txt`; Python development tools belong in the uv development dependency group.
+- CN source downloads, Nerd Font assets, FontForge tooling, page package installation, and release actions may require network access. Do not trigger them unless the task needs them.
+- Never run release, publish, push, or destructive cleanup commands unless explicitly requested.
 
-- Preserve user changes. Check `git status --short` before broad edits.
-- Keep changes scoped to the requested task.
-- Do not run destructive cleanup commands unless explicitly requested.
-- Do not manually edit binary font/source assets unless the task is specifically about those assets.
-- Do not rewrite generated files by hand when a project task can regenerate them.
+## Before Finishing
 
-## Review Checklist
-
-Before finishing:
-
-- Confirm the changed files are intentional with `git diff --stat` or `git status --short`.
-- Run the smallest relevant validation command.
-- Note any skipped validation and why.
-- Mention generated files if the change required regeneration.
+- Verify the changed files with `git diff --check`, `git diff --stat`, or `git status --short`.
+- Run the smallest relevant validation commands and report anything skipped.
+- Call out generated files and submodule changes explicitly.

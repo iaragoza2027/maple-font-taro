@@ -19,4 +19,4 @@ cn
 
 - Download [vfc.zip](https://github.com/subframe7536/maple-font/releases/download/cn-base/vfc.zip) and then extract them into `<project-root>/source/cn`.
 - Develop and generate using FontLab.
-- Run `uv run task.py cn-rebuild` to generate static fonts and archives.
+- Run `uv run task.py cjk --preset cn` to generate static CN base fonts.

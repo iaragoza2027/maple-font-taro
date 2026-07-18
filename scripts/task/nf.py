@@ -15,6 +15,7 @@ from scripts.font_ops.names import (
     del_font_name,
     set_font_name,
 )
+from scripts.utils.logging import logger
 
 
 BASE_FONT_PATH = "fonts/TTF/MapleMono-Regular.ttf"
@@ -40,7 +41,7 @@ def parse_codes_from_json(data) -> list[int]:
             if isinstance(value, dict) and "code" in value
         ]
     except json.JSONDecodeError:
-        print("Invalide JSON")
+        logger.error("Invalid JSON in Nerd Font glyph data")
         exit(1)
 
 
@@ -62,7 +63,7 @@ def check_update():
         current_version = data["nerd_font"]["version"]
 
     latest_version = current_version
-    print("Getting latest version from remote...")
+    logger.info("Fetch latest Nerd Font version")
     with urlopen(
         "https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest"
     ) as response:
@@ -73,17 +74,19 @@ def check_update():
                 break
 
         if latest_version == current_version:
-            print("✨ Current version match latest version")
+            logger.info("Nerd Font version is current: version=%s", current_version)
             if not check_font_patcher(latest_version):
-                print("Font-Patcher not exist and fail to download, exit")
+                logger.error("FontPatcher is unavailable after download attempt")
                 exit(1)
             return
 
-        print(
-            f"Current version {current_version} not match latest version {latest_version}, update"
+        logger.info(
+            "Update Nerd Font version: current=%s, latest=%s",
+            current_version,
+            latest_version,
         )
         if not check_font_patcher(latest_version, environ.get("GITHUB", "github.com")):
-            print("Fail to update Font-Patcher, exit")
+            logger.error("Failed to update FontPatcher")
             exit(1)
         update_config_json("./config.json", latest_version)
         update_config_json("./source/preset-normal.json", latest_version)
@@ -160,8 +163,8 @@ def subset(mono: bool, propo: bool, unicodes: list[int]):
 
 def nerd_font(no_update: bool):
     if not path.exists(BASE_FONT_PATH):
-        print(
-            "font not exist, please run this command first:\n\n    python build.py --ttf-only --no-nerd-font --least-styles\n"
+        logger.error(
+            "Base font is missing; run: python build.py --format ttf --no-nerd-font --least-styles"
         )
         exit(1)
 

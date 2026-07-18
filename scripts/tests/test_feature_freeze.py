@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 from scripts.config.base import ResolvedBuildConfig, normalize_feature_freeze
 from scripts.feature.apply import patch_font_feature
+from scripts.feature.compiler import generate_fea_string, generate_fea_string_cn_only
 
 
 class FeatureFreezeConfigTest(unittest.TestCase):
@@ -87,3 +88,31 @@ class FeatureApplicationTest(unittest.TestCase):
             ["cv01"],
             normalize_feature_freeze(config.feature_freeze, config.enable_ligature),
         )
+
+
+class FeatureGenerationLoggingTest(unittest.TestCase):
+    def test_feature_generation_logs_all_output_affecting_options(self) -> None:
+        with self.assertLogs("scripts", level="INFO") as logs:
+            generate_fea_string(
+                is_italic=False,
+                is_cn=False,
+                is_normal=True,
+                is_calt=False,
+                enable_infinite=False,
+                enable_tag=False,
+                variable_enabled_feature_list=["cv01"],
+                remove_italic_calt=True,
+            )
+            generate_fea_string(
+                is_italic=True,
+                is_cn=True,
+                variable_enabled_feature_list=["cv02"],
+            )
+            generate_fea_string_cn_only()
+
+        output = "\n".join(logs.output)
+        self.assertIn("italic=False, cn=False, normal=True, calt=False", output)
+        self.assertIn("variable_freeze=True, infinite=False, tag=False", output)
+        self.assertIn("remove_italic_calt=True", output)
+        self.assertIn("italic=True, cn=True", output)
+        self.assertIn("cn_only=True", output)

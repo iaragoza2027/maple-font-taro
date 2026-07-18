@@ -6,7 +6,7 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 from zipfile import ZipFile
 
-from scripts.utils.process import is_ci
+from scripts.utils.logging import logger
 
 
 def download_file(url: str, target_path: str | Path) -> None:
@@ -17,17 +17,11 @@ def download_file(url: str, target_path: str | Path) -> None:
     )
     request = Request(url, headers={"User-Agent": user_agent})
     with urlopen(request) as response, Path(target_path).open("wb") as output:
-        total_size = int(response.getheader("Content-Length").strip())
         downloaded_size = 0
         while chunk := response.read(8192):
             output.write(chunk)
-            if not is_ci():
-                downloaded_size += len(chunk)
-                percent = downloaded_size / total_size * 100
-                print(
-                    f"Downloading: [{percent:.2f}%] {downloaded_size} / {total_size}",
-                    end="\r",
-                )
+            downloaded_size += len(chunk)
+    logger.info("Downloaded file: path=%s, bytes=%s", target_path, downloaded_size)
 
 
 def download_zip_and_extract(
@@ -39,15 +33,15 @@ def download_zip_and_extract(
 ) -> bool:
     archive_path = Path(zip_path)
     if not archive_path.exists():
-        print(f"{name} does not exist, download from {url}")
+        logger.info("Download archive: name=%s, url=%s", name, url)
         try:
             download_file(url, archive_path)
         except Exception as error:
-            print(
-                f"❗\nFail to download {name}. Please check your internet "
-                f"connection or download it manually from {url}, then put "
-                "downloaded zip into project's root and run this script again. "
-                f"\n    Error: {error}"
+            logger.error(
+                "Failed to download archive: name=%s, url=%s, error=%s",
+                name,
+                url,
+                error,
             )
             return False
     try:
@@ -57,7 +51,7 @@ def download_zip_and_extract(
             archive_path.unlink()
         return True
     except Exception as error:
-        print(f"❗Fail to extract {name}. Error: {error}")
+        logger.error("Failed to extract archive: name=%s, error=%s", name, error)
         return False
 
 
@@ -73,7 +67,7 @@ def check_font_patcher(
             encoding="utf-8"
         ):
             return True
-        print("FontPatcher version not match, delete it")
+        logger.info("Remove mismatched FontPatcher version: path=%s", target_path)
         shutil.rmtree(target_path, ignore_errors=True)
 
     zip_path = Path("FontPatcher.zip")
@@ -92,7 +86,7 @@ def check_font_patcher(
     if f"# Nerd Fonts Version: {version}" in patcher_path.read_text(encoding="utf-8"):
         return True
 
-    print(f"❗FontPatcher version is not {version}, please download it from {url}")
+    logger.error("FontPatcher version mismatch: version=%s, url=%s", version, url)
     return False
 
 

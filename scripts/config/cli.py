@@ -14,7 +14,7 @@ from scripts.utils.version import project_version
 
 def build_parser(version: str | None = None) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="✨ Builder and optimizer for Maple Mono",
+        description="Builder and optimizer for Maple Mono",
     )
     parser.add_argument(
         "-v",

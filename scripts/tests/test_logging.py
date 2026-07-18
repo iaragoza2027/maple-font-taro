@@ -1,0 +1,109 @@
+from __future__ import annotations
+
+from contextlib import redirect_stderr
+from io import StringIO
+import logging
+import os
+import unittest
+from unittest.mock import patch
+
+from scripts.utils.logging import (
+    LevelSeparatedFormatter,
+    configure_logging,
+    log_task,
+    logger,
+    set_log_task,
+)
+
+
+class LoggingConfigurationTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.package_logger = logging.getLogger("scripts")
+        self.original_handlers = list(self.package_logger.handlers)
+        self.original_level = self.package_logger.level
+        self.original_propagate = self.package_logger.propagate
+        self.package_logger.handlers.clear()
+
+    def tearDown(self) -> None:
+        self.package_logger.handlers.clear()
+        self.package_logger.handlers.extend(self.original_handlers)
+        self.package_logger.setLevel(self.original_level)
+        self.package_logger.propagate = self.original_propagate
+        set_log_task("system")
+
+    def test_default_configuration_uses_plain_stderr_format(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            configure_logging()
+
+        handlers = self.package_logger.handlers
+        self.assertEqual(len(handlers), 1)
+        formatter = handlers[0].formatter
+        self.assertIsNotNone(formatter)
+        assert formatter is not None
+        self.assertEqual(formatter._fmt, "[%(levelname)s] [%(task)s] %(message)s")
+        self.assertEqual(self.package_logger.level, logging.INFO)
+        self.assertFalse(self.package_logger.propagate)
+
+    def test_invalid_log_level_warns_and_falls_back_to_info(self) -> None:
+        stderr = StringIO()
+        with (
+            patch.dict(os.environ, {"MAPLE_LOG_LEVEL": "verbose"}, clear=True),
+            redirect_stderr(stderr),
+        ):
+            configure_logging()
+
+        self.assertEqual(self.package_logger.level, logging.INFO)
+        self.assertEqual(
+            stderr.getvalue(),
+            "[WARNING] [system] Invalid MAPLE_LOG_LEVEL='VERBOSE'; using INFO\n",
+        )
+
+    def test_reconfiguration_reuses_the_project_handler(self) -> None:
+        with patch.dict(os.environ, {"MAPLE_LOG_LEVEL": "DEBUG"}, clear=True):
+            configure_logging()
+            configure_logging()
+
+        self.assertEqual(len(self.package_logger.handlers), 1)
+        self.assertEqual(self.package_logger.level, logging.DEBUG)
+
+    def test_formatter_separates_different_log_levels(self) -> None:
+        formatter = LevelSeparatedFormatter()
+        info = logging.LogRecord("scripts", logging.INFO, __file__, 1, "Info", (), None)
+        warning = logging.LogRecord(
+            "scripts", logging.WARNING, __file__, 1, "Warning", (), None
+        )
+
+        self.assertEqual(formatter.format(info), "[INFO] [system] Info")
+        self.assertEqual(formatter.format(warning), "\n[WARNING] [system] Warning")
+
+    def test_task_log_starts_a_new_group(self) -> None:
+        formatter = LevelSeparatedFormatter()
+        first_task = logging.LogRecord(
+            "scripts", logging.INFO, __file__, 1, "First", (), None
+        )
+        first_task.task = "first"
+        second_task = logging.LogRecord(
+            "scripts", logging.INFO, __file__, 1, "Second", (), None
+        )
+        second_task.task = "second"
+
+        self.assertEqual(formatter.format(first_task), "[INFO] [first] First")
+        self.assertEqual(formatter.format(second_task), "\n[INFO] [second] Second")
+
+    def test_task_context_is_inherited_by_regular_logs(self) -> None:
+        stderr = StringIO()
+        with redirect_stderr(stderr):
+            configure_logging()
+            log_task("woff2", "Converting static fonts to WOFF2")
+            logger.info("Saved WOFF2 font to fonts/Woff2/MapleMono-Regular.ttf.woff2")
+
+        self.assertEqual(
+            stderr.getvalue(),
+            "[INFO] [woff2] Converting static fonts to WOFF2\n"
+            "[INFO] [woff2] Saved WOFF2 font to "
+            "fonts/Woff2/MapleMono-Regular.ttf.woff2\n",
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()

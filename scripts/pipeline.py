@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import (
+    Executor,
+    ProcessPoolExecutor,
+    as_completed,
+)
 from copy import deepcopy
 from dataclasses import dataclass
 from io import BytesIO
@@ -7,8 +11,8 @@ import json
 from pathlib import Path
 import shutil
 import time
-from os import getcwd, listdir, makedirs, remove
-from typing import Callable, cast
+from os import listdir, makedirs, remove
+from typing import Callable, Literal, cast
 from dehinter.font import dehint
 from fontTools.ttLib import TTFont
 from fontTools.varLib.instancer import instantiateVariableFont
@@ -38,14 +42,16 @@ from scripts.cjk.pipeline import (
 )
 from scripts.cjk.variable import load_font_eager, merge_vf
 from scripts.utils.files import archive_fonts, join_path
+from scripts.utils.logging import configure_logging, log_task, logger, set_log_task
 from scripts.utils.process import is_ci, run as run_command
 from scripts.feature.apply import patch_font_feature
-from scripts.font_ops.conversion import convert_to_web
 from scripts.font_ops.glyphs import (
+    FontmakeBranchJob,
     GlyphsSourceReport,
     SourceCompatibilityError,
     SourceStyle,
-    compile_fontmake_outputs,
+    compile_fontmake_branches,
+    materialize_prepared_source,
     prepare_glyphs_source,
     validate_source_reports,
 )
@@ -86,11 +92,32 @@ class FontmakeSourceJob:
     source_path: str
     style: SourceStyle
     workspace: str
-    variable_output_path: str
-    ttf_output_dir: str
-    otf_output_dir: str | None
     target_width: int | None
     original_ref_width: int
+
+
+@dataclass(frozen=True)
+class PreparedFontmakeSource:
+    style: SourceStyle
+    report: GlyphsSourceReport
+    designspace_path: str | None
+
+
+@dataclass(frozen=True)
+class VariablePostprocessJob:
+    raw_path: str
+    style: SourceStyle
+    font_config: ResolvedBuildConfig
+    runtime_context: BuildRuntimeContext
+
+
+@dataclass(frozen=True)
+class FontmakeBuildContext:
+    temp_path: Path
+    raw_variable_dir: Path
+    raw_ttf_dir: Path
+    raw_otf_dir: Path
+    sources: tuple[PreparedFontmakeSource, ...]
 
 
 @dataclass(frozen=True)
@@ -98,6 +125,12 @@ class MonoAutohintJob:
     font_basename: str
     font_config: ResolvedBuildConfig
     runtime_context: BuildRuntimeContext
+
+
+@dataclass(frozen=True)
+class Woff2BuildJob:
+    input_path: str
+    output_dir: str
 
 
 @dataclass(frozen=True)
@@ -134,7 +167,7 @@ def postprocess_static_font(
     runtime_context: BuildRuntimeContext,
 ) -> Path:
     source_path = Path(input_path)
-    print(f"👉 Postprocess {source_path.name}")
+    logger.debug("Postprocess static font: source=%s", source_path.name)
     font = TTFont(source_path, recalcTimestamp=False)
     is_ttf = source_path.suffix.lower() == ".ttf"
     fix_italic_metadata(font)
@@ -215,28 +248,36 @@ def postprocess_static_font(
 
 
 def postprocess_static_font_job(job: StaticPostprocessJob) -> None:
-    postprocess_static_font(
+    set_log_task(Path(job.input_path).suffix.removeprefix(".").lower())
+    target_path = postprocess_static_font(
         job.input_path,
         job.output_dir,
         job.font_config,
         job.runtime_context,
     )
+    logger.info("Saved static font to %s", target_path)
 
 
-def build_fontmake_source_job(job: FontmakeSourceJob) -> GlyphsSourceReport:
-    print(f"👉 Prepare and compile {Path(job.source_path).name}")
+def build_fontmake_source_job(job: FontmakeSourceJob) -> PreparedFontmakeSource:
+    set_log_task("prepare")
+    logger.info("Preparing %s", Path(job.source_path).name)
     prepared = prepare_glyphs_source(
         job.source_path,
         job.style,
         target_width=job.target_width,
         original_ref_width=job.original_ref_width,
     )
-    return compile_fontmake_outputs(
-        prepared,
-        job.workspace,
-        job.variable_output_path,
-        job.ttf_output_dir,
-        job.otf_output_dir,
+    report = GlyphsSourceReport(
+        source_path=prepared.source_path,
+        style=prepared.style,
+        errors=prepared.errors,
+    )
+    if prepared.errors:
+        return PreparedFontmakeSource(job.style, report, None)
+    return PreparedFontmakeSource(
+        job.style,
+        report,
+        str(materialize_prepared_source(prepared, job.workspace)),
     )
 
 
@@ -245,7 +286,7 @@ def build_mono_autohint(
 ):
     style_compact = f.split("-")[-1].split(".")[0]
     postscript_name = f"{font_config.family_name_compact}-{style_compact}"
-    print(f"👉 Auto hint {postscript_name}.ttf")
+    logger.info("Auto-hinting %s.ttf", postscript_name)
 
     source_path = join_path(runtime_context.output_ttf, f)
     font = TTFont(source_path)
@@ -287,7 +328,22 @@ def build_mono_autohint(
 
 
 def build_mono_autohint_job(job: MonoAutohintJob) -> None:
+    set_log_task("ttf-autohint")
     build_mono_autohint(job.font_basename, job.font_config, job.runtime_context)
+
+
+def build_woff2_font_job(job: Woff2BuildJob) -> None:
+    """Convert and record one static TTF font in its worker process."""
+    set_log_task("woff2")
+    input_path = Path(job.input_path)
+    target_path = Path(job.output_dir) / f"{input_path.name}.woff2"
+    font = TTFont(input_path, recalcTimestamp=False)
+    try:
+        font.flavor = "woff2"
+        font.save(target_path, reorderTables=False)
+    finally:
+        font.close()
+    logger.info("Saved WOFF2 font to %s", target_path)
 
 
 def build_nf_by_prebuild_nerd_font(
@@ -376,7 +432,11 @@ def build_nf(
     font_config: ResolvedBuildConfig,
     runtime_context: BuildRuntimeContext,
 ):
-    print(f"👉 NerdFont{font_config.get_nf_suffix()} version for {f}")
+    logger.info(
+        "Build Nerd Font variant: source=%s, suffix=%s",
+        f,
+        font_config.get_nf_suffix(),
+    )
     nf_font = get_ttfont(f, font_config, runtime_context)
 
     # format font name
@@ -425,9 +485,11 @@ def build_nf(
     )
     nf_font.save(target_path)
     nf_font.close()
+    logger.info("Saved Nerd Font to %s", target_path)
 
 
 def build_nf_job(job: NerdFontBuildJob) -> None:
+    set_log_task("nerd-font")
     get_ttfont = (
         build_nf_by_font_patcher
         if job.use_font_patcher
@@ -442,23 +504,37 @@ def build_nf_job(job: NerdFontBuildJob) -> None:
     )
 
 
-def run_process_jobs(pool_size: int, worker: Callable, jobs: list) -> None:
-    """Run pickle-safe top-level worker jobs in parallel."""
-    if pool_size <= 1:
+def run_process_jobs(
+    pool_size: int,
+    worker: Callable,
+    jobs: list,
+    executor: Executor | None = None,
+) -> None:
+    """Run pickle-safe jobs and surface worker results as they complete."""
+    if not jobs:
+        return
+    if executor is None and pool_size <= 1:
         for job in jobs:
             worker(job)
         return
 
-    with ProcessPoolExecutor(max_workers=pool_size) as executor:
-        futures = [executor.submit(worker, job) for job in jobs]
-        try:
-            for future in as_completed(futures):
-                future.result()
-        except Exception:
-            for future in futures:
-                if not future.done():
-                    future.cancel()
-            raise
+    if executor is None:
+        with ProcessPoolExecutor(
+            max_workers=pool_size,
+            initializer=configure_logging,
+        ) as process_executor:
+            run_process_jobs(pool_size, worker, jobs, process_executor)
+        return
+
+    futures = [executor.submit(worker, job) for job in jobs]
+    try:
+        for future in as_completed(futures):
+            future.result()
+    except Exception:
+        for future in futures:
+            if not future.done():
+                future.cancel()
+        raise
 
 
 def is_target_style_file(file_name: str, target_styles: list[str] | None) -> bool:
@@ -494,156 +570,235 @@ def prune_build_files(
         remove(join_path(directory, file_name))
 
 
-def build_fontmake_fonts(
+def prepare_fontmake_sources(
     font_config: ResolvedBuildConfig,
     runtime_context: BuildRuntimeContext,
-    target_styles: list[str] | None,
-) -> None:
-    """Prepare Glyphs sources once and compile every requested fontmake branch."""
+    executor: Executor | None = None,
+) -> FontmakeBuildContext:
+    """Prepare and materialize both Glyphs sources for later format tasks."""
+    log_task("prepare", "Preparing font sources")
     source_dir = Path(runtime_context.src_dir)
     temp_path = Path(runtime_context.output_dir) / "temp"
     raw_variable_dir = temp_path / "variable"
     raw_ttf_dir = temp_path / "ttf"
     raw_otf_dir = temp_path / "otf"
-    source_specs: tuple[tuple[Path, SourceStyle, Path], ...] = (
+    source_specs: tuple[tuple[Path, SourceStyle], ...] = (
         (
             source_dir / "MapleMono[wght].glyphs",
             "regular",
-            raw_variable_dir / "regular.ttf",
         ),
         (
             source_dir / "MapleMono-Italic[wght].glyphs",
             "italic",
-            raw_variable_dir / "italic.ttf",
         ),
     )
 
-    output_dir = Path(runtime_context.output_variable)
-    output_dir.mkdir(parents=True, exist_ok=True)
     shutil.rmtree(temp_path, ignore_errors=True)
     temp_path.mkdir(parents=True)
+    target_width = (
+        font_config.get_target_width() if font_config.get_width_name() else None
+    )
+    jobs = [
+        FontmakeSourceJob(
+            source_path=str(source_path),
+            style=style,
+            workspace=str(temp_path / "prepared" / style),
+            target_width=target_width,
+            original_ref_width=font_config.glyph_width,
+        )
+        for source_path, style in source_specs
+    ]
     try:
-        target_width = (
-            font_config.get_target_width() if font_config.get_width_name() else None
-        )
-        otf_dir = (
-            str(raw_otf_dir)
-            if font_config.wants_format("otf") and not font_config.debug
-            else None
-        )
-        jobs = [
-            FontmakeSourceJob(
-                source_path=str(source_path),
-                style=style,
-                workspace=str(temp_path / "prepared" / style),
-                variable_output_path=str(raw_path),
-                ttf_output_dir=str(raw_ttf_dir),
-                otf_output_dir=otf_dir,
-                target_width=target_width,
-                original_ref_width=font_config.glyph_width,
-            )
-            for source_path, style, raw_path in source_specs
-        ]
-        with ProcessPoolExecutor(max_workers=len(source_specs)) as executor:
-            reports = list(executor.map(build_fontmake_source_job, jobs))
-        validate_source_reports(reports, runtime_context.output_dir)
-
-        for source_path, style, raw_path in source_specs:
-            print(f"👉 Postprocess variable font from {source_path.name}")
-            is_italic = style == "italic"
-            file_name = font_config.family_name_compact
-            if is_italic:
-                file_name += "-Italic"
-            output_name = f"{file_name}[wght].ttf"
-            font = TTFont(raw_path)
-            try:
-                patch_font_feature(
-                    config=font_config,
-                    font=font,
-                    issue_fea_dir=runtime_context.output_dir,
-                    is_italic=is_italic,
-                    is_cn=False,
-                    is_variable=True,
-                    is_hinted=False,
-                    fea_path=runtime_context.feature_file_path(is_italic),
+        if executor is None:
+            with ProcessPoolExecutor(
+                max_workers=len(jobs),
+                initializer=configure_logging,
+            ) as process_executor:
+                prepared_sources = tuple(
+                    process_executor.map(build_fontmake_source_job, jobs)
                 )
-
-                style_name = "Italic" if is_italic else "Regular"
-                postscript_name = f"{font_config.family_name_compact}-{style_name}"
-                update_font_names(
-                    font=font,
-                    family_name=font_config.family_name,
-                    style_name=style_name,
-                    full_name=f"{font_config.family_name} {style_name}",
-                    version_str=font_config.version_str,
-                    postscript_name=postscript_name,
-                    unique_identifier=get_unique_identifier(
-                        font_config=font_config,
-                        postscript_name=postscript_name,
-                        variable=True,
-                    ),
-                    is_skip_subfamily=True,
-                )
-
-                if is_italic:
-                    add_ital_axis_to_stat(font)
-
-                patch_instance(font, font_config.weight_mapping)
-
-                if font_config.line_height != 1:
-                    calculated_metric = (
-                        font["hhea"].ascender,
-                        font["hhea"].descender,
-                    )
-                    runtime_context.resolved_vertical_metric = calculated_metric
-                    adjust_line_height(
-                        font,
-                        font_config.line_height,
-                        calculated_metric,
-                    )
-
-                verify_glyph_width(
-                    font=font,
-                    expect_widths=font_config.get_valid_glyph_width_list(),
-                    file_name=output_name,
-                )
-                add_gasp(font)
-                set_monospace_metadata(font)
-                font.save(output_dir / output_name)
-            finally:
-                font.close()
-
-        static_jobs = [
-            StaticPostprocessJob(
-                input_path=str(font_path),
-                output_dir=output_path,
-                font_config=font_config,
-                runtime_context=runtime_context,
-            )
-            for raw_dir, output_path in (
-                (raw_ttf_dir, runtime_context.output_ttf),
-                (raw_otf_dir, runtime_context.output_otf),
-            )
-            if raw_dir.exists()
-            for font_path in sorted(raw_dir.iterdir())
-            if font_path.suffix.lower() in {".ttf", ".otf"}
-            and is_target_style_file(font_path.name, target_styles)
-        ]
-        run_process_jobs(
-            font_config.pool_size,
-            postprocess_static_font_job,
-            static_jobs,
+        else:
+            prepared_sources = tuple(executor.map(build_fontmake_source_job, jobs))
+        validate_source_reports(
+            [source.report for source in prepared_sources], runtime_context.output_dir
         )
-
-        if font_config.wants_format("woff2") and not font_config.debug:
-            print("Convert static TTF fonts to WOFF2")
-            convert_to_web(
-                runtime_context.output_ttf,
-                output_dir=runtime_context.output_woff2,
-                flavor="woff2",
-            )
-    finally:
+    except Exception:
         shutil.rmtree(temp_path, ignore_errors=True)
+        raise
+
+    return FontmakeBuildContext(
+        temp_path,
+        raw_variable_dir,
+        raw_ttf_dir,
+        raw_otf_dir,
+        prepared_sources,
+    )
+
+
+def compile_fontmake_format(
+    context: FontmakeBuildContext,
+    build_format: Literal["variable", "ttf", "otf"],
+    executor: Executor | None = None,
+) -> None:
+    """Compile all prepared sources for one output format in parallel."""
+    raw_dir = {
+        "variable": context.raw_variable_dir,
+        "ttf": context.raw_ttf_dir,
+        "otf": context.raw_otf_dir,
+    }[build_format]
+    log_task(build_format, "Building %s fonts", build_format)
+    compile_fontmake_branches(
+        [
+            FontmakeBranchJob(
+                designspace_path=Path(source.designspace_path),
+                output=build_format,
+                target=(
+                    raw_dir / f"{source.style}.ttf"
+                    if build_format == "variable"
+                    else raw_dir
+                ),
+                interpolate=build_format != "variable",
+                source_label=source.style,
+            )
+            for source in context.sources
+            if source.designspace_path is not None
+        ],
+        use_processes=True,
+        executor=executor,
+    )
+
+
+def postprocess_variable_font_job(
+    job: VariablePostprocessJob,
+) -> tuple[SourceStyle, tuple[int, int] | None]:
+    """Postprocess one variable font after the parallel Fontmake compilation."""
+    set_log_task("variable")
+    raw_path = Path(job.raw_path)
+    logger.debug("Postprocess variable font: source=%s", raw_path.name)
+    is_italic = job.style == "italic"
+    file_name = job.font_config.family_name_compact
+    if is_italic:
+        file_name += "-Italic"
+    output_name = f"{file_name}[wght].ttf"
+    font = TTFont(raw_path)
+    resolved_metric: tuple[int, int] | None = None
+    try:
+        patch_font_feature(
+            config=job.font_config,
+            font=font,
+            issue_fea_dir=job.runtime_context.output_dir,
+            is_italic=is_italic,
+            is_cn=False,
+            is_variable=True,
+            is_hinted=False,
+            fea_path=job.runtime_context.feature_file_path(is_italic),
+        )
+
+        style_name = "Italic" if is_italic else "Regular"
+        postscript_name = f"{job.font_config.family_name_compact}-{style_name}"
+        update_font_names(
+            font=font,
+            family_name=job.font_config.family_name,
+            style_name=style_name,
+            full_name=f"{job.font_config.family_name} {style_name}",
+            version_str=job.font_config.version_str,
+            postscript_name=postscript_name,
+            unique_identifier=get_unique_identifier(
+                font_config=job.font_config,
+                postscript_name=postscript_name,
+                variable=True,
+            ),
+            is_skip_subfamily=True,
+        )
+
+        if is_italic:
+            add_ital_axis_to_stat(font)
+
+        patch_instance(font, job.font_config.weight_mapping)
+
+        if job.font_config.line_height != 1:
+            resolved_metric = (font["hhea"].ascender, font["hhea"].descender)
+            adjust_line_height(font, job.font_config.line_height, resolved_metric)
+
+        verify_glyph_width(
+            font=font,
+            expect_widths=job.font_config.get_valid_glyph_width_list(),
+            file_name=output_name,
+        )
+        add_gasp(font)
+        set_monospace_metadata(font)
+        output_dir = Path(job.runtime_context.output_variable)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        variable_path = output_dir / output_name
+        font.save(variable_path)
+        logger.info("Saved variable font to %s", variable_path)
+    finally:
+        font.close()
+    return job.style, resolved_metric
+
+
+def build_variable_fonts(
+    font_config: ResolvedBuildConfig,
+    runtime_context: BuildRuntimeContext,
+    context: FontmakeBuildContext,
+    executor: Executor | None = None,
+) -> None:
+    """Build and postprocess all variable outputs in parallel."""
+    compile_fontmake_format(context, "variable", executor)
+    jobs = [
+        VariablePostprocessJob(
+            raw_path=str(context.raw_variable_dir / f"{source.style}.ttf"),
+            style=source.style,
+            font_config=font_config,
+            runtime_context=runtime_context,
+        )
+        for source in context.sources
+    ]
+    if executor is None:
+        with ProcessPoolExecutor(
+            max_workers=len(jobs),
+            initializer=configure_logging,
+        ) as process_executor:
+            results = list(process_executor.map(postprocess_variable_font_job, jobs))
+    else:
+        results = list(executor.map(postprocess_variable_font_job, jobs))
+    for style, metric in results:
+        if style == "regular" and metric is not None:
+            runtime_context.resolved_vertical_metric = metric
+
+
+def build_static_fonts(
+    font_config: ResolvedBuildConfig,
+    runtime_context: BuildRuntimeContext,
+    context: FontmakeBuildContext,
+    build_format: Literal["ttf", "otf"],
+    target_styles: list[str] | None,
+    executor: Executor | None = None,
+) -> None:
+    """Build and postprocess one requested static output format."""
+    output_dir = Path(
+        runtime_context.output_ttf
+        if build_format == "ttf"
+        else runtime_context.output_otf
+    )
+    compile_fontmake_format(context, build_format, executor)
+    raw_dir = context.raw_ttf_dir if build_format == "ttf" else context.raw_otf_dir
+    static_jobs = [
+        StaticPostprocessJob(
+            input_path=str(font_path),
+            output_dir=str(output_dir),
+            font_config=font_config,
+            runtime_context=runtime_context,
+        )
+        for font_path in sorted(raw_dir.glob(f"*.{build_format}"))
+        if is_target_style_file(font_path.name, target_styles)
+    ]
+    run_process_jobs(
+        font_config.pool_size,
+        postprocess_static_font_job,
+        static_jobs,
+        executor,
+    )
 
 
 def ensure_cjk_variable_fonts(
@@ -658,22 +813,26 @@ def ensure_cjk_variable_fonts(
         and regular_path.exists()
         and italic_path.exists()
     ):
-        print(
-            f"♻️ Reuse cached {entry.display_name} variable fonts: "
-            f"{regular_path.name}, {italic_path.name}"
+        logger.info(
+            "Reuse cached CJK variable fonts: locale=%s, regular=%s, italic=%s",
+            entry.display_name,
+            regular_path.name,
+            italic_path.name,
         )
         return regular_path, italic_path
 
     try:
         build_cjk_fonts(preset_config, vf_only=True)
     except FileNotFoundError as error:
-        print(f"⚠️ Skip {entry.display_name} extended fonts: {error}")
+        logger.warning(
+            "Skip CJK output: locale=%s, reason=%s", entry.display_name, error
+        )
         return None
 
     if not regular_path.exists() or not italic_path.exists():
-        print(
-            f"⚠️ Skip {entry.display_name} extended fonts: "
-            "variable font outputs were not generated"
+        logger.warning(
+            "Skip CJK output: locale=%s, reason=variable fonts were not generated",
+            entry.display_name,
         )
         return None
     return regular_path, italic_path
@@ -710,10 +869,10 @@ def build_cjk_extended_variable_fonts(
 
     for (is_italic, base_path), (_, extra_path) in zip(core_pairs, base_pairs):
         if not base_path.exists():
-            print(f"⚠️ Core variable font not found: {base_path}")
+            logger.warning("Core variable font not found: path=%s", base_path)
             return None
         if not extra_path.exists():
-            print(f"⚠️ CJK variable font not found: {extra_path}")
+            logger.warning("CJK variable font not found: path=%s", extra_path)
             return None
 
         merged_font, added_glyphs, added_codepoints = merge_vf(base_path, extra_path)
@@ -751,11 +910,14 @@ def build_cjk_extended_variable_fonts(
             output_path = output_dir / merged_variable_name(
                 postscript_prefix, is_italic
             )
-            print(
-                f"👉 Merge {entry.display_name} variable font: +{len(added_glyphs)} glyphs, +{added_codepoints} unicodes"
+            logger.debug(
+                "Merge CJK variable font: locale=%s, glyphs_added=%s, unicodes_added=%s",
+                entry.display_name,
+                len(added_glyphs),
+                added_codepoints,
             )
             merged_font.save(output_path)
-            print(f"✅ Saved merged variable font: {output_path}")
+            logger.info("Saved merged variable font to %s", output_path)
             output_paths.append(output_path)
         finally:
             merged_font.close()
@@ -825,8 +987,10 @@ def instantiate_cjk_extended_static_fonts(
                 ).replace("RegularItalic", "Italic")
                 if target_styles and style_compact not in target_styles:
                     continue
-                print(
-                    f"👉 Instantiate {entry.display_name} static font: {style_compact}"
+                logger.info(
+                    "Instantiate CJK static font: locale=%s, style=%s",
+                    entry.display_name,
+                    style_compact,
                 )
                 static_font = instantiateVariableFont(
                     var_font,
@@ -844,21 +1008,28 @@ def instantiate_cjk_extended_static_fonts(
                         style_compact,
                         entry.locale_name,
                     )
-                    static_font.save(output_dir / f"{postscript_name}.ttf")
+                    output_path = output_dir / f"{postscript_name}.ttf"
+                    static_font.save(output_path)
+                    logger.info("Saved CJK static font to %s", output_path)
                 finally:
                     static_font.close()
         finally:
             var_font.close()
 
     if entry.common_options.use_hinted:
-        print(f"Auto hinting all {entry.display_name} glyphs")
+        logger.info("Auto-hint CJK static fonts: locale=%s", entry.display_name)
         autohint_static_fonts(output_dir, font_config.ttfautohint_param)
 
     return output_dir
 
 
 def merge_cached_cjk_static_font_job(job: CJKStaticMergeJob) -> None:
-    print(f"👉 Merge cached {job.entry.display_name} static font: {job.style_compact}")
+    set_log_task(job.entry.locale_name.lower())
+    logger.debug(
+        "Merge cached CJK static font: locale=%s, style=%s",
+        job.entry.display_name,
+        job.style_compact,
+    )
     static_font = merge_ttfonts(
         base_font_path=job.core_path,
         extra_font_path=job.cjk_base_path,
@@ -872,7 +1043,9 @@ def merge_cached_cjk_static_font_job(job: CJKStaticMergeJob) -> None:
             job.style_compact,
             job.entry.locale_name,
         )
-        static_font.save(Path(job.output_dir) / f"{postscript_name}.ttf")
+        output_path = Path(job.output_dir) / f"{postscript_name}.ttf"
+        static_font.save(output_path)
+        logger.info("Saved CJK static font to %s", output_path)
     finally:
         static_font.close()
 
@@ -950,9 +1123,11 @@ def build_cjk_extended_static_fonts_from_cache(
             f"{', '.join(missing_styles)}"
         )
 
-    print(
-        f"♻️ Use {entry.display_name} static fonts from "
-        f"{resolved_base.source_kind}: {resolved_base.static_dir}"
+    logger.info(
+        "Use cached CJK static fonts: locale=%s, source=%s, path=%s",
+        entry.display_name,
+        resolved_base.source_kind,
+        resolved_base.static_dir,
     )
 
     jobs: list[CJKStaticMergeJob] = []
@@ -981,7 +1156,7 @@ def build_cjk_extended_static_fonts_from_cache(
     )
 
     if entry.common_options.use_hinted:
-        print(f"Auto hinting all {entry.display_name} glyphs")
+        logger.info("Auto-hint CJK static fonts: locale=%s", entry.display_name)
         for profile, _ in profile_core_fonts:
             autohint_static_fonts(
                 static_output_dir(
@@ -1011,20 +1186,36 @@ def build_cjk_extended_variable_outputs(
 ) -> None:
     entries = font_config.get_selected_cjk_entries()
     if not entries:
+        logger.warning("Skip CJK outputs: reason=no CJK locale selected")
         return
 
     built_any = False
     for entry in entries:
-        merged_paths = build_cjk_extended_variable_fonts(
-            entry,
-            font_config,
-            runtime_context,
-            variable_output_dir(runtime_context.output_dir, entry.locale_name),
-        )
+        log_task(entry.locale_name.lower(), "Building CJK variable outputs")
+        try:
+            merged_paths = build_cjk_extended_variable_fonts(
+                entry,
+                font_config,
+                runtime_context,
+                variable_output_dir(runtime_context.output_dir, entry.locale_name),
+            )
+        except FileNotFoundError as error:
+            logger.warning(
+                "Skip CJK output: locale=%s, reason=%s",
+                entry.display_name,
+                error,
+            )
+            continue
         if merged_paths is not None:
             built_any = True
 
     runtime_context.is_cjk_built = built_any
+    if not built_any:
+        logger.warning(
+            "Skip CJK outputs: locales=%s, mode=%s, reason=all selected locale builds failed",
+            ",".join(entry.locale_name for entry in entries),
+            font_config.cjk_output_format,
+        )
 
 
 def build_cjk_extended_static_outputs(
@@ -1034,27 +1225,46 @@ def build_cjk_extended_static_outputs(
 ) -> None:
     entries = font_config.get_selected_cjk_entries()
     if not entries:
+        logger.warning("Skip CJK outputs: reason=no CJK locale selected")
         return
 
     temp_root = Path(runtime_context.output_dir) / ".cjk-temp"
     built_any = False
     for entry in entries:
-        if build_cjk_extended_static_fonts_from_cache(
-            entry,
-            font_config,
-            runtime_context,
-            target_styles,
-        ):
+        log_task(entry.locale_name.lower(), "Building CJK static outputs")
+        try:
+            built_from_cache = build_cjk_extended_static_fonts_from_cache(
+                entry,
+                font_config,
+                runtime_context,
+                target_styles,
+            )
+        except FileNotFoundError as error:
+            logger.warning(
+                "Skip CJK output: locale=%s, reason=%s",
+                entry.display_name,
+                error,
+            )
+            continue
+        if built_from_cache:
             built_any = True
             continue
 
         locale_output_dir = temp_root / entry.locale_name.upper()
-        merged_paths = build_cjk_extended_variable_fonts(
-            entry,
-            font_config,
-            runtime_context,
-            locale_output_dir,
-        )
+        try:
+            merged_paths = build_cjk_extended_variable_fonts(
+                entry,
+                font_config,
+                runtime_context,
+                locale_output_dir,
+            )
+        except FileNotFoundError as error:
+            logger.warning(
+                "Skip CJK output: locale=%s, reason=%s",
+                entry.display_name,
+                error,
+            )
+            continue
         if merged_paths is None:
             continue
         built_any = True
@@ -1070,6 +1280,12 @@ def build_cjk_extended_static_outputs(
 
     shutil.rmtree(temp_root, ignore_errors=True)
     runtime_context.is_cjk_built = built_any
+    if not built_any:
+        logger.warning(
+            "Skip CJK outputs: locales=%s, mode=%s, reason=all selected locale builds failed",
+            ",".join(entry.locale_name for entry in entries),
+            font_config.cjk_output_format,
+        )
 
 
 def cleanup_unselected_base_formats(
@@ -1102,8 +1318,10 @@ def build_base_fonts(
     font_config: ResolvedBuildConfig,
     runtime_context: BuildRuntimeContext,
     target_styles: list[str] | None,
+    executor: Executor | None = None,
 ):
     """Generate hinted TTF derivatives from production static TTF fonts."""
+    log_task("ttf-autohint", "Auto-hint static fonts")
     autohint_jobs = [
         MonoAutohintJob(
             font_basename=file_name,
@@ -1116,6 +1334,32 @@ def build_base_fonts(
         font_config.pool_size,
         build_mono_autohint_job,
         autohint_jobs,
+        executor,
+    )
+
+
+def build_woff2_fonts(
+    font_config: ResolvedBuildConfig,
+    runtime_context: BuildRuntimeContext,
+    executor: Executor | None = None,
+) -> None:
+    """Convert the generated static TTF fonts to WOFF2 in a dedicated task."""
+    log_task("woff2", "Converting static fonts to WOFF2")
+    output_dir = Path(runtime_context.output_woff2)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    jobs = [
+        Woff2BuildJob(str(font_path), str(output_dir))
+        for font_path in sorted(Path(runtime_context.output_ttf).glob("*.ttf"))
+    ]
+    if not jobs:
+        raise FileNotFoundError(
+            f"No static TTF fonts found in {runtime_context.output_ttf}"
+        )
+    run_process_jobs(
+        font_config.pool_size,
+        build_woff2_font_job,
+        jobs,
+        executor,
     )
 
 
@@ -1123,18 +1367,23 @@ def build_nerd_fonts(
     font_config: ResolvedBuildConfig,
     runtime_context: BuildRuntimeContext,
     target_styles: list[str] | None,
+    executor: Executor | None = None,
 ):
     """Build Nerd Font variants."""
     if not font_config.nerd_font.enable:
         return
+
+    log_task("nerd-font", "Build Nerd Font outputs")
 
     makedirs(runtime_context.output_nf, exist_ok=True)
     use_font_patcher = runtime_context.should_use_font_patcher(font_config)
     runtime_context.ensure_font_patcher_available(font_config)
 
     _version = font_config.nerd_font.version
-    print(
-        f"\n🔧 Patch Nerd-Font v{_version} using {'Font Patcher' if use_font_patcher else 'prebuild base font'}...\n"
+    logger.info(
+        "Patch Nerd Font: version=%s, method=%s",
+        _version,
+        "Font Patcher" if use_font_patcher else "prebuilt base font",
     )
 
     prune_build_files(runtime_context.ttf_base_dir, target_styles, preserve_nf=True)
@@ -1154,6 +1403,7 @@ def build_nerd_fonts(
         font_config.pool_size,
         build_nf_job,
         jobs,
+        executor,
     )
     runtime_context.is_nf_built = True
 
@@ -1173,23 +1423,74 @@ class MapleBuildPipeline:
         self.start_time = 0.0
 
     def build(self) -> None:
-        self.prepare_output_root()
         self.start_build_timer()
+        self.prepare_output_root()
 
-        if self.should_build_base_outputs():
-            build_fontmake_fonts(
-                self.font_config,
-                self.runtime_context,
-                self.target_styles,
-            )
-            build_base_fonts(self.font_config, self.runtime_context, self.target_styles)
-        else:
-            self.reuse_base_output_cache()
+        with ProcessPoolExecutor(
+            max_workers=max(self.font_config.pool_size, 2),
+            initializer=configure_logging,
+        ) as process_executor:
+            if self.should_build_base_outputs():
+                fontmake_context = prepare_fontmake_sources(
+                    self.font_config,
+                    self.runtime_context,
+                    process_executor,
+                )
+                try:
+                    build_variable_fonts(
+                        self.font_config,
+                        self.runtime_context,
+                        fontmake_context,
+                        process_executor,
+                    )
+                    build_static_fonts(
+                        self.font_config,
+                        self.runtime_context,
+                        fontmake_context,
+                        "ttf",
+                        self.target_styles,
+                        process_executor,
+                    )
+                    if (
+                        self.font_config.wants_format("otf")
+                        and not self.font_config.debug
+                    ):
+                        build_static_fonts(
+                            self.font_config,
+                            self.runtime_context,
+                            fontmake_context,
+                            "otf",
+                            self.target_styles,
+                            process_executor,
+                        )
+                finally:
+                    shutil.rmtree(fontmake_context.temp_path, ignore_errors=True)
+                build_base_fonts(
+                    self.font_config,
+                    self.runtime_context,
+                    self.target_styles,
+                    process_executor,
+                )
+                if self.should_build_woff2_outputs():
+                    build_woff2_fonts(
+                        self.font_config,
+                        self.runtime_context,
+                        process_executor,
+                    )
+                elif self.font_config.wants_format("woff2"):
+                    log_task("woff2", "Skipping WOFF2 conversion for a debug build")
+            else:
+                self.reuse_base_output_cache()
 
-        if self.should_build_nerd_fonts():
-            build_nerd_fonts(self.font_config, self.runtime_context, self.target_styles)
-        else:
-            print("Skip Nerd Font outputs")
+            if self.should_build_nerd_fonts():
+                build_nerd_fonts(
+                    self.font_config,
+                    self.runtime_context,
+                    self.target_styles,
+                    process_executor,
+                )
+            else:
+                log_task("nerd-font", "Skipping Nerd Font outputs")
 
         if self.should_build_cjk_outputs():
             if self.should_persist_cjk_variable_outputs():
@@ -1204,7 +1505,8 @@ class MapleBuildPipeline:
                     self.target_styles,
                 )
         else:
-            print("Skip CJK outputs")
+            set_log_task("cjk")
+            logger.warning("Skip CJK outputs: reason=no CJK locale selected")
 
         if self.should_cleanup_base_static_formats():
             cleanup_unselected_base_formats(self.font_config, self.runtime_context)
@@ -1225,15 +1527,46 @@ class MapleBuildPipeline:
 
     def prepare_output_root(self) -> None:
         if not self.should_use_cache:
-            print("🧹 Clean cache...\n")
+            logger.info("Clean build cache")
             shutil.rmtree(self.runtime_context.output_dir, ignore_errors=True)
             shutil.rmtree(self.runtime_context.output_woff2, ignore_errors=True)
         ensure_base_output_dirs(self.runtime_context)
 
     def start_build_timer(self) -> None:
         self.start_time = time.time()
-        print(
-            f"🚩 Start building {self.font_config.family_name} {self.font_config.version_str} ...\n"
+        set_log_task("system")
+        cjk_entries = self.font_config.get_selected_cjk_entries()
+        cjk_locales = ",".join(entry.locale_name for entry in cjk_entries) or "none"
+        styles = ",".join(self.target_styles) if self.target_styles else "all"
+        width_suffix = self.font_config.get_width_name() or "none"
+        width_transform = "applied" if width_suffix != "none" else "not applied"
+        logger.info(
+            "Build configuration: family=%s, version=%s, formats=%s, styles=%s, cache=%s, hinted=%s, ligature=%s, nerd_font=%s, cjk_mode=%s, cjk_locales=%s, archive=%s, line_height=%s",
+            self.font_config.family_name,
+            self.font_config.version_str,
+            ",".join(self.font_config.formats),
+            styles,
+            self.font_config.cache,
+            self.font_config.use_hinted,
+            self.font_config.enable_ligature,
+            self.font_config.nerd_font.enable,
+            self.font_config.cjk_output_format,
+            cjk_locales,
+            self.font_config.archive,
+            self.font_config.line_height,
+        )
+        logger.info(
+            "Width configuration: requested=%s, source_glyph_width=%s, resolved_target_width=%s, family_suffix=%s, transform=%s",
+            self.font_config.width,
+            self.font_config.glyph_width,
+            self.font_config.get_target_width(),
+            width_suffix,
+            width_transform,
+        )
+        logger.info(
+            "Build started: family=%s, version=%s",
+            self.font_config.family_name,
+            self.font_config.version_str,
         )
 
     def should_build_base_outputs(self) -> bool:
@@ -1250,13 +1583,16 @@ class MapleBuildPipeline:
         self.runtime_context.resolved_vertical_metric = read_font_vertical_metric(
             regular_variable_path
         )
-        print("♻️ Reuse cached Variable, TTF, and TTF-AutoHint outputs")
+        logger.info("Reuse cached Variable, TTF, and TTF-AutoHint outputs")
 
     def should_build_nerd_fonts(self) -> bool:
         return self.font_config.nerd_font.enable
 
     def should_build_cjk_outputs(self) -> bool:
         return bool(self.font_config.get_selected_cjk_entries())
+
+    def should_build_woff2_outputs(self) -> bool:
+        return self.font_config.wants_format("woff2") and not self.font_config.debug
 
     def should_persist_cjk_variable_outputs(self) -> bool:
         return self.font_config.cjk_output_format == "variable"
@@ -1281,7 +1617,7 @@ class MapleBuildPipeline:
         return self.font_config.archive
 
     def archive_outputs(self) -> None:
-        print("\n🚀 archive files...\n")
+        log_task("archive", "Archive build outputs")
         archive_dir_name = "archive"
         archive_dir = join_path(self.runtime_context.output_dir, archive_dir_name)
         makedirs(archive_dir, exist_ok=True)
@@ -1325,23 +1661,45 @@ class MapleBuildPipeline:
             ) as hash_file:
                 hash_file.write(sha256)
 
-            print(f"👉 archive: {file_name}")
+            logger.info("Archived %s", file_name)
 
     def finish_build(self) -> None:
-        if is_ci():
-            return
-
+        set_log_task("system")
         freeze_str = (
             self.font_config.freeze_config_str
             if self.font_config.freeze_config_str != ""
             else "default config"
         )
-        end_time = time.time()
-        date_time_fmt = time.strftime("%H:%M:%S", time.localtime(end_time))
-        time_diff = end_time - self.start_time
-        output = join_path(getcwd().replace("\\", "/"), self.runtime_context.output_dir)
-        print(
-            f"\n🏁 Build finished at {date_time_fmt}, cost {time_diff:.2f} s, family name is {self.font_config.family_name}, {freeze_str}\n   See your fonts in {output}"
+        time_diff = time.time() - self.start_time
+        output_root = Path(self.runtime_context.output_dir).resolve()
+        outputs = (
+            sorted(
+                path.name
+                for path in output_root.iterdir()
+                if path.is_dir()
+                and path.name not in {".cjk-temp", "temp", "build-config.json"}
+            )
+            if output_root.exists()
+            else []
+        )
+        cjk_locales = (
+            ",".join(
+                entry.locale_name
+                for entry in self.font_config.get_selected_cjk_entries()
+            )
+            or "none"
+        )
+        logger.info(
+            "Build finished: duration=%.2fs, family=%s, resolved_width=%s, fea=%s, outputs=%s, nerd_font_built=%s, cjk_locales=%s, cjk_built=%s, output_root=%s",
+            time_diff,
+            self.font_config.family_name,
+            self.font_config.get_target_width(),
+            freeze_str,
+            ",".join(outputs) or "none",
+            self.runtime_context.is_nf_built,
+            cjk_locales,
+            self.runtime_context.is_cjk_built,
+            output_root,
         )
 
 
@@ -1369,11 +1727,13 @@ def run(parsed_args, version: str | None = None):
 
         MapleBuildPipeline(font_config, runtime_context).build()
     except (BuildDependencyError, SourceCompatibilityError) as error:
-        print(f"❗ {error}")
+        logger.error("Build failed: %s", error)
         raise SystemExit(1) from error
 
 
 def main(args: list[str] | None = None, version: str | None = None) -> None:
     from scripts.config.cli import parse_args
 
-    run(parse_args(args, version=version), version=version)
+    parsed_args = parse_args(args, version=version)
+    configure_logging()
+    run(parsed_args, version=version)

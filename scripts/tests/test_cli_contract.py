@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import os
 import subprocess
 import sys
 import unittest
@@ -14,13 +16,20 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 class PublicCliContractTest(unittest.TestCase):
-    def run_cli(self, *args: str) -> subprocess.CompletedProcess[str]:
+    def run_cli(
+        self,
+        *args: str,
+        extra_env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        env = os.environ.copy()
+        env.update(extra_env or {})
         return subprocess.run(
             [sys.executable, *args],
             cwd=PROJECT_ROOT,
             check=False,
             capture_output=True,
             text=True,
+            env=env,
         )
 
     def test_build_version_uses_project_version_once(self) -> None:
@@ -43,10 +52,42 @@ class PublicCliContractTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("unrecognized arguments: --unknown-option", result.stderr)
 
+    def test_ci_dry_run_keeps_json_on_stdout_and_logs_warning_to_stderr(self) -> None:
+        result = self.run_cli(
+            "build.py",
+            "--dry",
+            "--ttf-only",
+            extra_env={"GITHUB_ACTIONS": "true"},
+        )
+
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(json.loads(result.stdout)["behavior"]["formats"], ["ttf"])
+        self.assertEqual(
+            result.stderr,
+            "[WARNING] [system] --ttf-only is deprecated; use --format ttf instead\n",
+        )
+
+    def test_log_level_can_suppress_warnings_without_changing_dry_run_json(
+        self,
+    ) -> None:
+        result = self.run_cli(
+            "build.py",
+            "--dry",
+            "--ttf-only",
+            extra_env={"GITHUB_ACTIONS": "true", "MAPLE_LOG_LEVEL": "ERROR"},
+        )
+
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(json.loads(result.stdout)["behavior"]["formats"], ["ttf"])
+        self.assertEqual(result.stderr, "")
+
     def test_pipeline_owns_cli_execution(self) -> None:
         self.assertFalse(hasattr(cli, "main"))
 
-        with patch("scripts.pipeline.run") as run_pipeline:
+        with (
+            patch("scripts.pipeline.configure_logging"),
+            patch("scripts.pipeline.run") as run_pipeline,
+        ):
             run_build_cli(["--dry"], version="v7.9")
 
         parsed_args = run_pipeline.call_args.args[0]

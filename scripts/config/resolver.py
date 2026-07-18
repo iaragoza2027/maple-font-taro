@@ -36,6 +36,7 @@ from scripts.utils.files import join_path
 from scripts.utils.process import get_font_forge_bin
 from scripts.feature.compiler import normal_enabled_features
 from scripts.utils.files import get_directory_hash
+from scripts.utils.logging import logger
 
 
 def check_file_count(
@@ -208,7 +209,7 @@ class BuildRuntimeContext:
         preset_config: CJKBuildConfig,
     ) -> bool:
         if not self.should_download_cjk_static_base(locale):
-            print(f"Skip CJK static base download for unsupported locale: {locale}")
+            logger.info("Skip CJK static base download: unsupported locale=%s", locale)
             return False
 
         static_dir = self.cjk_static_dir(preset_config)
@@ -239,7 +240,7 @@ class BuildRuntimeContext:
         locale_name: str,
     ) -> CJKStaticBaseResolution | None:
         if clean_cache:
-            print(f"Clean CJK static base cache at {static_dir}")
+            logger.info("Clean CJK static base cache: path=%s", static_dir)
             shutil.rmtree(static_dir, ignore_errors=True)
             return None
 
@@ -261,12 +262,15 @@ class BuildRuntimeContext:
             required_styles,
         )
         if local_missing_styles:
-            print(
-                f"Cached {locale_name} static fonts are incomplete: "
-                f"{', '.join(local_missing_styles)}"
+            logger.warning(
+                "Cached CJK static fonts are incomplete: locale=%s, styles=%s",
+                locale_name,
+                ", ".join(local_missing_styles),
             )
         elif static_dir.exists():
-            print(f"Cached {locale_name} static fonts failed hash check")
+            logger.warning(
+                "Cached CJK static fonts failed hash check: locale=%s", locale_name
+            )
 
         shutil.rmtree(static_dir, ignore_errors=True)
         return None
@@ -281,8 +285,9 @@ class BuildRuntimeContext:
         required_styles: list[str],
     ) -> CJKStaticBaseResolution | None:
         if not locale or not self.should_download_cjk_static_base(locale):
-            print(
-                f"Skip CJK static base download for unsupported locale: {preset_config.locale_name}"
+            logger.info(
+                "Skip CJK static base download: unsupported locale=%s",
+                preset_config.locale_name,
             )
             return None
 
@@ -301,9 +306,9 @@ class BuildRuntimeContext:
                 source_kind="download",
             )
 
-        print(
-            f"Downloaded {preset_config.locale_name} static fonts are invalid; "
-            "fallback to variable build"
+        logger.warning(
+            "Downloaded CJK static fonts are invalid; falling back to variable build: locale=%s",
+            preset_config.locale_name,
         )
         shutil.rmtree(static_dir, ignore_errors=True)
         return None
@@ -436,7 +441,9 @@ class BuildConfigResolver:
     def _apply_json_config(self, config: ResolvedBuildConfig) -> None:
         config_path = self._config_path()
         if not config_path.exists():
-            print(f"🚨 Config file not found: {config_path}, use default config")
+            logger.warning(
+                "Config file not found; using defaults: path=%s", config_path
+            )
             return
         try:
             data = json.loads(config_path.read_text(encoding="utf-8"))
@@ -647,13 +654,13 @@ class BuildConfigResolver:
         config.behavior.use_cjk_both = bool(args.cjk_both or args.cn_both)
 
         if args.cn_both:
-            print("⚠️ `--cn-both` is deprecated. Use `--cjk-both` instead.")
+            logger.warning("--cn-both is deprecated; use --cjk-both instead")
 
         if args.formats is not None:
             config.behavior.formats = list(args.formats)
 
         if args.ttf_only:
-            print("⚠️ `--ttf-only` is deprecated. Use `--format ttf` instead.")
+            logger.warning("--ttf-only is deprecated; use --format ttf instead")
             config.behavior.formats = ["ttf"]
 
         if args.normal:
@@ -700,7 +707,7 @@ class BuildConfigResolver:
         enabled_locales.update(normalize_cjk_locale_list(getattr(args, "cjk", None)))
 
         if args.cn is not None:
-            print("⚠️ `--cn` is deprecated. Use `--cjk cn` instead.")
+            logger.warning("--cn is deprecated; use --cjk cn instead")
             if args.cn:
                 enabled_locales.add("cn")
             else:
@@ -712,16 +719,16 @@ class BuildConfigResolver:
             config.cjk.common_options.scale_factor = args.cjk_scale_factor
 
         if args.cn_narrow:
-            print("⚠️ `--cn-narrow` is deprecated. Use `--cjk-narrow` instead.")
+            logger.warning("--cn-narrow is deprecated; use --cjk-narrow instead")
             config.cjk.common_options.narrow = True
         if args.cn_scale_factor is not None:
-            print(
-                "⚠️ `--cn-scale-factor` is deprecated. Use `--cjk-scale-factor` instead."
+            logger.warning(
+                "--cn-scale-factor is deprecated; use --cjk-scale-factor instead"
             )
             config.cjk.common_options.scale_factor = args.cn_scale_factor
         if args.cn_rebuild:
-            print(
-                "⚠️ `--cn-rebuild` is deprecated. Use `task.py cjk --preset cn` for preset rebuilds."
+            logger.warning(
+                "--cn-rebuild is deprecated; use task.py cjk --preset cn instead"
             )
             enabled_locales.add("cn")
 

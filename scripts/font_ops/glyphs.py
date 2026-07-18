@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Executor, ProcessPoolExecutor, ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -15,6 +15,7 @@ from ufo2ft.filters import DecomposeTransformedComponentsFilter
 from scripts.font_ops.glyph_transform import smart_change_ufo_width
 from scripts.font_ops.opentype import DEFAULT_COMPAT_ALIASES
 from scripts.utils.files import write_json
+from scripts.utils.logging import configure_logging, logger, set_log_task
 
 
 SourceStyle = Literal["regular", "italic"]
@@ -42,6 +43,7 @@ class FontmakeBranchJob:
     output: FontmakeOutput
     target: Path
     interpolate: bool = False
+    source_label: str = ""
 
 
 class SourceCompatibilityError(RuntimeError):
@@ -96,12 +98,14 @@ def compile_fontmake_outputs(
             designspace_path=designspace_path,
             output="variable",
             target=Path(variable_output_path),
+            source_label=prepared.style,
         ),
         FontmakeBranchJob(
             designspace_path=designspace_path,
             output="ttf",
             target=Path(ttf_output_dir),
             interpolate=True,
+            source_label=prepared.style,
         ),
     ]
     if otf_output_dir is not None:
@@ -111,19 +115,44 @@ def compile_fontmake_outputs(
                 output="otf",
                 target=Path(otf_output_dir),
                 interpolate=True,
+                source_label=prepared.style,
             )
         )
 
-    with ThreadPoolExecutor(
-        max_workers=len(jobs),
-        thread_name_prefix=f"fontmake-{prepared.style}",
-    ) as executor:
-        list(executor.map(_compile_fontmake_branch, jobs))
+    compile_fontmake_branches(jobs)
 
     return report
 
 
+def compile_fontmake_branches(
+    jobs: list[FontmakeBranchJob],
+    use_processes: bool = False,
+    executor: Executor | None = None,
+) -> None:
+    """Compile one output format for all prepared sources in parallel."""
+    if not jobs:
+        return
+    if executor is not None:
+        list(executor.map(_compile_fontmake_branch, jobs))
+        return
+    if use_processes:
+        with ProcessPoolExecutor(
+            max_workers=len(jobs),
+            initializer=configure_logging,
+        ) as executor:
+            list(executor.map(_compile_fontmake_branch, jobs))
+        return
+    with ThreadPoolExecutor(max_workers=len(jobs)) as executor:
+        list(executor.map(_compile_fontmake_branch, jobs))
+
+
 def _compile_fontmake_branch(job: FontmakeBranchJob) -> None:
+    set_log_task(job.output)
+    logger.info(
+        "Compiling %s source: %s",
+        job.output,
+        job.source_label or job.designspace_path.parent.name,
+    )
     project = FontProject()
     if job.output == "variable":
         job.target.parent.mkdir(parents=True, exist_ok=True)
@@ -205,7 +234,11 @@ def write_source_issue_report(
             for source in ordered_sources
         },
     )
-    print(f"Source compatibility report: {report_path} ({error_count} errors)")
+    logger.info(
+        "Wrote source compatibility report: path=%s, errors=%s",
+        report_path,
+        error_count,
+    )
     return report_path
 
 

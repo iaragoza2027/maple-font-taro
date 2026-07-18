@@ -24,6 +24,7 @@ from scripts.utils.files import (
     write_text,
 )
 from scripts.utils.process import run as run_command
+from scripts.utils.logging import logger
 
 
 def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):
@@ -42,8 +43,11 @@ def run_git_command(args: list[str], cwd=None, check=True):
         )
         return result.stdout.strip()
     except subprocess.CalledProcessError as error:
-        print(
-            f"Error: Failed to execute {' '.join(args)} in {cwd or os.getcwd()}: {error.stderr}"
+        logger.error(
+            "Command failed: command=%s, cwd=%s, error=%s",
+            " ".join(args),
+            cwd or os.getcwd(),
+            error.stderr.strip(),
         )
         sys.exit(1)
 
@@ -57,19 +61,20 @@ def update_page(
     abs_submodule_path = os.path.abspath(submodule_path)
 
     if not os.path.exists(abs_submodule_path):
-        print(
-            f"Error: Submodule {submodule_path} does not exist, please run `git submodule update --init` first"
+        logger.error(
+            "Landing-page submodule is missing: path=%s; run git submodule update --init",
+            submodule_path,
         )
         sys.exit(1)
 
     if sync:
         run_git_command(["git", "submodule", "update", "--remote"])
-        print("Checkout main")
+        logger.info("Check out landing-page main branch")
         run_git_command(["git", "checkout", "main"], cwd=abs_submodule_path)
         run_git_command(["git", "pull"], cwd=abs_submodule_path)
-        print("Sync remote")
+        logger.info("Synced landing-page remote")
 
-    print("Update features")
+    logger.info("Update landing-page feature data")
     feature_data_base = join_path(submodule_path, "data", "features")
     os.makedirs(feature_data_base, exist_ok=True)
     write_json(join_path(feature_data_base, "cv.json"), get_cv_version_info())
@@ -80,12 +85,12 @@ def update_page(
     write_json(join_path(feature_data_base, "ss.json"), get_ss_version_info())
     write_text(join_path(feature_data_base, "features.ts"), get_total_feat_ts())
 
-    print("Update config")
+    logger.info("Update landing-page configuration")
     data = read_json("config.json")
     del data["$schema"]
     write_json(join_path(submodule_path, "data", "config.json"), data)
 
-    print("Update script")
+    logger.info("Update landing-page browser script")
     script_content = read_text(join_path("scripts", "in_browser.py"))
     write_text(
         join_path(submodule_path, "data", "script.py"),
@@ -94,7 +99,7 @@ def update_page(
     )
 
     if woff2:
-        print("Update woff2")
+        logger.info("Update landing-page WOFF2 fonts")
         font_dir = join_path(submodule_path, "public", "fonts")
         run_command("python build.py --ttf-only --no-nerd-font --least-styles")
         convert_to_web(var_dir, flavor="woff2")
@@ -109,17 +114,17 @@ def update_page(
 
     if sync:
         run_git_command(["git", "add", "."], cwd=abs_submodule_path)
-        print("Commit submodule")
+        logger.info("Commit landing-page submodule")
         run_git_command(
             ["git", "commit", "-m", "Update landing page data"], cwd=abs_submodule_path
         )
-        print("Update remote submodule")
+        logger.info("Push landing-page submodule")
         run_git_command(["git", "push", "origin", "main"], cwd=abs_submodule_path)
         run_git_command(["git", "submodule", "update", "--remote"])
         run_git_command(["git", "add", "."])
-        print("Commit main")
+        logger.info("Commit main repository")
         run_git_command(["git", "commit", "-m", "sync landing page"])
-        print("Update remote main")
+        logger.info("Push main repository")
         run_git_command(["git", "push", "origin"])
 
 

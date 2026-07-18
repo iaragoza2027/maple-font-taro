@@ -1,5 +1,6 @@
 from scripts.feature import ast
 from scripts.feature.base.clazz import cls_space, cls_comma
+from scripts.utils.logging import logger
 
 built_in_tag_text = [
     "trace",
@@ -47,7 +48,7 @@ def tag_upper(text_list: list[str]):
 
     for text in text_list:
         if text not in built_in_tag_text:
-            print(f"{text} is not in {built_in_tag_text}, skip")
+            logger.debug("Skip unknown tag ligature: tag=%s", text)
             continue
 
         source = ["["] + [g.upper() for g in text] + ["]"]
@@ -86,7 +87,7 @@ def tag_any(text_list: list[str], cls_var: ast.Clazz):
 
     for text in text_list:
         if text not in built_in_tag_text:
-            print(f"{text} is not in {built_in_tag_text}, skip")
+            logger.debug("Skip unknown tag ligature: tag=%s", text)
             continue
 
         glyphs = [f"@{g.upper()}" for g in text] + [")", ")"]

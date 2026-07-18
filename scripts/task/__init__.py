@@ -4,6 +4,7 @@ import argparse
 from collections.abc import Callable
 
 from scripts.task import cjk, fea, nf, page, publish, release
+from scripts.utils.logging import configure_logging, log_task
 
 
 CommandHandler = Callable[[argparse.Namespace], None]
@@ -34,4 +35,6 @@ def main() -> None:
     if handler is None:
         parser.print_help()
         return
+    configure_logging()
+    log_task(args.command, "Running task: %s", args.command)
     handler(args)

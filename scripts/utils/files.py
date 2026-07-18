@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any
 from zipfile import ZIP_BZIP2, ZIP_DEFLATED, ZipFile
 
+from scripts.utils.logging import logger
+
 
 def join_path(*parts: str | Path) -> str:
     if not parts:
@@ -53,7 +55,7 @@ def archive(
         for child in source_path.iterdir():
             if include(str(child)):
                 zip_file.write(child, child.name)
-    print(f"📦 Package {target}")
+    logger.info("Created archive: path=%s", target)
 
 
 def archive_fonts(
@@ -102,7 +104,9 @@ def get_directory_hash(dir_path: str) -> str:
 
 def check_directory_hash(dir_path: str) -> bool:
     if not path.exists(dir_path):
-        print(f"{dir_path} not exist, skip computing hash")
+        logger.warning(
+            "Skip directory hash because path does not exist: path=%s", dir_path
+        )
         return False
     with open(f"{dir_path}.sha256", encoding="utf-8") as hash_file:
         return hash_file.readline() == get_directory_hash(dir_path)

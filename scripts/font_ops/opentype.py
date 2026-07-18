@@ -7,6 +7,7 @@ from fontTools.ttLib import TTFont, newTable
 
 from scripts.font_ops.fonttools_types import GaspTable
 from scripts.font_ops.names import default_weight_map, set_font_name
+from scripts.utils.logging import logger
 
 
 def add_ital_axis_to_stat(font: TTFont):
@@ -46,7 +47,7 @@ def add_ital_axis_to_stat(font: TTFont):
 
 def patch_instance(font: TTFont, all_weight_map: dict[str, int]):
     if all_weight_map == default_weight_map:
-        print("Skip weight remapping since nothing changed.")
+        logger.debug("Skip weight remapping because the mapping is unchanged")
         return
     if "fvar" not in font or "STAT" not in font:
         return
@@ -103,7 +104,7 @@ def patch_instance(font: TTFont, all_weight_map: dict[str, int]):
 
 
 def add_gasp(font: TTFont):
-    print("Fix GASP table")
+    logger.debug("Update GASP table")
     font["gasp"] = newTable("gasp")
     gasp = cast(GaspTable, font["gasp"])
     gasp.gaspRange = {65535: 15}

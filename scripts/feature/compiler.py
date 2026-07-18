@@ -22,6 +22,7 @@ from scripts.feature.italic import (
     cv_list_italic,
     ss_list_italic,
 )
+from scripts.utils.logging import logger
 
 normal_enabled_features = list(NORMAL_ENABLED_FEATURES)
 cv_list_cn = list(CJK_FEATURES)
@@ -52,8 +53,16 @@ def generate_fea_string(
             be enabled in variable format
         infinite (bool): Whether to add infinite arrow ligatures
     """
-    print(
-        f"Generating feature string with italic={is_italic}, cn={is_cn}, normal={is_normal}, calt={is_calt}, variable={bool(variable_enabled_feature_list)}, infinite={enable_infinite}, tag={enable_tag}"
+    logger.info(
+        "Generate feature string: italic=%s, cn=%s, normal=%s, calt=%s, variable_freeze=%s, infinite=%s, tag=%s, remove_italic_calt=%s",
+        is_italic,
+        is_cn,
+        is_normal,
+        is_calt,
+        bool(variable_enabled_feature_list),
+        enable_infinite,
+        enable_tag,
+        remove_italic_calt,
     )
     class_list = class_list_italic if is_italic else class_list_regular
     infinite_options = InfiniteOptions(enable_infinite)
@@ -120,6 +129,7 @@ def generate_fea_string(
 
 
 def generate_fea_string_cn_only():
+    logger.info("Generate feature string: cn_only=True")
     return ast.create(
         [
             get_base_feature_cn_only(),

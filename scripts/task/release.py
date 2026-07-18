@@ -17,6 +17,7 @@ from scripts.utils.files import (
 from scripts.utils.process import run as run_command
 from scripts.font_ops.names import default_weight_map
 from scripts.utils.version import project_version
+from scripts.utils.logging import logger
 
 
 def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):
@@ -55,7 +56,9 @@ def rename_woff_files(dir_path: str, fn: Callable[[str], str | None]):
         new_name = fn(filename)
         if new_name:
             os.rename(join_path(dir_path, filename), join_path(dir_path, new_name))
-            print(f"Renamed: {filename} -> {new_name}")
+            logger.info(
+                "Renamed release font: source=%s, target=%s", filename, new_name
+            )
 
 
 def next_version(current: str, bump: str) -> str:
@@ -74,11 +77,11 @@ def git_release_commit(tag, files):
     run_command(f"git add {' '.join(files)}")
     run_command(["git", "commit", "-m", f"Release {tag}"])
     run_command(f"git tag {tag}")
-    print("Committed and tagged")
+    logger.info("Committed release and created tag")
 
     run_command("git push origin")
     run_command(f"git push origin {tag}")
-    print("Pushed to origin")
+    logger.info("Pushed release to origin")
 
 
 def write_unicode_map_json(font_path: str, output: str):
@@ -90,7 +93,7 @@ def write_unicode_map_json(font_path: str, output: str):
         if codepoint is not None
     }
     write_json(output, font_map)
-    print(f"Write font map to {output}")
+    logger.info("Wrote font map: path=%s", output)
     font.close()
 
 
@@ -98,7 +101,7 @@ def release(type: str, dry: bool):
     tag = f"v{next_version(project_version(), type)}"
     choose = input(f"{'[DRY] ' if dry else ''}Tag {tag}? (Y or n) ")
     if choose != "" and choose.lower() != "y":
-        print("Aborted")
+        logger.info("Release aborted")
         return
 
     if not dry:
@@ -111,7 +114,7 @@ def release(type: str, dry: bool):
     convert_to_web("./fonts/TTF", target_fontsource_dir, flavor="woff2")
     convert_to_web("./fonts/TTF", target_fontsource_dir, flavor="woff")
     rename_woff_files(target_fontsource_dir, format_fontsource_name)
-    print("Generate fontsource files")
+    logger.info("Generated Fontsource files")
 
     dep_file = "requirements.txt"
     run_command(
@@ -119,7 +122,7 @@ def release(type: str, dry: bool):
     )
 
     shutil.copytree("./fonts/CN", "./cdn/cn")
-    print("Generate CN files")
+    logger.info("Generated CN files")
 
     woff2_dir = "woff2/var"
     if os.path.exists(target_fontsource_dir):
@@ -128,7 +131,7 @@ def release(type: str, dry: bool):
     rename_woff_files(woff2_dir, format_woff2_name)
 
     if dry:
-        print("Dry run")
+        logger.info("Release dry run complete")
     else:
         git_release_commit(tag, ["woff2", dep_file, "pyproject.toml"])
 

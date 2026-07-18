@@ -22,6 +22,7 @@ from scripts.font_ops.names import (
 )
 from scripts.font_ops.opentype import remove_target_glyph
 from scripts.feature.apply import patch_font_feature
+from scripts.utils.logging import logger
 
 
 def build_cjk_family_name(font_config: ResolvedBuildConfig, locale_suffix: str) -> str:
@@ -116,14 +117,18 @@ def apply_cjk_width_transform(
             os2.panose.bProportion = 0
             os2.panose.bSpacing = 0
             cast(HheaTable, font["hhea"]).advanceWidthMax = target_width
-            print(
-                "Changed CJK glyph width, mark font file as not monospaced and skip checking glyph width"
+            logger.debug(
+                "Changed CJK glyph width; mark font as proportional and skip width checks"
             )
         else:
             target_width = match_width
 
         if scale_factor:
-            print(f"Scale CJK glyphs to ({scale_factor[0]}x, {scale_factor[1]}x)")
+            logger.debug(
+                "Scale CJK glyphs: width_factor=%s, height_factor=%s",
+                scale_factor[0],
+                scale_factor[1],
+            )
         else:
             scale_factor = (1.0, 1.0)
 
@@ -171,6 +176,11 @@ def postprocess_cjk_extended_static_font(
     style_compact: str,
     locale_suffix: str | None = None,
 ) -> str:
+    logger.debug(
+        "Postprocess CJK static font: locale=%s, style=%s",
+        entry.display_name,
+        style_compact,
+    )
     remove_target_glyph(font, ".1")
     postscript_name = apply_cjk_names(
         font,

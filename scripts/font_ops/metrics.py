@@ -5,6 +5,7 @@ from typing import cast
 from fontTools.ttLib import TTFont
 
 from scripts.font_ops.fonttools_types import OS2Table
+from scripts.utils.logging import logger
 
 
 def verify_glyph_width(
@@ -17,7 +18,7 @@ def verify_glyph_width(
             result.append([name, width])
 
     if not result:
-        print(f"✅ Verified glyph width in {file_name}")
+        logger.debug("Verified glyph widths: file=%s", file_name)
         return
 
     unexpected_glyphs = "\n".join(f"{name}  =>  {width}" for name, width in result)
@@ -40,7 +41,11 @@ def adjust_line_height(
     new_ascender = int(round(target_total_height * ascender_ratio))
     new_descender = new_ascender - target_total_height
 
-    print(f"Change vertical metric to [{new_ascender}, {new_descender}]")
+    logger.debug(
+        "Update vertical metrics: ascender=%s, descender=%s",
+        new_ascender,
+        new_descender,
+    )
     font["head"].yMax = new_ascender
     font["head"].yMin = new_descender
     font["hhea"].ascent = new_ascender

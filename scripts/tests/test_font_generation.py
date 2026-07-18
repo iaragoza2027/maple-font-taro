@@ -3,8 +3,6 @@ from __future__ import annotations
 import tempfile
 import unittest
 import json
-from contextlib import redirect_stdout
-from io import StringIO
 from pathlib import Path
 from threading import Barrier, current_thread
 from unittest.mock import patch
@@ -154,8 +152,7 @@ class GlyphsVariableSourceTest(unittest.TestCase):
                 prepare_glyphs_source(italic_path, "italic"),
             )
 
-            console = StringIO()
-            with redirect_stdout(console):
+            with self.assertLogs("scripts", level="INFO") as logs:
                 report_path = write_source_issue_report(prepared, tmp_path / "fonts")
 
             self.assertEqual(report_path, tmp_path / "fonts" / "source-issues.json")
@@ -170,8 +167,8 @@ class GlyphsVariableSourceTest(unittest.TestCase):
                 [item["glyph"] for item in report["italic"]["errors"]],
                 ["orphan"],
             )
-            self.assertNotIn("A.bg", console.getvalue())
-            self.assertNotIn("orphan", console.getvalue())
+            self.assertNotIn("A.bg", "\n".join(logs.output))
+            self.assertNotIn("orphan", "\n".join(logs.output))
 
     def test_regular_and_italic_errors_are_aggregated_before_generation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

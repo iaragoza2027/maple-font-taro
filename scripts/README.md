@@ -13,6 +13,17 @@ and task-runner implementation.
 - `resolver.py` converts config file and CLI inputs into a resolved build config,
   runtime output paths, and CJK static base resolution decisions.
 
+## Logging
+
+CLI entrypoints configure one `scripts` logger to write plain `[LEVEL] message`
+records to stderr. Adjacent groups with different levels or top-level tasks are
+separated by one blank line. Set `MAPLE_LOG_LEVEL` to `DEBUG`, `INFO`, `WARNING`,
+`ERROR`, or `CRITICAL` to control verbosity; the default is `INFO`.
+
+Machine-readable dry-run output remains on stdout. In particular, CI keeps
+`build.py --dry` as JSON-only stdout so it can be piped to tools such as `jq`.
+Worker processes configure the same logger before running font jobs.
+
 ## Files
 
 | File | Purpose |
@@ -116,16 +127,15 @@ flowchart TD
     AG --> AH["update static names and features"]
     AH --> AI["verify glyph width"]
     AI --> AJ["publish fonts/TTF and fonts/OTF"]
-    AJ --> AK{"woff2 wanted and not debug?"}
-    AK -->|"yes"| AL["convert_to_web"]
-    AK -->|"no"| AM["skip WOFF2"]
-    AL --> AQ["select_build_files fonts/TTF"]
-    AM --> AQ
+    AJ --> AQ["select_build_files fonts/TTF"]
     AQ --> AR["Create MonoAutohintJob list"]
     AR --> AS["run_process_jobs build_mono_autohint_job"]
     AS --> AT["patch hinted feature set"]
     AT --> AU["ttfautohint with Regular reference"]
     AU --> AV["save fonts/TTF-AutoHint file"]
+    AV --> AK{"woff2 wanted and not debug?"}
+    AK -->|"yes"| AL["WOFF2 task: run_process_jobs build_woff2_font_job"]
+    AK -->|"no"| AM["skip WOFF2"]
 ```
 
 The precompiled `source/MapleMono[wght]-VF.ttf` and

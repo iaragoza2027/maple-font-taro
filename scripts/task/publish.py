@@ -5,6 +5,7 @@ import subprocess
 from pathlib import Path
 
 from scripts.utils.process import is_ci
+from scripts.utils.logging import logger
 
 
 def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):
@@ -27,7 +28,7 @@ def publish(write: bool, dry: bool = not is_ci()):
     tag_list = get_output(["git", "tag", "--list", "--sort=committerdate"]).split("\n")
     prev_tag = tag_list[-2]
     tag = tag_list[-1]
-    print(f"Tag: {prev_tag} -> {tag}")
+    logger.info("Publish release: previous_tag=%s, tag=%s", prev_tag, tag)
 
     changelog = get_output(
         ["git", "log", "--pretty=format:- %s\n%b", f"{prev_tag}..{tag}"]

@@ -13,6 +13,8 @@ from fontTools.ttLib.tables._g_l_y_f import GlyphCoordinates
 from fontTools.ttLib.tables.TupleVariation import TupleVariation
 from fontTools.varLib.instancer import otRound
 
+from scripts.utils.logging import logger
+
 from scripts.font_ops.fonttools_types import (
     HeadTable,
     HheaTable,
@@ -399,10 +401,11 @@ def make_italic_variable_font(
 ) -> TTFont:
     """Convert a loaded variable font into an italic variable font in place."""
     skew_factor = math.tan(math.radians(italic_angle_deg))
-    print(f"Italic angle: {italic_angle_deg:g} degrees")
-    print(f"Skew factor: {skew_factor:.6f}")
-    print(
-        f"Building italic masters from {len(font.getGlyphOrder())} CN extension glyphs..."
+    logger.debug(
+        "Build italic CJK masters: angle=%g, skew_factor=%.6f, glyphs=%s",
+        italic_angle_deg,
+        skew_factor,
+        len(font.getGlyphOrder()),
     )
 
     if masters_are_italic:

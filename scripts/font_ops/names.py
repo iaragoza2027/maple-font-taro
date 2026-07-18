@@ -7,6 +7,8 @@ from fontTools.ttLib import TTFont
 if TYPE_CHECKING:
     from scripts.config.base import ResolvedBuildConfig
 
+from scripts.utils.logging import logger
+
 
 default_weight_map = {
     "thin": 100,
@@ -71,8 +73,10 @@ def update_font_names(
 ):
     font["name"].removeNames(platformID=1)
     if len(family_name) > 31:
-        print(
-            f"⚠️ The family name [{family_name}] is too long (> 31) for some old Windows softwares"
+        logger.warning(
+            "Family name may exceed legacy Windows limits: family=%s, length=%s",
+            family_name,
+            len(family_name),
         )
     set_font_name(font, family_name, 1)
     set_font_name(font, style_name, 2)

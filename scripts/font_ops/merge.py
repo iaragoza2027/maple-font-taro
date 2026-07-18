@@ -6,6 +6,7 @@ from fontTools.merge import Merger
 from fontTools.ttLib import TTFont
 
 from scripts.font_ops.fonttools_types import HheaTable
+from scripts.utils.logging import logger
 
 
 def merge_ttfonts(
@@ -37,7 +38,7 @@ def merge_ttfonts(
             glyphs_to_add.append(glyph_name)
 
         if not glyphs_to_add:
-            print("No new glyphs to merge")
+            logger.debug("Skip font merge because no new glyphs were found")
             return base_font
 
         updated_glyph_order = base_glyph_order + glyphs_to_add
@@ -59,6 +60,5 @@ def merge_ttfonts(
                 )
             cast(HheaTable, base_font["hhea"]).recalc(base_font)
         return base_font
-    except Exception as error:
-        print(f"Error merging fonts: {error}")
+    except Exception:
         raise

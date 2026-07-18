@@ -9,7 +9,8 @@ from scripts.config import (
     normalize_build_formats,
     parse_scale_factor,
 )
-from scripts.pipeline import FONT_VERSION, main as run_pipeline
+from scripts.pipeline import main as run_pipeline
+from scripts.version import project_version
 
 
 def build_parser(version: str | None = None) -> argparse.ArgumentParser:
@@ -20,7 +21,7 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
         "-v",
         "--version",
         action="version",
-        version=f"Maple Mono Builder v{version or FONT_VERSION}",
+        version=f"Maple Mono Builder {version or f'v{project_version()}'}",
     )
     parser.add_argument(
         "-d",

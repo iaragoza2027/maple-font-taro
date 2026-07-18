@@ -145,16 +145,23 @@ def generate_fea_string_cn_only():
 
 
 def get_all_calt_text():
-    result: list[str] = []
+    previous_infinite = infinite_helper.get()
+    infinite_helper.set(True)
+    try:
+        result: list[str] = []
 
-    for item in ast.recursive_iterate(get_calt_lookup(cls_var, cls_hex_letter, True)):
-        if isinstance(item, ast.Lookup) and item.desc:
-            if item.name == "escape":
-                result.append(item.desc.replace("\\ ", "\\\\ "))
-            elif item.name.startswith("infinite"):
-                result.extend(item.desc.split(" "))
-            elif not item.name.endswith("__"):
-                result.append(item.desc)
+        for item in ast.recursive_iterate(
+            get_calt_lookup(cls_var, cls_hex_letter, True)
+        ):
+            if isinstance(item, ast.Lookup) and item.desc:
+                if item.name == "escape":
+                    result.append(item.desc.replace("\\ ", "\\\\ "))
+                elif item.name.startswith("infinite"):
+                    result.extend(item.desc.split(" "))
+                elif not item.name.endswith("__"):
+                    result.append(item.desc)
+    finally:
+        infinite_helper.set(previous_infinite)
 
     # Split into three columns
     third = (len(result) + 2) // 3  # Round up for numbers not divisible by 3

@@ -17,9 +17,11 @@ Maple Mono is an open-source monospace font project. Keep changes small, determi
 - `build.py`: Public font-build CLI.
 - `task.py`: Public task-runner CLI.
 - `scripts/`: Python implementation package. Use `scripts.*` imports for cross-module imports.
-  - `scripts/build/`: Build configuration, resolution, stages, and pipeline.
-  - `scripts/common/`: Filesystem, process, archive, and download infrastructure.
-  - `scripts/font/`: Shared FontTools operations, transforms, and protocols.
+  - `scripts/config/`: Build configuration, CLI parsing, and output paths.
+  - `scripts/pipeline.py`: Public build entrypoint and build orchestration.
+  - `scripts/resolver.py`: Build configuration and runtime resolution.
+  - `scripts/utils/`: Filesystem, process, archive, download, errors, and version helpers.
+  - `scripts/font_ops/`: Shared font and glyph operations, transforms, and protocols.
   - `scripts/cjk/`: CJK models, configuration, variable-font operations, presets, and pipeline.
   - `scripts/feature/`: Typed feature catalog, compiler, freeze logic, and feature application.
   - `scripts/task/`: Task-runner commands.
@@ -65,7 +67,7 @@ bun run build
 ## Validation by Change Type
 
 - **Python changes:** Run Ruff format check, Ruff lint, ty, and the unit suite. Apply formatting with `uv run ruff format <paths>` when needed; do not hand-format generated files.
-- **FontTools type-adaptation changes:** Run `uv run ty check`; keep table-field types in `scripts/fonttools_types.py` precise enough to expose invalid field names and values.
+- **FontTools type-adaptation changes:** Run `uv run ty check`; keep table-field types in `scripts/font_ops/fonttools_types.py` precise enough to expose invalid field names and values.
 - **Feature changes under `scripts/feature/`:** Run `uv run task.py fea`, then inspect all generated changes before keeping them.
 - **Build configuration or pipeline changes:** Start with `uv run build.py --dry`. Use `--debug`, `--ttf-only`, and `--least-styles` before attempting a full build.
 - **CJK changes:** Avoid full CJK builds unless required; they may download large source archives and take a long time.
@@ -99,7 +101,7 @@ Treat `fonts/` as disposable build output. Do not commit generated churn unless 
 - Keep import paths rooted at `scripts.*`; do not reintroduce the previous package namespace or filesystem paths.
 - Keep output ordering stable to minimize generated diffs.
 - Use structured parsing for JSON and font data. Add comments only for non-obvious font or build behavior.
-- ty checks FontTools table fields through `scripts/fonttools_types.py`. Add only verified fields and use narrow `Protocol` casts at the table boundary instead of suppressing diagnostics or casting to `Any`.
+- ty checks FontTools table fields through `scripts/font_ops/fonttools_types.py`. Add only verified fields and use narrow `Protocol` casts at the table boundary instead of suppressing diagnostics or casting to `Any`.
 
 ## Dependencies, Network, and Release Safety
 

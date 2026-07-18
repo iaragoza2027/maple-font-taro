@@ -7,7 +7,7 @@ from pathlib import Path
 import shutil
 from typing import Any, Literal
 
-from scripts.build.config import (
+from scripts.config.base import (
     BuildBehaviorConfig,
     BuildIdentityConfig,
     BuildMetricsConfig,
@@ -27,17 +27,15 @@ from scripts.build.config import (
     normalize_cjk_locale_list,
     parse_scale_factor,
 )
-from scripts.build.errors import BuildDependencyError
+from scripts.utils.errors import BuildDependencyError
 from scripts.cjk.config import config_from_data
 from scripts.cjk.models import CJKBuildConfig
 from scripts.cjk.presets import build_preset_config, get_preset
-from scripts.common.downloads import check_font_patcher, download_zip_and_extract
-from scripts.common.files import join_path
-from scripts.common.process import get_font_forge_bin
+from scripts.utils.downloads import check_font_patcher, download_zip_and_extract
+from scripts.utils.files import join_path
+from scripts.utils.process import get_font_forge_bin
 from scripts.feature.compiler import normal_enabled_features
-from scripts.font.operations import (
-    get_directory_hash,
-)
+from scripts.utils.files import get_directory_hash
 
 
 def check_file_count(

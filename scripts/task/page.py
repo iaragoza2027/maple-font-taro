@@ -15,14 +15,14 @@ from scripts.feature.compiler import (
     get_ss_version_info,
     get_total_feat_ts,
 )
-from scripts.common.files import (
+from scripts.utils.files import (
     join_path,
     read_json,
     read_text,
     write_json,
     write_text,
 )
-from scripts.common.process import run as run_command
+from scripts.utils.process import run as run_command
 
 
 def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):

@@ -20,16 +20,16 @@ from glyphsLib.classes import (
 )
 from fontTools.ttLib import TTFont
 
-from scripts.build.config import ResolvedBuildConfig
+from scripts.config.base import ResolvedBuildConfig
 from scripts.feature.apply import patch_font_feature
-from scripts.font.generation import (
+from scripts.font_ops.glyphs import (
     SourceCompatibilityError,
     generate_variable_font,
     prepare_glyphs_variable_source,
     validate_source_reports,
     write_source_issue_report,
 )
-from scripts.font.operations import add_ital_axis_to_stat
+from scripts.font_ops.opentype import add_ital_axis_to_stat
 
 
 def write_glyphs_fixture(

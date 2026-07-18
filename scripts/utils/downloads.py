@@ -6,7 +6,7 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 from zipfile import ZipFile
 
-from scripts.common.process import is_ci
+from scripts.utils.process import is_ci
 
 
 def download_file(url: str, target_path: str | Path) -> None:

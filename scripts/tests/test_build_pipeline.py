@@ -5,14 +5,14 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts.build.config import CJKCommonBuildOptions, ResolvedCJKBuildEntry
-from scripts.build.pipeline import (
+from scripts.config.base import CJKCommonBuildOptions, ResolvedCJKBuildEntry
+from scripts.pipeline import (
     MapleBuildPipeline,
     build_cjk_extended_variable_outputs,
     collect_build_files,
     prune_build_files,
 )
-from scripts.build.resolver import BuildConfigResolver, BuildRuntimeContext
+from scripts.config.resolver import BuildConfigResolver, BuildRuntimeContext
 from scripts.cjk.models import CJKBuildConfig, CJKSourceConfig
 from scripts.cjk.presets import CJKPresetId, build_preset_config, get_preset
 
@@ -107,27 +107,27 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                                 side_effect=lambda: events.append("finish"),
                             ):
                                 with patch(
-                                    "scripts.build.pipeline.build_variable_fonts",
+                                    "scripts.pipeline.build_variable_fonts",
                                     side_effect=lambda *_: events.append("variable"),
                                 ):
                                     with patch(
-                                        "scripts.build.pipeline.build_base_fonts",
+                                        "scripts.pipeline.build_base_fonts",
                                         side_effect=lambda *_: events.append(
                                             "static-base"
                                         ),
                                     ):
                                         with patch(
-                                            "scripts.build.pipeline.build_nerd_fonts",
+                                            "scripts.pipeline.build_nerd_fonts",
                                             side_effect=lambda *_: events.append("nf"),
                                         ):
                                             with patch(
-                                                "scripts.build.pipeline.build_cjk_extended_static_outputs",
+                                                "scripts.pipeline.build_cjk_extended_static_outputs",
                                                 side_effect=lambda *_: events.append(
                                                     "cjk-static"
                                                 ),
                                             ):
                                                 with patch(
-                                                    "scripts.build.pipeline.cleanup_unselected_base_formats",
+                                                    "scripts.pipeline.cleanup_unselected_base_formats",
                                                     side_effect=lambda *_: (
                                                         events.append("cleanup")
                                                     ),
@@ -186,16 +186,16 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                                 side_effect=lambda: events.append("finish"),
                             ):
                                 with patch(
-                                    "scripts.build.pipeline.build_variable_fonts"
+                                    "scripts.pipeline.build_variable_fonts"
                                 ) as build_variable_mock:
                                     with patch(
-                                        "scripts.build.pipeline.build_base_fonts"
+                                        "scripts.pipeline.build_base_fonts"
                                     ) as build_base_mock:
                                         with patch(
-                                            "scripts.build.pipeline.build_nerd_fonts"
+                                            "scripts.pipeline.build_nerd_fonts"
                                         ) as build_nf_mock:
                                             with patch(
-                                                "scripts.build.pipeline.build_cjk_extended_static_outputs"
+                                                "scripts.pipeline.build_cjk_extended_static_outputs"
                                             ) as build_cjk_mock:
                                                 pipeline.build()
 
@@ -217,7 +217,7 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
 
             pipeline = MapleBuildPipeline(font_config, runtime_context)
             with patch(
-                "scripts.build.pipeline.read_font_vertical_metric",
+                "scripts.pipeline.read_font_vertical_metric",
                 return_value=(1200, -320),
             ) as read_metric_mock:
                 pipeline.reuse_base_output_cache()
@@ -233,7 +233,7 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             captured_output_dirs: list[Path] = []
 
             with patch(
-                "scripts.build.pipeline.build_cjk_extended_variable_fonts",
+                "scripts.pipeline.build_cjk_extended_variable_fonts",
                 side_effect=lambda entry, *_args: (
                     captured_output_dirs.append(_args[-1]) or None
                 ),

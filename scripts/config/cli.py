@@ -1,16 +1,15 @@
-"""CLI entrypoint and argument parsing for the Maple build pipeline."""
+"""Argument parsing helpers for the Maple build pipeline."""
 
 from __future__ import annotations
 
 import argparse
 
-from scripts.build.config import (
+from scripts.config.base import (
     WIDTH_MAP,
     normalize_build_formats,
     parse_scale_factor,
 )
-from scripts.build.pipeline import main as run_pipeline
-from scripts.version import project_version
+from scripts.utils.version import project_version
 
 
 def build_parser(version: str | None = None) -> argparse.ArgumentParser:
@@ -253,8 +252,4 @@ def parse_args(
     return build_parser(version=version).parse_args(args)
 
 
-def main(args: list[str] | None = None, version: str | None = None) -> None:
-    run_pipeline(parse_args(args, version=version), version=version)
-
-
-__all__ = ["build_parser", "parse_args", "main"]
+__all__ = ["build_parser", "parse_args"]

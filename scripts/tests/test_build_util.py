@@ -6,13 +6,14 @@ from unittest.mock import patch
 
 from fontTools.ttLib import TTFont
 
-from scripts.build.config import (
+from scripts.config.base import (
     CJKCommonBuildOptions,
     ResolvedCJKBuildEntry,
 )
-from scripts.build.errors import BuildDependencyError
-from scripts.build.resolver import BuildConfigResolver, BuildRuntimeContext
-from scripts.build.font_ops import check_ftcli, postprocess_cjk_extended_static_font
+from scripts.utils.errors import BuildDependencyError
+from scripts.config.resolver import BuildConfigResolver, BuildRuntimeContext
+from scripts.cjk.static import postprocess_cjk_extended_static_font
+from scripts.utils.dependencies import check_ftcli
 from scripts.cjk.models import CJKBuildConfig, CJKSourceConfig
 from scripts.cjk.presets import build_preset_config, get_preset
 
@@ -68,7 +69,7 @@ def make_custom_entry() -> ResolvedCJKBuildEntry:
 class CheckFtcliTest(unittest.TestCase):
     def test_check_ftcli_raises_dependency_error_when_package_missing(self) -> None:
         with patch(
-            "scripts.build.font_ops.importlib.util.find_spec",
+            "scripts.utils.dependencies.importlib.util.find_spec",
             side_effect=[None, None],
         ):
             with self.assertRaisesRegex(
@@ -83,19 +84,19 @@ class PostprocessCJKStaticFontTest(unittest.TestCase):
         font_config = BuildConfigResolver().load_defaults()
         runtime_context = make_runtime_context()
         with (
-            patch("scripts.build.font_ops.remove_target_glyph"),
+            patch("scripts.cjk.static.remove_target_glyph"),
             patch(
-                "scripts.build.font_ops.apply_cjk_names",
+                "scripts.cjk.static.apply_cjk_names",
                 return_value="MapleMono-CN-Regular",
             ),
             patch(
-                "scripts.build.font_ops.apply_cjk_width_transform",
+                "scripts.cjk.static.apply_cjk_width_transform",
                 return_value=False,
             ),
-            patch("scripts.build.font_ops.apply_cjk_meta_table") as apply_meta_mock,
-            patch("scripts.build.font_ops.apply_cjk_metrics"),
-            patch("scripts.build.font_ops.verify_cjk_widths"),
-            patch("scripts.build.font_ops.patch_font_feature"),
+            patch("scripts.cjk.static.apply_cjk_meta_table") as apply_meta_mock,
+            patch("scripts.cjk.static.apply_cjk_metrics"),
+            patch("scripts.cjk.static.verify_cjk_widths"),
+            patch("scripts.cjk.static.patch_font_feature"),
         ):
             postprocess_cjk_extended_static_font(
                 TTFont(),
@@ -111,19 +112,19 @@ class PostprocessCJKStaticFontTest(unittest.TestCase):
         font_config = BuildConfigResolver().load_defaults()
         runtime_context = make_runtime_context()
         with (
-            patch("scripts.build.font_ops.remove_target_glyph"),
+            patch("scripts.cjk.static.remove_target_glyph"),
             patch(
-                "scripts.build.font_ops.apply_cjk_names",
+                "scripts.cjk.static.apply_cjk_names",
                 return_value="MapleMono-HK-Regular",
             ),
             patch(
-                "scripts.build.font_ops.apply_cjk_width_transform",
+                "scripts.cjk.static.apply_cjk_width_transform",
                 return_value=False,
             ),
-            patch("scripts.build.font_ops.apply_cjk_meta_table") as apply_meta_mock,
-            patch("scripts.build.font_ops.apply_cjk_metrics"),
-            patch("scripts.build.font_ops.verify_cjk_widths"),
-            patch("scripts.build.font_ops.patch_font_feature"),
+            patch("scripts.cjk.static.apply_cjk_meta_table") as apply_meta_mock,
+            patch("scripts.cjk.static.apply_cjk_metrics"),
+            patch("scripts.cjk.static.verify_cjk_widths"),
+            patch("scripts.cjk.static.patch_font_feature"),
         ):
             postprocess_cjk_extended_static_font(
                 TTFont(),

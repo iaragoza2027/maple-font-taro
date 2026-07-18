@@ -4,6 +4,10 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
+
+from scripts.config import cli
+from scripts.pipeline import main as run_build_cli
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -38,6 +42,16 @@ class PublicCliContractTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 2)
         self.assertIn("unrecognized arguments: --unknown-option", result.stderr)
+
+    def test_pipeline_owns_cli_execution(self) -> None:
+        self.assertFalse(hasattr(cli, "main"))
+
+        with patch("scripts.pipeline.run") as run_pipeline:
+            run_build_cli(["--dry"], version="v7.9")
+
+        parsed_args = run_pipeline.call_args.args[0]
+        self.assertTrue(parsed_args.dry)
+        self.assertEqual(run_pipeline.call_args.kwargs["version"], "v7.9")
 
 
 if __name__ == "__main__":

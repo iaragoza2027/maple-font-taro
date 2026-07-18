@@ -1,89 +1,27 @@
 from __future__ import annotations
 
-import importlib.util
 from pathlib import Path
 from typing import cast
 
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables._m_e_t_a import table__m_e_t_a
 
-from scripts.build.config import (
+from scripts.config.base import (
     CJKCommonBuildOptions,
     ResolvedBuildConfig,
     ResolvedCJKBuildEntry,
 )
-from scripts.build.errors import BuildDependencyError
-from scripts.build.resolver import BuildRuntimeContext
-from scripts.font.types import HheaTable, OS2Table, PostTable
-from scripts.font.transform import change_glyph_width_or_scale
-from scripts.feature.apply import patch_font_feature
-from scripts.font.operations import (
-    adjust_line_height,
+from scripts.config.resolver import BuildRuntimeContext
+from scripts.font_ops.fonttools_types import HheaTable, OS2Table, PostTable
+from scripts.font_ops.glyph_transform import change_glyph_width_or_scale
+from scripts.font_ops.metrics import adjust_line_height, verify_glyph_width
+from scripts.font_ops.names import (
+    get_unique_identifier,
     parse_style_name,
-    remove_target_glyph,
     update_font_names,
-    verify_glyph_width,
 )
-
-
-def parse_major_version(version: str) -> int | None:
-    try:
-        return int(version.split(".", 1)[0])
-    except (TypeError, ValueError):
-        return None
-
-
-def check_ftcli() -> None:
-    package_name_v1 = "foundryToolsCLI"
-    package_spec_v1 = importlib.util.find_spec(package_name_v1)
-    package_name_v2 = "foundrytools_cli"
-    package_spec_v2 = importlib.util.find_spec(package_name_v2)
-
-    if not package_spec_v1 and not package_spec_v2:
-        raise BuildDependencyError(
-            "foundrytools-cli is not found. Please run `pip install foundrytools-cli`"
-        )
-
-    try:
-        installed_package = importlib.import_module(
-            package_name_v2 if package_spec_v2 else package_name_v1
-        )
-        version = getattr(installed_package, "__version__", None)
-        major_version = parse_major_version(version) if version else None
-        if major_version is not None and major_version < 2:
-            raise BuildDependencyError(
-                f"foundrytools-cli version {version} is too old. Please run `pip install --upgrade foundrytools-cli`"
-            )
-    except Exception as e:
-        if isinstance(e, BuildDependencyError):
-            raise
-        raise BuildDependencyError(
-            f"Error checking foundrytools-cli version: {e}"
-        ) from e
-
-
-def get_unique_identifier(
-    font_config: ResolvedBuildConfig,
-    postscript_name: str,
-    narrow: bool = False,
-    variable: bool = False,
-) -> str:
-    suffix = ""
-
-    if variable:
-        suffix += "Variable;"
-
-    if "NF" in postscript_name:
-        nf_ver = font_config.nerd_font.version
-        suffix += f"NF{nf_ver};"
-
-    if "CN" in postscript_name and narrow:
-        suffix += "Narrow;"
-
-    suffix += font_config.freeze_config_str
-
-    beta_str = f"-{font_config.beta}" if font_config.beta else ""
-    return f"{font_config.version_str}{beta_str};SUBF;{postscript_name};2024;FL830;{suffix}"
+from scripts.font_ops.opentype import remove_target_glyph
+from scripts.feature.apply import patch_font_feature
 
 
 def build_cjk_family_name(font_config: ResolvedBuildConfig, locale_suffix: str) -> str:

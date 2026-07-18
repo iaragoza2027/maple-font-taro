@@ -8,14 +8,14 @@ from typing import Callable
 
 from fontTools.ttLib import TTFont
 
-from scripts.build.cli import main as build_main
-from scripts.common.files import (
+from scripts.pipeline import main as build_main
+from scripts.utils.files import (
     join_path,
     write_json,
 )
-from scripts.common.process import run as run_command
-from scripts.font.operations import default_weight_map
-from scripts.version import project_version
+from scripts.utils.process import run as run_command
+from scripts.font_ops.names import default_weight_map
+from scripts.utils.version import project_version
 
 
 def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):
@@ -80,17 +80,14 @@ def git_release_commit(tag, files):
     print("Pushed to origin")
 
 
-def format_font_map_key(key: int) -> str:
-    formatted_key = f"{key:05X}"
-    if formatted_key.startswith("0"):
-        return formatted_key[1:]
-    return formatted_key
-
-
 def write_unicode_map_json(font_path: str, output: str):
     font = TTFont(font_path)
     cmap = font.getBestCmap() or {}
-    font_map = {format_font_map_key(k): v for k, v in cmap.items() if k is not None}
+    font_map = {
+        f"{codepoint:04X}" if codepoint < 0x10000 else f"{codepoint:05X}": glyph
+        for codepoint, glyph in cmap.items()
+        if codepoint is not None
+    }
     write_json(output, font_map)
     print(f"Write font map to {output}")
     font.close()

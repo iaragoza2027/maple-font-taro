@@ -12,23 +12,21 @@ from typing import Callable, cast
 from fontTools.ttLib import TTFont
 from fontTools.varLib.instancer import instantiateVariableFont
 from ttfautohint import StemWidthMode, ttfautohint
-from scripts.font.transform import smart_change_width
-from scripts.build.config import ResolvedBuildConfig, ResolvedCJKBuildEntry
-from scripts.build.errors import BuildDependencyError
-from scripts.build.paths import (
+from scripts.font_ops.glyph_transform import smart_change_width
+from scripts.config.base import ResolvedBuildConfig, ResolvedCJKBuildEntry
+from scripts.utils.errors import BuildDependencyError
+from scripts.config.paths import (
     merged_variable_name,
     static_output_dir,
     variable_output_dir,
 )
-from scripts.build.resolver import BuildConfigResolver, BuildRuntimeContext
-from scripts.build.font_ops import (
+from scripts.config.resolver import BuildConfigResolver, BuildRuntimeContext
+from scripts.cjk.static import (
     apply_cjk_meta_table,
     build_cjk_family_name,
     build_cjk_postscript_prefix,
-    check_ftcli,
     get_core_static_font_styles,
     get_static_style_name,
-    get_unique_identifier,
     postprocess_cjk_extended_static_font,
 )
 from scripts.cjk.pipeline import (
@@ -38,28 +36,30 @@ from scripts.cjk.pipeline import (
     get_static_worker_font,
 )
 from scripts.cjk.variable import load_font_eager, merge_vf
-from scripts.common.files import join_path
-from scripts.common.process import is_ci, run
+from scripts.utils.dependencies import check_ftcli
+from scripts.utils.files import archive_fonts, join_path
+from scripts.utils.process import is_ci, run as run_command
 from scripts.feature.apply import patch_font_feature
-from scripts.font.generation import (
+from scripts.font_ops.glyphs import (
     GlyphsSourceReport,
     SourceCompatibilityError,
     SourceStyle,
     generate_variable_font,
     validate_source_reports,
 )
-from scripts.font.types import HeadTable, OS2Table
-from scripts.font.operations import (
+from scripts.font_ops.fonttools_types import HeadTable, OS2Table
+from scripts.font_ops.merge import merge_ttfonts
+from scripts.font_ops.metrics import adjust_line_height, verify_glyph_width
+from scripts.font_ops.names import (
+    get_unique_identifier,
+    parse_style_name,
+    update_font_names,
+)
+from scripts.font_ops.opentype import (
     add_gasp,
     add_ital_axis_to_stat,
-    adjust_line_height,
     alias_codepoints,
-    parse_style_name,
     patch_instance,
-    update_font_names,
-    verify_glyph_width,
-    archive_fonts,
-    merge_ttfonts,
 )
 
 
@@ -114,12 +114,12 @@ def build_mono(
     print(f"👉 Minimal version for {f}")
     source_path = join_path(runtime_context.output_ttf, f)
 
-    run(f"ftcli fix italic-angle {source_path}")
-    run(f"ftcli fix monospace {source_path}")
-    run(f"ftcli name strip-names {source_path}")
-    run(f"ftcli font correct-contours {source_path}")
-    run(f"ftcli ttf dehint {source_path}")
-    run(f"ftcli fix transformed-components {source_path}")
+    run_command(f"ftcli fix italic-angle {source_path}")
+    run_command(f"ftcli fix monospace {source_path}")
+    run_command(f"ftcli name strip-names {source_path}")
+    run_command(f"ftcli font correct-contours {source_path}")
+    run_command(f"ftcli ttf dehint {source_path}")
+    run_command(f"ftcli fix transformed-components {source_path}")
 
     font = TTFont(source_path)
 
@@ -178,7 +178,7 @@ def build_mono(
 
     if font_config.wants_format("woff2") and not font_config.debug:
         print(f"Convert {postscript_name}.ttf to WOFF2")
-        run(
+        run_command(
             f"ftcli converter ft2wf {target_path} -out {runtime_context.output_woff2} -f woff2"
         )
 
@@ -188,10 +188,12 @@ def build_mono(
             path.basename(target_path).replace(".ttf", ".otf"),
         )
         print(f"Convert {postscript_name}.ttf to OTF")
-        run(f"ftcli converter ttf2otf {target_path} -out {runtime_context.output_otf}")
+        run_command(
+            f"ftcli converter ttf2otf {target_path} -out {runtime_context.output_otf}"
+        )
         print(f"Optimize {postscript_name}.otf")
-        run(f"ftcli font correct-contours {_otf_path}")
-        run(f"ftcli cff set-names --version {font_config.version} {_otf_path}")
+        run_command(f"ftcli font correct-contours {_otf_path}")
+        run_command(f"ftcli cff set-names --version {font_config.version} {_otf_path}")
 
 
 def build_mono_job(job: MonoBuildJob) -> None:
@@ -338,7 +340,7 @@ def build_nf_by_font_patcher(
     extra_args = font_config.nerd_font.extra_args
     _nf_args += extra_args
 
-    run(_nf_args + [join_path(runtime_context.ttf_base_dir, font_basename)])
+    run_command(_nf_args + [join_path(runtime_context.ttf_base_dir, font_basename)])
 
     nf_file_name = "NerdFont" + font_config.get_nf_suffix()
 
@@ -693,7 +695,7 @@ def build_variable_fonts(
     # Italic angle is correct here.
     # run(f"ftcli fix italic-angle {runtime_context.output_variable}")
 
-    run(f"ftcli fix monospace {runtime_context.output_variable}")
+    run_command(f"ftcli fix monospace {runtime_context.output_variable}")
     # run(f"ftcli fix vertical-metrics {runtime_context.output_variable}")
     # run(f"ftcli name del-mac-names -r {runtime_context.output_variable}")
 
@@ -906,7 +908,7 @@ def instantiate_cjk_extended_static_fonts(
 
     if entry.common_options.use_hinted:
         print(f"Auto hinting all {entry.display_name} glyphs")
-        run(f"ftcli ttf autohint {output_dir}")
+        run_command(f"ftcli ttf autohint {output_dir}")
 
     return output_dir
 
@@ -1037,7 +1039,7 @@ def build_cjk_extended_static_fonts_from_cache(
     if entry.common_options.use_hinted:
         print(f"Auto hinting all {entry.display_name} glyphs")
         for profile, _ in profile_core_fonts:
-            run(
+            run_command(
                 f"ftcli ttf autohint {static_output_dir(runtime_context.output_dir, profile.output_locale)}"
             )
 
@@ -1407,7 +1409,7 @@ class MapleBuildPipeline:
         )
 
 
-def main(parsed_args, version: str | None = None):
+def run(parsed_args, version: str | None = None):
     global FONT_VERSION
     try:
         check_ftcli()
@@ -1435,3 +1437,9 @@ def main(parsed_args, version: str | None = None):
     except (BuildDependencyError, SourceCompatibilityError) as error:
         print(f"❗ {error}")
         raise SystemExit(1) from error
+
+
+def main(args: list[str] | None = None, version: str | None = None) -> None:
+    from scripts.config.cli import parse_args
+
+    run(parse_args(args, version=version), version=version)

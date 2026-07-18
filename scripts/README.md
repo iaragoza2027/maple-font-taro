@@ -5,21 +5,23 @@ and task-runner implementation.
 
 ## Architecture
 
-- `MapleBuildPipeline` in `build/pipeline.py` owns the top-level build flow, output
+- `MapleBuildPipeline` in `pipeline.py` owns the top-level build flow, output
   lifecycle, cache behavior, archive behavior, and variant sequencing.
 - Process-pool tasks run through top-level `*_job` functions with explicit job
   dataclasses so spawn/pickle behavior stays stable across platforms.
-- `font/` contains reusable naming, metrics, merge, and transform operations.
-- `build/resolver.py` converts config file and CLI inputs into a resolved build config,
+- `font_ops/` contains reusable font naming, metrics, OpenType, merge, and glyph transform operations.
+- `resolver.py` converts config file and CLI inputs into a resolved build config,
   runtime output paths, and CJK static base resolution decisions.
 
 ## Files
 
 | File | Purpose |
 | ---- | ------- |
-| `build/` | CLI, resolved configuration, runtime planning, font stages, and orchestration. |
-| `common/` | Filesystem, process, download, and archive infrastructure. |
-| `font/` | Shared FontTools operations, transforms, and typed table boundaries. |
+| `config/` | CLI parsing, resolved configuration models, and output path helpers. |
+| `pipeline.py` | Public build entrypoint and build orchestration. |
+| `resolver.py` | Build configuration and runtime planning. |
+| `utils/` | Filesystem, process, download, archive, errors, and version helpers. |
+| `font_ops/` | Shared font and glyph operations, transforms, and typed FontTools table boundaries. |
 | `cjk/` | CJK data models, JSON/CLI configuration, presets, variable-font operations, and pipeline. |
 | `feature/` | Ordered feature catalog, compiler, freeze implementation, and font application. |
 | `task/` | Thin task parser and workflow adapters. |
@@ -28,10 +30,10 @@ and task-runner implementation.
 
 ```mermaid
 flowchart TD
-    START["build.py"] --> CLI["scripts.build.cli.main"]
-    CLI --> PARSE["parse_args"]
-    PARSE --> PIPE_MAIN["pipeline.main(parsed_args, version)"]
-    PIPE_MAIN --> CHECK["check_ftcli"]
+    START["build.py"] --> PIPE_MAIN["scripts.pipeline.main(args, version)"]
+    PIPE_MAIN --> PARSE["scripts.config.cli.parse_args"]
+    PARSE --> RUN["pipeline.run(parsed_args, version)"]
+    RUN --> CHECK["check_ftcli"]
     CHECK --> RESOLVE["BuildConfigResolver.resolve"]
     RESOLVE --> PLAN["BuildRuntimeContext.from_config"]
 
@@ -273,10 +275,10 @@ flowchart TD
 
 | Decision | Rationale |
 | -------- | --------- |
-| Keep the public `pipeline.main(parsed_args, version)` entrypoint | Preserve compatibility with `scripts.build.cli` and `build.py`. |
+| Keep `config.cli` pure and use `pipeline.main(args, version)` as the public entrypoint | Allow CLI parsing to be reused without importing or executing the build pipeline. |
 | Keep process-pool workers at module top level | Avoid pickling bound methods, closures, or partials. |
 | Use explicit job dataclasses | Make each parallel task's inputs visible and serializable. |
-| Keep helper logic in `util.py` | Reduce pipeline size while keeping lifecycle and worker code in one place. |
+| Keep build configuration and resolution outside `pipeline.py` | Keep the execution pipeline focused on build orchestration. |
 | Resolve CJK static bases in `BuildRuntimeContext` | Keep cache, download, hash, and variable fallback decisions outside the execution pipeline. |
 
 ## Main Phases

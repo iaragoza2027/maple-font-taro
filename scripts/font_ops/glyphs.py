@@ -10,7 +10,7 @@ from fontmake.font_project import FontProject
 from fontTools.designspaceLib import DesignSpaceDocument
 from glyphsLib import load, to_designspace
 
-from scripts.common.files import write_json
+from scripts.utils.files import write_json
 
 
 SourceStyle = Literal["regular", "italic"]

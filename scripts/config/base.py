@@ -14,8 +14,8 @@ from scripts.cjk.models import CJKBuildConfig
 from scripts.feature.compiler import (
     normal_enabled_features,
 )
-from scripts.feature.freeze import get_freeze_config_str
-from scripts.font.operations import default_weight_map
+from scripts.in_browser import get_freeze_config_str as get_browser_freeze_config_str
+from scripts.font_ops.names import default_weight_map
 
 if TYPE_CHECKING:
     from scripts.cjk.presets import CJKPresetSpec
@@ -89,6 +89,28 @@ def default_feature_freeze() -> dict[str, str]:
         "ss13": "ignore",
         "zero": "ignore",
     }
+
+
+def normalize_feature_freeze(config: dict[str, str], calt: bool) -> dict[str, str]:
+    normalized: dict[str, str] = {}
+    invalid_items: list[tuple[str, str]] = []
+    for key, value in config.items():
+        value_upper = value.upper()
+        if value_upper.startswith("ENABLE"):
+            normalized[key] = "1"
+        elif value_upper.startswith("DISABLE"):
+            normalized[key] = "-1"
+        elif value_upper.startswith("IGNORE"):
+            normalized[key] = "0"
+        else:
+            invalid_items.append((key, value))
+
+    if invalid_items:
+        report = ", ".join(f"{key}: {value}" for key, value in invalid_items)
+        raise TypeError(f"Invalid freeze config item: {{ {report} }}")
+
+    normalized["calt"] = "1" if calt else "0"
+    return normalized
 
 
 def default_weight_mapping() -> dict[str, int]:
@@ -451,7 +473,9 @@ class ResolvedBuildConfig:
 
     @property
     def freeze_config_str(self) -> str:
-        return get_freeze_config_str(self.feature_freeze, self.enable_ligature)
+        return get_browser_freeze_config_str(
+            normalize_feature_freeze(self.feature_freeze, self.enable_ligature)
+        )
 
     def get_target_width(self) -> int:
         return WIDTH_MAP.get(self.width, WIDTH_MAP["default"])
@@ -644,6 +668,7 @@ __all__ = [
     "normalize_build_formats",
     "normalize_cjk_config",
     "normalize_cjk_locale_list",
+    "normalize_feature_freeze",
     "parse_scale_factor",
     "serialize_cjk_config",
     "normal_enabled_features",

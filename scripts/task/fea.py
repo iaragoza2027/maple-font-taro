@@ -15,7 +15,7 @@ from scripts.feature.compiler import (
     get_total_feat_dict,
     normal_enabled_features,
 )
-from scripts.common.files import (
+from scripts.utils.files import (
     join_path,
     read_json,
     read_text,

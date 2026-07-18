@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PROJECT_SECTION_PATTERN = re.compile(
     r"^\[project\]\s*$"
     r"(?P<section>.*?)(?=^\[|\Z)",

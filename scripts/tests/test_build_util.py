@@ -10,10 +10,8 @@ from scripts.config.base import (
     CJKCommonBuildOptions,
     ResolvedCJKBuildEntry,
 )
-from scripts.utils.errors import BuildDependencyError
 from scripts.config.resolver import BuildConfigResolver, BuildRuntimeContext
 from scripts.cjk.static import postprocess_cjk_extended_static_font
-from scripts.utils.dependencies import check_ftcli
 from scripts.cjk.models import CJKBuildConfig, CJKSourceConfig
 from scripts.cjk.presets import build_preset_config, get_preset
 
@@ -64,19 +62,6 @@ def make_custom_entry() -> ResolvedCJKBuildEntry:
         common_options=CJKCommonBuildOptions(fix_meta_table=True),
         is_builtin=False,
     )
-
-
-class CheckFtcliTest(unittest.TestCase):
-    def test_check_ftcli_raises_dependency_error_when_package_missing(self) -> None:
-        with patch(
-            "scripts.utils.dependencies.importlib.util.find_spec",
-            side_effect=[None, None],
-        ):
-            with self.assertRaisesRegex(
-                BuildDependencyError,
-                "foundrytools-cli is not found",
-            ):
-                check_ftcli()
 
 
 class PostprocessCJKStaticFontTest(unittest.TestCase):

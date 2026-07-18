@@ -400,7 +400,10 @@ class BuildRuntimeContextFontPatcherTest(unittest.TestCase):
             font_config = make_font_config()
             font_config.nerd_font.use_font_patcher = True
 
-            with patch("scripts.resolver.check_font_patcher", return_value=False):
+            with patch(
+                "scripts.config.resolver.check_font_patcher",
+                return_value=False,
+            ):
                 with self.assertRaisesRegex(
                     BuildDependencyError,
                     "Nerd Font Patcher assets",

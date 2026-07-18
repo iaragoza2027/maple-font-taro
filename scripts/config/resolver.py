@@ -99,6 +99,22 @@ class BuildRuntimeContext:
                 )
                 and check_file_count(output_ttf, min_count=4, end=".ttf")
                 and check_file_count(output_ttf_hinted, min_count=4, end=".ttf")
+                and (
+                    not config.wants_format("otf")
+                    or check_file_count(
+                        join_path(output_root, "OTF"),
+                        min_count=4,
+                        end=".otf",
+                    )
+                )
+                and (
+                    not config.wants_format("woff2")
+                    or check_file_count(
+                        join_path(output_root, "Woff2"),
+                        min_count=4,
+                        end=".woff2",
+                    )
+                )
             ),
             is_nf_built=False,
             is_cjk_built=False,

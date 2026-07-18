@@ -33,8 +33,7 @@ flowchart TD
     START["build.py"] --> PIPE_MAIN["scripts.pipeline.main(args, version)"]
     PIPE_MAIN --> PARSE["scripts.config.cli.parse_args"]
     PARSE --> RUN["pipeline.run(parsed_args, version)"]
-    RUN --> CHECK["check_ftcli"]
-    CHECK --> RESOLVE["BuildConfigResolver.resolve"]
+    RUN --> RESOLVE["BuildConfigResolver.resolve"]
     RESOLVE --> PLAN["BuildRuntimeContext.from_config"]
 
     PLAN --> DRY{"dry run?"}
@@ -85,18 +84,19 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["build_variable_fonts"] --> TEMP["Create fonts/temp"]
-    TEMP --> SRC["Run regular and italic<br/>generate_variable_font workers in parallel"]
-    SRC --> CHECK["Each worker loads its .glyphs source,<br/>prepares masters, validates, and runs fontmake"]
+    A["build_fontmake_fonts"] --> TEMP["Create fonts/temp"]
+    TEMP --> SRC["Prepare regular and italic<br/>Glyphs sources once"]
+    SRC --> PREP["Fill missing master glyphs,<br/>apply aliases and width transforms"]
+    PREP --> CHECK["Validate and materialize one<br/>Designspace/UFO tree per source"]
     CHECK --> ISSUES{"Any aggregated source errors?"}
     ISSUES -->|"yes"| FAIL["Write fonts/source-issues.json<br/>and stop before publishing"]
-    ISSUES -->|"no"| B["Postprocess both raw VFs<br/>inside fonts/temp"]
-    B --> D["alias_codepoints"]
-    D --> E{"width option set?"}
-    E -->|"yes"| F["smart_change_width"]
-    E -->|"no"| G["skip width transform"]
-    F --> H["patch variable features"]
-    G --> H
+    ISSUES -->|"no"| VF["fontmake Variable TTF<br/>keep overlaps"]
+    ISSUES -->|"no"| TTF["fontmake Static TTF<br/>pathops + transformed components"]
+    ISSUES -->|"no"| OTF_DECISION{"OTF requested?"}
+    OTF_DECISION -->|"yes"| OTF["fontmake Static OTF<br/>CFF optimize + subroutinize"]
+    OTF_DECISION -->|"no"| SKIP_OTF["skip OTF"]
+
+    VF --> H["patch variable features"]
     H --> I["update variable names"]
     I --> J{"italic source?"}
     J -->|"yes"| K["add_ital_axis_to_stat"]
@@ -109,35 +109,18 @@ flowchart TD
     O --> Q["verify_glyph_width"]
     P --> Q
     Q --> R["add_gasp"]
-    R --> S["Publish both processed VFs<br/>to fonts/Variable"]
-    S --> T["ftcli fix monospace fonts/Variable"]
-    T --> U["instantiate_base_static_fonts"]
+    R --> S["set_monospace_metadata and publish<br/>fonts/Variable"]
 
-    U --> V["Read named wght instances<br/>from regular variable font"]
-    V --> W["Create MapleStaticInstanceJob<br/>for regular and italic VFs"]
-    W --> X["create_font_executor"]
-    X --> Y["top-level worker<br/>instantiate_maple_static_font_job"]
-    Y --> Z["get_static_worker_font cache"]
-    Z --> AA["instantiateVariableFont static=True"]
-    AA --> AB["save fonts/TTF raw static fonts"]
-
-    AB --> AC["build_base_fonts"]
-    AC --> AD["select_build_files fonts/TTF"]
-    AD --> AE["Create MonoBuildJob list"]
-    AE --> AF["run_process_jobs build_mono_job"]
-    AF --> AG["ftcli fix italic-angle, monospace,<br/>strip names, correct contours,<br/>dehint, transformed components"]
+    TTF --> AG["dehint and apply shared<br/>static metadata"]
+    OTF --> AG
     AG --> AH["update static names and features"]
     AH --> AI["verify glyph width"]
-    AI --> AJ["save final fonts/TTF file"]
+    AI --> AJ["publish fonts/TTF and fonts/OTF"]
     AJ --> AK{"woff2 wanted and not debug?"}
-    AK -->|"yes"| AL["ftcli converter ft2wf"]
+    AK -->|"yes"| AL["convert_to_web"]
     AK -->|"no"| AM["skip WOFF2"]
-    AL --> AN{"otf wanted and not debug?"}
-    AM --> AN
-    AN -->|"yes"| AO["ftcli ttf2otf<br/>correct contours<br/>cff set-names"]
-    AN -->|"no"| AP["skip OTF"]
-
-    AP --> AQ["select_build_files fonts/TTF"]
+    AL --> AQ["select_build_files fonts/TTF"]
+    AM --> AQ
     AQ --> AR["Create MonoAutohintJob list"]
     AR --> AS["run_process_jobs build_mono_autohint_job"]
     AS --> AT["patch hinted feature set"]
@@ -234,7 +217,7 @@ flowchart TD
     S12 --> S13["postprocess names with locale_name"]
     S13 --> S14["save fonts/LOCALE or fonts/NF-LOCALE"]
     S14 --> S15{"use_hinted?"}
-    S15 -->|"yes"| S16["ftcli ttf autohint output dirs"]
+    S15 -->|"yes"| S16["autohint_static_fonts output dirs"]
     S15 -->|"no"| S17["skip CJK autohint"]
     S16 --> S0
     S17 --> S0
@@ -288,7 +271,7 @@ flowchart TD
 | Config and CLI | `cli.py`, `BuildConfigResolver` |
 | Runtime orchestration | `MapleBuildPipeline` |
 | CJK static base resolution | `BuildRuntimeContext.resolve_cjk_static_base` |
-| Variable font build | `build_variable_fonts` |
+| Fontmake source build | `build_fontmake_fonts` |
 | Static TTF instantiation | `MapleStaticInstanceJob`, `instantiate_maple_static_font_job` |
 | Base TTF postprocess | `MonoBuildJob`, `build_mono_job` |
 | Autohint output | `MonoAutohintJob`, `build_mono_autohint_job` |

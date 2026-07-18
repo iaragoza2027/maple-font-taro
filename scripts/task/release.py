@@ -9,6 +9,7 @@ from typing import Callable
 from fontTools.ttLib import TTFont
 
 from scripts.pipeline import main as build_main
+from scripts.font_ops.conversion import convert_to_web
 from scripts.utils.files import (
     join_path,
     write_json,
@@ -107,12 +108,8 @@ def release(type: str, dry: bool):
     build_main(["--ttf-only", "--no-nerd-font", "--cn", "--no-hinted"], tag)
 
     shutil.rmtree("./cdn", ignore_errors=True)
-    run_command(
-        f"ftcli converter ft2wf -f woff2 ./fonts/TTF -out {target_fontsource_dir}"
-    )
-    run_command(
-        f"ftcli converter ft2wf -f woff ./fonts/TTF -out {target_fontsource_dir}"
-    )
+    convert_to_web("./fonts/TTF", target_fontsource_dir, flavor="woff2")
+    convert_to_web("./fonts/TTF", target_fontsource_dir, flavor="woff")
     rename_woff_files(target_fontsource_dir, format_fontsource_name)
     print("Generate fontsource files")
 
@@ -127,7 +124,7 @@ def release(type: str, dry: bool):
     woff2_dir = "woff2/var"
     if os.path.exists(target_fontsource_dir):
         shutil.rmtree(woff2_dir)
-    run_command(f"ftcli converter ft2wf -f woff2 ./fonts/Variable -out {woff2_dir}")
+    convert_to_web("./fonts/Variable", woff2_dir, flavor="woff2")
     rename_woff_files(woff2_dir, format_woff2_name)
 
     if dry:

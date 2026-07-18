@@ -6,6 +6,7 @@ from typing import Any, Protocol
 
 
 class PanoseTable(Protocol):
+    bFamilyType: int
     bProportion: int
     bSpacing: int
 
@@ -20,6 +21,7 @@ class OS2Table(Protocol):
     usWeightClass: int
     usWinAscent: int
     usWinDescent: int
+    version: int
     xAvgCharWidth: int
 
     def recalcAvgCharWidth(self, ttFont: Any) -> None: ...

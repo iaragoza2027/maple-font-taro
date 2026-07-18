@@ -6,7 +6,10 @@ import json
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
+from threading import Barrier, current_thread
+from unittest.mock import patch
 
+from fontmake.font_project import CFFOptimization, FontProject
 from glyphsLib import load
 from glyphsLib.classes import (
     GSComponent,
@@ -14,6 +17,7 @@ from glyphsLib.classes import (
     GSFont,
     GSFontMaster,
     GSGlyph,
+    GSInstance,
     GSLayer,
     GSNode,
     GSPath,
@@ -24,8 +28,10 @@ from scripts.config.base import ResolvedBuildConfig
 from scripts.feature.apply import patch_font_feature
 from scripts.font_ops.glyphs import (
     SourceCompatibilityError,
-    generate_variable_font,
-    prepare_glyphs_variable_source,
+    SourceStyle,
+    compile_fontmake_outputs,
+    materialize_prepared_source,
+    prepare_glyphs_source,
     validate_source_reports,
     write_source_issue_report,
 )
@@ -46,8 +52,15 @@ def write_glyphs_fixture(
         font.masters.append(master)
         masters[name] = master
 
+    instance = GSInstance()
+    instance.name = "Regular"
+    instance.weightValue = 400
+    font.instances.append(instance)
+
     for glyph_name, layer_names in glyph_layers.items():
         glyph = GSGlyph(glyph_name)
+        if len(glyph_name) == 1:
+            glyph.unicode = f"{ord(glyph_name):04X}"
         for layer_name in layer_names:
             master = masters[layer_name]
             layer = GSLayer()
@@ -60,14 +73,44 @@ def write_glyphs_fixture(
     font.save(path)
 
 
+def compile_fixture(
+    source_path: Path,
+    style: SourceStyle,
+    output_path: Path,
+):
+    prepared = prepare_glyphs_source(source_path, style)
+    return compile_fontmake_outputs(
+        prepared,
+        output_path.parent / f"{style}-prepared",
+        output_path,
+        output_path.parent / f"{style}-ttf",
+        None,
+    )
+
+
 class GlyphsVariableSourceTest(unittest.TestCase):
+    def test_compatibility_aliases_are_added_to_every_ufo_master(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source_path = Path(tmp) / "Fixture.glyphs"
+            write_glyphs_fixture(
+                source_path,
+                {"K": ("Thin", "Regular", "ExtraBold")},
+            )
+
+            prepared = prepare_glyphs_source(source_path, "regular")
+
+            for source in prepared.designspace.sources:
+                assert source.font is not None
+                self.assertIn(0x004B, source.font["K"].unicodes)
+                self.assertIn(0x212A, source.font["K"].unicodes)
+
     def test_regular_layer_is_reused_without_creating_an_issue_report(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             source_path = tmp_path / "Fixture.glyphs"
             write_glyphs_fixture(source_path, {"A.bg": ("Regular",)})
 
-            prepared = prepare_glyphs_variable_source(source_path, "regular")
+            prepared = prepare_glyphs_source(source_path, "regular")
 
             self.assertEqual(prepared.errors, ())
             for source in prepared.designspace.sources:
@@ -82,7 +125,7 @@ class GlyphsVariableSourceTest(unittest.TestCase):
             source_path = Path(tmp) / "Fixture.glyphs"
             write_glyphs_fixture(source_path, {"orphan": ("Thin",)})
 
-            prepared = prepare_glyphs_variable_source(source_path, "regular")
+            prepared = prepare_glyphs_source(source_path, "regular")
 
             self.assertEqual(
                 prepared.errors,
@@ -107,8 +150,8 @@ class GlyphsVariableSourceTest(unittest.TestCase):
             )
             write_glyphs_fixture(italic_path, {"orphan": ("Thin",)})
             prepared = (
-                prepare_glyphs_variable_source(regular_path, "regular"),
-                prepare_glyphs_variable_source(italic_path, "italic"),
+                prepare_glyphs_source(regular_path, "regular"),
+                prepare_glyphs_source(italic_path, "italic"),
             )
 
             console = StringIO()
@@ -139,12 +182,12 @@ class GlyphsVariableSourceTest(unittest.TestCase):
             write_glyphs_fixture(italic_path, {"italicOrphan": ("ExtraBold",)})
 
             reports = (
-                generate_variable_font(
+                compile_fixture(
                     regular_path,
                     "regular",
                     tmp_path / "regular.ttf",
                 ),
-                generate_variable_font(
+                compile_fixture(
                     italic_path,
                     "italic",
                     tmp_path / "italic.ttf",
@@ -179,7 +222,7 @@ class GlyphsVariableSourceTest(unittest.TestCase):
             stale_report.write_text("stale", encoding="utf-8")
 
             report_path = write_source_issue_report(
-                (prepare_glyphs_variable_source(source_path, "regular"),),
+                (prepare_glyphs_source(source_path, "regular"),),
                 output_dir,
             )
 
@@ -209,7 +252,7 @@ class GlyphsVariableSourceTest(unittest.TestCase):
                 layer.components.append(GSComponent(component_name))
             font.save(source_path)
 
-            prepared = prepare_glyphs_variable_source(source_path, "regular")
+            prepared = prepare_glyphs_source(source_path, "regular")
 
             self.assertEqual(
                 prepared.errors,
@@ -252,7 +295,7 @@ class GlyphsVariableSourceTest(unittest.TestCase):
                 layer.paths.append(contour)
             font.save(source_path)
 
-            prepared = prepare_glyphs_variable_source(source_path, "regular")
+            prepared = prepare_glyphs_source(source_path, "regular")
 
             self.assertEqual(
                 [(error["glyph"], error["details"]) for error in prepared.errors],
@@ -279,7 +322,7 @@ class GlyphsVariableSourceTest(unittest.TestCase):
             font.features.append(GSFeature("liga", "sub A.alt by A.alt;"))
             font.save(source_path)
 
-            report = generate_variable_font(source_path, "regular", output_path)
+            report = compile_fixture(source_path, "regular", output_path)
 
             self.assertEqual(report.errors, ())
             generated = TTFont(output_path)
@@ -310,6 +353,99 @@ class GlyphsVariableSourceTest(unittest.TestCase):
             )
             self.assertIn("GSUB", generated.keys())
 
+    def test_fontmake_compiles_static_ttf_and_source_native_otf(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source_path = root / "Fixture.glyphs"
+            write_glyphs_fixture(
+                source_path,
+                {
+                    ".notdef": ("Thin", "Regular", "ExtraBold"),
+                    "A": ("Thin", "Regular", "ExtraBold"),
+                },
+            )
+            prepared = prepare_glyphs_source(source_path, "regular")
+
+            with patch(
+                "scripts.font_ops.glyphs.materialize_prepared_source",
+                wraps=materialize_prepared_source,
+            ) as materialize:
+                report = compile_fontmake_outputs(
+                    prepared,
+                    root / "prepared",
+                    root / "variable.ttf",
+                    root / "ttf",
+                    root / "otf",
+                )
+
+            self.assertEqual(report.errors, ())
+            materialize.assert_called_once()
+            ttf = TTFont(root / "ttf" / "Fixture-Regular.ttf")
+            otf = TTFont(root / "otf" / "Fixture-Regular.otf")
+            self.assertIn("glyf", ttf.keys())
+            self.assertNotIn("CFF ", ttf.keys())
+            self.assertEqual(otf.sfntVersion, "OTTO")
+            self.assertIn("CFF ", otf.keys())
+            self.assertNotIn("glyf", otf.keys())
+            self.assertEqual(ttf.getGlyphOrder(), otf.getGlyphOrder())
+            self.assertEqual(
+                {name: width for name, (width, _) in ttf["hmtx"].metrics.items()},
+                {name: width for name, (width, _) in otf["hmtx"].metrics.items()},
+            )
+            ttf.close()
+            otf.close()
+
+    def test_fontmake_branches_interpolate_and_use_default_subroutinizer(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source_path = root / "Fixture.glyphs"
+            write_glyphs_fixture(
+                source_path,
+                {".notdef": ("Thin", "Regular", "ExtraBold")},
+            )
+            prepared = prepare_glyphs_source(source_path, "regular")
+
+            barrier = Barrier(3)
+            thread_names: set[str] = set()
+
+            def record_branch(*_args, **_kwargs) -> None:
+                thread_names.add(current_thread().name)
+                barrier.wait(timeout=2)
+
+            with patch.object(
+                FontProject,
+                "run_from_designspace",
+                autospec=True,
+                side_effect=record_branch,
+            ) as run_from_designspace:
+                compile_fontmake_outputs(
+                    prepared,
+                    root / "prepared",
+                    root / "variable.ttf",
+                    root / "ttf",
+                    root / "otf",
+                )
+
+            self.assertEqual(run_from_designspace.call_count, 3)
+            self.assertEqual(len(thread_names), 3)
+            designspace_paths = {
+                call.args[1] for call in run_from_designspace.call_args_list
+            }
+            self.assertEqual(len(designspace_paths), 1)
+            otf_call = next(
+                call
+                for call in run_from_designspace.call_args_list
+                if call.kwargs["output"] == ("otf",)
+            )
+            self.assertIs(otf_call.kwargs["interpolate"], True)
+            self.assertEqual(
+                otf_call.kwargs["optimize_cff"],
+                CFFOptimization.SUBROUTINIZE,
+            )
+            self.assertNotIn("subroutinizer", otf_call.kwargs)
+
     def test_italic_stat_axis_supports_fontmake_without_axis_values(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -319,7 +455,7 @@ class GlyphsVariableSourceTest(unittest.TestCase):
                 source_path,
                 {".notdef": ("Thin", "Regular", "ExtraBold")},
             )
-            report = generate_variable_font(source_path, "italic", output_path)
+            report = compile_fixture(source_path, "italic", output_path)
             self.assertEqual(report.errors, ())
             generated = TTFont(output_path)
 

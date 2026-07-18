@@ -1,7 +1,14 @@
+from __future__ import annotations
+
 import math
-from typing import Any, Tuple, List
+from typing import TYPE_CHECKING, Any, List, Tuple
+
+from fontTools.misc.transform import Transform
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables._g_l_y_f import GlyphCoordinates, Glyph
+
+if TYPE_CHECKING:
+    from ufoLib2 import Font as UFOFont
 
 # Type aliases
 Coordinate = Tuple[float, float]
@@ -255,6 +262,47 @@ def smart_change_width(
         glyph.recalcBounds(glyf)
         new_lsb = glyph.xMin if hasattr(glyph, "xMin") else 0
         hmtx[glyph_name] = (hmtx[glyph_name][0], new_lsb)
+
+
+def smart_change_ufo_width(
+    font: UFOFont,
+    target_width: int,
+    original_ref_width: int,
+) -> None:
+    """Apply the shared Maple width transform before binary compilation."""
+    if original_ref_width <= 0:
+        raise ValueError("Original reference width must be positive")
+
+    scale_x = target_width / original_ref_width
+    thicken_strength = (1 - scale_x) / 3
+
+    for glyph in font:
+        if glyph.width not in {0, original_ref_width}:
+            continue
+
+        for contour in glyph:
+            scaled = [(point.x * scale_x, point.y) for point in contour]
+            transformed = _apply_smart_thicken(scaled, thicken_strength)
+            for point, (x, y) in zip(contour, transformed, strict=True):
+                point.x = x
+                point.y = y
+
+        for component in glyph.components:
+            transform = component.transformation
+            component.transformation = Transform(
+                transform.xx,
+                transform.xy,
+                transform.yx,
+                transform.yy,
+                transform.dx * scale_x,
+                transform.dy,
+            )
+
+        for anchor in glyph.anchors:
+            anchor.x *= scale_x
+
+        if glyph.width == original_ref_width:
+            glyph.width = target_width
 
 
 def change_glyph_width_or_scale(

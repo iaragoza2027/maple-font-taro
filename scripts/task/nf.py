@@ -10,6 +10,7 @@ from fontTools.varLib import TTFont
 
 from scripts.utils.downloads import check_font_patcher
 from scripts.utils.process import get_font_forge_bin, run as run_command
+from scripts.font_ops.metadata import set_monospace_metadata
 from scripts.font_ops.names import (
     del_font_name,
     set_font_name,
@@ -151,9 +152,9 @@ def subset(mono: bool, propo: bool, unicodes: list[int]):
     suffix = get_font_suffix(mono, propo)
     output_path = f"source/MapleMono-NF-Base{f'-{suffix}' if suffix else ''}.ttf"
 
-    font.save(output_path)
     if not propo:
-        run_command(f"ftcli fix monospace {output_path}")
+        set_monospace_metadata(font)
+    font.save(output_path)
     font.close()
 
 

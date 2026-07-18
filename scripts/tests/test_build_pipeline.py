@@ -107,7 +107,7 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                                 side_effect=lambda: events.append("finish"),
                             ):
                                 with patch(
-                                    "scripts.pipeline.build_variable_fonts",
+                                    "scripts.pipeline.build_fontmake_fonts",
                                     side_effect=lambda *_: events.append("variable"),
                                 ):
                                     with patch(
@@ -186,7 +186,7 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                                 side_effect=lambda: events.append("finish"),
                             ):
                                 with patch(
-                                    "scripts.pipeline.build_variable_fonts"
+                                    "scripts.pipeline.build_fontmake_fonts"
                                 ) as build_variable_mock:
                                     with patch(
                                         "scripts.pipeline.build_base_fonts"

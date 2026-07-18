@@ -7,11 +7,12 @@ import json
 from pathlib import Path
 import shutil
 import time
-from os import getcwd, listdir, makedirs, path, remove
+from os import getcwd, listdir, makedirs, remove
 from typing import Callable, cast
+from dehinter.font import dehint
 from fontTools.ttLib import TTFont
 from fontTools.varLib.instancer import instantiateVariableFont
-from ttfautohint import StemWidthMode, ttfautohint
+from ttfautohint import ttfautohint
 from scripts.font_ops.glyph_transform import smart_change_width
 from scripts.config.base import ResolvedBuildConfig, ResolvedCJKBuildEntry
 from scripts.utils.errors import BuildDependencyError
@@ -30,22 +31,28 @@ from scripts.cjk.static import (
     postprocess_cjk_extended_static_font,
 )
 from scripts.cjk.pipeline import (
+    autohint_static_fonts,
     build_cjk_fonts,
-    create_font_executor,
     feature_weight_instances,
-    get_static_worker_font,
+    get_ttfautohint_options,
 )
 from scripts.cjk.variable import load_font_eager, merge_vf
-from scripts.utils.dependencies import check_ftcli
 from scripts.utils.files import archive_fonts, join_path
 from scripts.utils.process import is_ci, run as run_command
 from scripts.feature.apply import patch_font_feature
+from scripts.font_ops.conversion import convert_to_web
 from scripts.font_ops.glyphs import (
     GlyphsSourceReport,
     SourceCompatibilityError,
     SourceStyle,
-    generate_variable_font,
+    compile_fontmake_outputs,
+    prepare_glyphs_source,
     validate_source_reports,
+)
+from scripts.font_ops.metadata import (
+    fix_italic_metadata,
+    set_monospace_metadata,
+    strip_name_whitespace,
 )
 from scripts.font_ops.fonttools_types import HeadTable, OS2Table
 from scripts.font_ops.merge import merge_ttfonts
@@ -58,7 +65,6 @@ from scripts.font_ops.names import (
 from scripts.font_ops.opentype import (
     add_gasp,
     add_ital_axis_to_stat,
-    alias_codepoints,
     patch_instance,
 )
 
@@ -68,10 +74,23 @@ FONT_VERSION = "v7.9"
 
 
 @dataclass(frozen=True)
-class MonoBuildJob:
-    font_basename: str
+class StaticPostprocessJob:
+    input_path: str
+    output_dir: str
     font_config: ResolvedBuildConfig
     runtime_context: BuildRuntimeContext
+
+
+@dataclass(frozen=True)
+class FontmakeSourceJob:
+    source_path: str
+    style: SourceStyle
+    workspace: str
+    variable_output_path: str
+    ttf_output_dir: str
+    otf_output_dir: str | None
+    target_width: int | None
+    original_ref_width: int
 
 
 @dataclass(frozen=True)
@@ -108,22 +127,23 @@ class CJKStaticBaseProfile:
     font_config: ResolvedBuildConfig
 
 
-def build_mono(
-    f: str, font_config: ResolvedBuildConfig, runtime_context: BuildRuntimeContext
-):
-    print(f"👉 Minimal version for {f}")
-    source_path = join_path(runtime_context.output_ttf, f)
+def postprocess_static_font(
+    input_path: str | Path,
+    output_dir: str | Path,
+    font_config: ResolvedBuildConfig,
+    runtime_context: BuildRuntimeContext,
+) -> Path:
+    source_path = Path(input_path)
+    print(f"👉 Postprocess {source_path.name}")
+    font = TTFont(source_path, recalcTimestamp=False)
+    is_ttf = source_path.suffix.lower() == ".ttf"
+    fix_italic_metadata(font)
+    set_monospace_metadata(font)
+    strip_name_whitespace(font)
+    if is_ttf:
+        dehint(font, verbose=False)
 
-    run_command(f"ftcli fix italic-angle {source_path}")
-    run_command(f"ftcli fix monospace {source_path}")
-    run_command(f"ftcli name strip-names {source_path}")
-    run_command(f"ftcli font correct-contours {source_path}")
-    run_command(f"ftcli ttf dehint {source_path}")
-    run_command(f"ftcli fix transformed-components {source_path}")
-
-    font = TTFont(source_path)
-
-    style_compact = f.split("-")[-1].split(".")[0]
+    style_compact = source_path.stem.split("-")[-1]
 
     style_with_prefix_space, style_in_2, style_in_17, is_skip_subfamily, is_italic = (
         parse_style_name(
@@ -149,11 +169,18 @@ def build_mono(
         preferred_style_name=style_in_17,
     )
 
-    # https://github.com/ftCLI/FoundryTools-CLI/issues/166#issuecomment-2095433585
+    # Preserve the established intermediate weight classes used by Maple Mono.
     if style_with_prefix_space == " Thin":
         cast(OS2Table, font["OS/2"]).usWeightClass = 250
     elif style_with_prefix_space == " ExtraLight":
         cast(OS2Table, font["OS/2"]).usWeightClass = 275
+
+    if font_config.line_height != 1:
+        adjust_line_height(
+            font,
+            font_config.line_height,
+            runtime_context.resolved_vertical_metric,
+        )
 
     patch_font_feature(
         config=font_config,
@@ -172,32 +199,45 @@ def build_mono(
         file_name=postscript_name,
     )
 
-    remove(source_path)
-    target_path = join_path(runtime_context.output_ttf, f"{postscript_name}.ttf")
-    font.save(target_path)
+    if is_ttf:
+        add_gasp(font)
+    else:
+        font["CFF "].cff.topDictIndex[0].version = font_config.version
 
-    if font_config.wants_format("woff2") and not font_config.debug:
-        print(f"Convert {postscript_name}.ttf to WOFF2")
-        run_command(
-            f"ftcli converter ft2wf {target_path} -out {runtime_context.output_woff2} -f woff2"
-        )
-
-    if font_config.wants_format("otf") and not font_config.debug:
-        _otf_path = join_path(
-            runtime_context.output_otf,
-            path.basename(target_path).replace(".ttf", ".otf"),
-        )
-        print(f"Convert {postscript_name}.ttf to OTF")
-        run_command(
-            f"ftcli converter ttf2otf {target_path} -out {runtime_context.output_otf}"
-        )
-        print(f"Optimize {postscript_name}.otf")
-        run_command(f"ftcli font correct-contours {_otf_path}")
-        run_command(f"ftcli cff set-names --version {font_config.version} {_otf_path}")
+    target_dir = Path(output_dir)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_path = target_dir / f"{postscript_name}{source_path.suffix.lower()}"
+    try:
+        font.save(target_path)
+    finally:
+        font.close()
+    return target_path
 
 
-def build_mono_job(job: MonoBuildJob) -> None:
-    build_mono(job.font_basename, job.font_config, job.runtime_context)
+def postprocess_static_font_job(job: StaticPostprocessJob) -> None:
+    postprocess_static_font(
+        job.input_path,
+        job.output_dir,
+        job.font_config,
+        job.runtime_context,
+    )
+
+
+def build_fontmake_source_job(job: FontmakeSourceJob) -> GlyphsSourceReport:
+    print(f"👉 Prepare and compile {Path(job.source_path).name}")
+    prepared = prepare_glyphs_source(
+        job.source_path,
+        job.style,
+        target_width=job.target_width,
+        original_ref_width=job.original_ref_width,
+    )
+    return compile_fontmake_outputs(
+        prepared,
+        job.workspace,
+        job.variable_output_path,
+        job.ttf_output_dir,
+        job.otf_output_dir,
+    )
 
 
 def build_mono_autohint(
@@ -225,8 +265,6 @@ def build_mono_autohint(
     head = cast(HeadTable, font["head"])
     head.flags |= 1 << 2 | 1 << 3
 
-    param: dict | None = font_config.ttfautohint_param
-
     buf = BytesIO()
     font.save(buf)
     font.close()
@@ -243,33 +281,7 @@ def build_mono_autohint(
         ),
         "windows_compatibility": True,
     }
-
-    def parse_stem_width_mode(mode: str) -> StemWidthMode:
-        if mode == "natural":
-            return StemWidthMode.NATURAL
-        elif mode == "strong":
-            return StemWidthMode.STRONG
-        elif mode == "quantized":
-            return StemWidthMode.QUANTIZED
-        else:
-            raise ValueError(f"Unknown stem width mode: {mode}")
-
-    if param:
-        options.update(param)
-        if "stem_width_mode" in param:
-            del options["stem_width_mode"]
-            if "gray" in param:
-                options["gray_stem_width_mode"] = parse_stem_width_mode(
-                    param["stem_width_mode"]["gray"]
-                )
-            if "gdi_cleartype" in param:
-                options["gdi_cleartype_stem_width_mode"] = parse_stem_width_mode(
-                    param["stem_width_mode"]["gdi_cleartype"]
-                )
-            if "dw_cleartype" in param:
-                options["dw_cleartype_stem_width_mode"] = parse_stem_width_mode(
-                    param["stem_width_mode"]["dw_cleartype"]
-                )
+    options.update(get_ttfautohint_options(font_config.ttfautohint_param))
 
     ttfautohint(**options)
 
@@ -482,107 +494,27 @@ def prune_build_files(
         remove(join_path(directory, file_name))
 
 
-@dataclass(frozen=True)
-class MapleStaticInstanceJob:
-    input_path: str
-    output_path: str
-    coordinate: float
-
-
-def instantiate_maple_static_font_file(
-    input_path: str,
-    output_path: str,
-    coordinate: float,
-) -> None:
-    print(f"Instantiating {path.basename(output_path)}...")
-    var_font = get_static_worker_font(input_path)
-    instance = instantiateVariableFont(
-        var_font,
-        {"wght": coordinate},
-        inplace=False,
-        static=True,
-        downgradeCFF2="CFF2" in var_font,
-    )
-    try:
-        instance.save(output_path)
-    finally:
-        instance.close()
-
-
-def instantiate_maple_static_font_job(job: MapleStaticInstanceJob) -> None:
-    instantiate_maple_static_font_file(
-        job.input_path,
-        job.output_path,
-        job.coordinate,
-    )
-
-
-def instantiate_base_static_fonts(
+def build_fontmake_fonts(
     font_config: ResolvedBuildConfig,
     runtime_context: BuildRuntimeContext,
+    target_styles: list[str] | None,
 ) -> None:
-    print("Instantiate TTF")
-    jobs: list[MapleStaticInstanceJob] = []
-    regular_input_path = join_path(
-        runtime_context.output_variable,
-        f"{font_config.family_name_compact}[wght].ttf",
-    )
-    regular_var_font = load_font_eager(regular_input_path)
-    try:
-        instances = feature_weight_instances(regular_var_font)
-    finally:
-        regular_var_font.close()
-
-    for is_italic in (False, True):
-        input_path = join_path(
-            runtime_context.output_variable,
-            f"{font_config.family_name_compact}{'-Italic' if is_italic else ''}[wght].ttf",
-        )
-        for instance in instances:
-            base_name = instance.name.replace(" Italic", "").replace(" ", "")
-            style_compact = (f"{base_name}Italic" if is_italic else base_name).replace(
-                "RegularItalic", "Italic"
-            )
-            output_path = join_path(
-                runtime_context.output_ttf,
-                f"{font_config.family_name_compact}-{style_compact}.ttf",
-            )
-            jobs.append(
-                MapleStaticInstanceJob(
-                    input_path=input_path,
-                    output_path=output_path,
-                    coordinate=instance.coordinate,
-                )
-            )
-
-    executor = create_font_executor()
-    try:
-        futures = [
-            executor.submit(instantiate_maple_static_font_job, job) for job in jobs
-        ]
-        for future in futures:
-            future.result()
-    finally:
-        executor.shutdown(wait=True, cancel_futures=True)
-
-
-def build_variable_fonts(
-    font_config: ResolvedBuildConfig,
-    runtime_context: BuildRuntimeContext,
-):
-    """Generate variable fonts from Glyphs sources and apply project metadata."""
+    """Prepare Glyphs sources once and compile every requested fontmake branch."""
     source_dir = Path(runtime_context.src_dir)
     temp_path = Path(runtime_context.output_dir) / "temp"
+    raw_variable_dir = temp_path / "variable"
+    raw_ttf_dir = temp_path / "ttf"
+    raw_otf_dir = temp_path / "otf"
     source_specs: tuple[tuple[Path, SourceStyle, Path], ...] = (
         (
             source_dir / "MapleMono[wght].glyphs",
             "regular",
-            temp_path / "regular-raw.ttf",
+            raw_variable_dir / "regular.ttf",
         ),
         (
             source_dir / "MapleMono-Italic[wght].glyphs",
             "italic",
-            temp_path / "italic-raw.ttf",
+            raw_variable_dir / "italic.ttf",
         ),
     )
 
@@ -591,22 +523,31 @@ def build_variable_fonts(
     shutil.rmtree(temp_path, ignore_errors=True)
     temp_path.mkdir(parents=True)
     try:
-        reports: list[GlyphsSourceReport] = []
+        target_width = (
+            font_config.get_target_width() if font_config.get_width_name() else None
+        )
+        otf_dir = (
+            str(raw_otf_dir)
+            if font_config.wants_format("otf") and not font_config.debug
+            else None
+        )
+        jobs = [
+            FontmakeSourceJob(
+                source_path=str(source_path),
+                style=style,
+                workspace=str(temp_path / "prepared" / style),
+                variable_output_path=str(raw_path),
+                ttf_output_dir=str(raw_ttf_dir),
+                otf_output_dir=otf_dir,
+                target_width=target_width,
+                original_ref_width=font_config.glyph_width,
+            )
+            for source_path, style, raw_path in source_specs
+        ]
         with ProcessPoolExecutor(max_workers=len(source_specs)) as executor:
-            futures = [
-                executor.submit(
-                    generate_variable_font,
-                    source_path,
-                    style,
-                    raw_path,
-                )
-                for source_path, style, raw_path in source_specs
-            ]
-            for future in as_completed(futures):
-                reports.append(future.result())
+            reports = list(executor.map(build_fontmake_source_job, jobs))
         validate_source_reports(reports, runtime_context.output_dir)
 
-        processed_paths: dict[str, Path] = {}
         for source_path, style, raw_path in source_specs:
             print(f"👉 Postprocess variable font from {source_path.name}")
             is_italic = style == "italic"
@@ -616,15 +557,6 @@ def build_variable_fonts(
             output_name = f"{file_name}[wght].ttf"
             font = TTFont(raw_path)
             try:
-                alias_codepoints(font=font)
-
-                if font_config.get_width_name():
-                    smart_change_width(
-                        font=font,
-                        target_width=font_config.get_target_width(),
-                        original_ref_width=font_config.glyph_width,
-                    )
-
                 patch_font_feature(
                     config=font_config,
                     font=font,
@@ -676,30 +608,42 @@ def build_variable_fonts(
                     file_name=output_name,
                 )
                 add_gasp(font)
-
-                processed_path = temp_path / output_name
-                font.save(processed_path)
-                processed_paths[style] = processed_path
+                set_monospace_metadata(font)
+                font.save(output_dir / output_name)
             finally:
                 font.close()
 
-        for processed_path in processed_paths.values():
-            shutil.copy2(processed_path, output_dir / processed_path.name)
+        static_jobs = [
+            StaticPostprocessJob(
+                input_path=str(font_path),
+                output_dir=output_path,
+                font_config=font_config,
+                runtime_context=runtime_context,
+            )
+            for raw_dir, output_path in (
+                (raw_ttf_dir, runtime_context.output_ttf),
+                (raw_otf_dir, runtime_context.output_otf),
+            )
+            if raw_dir.exists()
+            for font_path in sorted(raw_dir.iterdir())
+            if font_path.suffix.lower() in {".ttf", ".otf"}
+            and is_target_style_file(font_path.name, target_styles)
+        ]
+        run_process_jobs(
+            font_config.pool_size,
+            postprocess_static_font_job,
+            static_jobs,
+        )
+
+        if font_config.wants_format("woff2") and not font_config.debug:
+            print("Convert static TTF fonts to WOFF2")
+            convert_to_web(
+                runtime_context.output_ttf,
+                output_dir=runtime_context.output_woff2,
+                flavor="woff2",
+            )
     finally:
         shutil.rmtree(temp_path, ignore_errors=True)
-
-    print("\n✨ Instantiate and optimize fonts...\n")
-
-    print("Check and optimize variable fonts")
-
-    # Italic angle is correct here.
-    # run(f"ftcli fix italic-angle {runtime_context.output_variable}")
-
-    run_command(f"ftcli fix monospace {runtime_context.output_variable}")
-    # run(f"ftcli fix vertical-metrics {runtime_context.output_variable}")
-    # run(f"ftcli name del-mac-names -r {runtime_context.output_variable}")
-
-    instantiate_base_static_fonts(font_config, runtime_context)
 
 
 def ensure_cjk_variable_fonts(
@@ -908,7 +852,7 @@ def instantiate_cjk_extended_static_fonts(
 
     if entry.common_options.use_hinted:
         print(f"Auto hinting all {entry.display_name} glyphs")
-        run_command(f"ftcli ttf autohint {output_dir}")
+        autohint_static_fonts(output_dir, font_config.ttfautohint_param)
 
     return output_dir
 
@@ -1039,8 +983,12 @@ def build_cjk_extended_static_fonts_from_cache(
     if entry.common_options.use_hinted:
         print(f"Auto hinting all {entry.display_name} glyphs")
         for profile, _ in profile_core_fonts:
-            run_command(
-                f"ftcli ttf autohint {static_output_dir(runtime_context.output_dir, profile.output_locale)}"
+            autohint_static_fonts(
+                static_output_dir(
+                    runtime_context.output_dir,
+                    profile.output_locale,
+                ),
+                font_config.ttfautohint_param,
             )
 
     return True
@@ -1155,23 +1103,7 @@ def build_base_fonts(
     runtime_context: BuildRuntimeContext,
     target_styles: list[str] | None,
 ):
-    """Apply mono building and auto-hinting to static TTF fonts."""
-    prune_build_files(runtime_context.output_ttf, target_styles)
-    mono_jobs = [
-        MonoBuildJob(
-            font_basename=file_name,
-            font_config=font_config,
-            runtime_context=runtime_context,
-        )
-        for file_name in collect_build_files(runtime_context.output_ttf, target_styles)
-    ]
-    run_process_jobs(
-        font_config.pool_size,
-        build_mono_job,
-        mono_jobs,
-    )
-
-    prune_build_files(runtime_context.output_ttf, target_styles)
+    """Generate hinted TTF derivatives from production static TTF fonts."""
     autohint_jobs = [
         MonoAutohintJob(
             font_basename=file_name,
@@ -1245,7 +1177,11 @@ class MapleBuildPipeline:
         self.start_build_timer()
 
         if self.should_build_base_outputs():
-            build_variable_fonts(self.font_config, self.runtime_context)
+            build_fontmake_fonts(
+                self.font_config,
+                self.runtime_context,
+                self.target_styles,
+            )
             build_base_fonts(self.font_config, self.runtime_context, self.target_styles)
         else:
             self.reuse_base_output_cache()
@@ -1412,8 +1348,6 @@ class MapleBuildPipeline:
 def run(parsed_args, version: str | None = None):
     global FONT_VERSION
     try:
-        check_ftcli()
-
         version_tag = version or FONT_VERSION
         if version:
             FONT_VERSION = version

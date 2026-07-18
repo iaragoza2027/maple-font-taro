@@ -15,6 +15,7 @@ from scripts.feature.compiler import (
     get_ss_version_info,
     get_total_feat_ts,
 )
+from scripts.font_ops.conversion import convert_to_web
 from scripts.utils.files import (
     join_path,
     read_json,
@@ -96,7 +97,7 @@ def update_page(
         print("Update woff2")
         font_dir = join_path(submodule_path, "public", "fonts")
         run_command("python build.py --ttf-only --no-nerd-font --least-styles")
-        run_command(f"ftcli converter ft2wf -f woff2 {var_dir}")
+        convert_to_web(var_dir, flavor="woff2")
         shutil.rmtree(font_dir, ignore_errors=True)
         os.makedirs(font_dir, exist_ok=True)
         for filename in os.listdir(var_dir):

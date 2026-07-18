@@ -744,8 +744,6 @@ uv run task.py nf
 uv run task.py fea
 # Update landing page info
 uv run task.py page --sync
-# Merge two fonts
-uv run task.py merge
 # Release
 uv run task.py release minor
 ```

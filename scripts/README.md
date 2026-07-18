@@ -1,7 +1,7 @@
 # Maple Mono Build Pipeline
 
 This package contains the Maple Mono build, CJK, OpenType feature, shared font,
-font merge, and task-runner implementation.
+and task-runner implementation.
 
 ## Architecture
 
@@ -22,7 +22,6 @@ font merge, and task-runner implementation.
 | `font/` | Shared FontTools operations, transforms, and typed table boundaries. |
 | `cjk/` | CJK data models, JSON/CLI configuration, presets, variable-font operations, and pipeline. |
 | `feature/` | Ordered feature catalog, compiler, freeze implementation, and font application. |
-| `font_merge/` | Typed merge configuration, source preparation, and FontForge wire bridge. |
 | `task/` | Thin task parser and workflow adapters. |
 
 ## Pipeline Flow

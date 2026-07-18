@@ -22,7 +22,6 @@ Maple Mono is an open-source monospace font project. Keep changes small, determi
   - `scripts/font/`: Shared FontTools operations, transforms, and protocols.
   - `scripts/cjk/`: CJK models, configuration, variable-font operations, presets, and pipeline.
   - `scripts/feature/`: Typed feature catalog, compiler, freeze logic, and feature application.
-  - `scripts/font_merge/`: Typed multi-source font merge workflow and FontForge bridge.
   - `scripts/task/`: Task-runner commands.
   - `scripts/tests/`: Python unit tests.
 - `source/`: Font sources, CJK assets, schema, and generated `.fea` output in `source/features/`.

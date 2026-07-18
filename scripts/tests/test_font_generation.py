@@ -289,7 +289,7 @@ class GlyphsVariableSourceTest(unittest.TestCase):
                 ("wght", 100, 400, 800),
             )
             self.assertIn("A.alt", generated.getGlyphOrder())
-            self.assertNotIn("GSUB", generated)
+            self.assertNotIn("GSUB", generated.keys())
 
             feature_path = tmp_path / "project.fea"
             feature_path.write_text(
@@ -308,7 +308,7 @@ class GlyphsVariableSourceTest(unittest.TestCase):
                 is_hinted=False,
                 fea_path=str(feature_path),
             )
-            self.assertIn("GSUB", generated)
+            self.assertIn("GSUB", generated.keys())
 
     def test_italic_stat_axis_supports_fontmake_without_axis_values(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

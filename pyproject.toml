@@ -26,6 +26,8 @@ extend-exclude = ["maple-font-page", "FontPatcher"]
 [tool.ty.environment]
 python-version = "3.10"
 
+[tool.ty.rules]
+invalid-argument-type = "error"
+
 [tool.ty.src]
 include = ["scripts", "build.py", "task.py"]
-exclude = ["scripts/font_merge/merger.py"]

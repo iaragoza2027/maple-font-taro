@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 from collections.abc import Callable
 
-from scripts.task import cjk, fea, merge, nf, page, publish, release
+from scripts.task import cjk, fea, nf, page, publish, release
 
 
 CommandHandler = Callable[[argparse.Namespace], None]
@@ -21,7 +21,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Task script for Maple Font")
     subparsers = parser.add_subparsers(dest="command", help="Total tasks")
 
-    for module in (nf, fea, release, page, cjk, publish, merge):
+    for module in (nf, fea, release, page, cjk, publish):
         _register(subparsers, module)
 
     return parser

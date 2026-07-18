@@ -9,13 +9,13 @@ from typing import Callable
 from fontTools.ttLib import TTFont
 
 from build import main as build_main
-from scripts.utils import (
-    default_weight_map,
-    joinPaths,
-    run as run_command,
+from scripts.common.files import (
+    join_path,
     write_json,
     write_text,
 )
+from scripts.common.process import run as run_command
+from scripts.font.operations import default_weight_map
 
 
 def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):
@@ -53,7 +53,7 @@ def rename_woff_files(dir_path: str, fn: Callable[[str], str | None]):
             continue
         new_name = fn(filename)
         if new_name:
-            os.rename(joinPaths(dir_path, filename), joinPaths(dir_path, new_name))
+            os.rename(join_path(dir_path, filename), join_path(dir_path, new_name))
             print(f"Renamed: {filename} -> {new_name}")
 
 

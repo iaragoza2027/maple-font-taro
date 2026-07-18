@@ -8,11 +8,10 @@ from urllib.request import urlopen
 from fontTools.subset import Subsetter
 from fontTools.varLib import TTFont
 
-from scripts.utils import (
-    check_font_patcher,
+from scripts.common.downloads import check_font_patcher
+from scripts.common.process import get_font_forge_bin, run as run_command
+from scripts.font.operations import (
     del_font_name,
-    get_font_forge_bin,
-    run as run_command,
     set_font_name,
 )
 

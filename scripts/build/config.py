@@ -6,21 +6,16 @@ from os import getenv
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, cast
 
-from fontTools.feaLib.builder import addOpenTypeFeatures, addOpenTypeFeaturesFromString
-from fontTools.ttLib import TTFont
-
 from scripts.cjk.config import (
     CJKBuildConfig,
     config_from_data,
     serialize_cjk_build_config,
 )
 from scripts.feature import (
-    generate_fea_string,
-    get_freeze_moving_rules,
     normal_enabled_features,
 )
-from scripts.freeze import freeze_feature, get_freeze_config_str, is_enable
-from scripts.utils import default_weight_map, joinPaths
+from scripts.freeze import get_freeze_config_str
+from scripts.font.operations import default_weight_map
 
 if TYPE_CHECKING:
     from scripts.cjk.presets import CJKPresetSpec
@@ -515,71 +510,6 @@ class ResolvedBuildConfig:
                 self.glyph_width_cn_narrow if cjk_narrow else 2 * self.glyph_width
             )
         return result
-
-    def freeze_feature_static(self, font: TTFont, is_variable: bool) -> None:
-        if not is_variable:
-            freeze_feature(
-                font=font,
-                calt=self.enable_ligature,
-                moving_rules=get_freeze_moving_rules(),
-                config=self.feature_freeze,
-            )
-
-    def patch_font_feature(
-        self,
-        font: TTFont,
-        issue_fea_dir: str,
-        is_italic: bool,
-        is_cn: bool,
-        is_variable: bool,
-        is_hinted: bool,
-        fea_path: str,
-    ) -> None:
-        if self.apply_fea_file:
-            if fea_path:
-                print(f"Apply feature file [{fea_path}]")
-                addOpenTypeFeatures(font, fea_path)
-            self.freeze_feature_static(font, is_variable)
-            return
-
-        if is_hinted and self.infinite_arrow:
-            return
-
-        enable_infinite = (
-            bool(self.infinite_arrow)
-            if self.infinite_arrow is not None
-            else not is_hinted
-        )
-
-        fea_str = generate_fea_string(
-            is_italic=is_italic,
-            is_cn=is_cn,
-            is_normal=self.feature.normal,
-            is_calt=self.enable_ligature,
-            enable_infinite=enable_infinite,
-            enable_tag=not self.remove_tag_liga,
-            variable_enabled_feature_list=[
-                key for key, val in self.feature_freeze.items() if is_enable(val)
-            ]
-            if is_variable
-            else [],
-            remove_italic_calt=is_enable(self.feature_freeze["cv35"]),
-        )
-        try:
-            addOpenTypeFeaturesFromString(font, fea_str)
-        except Exception as error:
-            issue_fea_path = joinPaths(issue_fea_dir, "issue.fea")
-            with open(issue_fea_path, "w+", encoding="utf-8") as file:
-                banner = (
-                    "Generated feature with "
-                    f"italic={is_italic}, cn={is_cn}, normal={self.feature.normal}, "
-                    f"calt={self.enable_ligature}, variable={is_variable}"
-                )
-                file.write(f"# {banner}\n\n{fea_str}")
-            raise SyntaxError(
-                f"Error patching fea string: {error}\n\nSee generated fea string in {issue_fea_path}"
-            ) from error
-        self.freeze_feature_static(font, is_variable)
 
     def to_dict(self) -> dict[str, Any]:
         return {

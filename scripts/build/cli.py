@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import argparse
 
-from scripts.config import (
+from scripts.build.config import (
     WIDTH_MAP,
     normalize_build_formats,
     parse_scale_factor,
 )
-from scripts.pipeline import main as run_pipeline
+from scripts.build.pipeline import main as run_pipeline
 from scripts.version import project_version
 
 

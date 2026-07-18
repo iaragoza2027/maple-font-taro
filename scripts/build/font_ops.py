@@ -8,16 +8,17 @@ from typing import cast
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables._m_e_t_a import table__m_e_t_a
 
-from scripts.config import (
+from scripts.build.config import (
     CJKCommonBuildOptions,
     ResolvedBuildConfig,
     ResolvedCJKBuildEntry,
 )
-from scripts.errors import BuildDependencyError
-from scripts.resolver import BuildRuntimeContext
-from scripts.fonttools_types import HheaTable, OS2Table, PostTable
-from scripts.transform import change_glyph_width_or_scale
-from scripts.utils import (
+from scripts.build.errors import BuildDependencyError
+from scripts.build.resolver import BuildRuntimeContext
+from scripts.font.types import HheaTable, OS2Table, PostTable
+from scripts.font.transform import change_glyph_width_or_scale
+from scripts.feature.apply import patch_font_feature
+from scripts.font.operations import (
     adjust_line_height,
     parse_style_name,
     remove_target_glyph,
@@ -298,7 +299,8 @@ def postprocess_cjk_extended_static_font(
             entry.preset_spec.code_page_range1,
         )
     apply_cjk_metrics(font, font_config, runtime_context)
-    font_config.patch_font_feature(
+    patch_font_feature(
+        config=font_config,
         font=font,
         issue_fea_dir=runtime_context.output_dir,
         is_italic="Italic" in style_compact,

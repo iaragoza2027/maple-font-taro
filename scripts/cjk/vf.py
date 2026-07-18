@@ -13,7 +13,7 @@ from fontTools.ttLib.tables._g_l_y_f import GlyphCoordinates
 from fontTools.ttLib.tables.TupleVariation import TupleVariation
 from fontTools.varLib.instancer import otRound
 
-from scripts.fonttools_types import (
+from scripts.font.types import (
     HeadTable,
     HheaTable,
     MetricsTable,

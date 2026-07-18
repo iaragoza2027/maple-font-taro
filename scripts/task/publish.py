@@ -4,7 +4,7 @@ import argparse
 import subprocess
 from pathlib import Path
 
-from scripts.utils import is_ci
+from scripts.common.process import is_ci
 
 
 def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):

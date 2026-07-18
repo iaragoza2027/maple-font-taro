@@ -12,16 +12,16 @@ from typing import Callable, cast
 from fontTools.ttLib import TTFont
 from fontTools.varLib.instancer import instantiateVariableFont
 from ttfautohint import StemWidthMode, ttfautohint
-from scripts.transform import smart_change_width
-from scripts.config import ResolvedBuildConfig, ResolvedCJKBuildEntry
-from scripts.errors import BuildDependencyError
-from scripts.paths import (
+from scripts.font.transform import smart_change_width
+from scripts.build.config import ResolvedBuildConfig, ResolvedCJKBuildEntry
+from scripts.build.errors import BuildDependencyError
+from scripts.build.paths import (
     merged_variable_name,
     static_output_dir,
     variable_output_dir,
 )
-from scripts.resolver import BuildConfigResolver, BuildRuntimeContext
-from scripts.util import (
+from scripts.build.resolver import BuildConfigResolver, BuildRuntimeContext
+from scripts.build.font_ops import (
     apply_cjk_meta_table,
     build_cjk_family_name,
     build_cjk_postscript_prefix,
@@ -39,8 +39,11 @@ from scripts.cjk.builder import (
     get_static_worker_font,
 )
 from scripts.cjk.vf import load_font_eager, merge_vf
-from scripts.fonttools_types import HeadTable, OS2Table
-from scripts.utils import (
+from scripts.common.files import join_path
+from scripts.common.process import is_ci, run
+from scripts.feature.apply import patch_font_feature
+from scripts.font.types import HeadTable, OS2Table
+from scripts.font.operations import (
     add_gasp,
     add_ital_axis_to_stat,
     adjust_line_height,
@@ -50,10 +53,7 @@ from scripts.utils import (
     update_font_names,
     verify_glyph_width,
     archive_fonts,
-    is_ci,
     match_unicode_names,
-    run,
-    joinPaths,
     merge_ttfonts,
 )
 
@@ -107,7 +107,7 @@ def build_mono(
     f: str, font_config: ResolvedBuildConfig, runtime_context: BuildRuntimeContext
 ):
     print(f"👉 Minimal version for {f}")
-    source_path = joinPaths(runtime_context.output_ttf, f)
+    source_path = join_path(runtime_context.output_ttf, f)
 
     run(f"ftcli fix italic-angle {source_path}")
     run(f"ftcli fix monospace {source_path}")
@@ -150,7 +150,8 @@ def build_mono(
     elif style_with_prefix_space == " ExtraLight":
         cast(OS2Table, font["OS/2"]).usWeightClass = 275
 
-    font_config.patch_font_feature(
+    patch_font_feature(
+        config=font_config,
         font=font,
         issue_fea_dir=runtime_context.output_dir,
         is_italic=is_italic,
@@ -167,7 +168,7 @@ def build_mono(
     )
 
     remove(source_path)
-    target_path = joinPaths(runtime_context.output_ttf, f"{postscript_name}.ttf")
+    target_path = join_path(runtime_context.output_ttf, f"{postscript_name}.ttf")
     font.save(target_path)
 
     if font_config.wants_format("woff2") and not font_config.debug:
@@ -177,7 +178,7 @@ def build_mono(
         )
 
     if font_config.wants_format("otf") and not font_config.debug:
-        _otf_path = joinPaths(
+        _otf_path = join_path(
             runtime_context.output_otf,
             path.basename(target_path).replace(".ttf", ".otf"),
         )
@@ -199,10 +200,11 @@ def build_mono_autohint(
     postscript_name = f"{font_config.family_name_compact}-{style_compact}"
     print(f"👉 Auto hint {postscript_name}.ttf")
 
-    source_path = joinPaths(runtime_context.output_ttf, f)
+    source_path = join_path(runtime_context.output_ttf, f)
     font = TTFont(source_path)
     is_italic = "Italic" in style_compact
-    font_config.patch_font_feature(
+    patch_font_feature(
+        config=font_config,
         font=font,
         issue_fea_dir=runtime_context.output_dir,
         is_italic=is_italic,
@@ -226,10 +228,10 @@ def build_mono_autohint(
     # Also see `ttfautohint.options.USER_OPTIONS`
     options = {
         "in_buffer": buf.getvalue(),
-        "reference_file": joinPaths(
+        "reference_file": join_path(
             runtime_context.output_ttf, f"{font_config.family_name_compact}-Regular.ttf"
         ),
-        "out_file": joinPaths(
+        "out_file": join_path(
             runtime_context.output_ttf_hinted, f"{postscript_name}.ttf"
         ),
         "windows_compatibility": True,
@@ -292,7 +294,7 @@ def build_nf_by_prebuild_nerd_font(
         tmp_font.save(tmp_target_path)
 
     result = merge_ttfonts(
-        base_font_path=joinPaths(runtime_context.ttf_base_dir, font_basename),
+        base_font_path=join_path(runtime_context.ttf_base_dir, font_basename),
         extra_font_path=tmp_target_path or nf_base_font_path,
     )
 
@@ -331,11 +333,11 @@ def build_nf_by_font_patcher(
     extra_args = font_config.nerd_font.extra_args
     _nf_args += extra_args
 
-    run(_nf_args + [joinPaths(runtime_context.ttf_base_dir, font_basename)])
+    run(_nf_args + [join_path(runtime_context.ttf_base_dir, font_basename)])
 
     nf_file_name = "NerdFont" + font_config.get_nf_suffix()
 
-    _path = joinPaths(
+    _path = join_path(
         runtime_context.output_nf, font_basename.replace("-", f"{nf_file_name}-")
     )
     font = TTFont(_path)
@@ -398,7 +400,7 @@ def build_nf(
             file_name=postscript_name,
         )
 
-    target_path = joinPaths(
+    target_path = join_path(
         runtime_context.output_nf,
         f"{postscript_name}.ttf",
     )
@@ -470,7 +472,7 @@ def prune_build_files(
             continue
         if preserve_nf and "NF" in file_name:
             continue
-        remove(joinPaths(directory, file_name))
+        remove(join_path(directory, file_name))
 
 
 @dataclass(frozen=True)
@@ -514,7 +516,7 @@ def instantiate_base_static_fonts(
 ) -> None:
     print("Instantiate TTF")
     jobs: list[MapleStaticInstanceJob] = []
-    regular_input_path = joinPaths(
+    regular_input_path = join_path(
         runtime_context.output_variable,
         f"{font_config.family_name_compact}[wght].ttf",
     )
@@ -525,7 +527,7 @@ def instantiate_base_static_fonts(
         regular_var_font.close()
 
     for is_italic in (False, True):
-        input_path = joinPaths(
+        input_path = join_path(
             runtime_context.output_variable,
             f"{font_config.family_name_compact}{'-Italic' if is_italic else ''}[wght].ttf",
         )
@@ -534,7 +536,7 @@ def instantiate_base_static_fonts(
             style_compact = (f"{base_name}Italic" if is_italic else base_name).replace(
                 "RegularItalic", "Italic"
             )
-            output_path = joinPaths(
+            output_path = join_path(
                 runtime_context.output_ttf,
                 f"{font_config.family_name_compact}-{style_compact}.ttf",
             )
@@ -563,8 +565,8 @@ def build_variable_fonts(
 ):
     """Build variable font versions from source files."""
     input_files = [
-        joinPaths(runtime_context.src_dir, "MapleMono-Italic[wght]-VF.ttf"),
-        joinPaths(runtime_context.src_dir, "MapleMono[wght]-VF.ttf"),
+        join_path(runtime_context.src_dir, "MapleMono-Italic[wght]-VF.ttf"),
+        join_path(runtime_context.src_dir, "MapleMono[wght]-VF.ttf"),
     ]
     for input_file in input_files:
         font = TTFont(input_file)
@@ -590,7 +592,8 @@ def build_variable_fonts(
 
         is_italic = "Italic" in input_file
 
-        font_config.patch_font_feature(
+        patch_font_feature(
+            config=font_config,
             font=font,
             issue_fea_dir=runtime_context.output_dir,
             is_italic=is_italic,
@@ -639,7 +642,7 @@ def build_variable_fonts(
         if is_italic:
             file_name += "-Italic"
 
-        font.save(joinPaths(runtime_context.output_variable, f"{file_name}[wght].ttf"))
+        font.save(join_path(runtime_context.output_variable, f"{file_name}[wght].ttf"))
 
     print("\n✨ Instantiate and optimize fonts...\n")
 
@@ -1283,7 +1286,7 @@ class MapleBuildPipeline:
 
     def write_build_record(self) -> None:
         with open(
-            joinPaths(self.runtime_context.output_dir, "build-config.json"),
+            join_path(self.runtime_context.output_dir, "build-config.json"),
             "w",
             encoding="utf-8",
         ) as config_file:
@@ -1300,7 +1303,7 @@ class MapleBuildPipeline:
     def archive_outputs(self) -> None:
         print("\n🚀 archive files...\n")
         archive_dir_name = "archive"
-        archive_dir = joinPaths(self.runtime_context.output_dir, archive_dir_name)
+        archive_dir = join_path(self.runtime_context.output_dir, archive_dir_name)
         makedirs(archive_dir, exist_ok=True)
 
         for file_name in listdir(self.runtime_context.output_dir):
@@ -1325,18 +1328,18 @@ class MapleBuildPipeline:
             sha256, zip_file_name_without_ext = archive_fonts(
                 family_name_compact=self.font_config.family_name_compact,
                 suffix=suffix,
-                source_file_or_dir_path=joinPaths(
+                source_file_or_dir_path=join_path(
                     self.runtime_context.output_dir,
                     file_name,
                 ),
-                build_config_path=joinPaths(
+                build_config_path=join_path(
                     self.runtime_context.output_dir,
                     "build-config.json",
                 ),
                 target_parent_dir_path=archive_dir,
             )
             with open(
-                joinPaths(archive_dir, f"{zip_file_name_without_ext}.sha256"),
+                join_path(archive_dir, f"{zip_file_name_without_ext}.sha256"),
                 "w",
                 encoding="utf-8",
             ) as hash_file:
@@ -1356,7 +1359,7 @@ class MapleBuildPipeline:
         end_time = time.time()
         date_time_fmt = time.strftime("%H:%M:%S", time.localtime(end_time))
         time_diff = end_time - self.start_time
-        output = joinPaths(getcwd().replace("\\", "/"), self.runtime_context.output_dir)
+        output = join_path(getcwd().replace("\\", "/"), self.runtime_context.output_dir)
         print(
             f"\n🏁 Build finished at {date_time_fmt}, cost {time_diff:.2f} s, family name is {self.font_config.family_name}, {freeze_str}\n   See your fonts in {output}"
         )

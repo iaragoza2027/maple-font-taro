@@ -7,16 +7,15 @@ from fontTools.ttLib.tables._n_a_m_e import table__n_a_m_e
 from fontTools.subset import Subsetter
 import json
 
-from scripts.utils import (
-    get_font_forge_bin,
-    joinPaths,
+from scripts.common.files import join_path
+from scripts.common.process import get_font_forge_bin, run
+from scripts.font.operations import (
     parse_style_name,
-    run,
     set_font_name,
     update_font_names,
     default_weight_map,
 )
-from scripts.fonttools_types import OS2Table
+from scripts.font.types import OS2Table
 from foundrytools import Font
 from foundrytools.app.var2static import run as var2static
 
@@ -86,7 +85,7 @@ def merge_fonts(
         # Apply unicode subset if specified (Python side)
         if unicode_ranges:
             subset_filename = f"subset_{idx}_{uuid4().hex[:8]}.ttf"
-            subset_path = joinPaths(tmp_dir, subset_filename)
+            subset_path = join_path(tmp_dir, subset_filename)
             print(f"  Applying unicode subset to override {idx}...")
             apply_unicode_subset(override_path, unicode_ranges, subset_path)
             temp_file_path = subset_path
@@ -103,7 +102,7 @@ def merge_fonts(
         "base_font": base_font_path,
         "overrides": prepared_overrides,
     }
-    config_path = joinPaths(tmp_dir, f"merger_config_{uuid4().hex[:8]}.json")
+    config_path = join_path(tmp_dir, f"merger_config_{uuid4().hex[:8]}.json")
     with open(config_path, "w", encoding="utf-8") as f:
         json.dump(merger_config, f, indent=2)
 
@@ -114,7 +113,7 @@ def merge_fonts(
         bin = "fontforge"
 
     merged_filename = f"merged_{uuid4().hex[:8]}.ttf"
-    merged_path = joinPaths(output_dir, merged_filename)
+    merged_path = join_path(output_dir, merged_filename)
 
     run(
         [
@@ -377,7 +376,7 @@ def polish(
     )
 
     set_font_name(font, ":P", 0)
-    prod_path = joinPaths(output_dir, f"{postscript_name}.ttf")
+    prod_path = join_path(output_dir, f"{postscript_name}.ttf")
     font.save(prod_path)
 
     return prod_path

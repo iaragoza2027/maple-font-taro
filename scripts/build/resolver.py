@@ -7,7 +7,7 @@ from pathlib import Path
 import shutil
 from typing import Any, Literal
 
-from scripts.config import (
+from scripts.build.config import (
     BuildBehaviorConfig,
     BuildIdentityConfig,
     BuildMetricsConfig,
@@ -27,16 +27,15 @@ from scripts.config import (
     normalize_cjk_locale_list,
     parse_scale_factor,
 )
-from scripts.errors import BuildDependencyError
+from scripts.build.errors import BuildDependencyError
 from scripts.cjk.config import CJKBuildConfig, config_from_data
 from scripts.cjk.presets import build_preset_config, get_preset
+from scripts.common.downloads import check_font_patcher, download_zip_and_extract
+from scripts.common.files import join_path
+from scripts.common.process import get_font_forge_bin
 from scripts.feature import normal_enabled_features
-from scripts.utils import (
-    check_font_patcher,
-    download_zip_and_extract,
+from scripts.font.operations import (
     get_directory_hash,
-    get_font_forge_bin,
-    joinPaths,
 )
 
 
@@ -83,21 +82,21 @@ class BuildRuntimeContext:
     @classmethod
     def from_config(cls, config: ResolvedBuildConfig) -> BuildRuntimeContext:
         output_root = "fonts"
-        output_ttf = joinPaths(output_root, "TTF")
-        output_ttf_hinted = joinPaths(output_root, "TTF-AutoHint")
+        output_ttf = join_path(output_root, "TTF")
+        output_ttf_hinted = join_path(output_root, "TTF-AutoHint")
         return cls(
             src_dir="source",
             output_root=output_root,
-            output_otf=joinPaths(output_root, "OTF"),
+            output_otf=join_path(output_root, "OTF"),
             output_ttf=output_ttf,
             output_ttf_hinted=output_ttf_hinted,
-            output_variable=joinPaths(output_root, "Variable"),
-            output_woff2=joinPaths(output_root, "Woff2"),
-            output_nf=joinPaths(output_root, "NF"),
+            output_variable=join_path(output_root, "Variable"),
+            output_woff2=join_path(output_root, "Woff2"),
+            output_nf=join_path(output_root, "NF"),
             ttf_base_dir=output_ttf_hinted if config.use_hinted else output_ttf,
             has_cache=(
                 check_file_count(
-                    joinPaths(output_root, "Variable"), min_count=2, end=".ttf"
+                    join_path(output_root, "Variable"), min_count=2, end=".ttf"
                 )
                 and check_file_count(output_ttf, min_count=4, end=".ttf")
                 and check_file_count(output_ttf_hinted, min_count=4, end=".ttf")
@@ -114,7 +113,7 @@ class BuildRuntimeContext:
         return self.output_root
 
     def feature_file_path(self, is_italic: bool, is_cjk: bool = False) -> str:
-        return joinPaths(
+        return join_path(
             self.src_dir,
             "features",
             ("italic" if is_italic else "regular") + ("_cn" if is_cjk else "") + ".fea",

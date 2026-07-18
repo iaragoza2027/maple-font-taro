@@ -15,14 +15,14 @@ from scripts.feature import (
     get_ss_version_info,
     get_total_feat_ts,
 )
-from scripts.utils import (
-    joinPaths,
+from scripts.common.files import (
+    join_path,
     read_json,
     read_text,
-    run as run_command,
     write_json,
     write_text,
 )
+from scripts.common.process import run as run_command
 
 
 def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):
@@ -69,32 +69,32 @@ def update_page(
         print("Sync remote")
 
     print("Update features")
-    feature_data_base = joinPaths(submodule_path, "data", "features")
+    feature_data_base = join_path(submodule_path, "data", "features")
     os.makedirs(feature_data_base, exist_ok=True)
-    write_json(joinPaths(feature_data_base, "cv.json"), get_cv_version_info())
-    write_json(joinPaths(feature_data_base, "cn.json"), get_cv_cn_version_info())
+    write_json(join_path(feature_data_base, "cv.json"), get_cv_version_info())
+    write_json(join_path(feature_data_base, "cn.json"), get_cv_cn_version_info())
     write_json(
-        joinPaths(feature_data_base, "italic.json"), get_cv_italic_version_info()
+        join_path(feature_data_base, "italic.json"), get_cv_italic_version_info()
     )
-    write_json(joinPaths(feature_data_base, "ss.json"), get_ss_version_info())
-    write_text(joinPaths(feature_data_base, "features.ts"), get_total_feat_ts())
+    write_json(join_path(feature_data_base, "ss.json"), get_ss_version_info())
+    write_text(join_path(feature_data_base, "features.ts"), get_total_feat_ts())
 
     print("Update config")
     data = read_json("config.json")
     del data["$schema"]
-    write_json(joinPaths(submodule_path, "data", "config.json"), data)
+    write_json(join_path(submodule_path, "data", "config.json"), data)
 
     print("Update script")
-    script_content = read_text(joinPaths("scripts", "in_browser.py"))
+    script_content = read_text(join_path("scripts", "in_browser.py"))
     write_text(
-        joinPaths(submodule_path, "data", "script.py"),
+        join_path(submodule_path, "data", "script.py"),
         "# Source: https://github.com/subframe7536/maple-font/blob/variable/scripts/in_browser.py\n"
         + minify(script_content),
     )
 
     if woff2:
         print("Update woff2")
-        font_dir = joinPaths(submodule_path, "public", "fonts")
+        font_dir = join_path(submodule_path, "public", "fonts")
         run_command("python build.py --ttf-only --no-nerd-font --least-styles")
         run_command(f"ftcli converter ft2wf -f woff2 {var_dir}")
         shutil.rmtree(font_dir, ignore_errors=True)
@@ -102,8 +102,8 @@ def update_page(
         for filename in os.listdir(var_dir):
             if filename.endswith(".woff2"):
                 os.rename(
-                    joinPaths(var_dir, filename),
-                    joinPaths(font_dir, filename.replace(".ttf.woff2", "-VF.woff2")),
+                    join_path(var_dir, filename),
+                    join_path(font_dir, filename.replace(".ttf.woff2", "-VF.woff2")),
                 )
 
     if sync:

@@ -4,7 +4,7 @@ from typing import Any, cast
 import uuid
 import shutil
 
-from scripts.utils import joinPaths
+from scripts.common.files import join_path
 from scripts.merge_sans_serif_font.utils import instantiate, merge_fonts, polish
 
 CONFIG_FILE = "config_merge.json"
@@ -40,7 +40,7 @@ def parse_unicode_range(range_str: str) -> list[tuple[int, int]]:
 def copy_to_tmp_with_ascii_name(src_path: str, tmp_dir: str) -> str:
     """Copy font to tmp directory with ASCII-only filename."""
     temp_filename = f"{uuid.uuid4().hex}.ttf"
-    temp_path = joinPaths(tmp_dir, temp_filename)
+    temp_path = join_path(tmp_dir, temp_filename)
     shutil.copy(src_path, temp_path)
     return temp_path
 
@@ -168,7 +168,7 @@ def prepare_font_source(
         if axes:
             print(f"  Instantiating {label} from {font_path} with axes {axes}...")
             temp_filename = f"inst_{label}_{uuid.uuid4().hex[:8]}.ttf"
-            temp_path = joinPaths(tmp_dir, temp_filename)
+            temp_path = join_path(tmp_dir, temp_filename)
             instantiate(font_path, temp_path, axes)
             print(f"  Instantiated: {temp_path}")
             font_path = temp_path
@@ -206,7 +206,7 @@ def main(cleanup: bool = False):
         mkdir(output_dir)
         print(f"Created output directory: {output_dir}")
 
-    tmp_dir = joinPaths(output_dir, "tmp")
+    tmp_dir = join_path(output_dir, "tmp")
     makedirs(tmp_dir, exist_ok=True)
 
     # Track temporary files and generated files

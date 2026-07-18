@@ -15,7 +15,13 @@ from scripts.feature import (
     get_total_feat_dict,
     normal_enabled_features,
 )
-from scripts.utils import joinPaths, read_json, read_text, write_json, write_text
+from scripts.common.files import (
+    join_path,
+    read_json,
+    read_text,
+    write_json,
+    write_text,
+)
 
 
 def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):
@@ -58,17 +64,17 @@ def build_fea(output: str) -> None:
         "cn.fea": generate_fea_string_cn_only(),
     }
     for filename, content in files.items():
-        write_text(joinPaths(output, filename), f"# {banner}\n\n{content}")
+        write_text(join_path(output, filename), f"# {banner}\n\n{content}")
 
     files_cn = {
         "regular_cn.fea": generate_fea_string(is_italic=False, is_cn=True),
         "italic_cn.fea": generate_fea_string(is_italic=True, is_cn=True),
     }
     for filename, content in files_cn.items():
-        fea_path = joinPaths(output, filename)
+        fea_path = join_path(output, filename)
         write_text(fea_path, f"# {banner}\n\n{content}")
 
-    md_path = joinPaths(output, "README.md")
+    md_path = join_path(output, "README.md")
     sections = {
         "<!-- CALT -->": get_all_calt_text(),
         "<!-- CV -->": get_cv_desc(),
@@ -80,14 +86,14 @@ def build_fea(output: str) -> None:
         replace_section(md_path, border, content)
 
     features = get_total_feat_dict()
-    update_schema(joinPaths("source", "schema.json"), features)
+    update_schema(join_path("source", "schema.json"), features)
     update_feature_freeze("config.json", features)
 
     feat_str = ", ".join(normal_enabled_features)
     for readme_path in ["README.md", "README_CN.md", "README_JA.md"]:
         replace_section(readme_path, "<!-- NORMAL -->", f"```\n{feat_str}\n```")
 
-    script_path = joinPaths("scripts", "in_browser.py")
+    script_path = join_path("scripts", "in_browser.py")
     in_browser_script = read_text(script_path)
     rules = get_freeze_moving_rules()
     rules.sort()

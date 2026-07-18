@@ -8,10 +8,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts.cli import parse_args
-from scripts.config import CJKCommonBuildOptions, ResolvedCJKBuildEntry
-from scripts.errors import BuildDependencyError
-from scripts.resolver import BuildConfigResolver, BuildRuntimeContext
+from scripts.build.cli import parse_args
+from scripts.build.config import CJKCommonBuildOptions, ResolvedCJKBuildEntry
+from scripts.build.errors import BuildDependencyError
+from scripts.build.resolver import BuildConfigResolver, BuildRuntimeContext
 from scripts.cjk.config import (
     CJKBuildConfig,
     CJKNamingConfig,
@@ -19,7 +19,7 @@ from scripts.cjk.config import (
     CJKSourceConfig,
 )
 from scripts.cjk.presets import CJKPresetId, get_preset
-from scripts.utils import get_directory_hash
+from scripts.font.operations import get_directory_hash
 
 
 def make_runtime_context(tmp_path: Path) -> BuildRuntimeContext:
@@ -400,7 +400,7 @@ class BuildRuntimeContextFontPatcherTest(unittest.TestCase):
             font_config = make_font_config()
             font_config.nerd_font.use_font_patcher = True
 
-            with patch("scripts.resolver.check_font_patcher", return_value=False):
+            with patch("scripts.build.resolver.check_font_patcher", return_value=False):
                 with self.assertRaisesRegex(
                     BuildDependencyError,
                     "Nerd Font Patcher assets",

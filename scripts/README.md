@@ -29,7 +29,7 @@ resolution, runtime path planning, and shared build helpers.
 
 ```mermaid
 flowchart TD
-    START["build.py"] --> CLI["scripts.cli.main"]
+    START["build.py"] --> CLI["scripts.build.cli.main"]
     CLI --> PARSE["parse_args"]
     PARSE --> PIPE_MAIN["pipeline.main(parsed_args, version)"]
     PIPE_MAIN --> CHECK["check_ftcli"]
@@ -265,7 +265,7 @@ flowchart TD
 
 | Decision | Rationale |
 | -------- | --------- |
-| Keep the public `pipeline.main(parsed_args, version)` entrypoint | Preserve compatibility with `scripts.cli` and `build.py`. |
+| Keep the public `pipeline.main(parsed_args, version)` entrypoint | Preserve compatibility with `scripts.build.cli` and `build.py`. |
 | Keep process-pool workers at module top level | Avoid pickling bound methods, closures, or partials. |
 | Use explicit job dataclasses | Make each parallel task's inputs visible and serializable. |
 | Keep helper logic in `util.py` | Reduce pipeline size while keeping lifecycle and worker code in one place. |

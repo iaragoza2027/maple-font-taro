@@ -56,8 +56,9 @@ from scripts.cjk.vf import (
     update_italic_metadata,
     weight_axis,
 )
-from scripts.fonttools_types import CFFTable, GlyfTable, HeadTable, SubsetOptions
-from scripts.utils import archive, get_directory_hash, set_font_name, update_font_names
+from scripts.common.files import archive
+from scripts.font.types import CFFTable, GlyfTable, HeadTable, SubsetOptions
+from scripts.font.operations import get_directory_hash, set_font_name, update_font_names
 
 
 RESERVED_NAME_IDS = {1, 2, 4, 6, 16, 17, 25}

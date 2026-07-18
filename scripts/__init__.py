@@ -1,5 +1,5 @@
-"""Build package for Maple Mono."""
+"""Python implementation package for Maple Mono tooling."""
 
-from scripts.pipeline import main
+from scripts.build.cli import main
 
 __all__ = ["main"]

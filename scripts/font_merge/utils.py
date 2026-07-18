@@ -1,4 +1,5 @@
 from os import remove
+from collections.abc import Sequence
 from typing import Union, cast
 from uuid import uuid4
 from fontTools.ttLib import TTFont
@@ -16,12 +17,13 @@ from scripts.font.operations import (
     default_weight_map,
 )
 from scripts.font.types import OS2Table
+from scripts.font_merge.models import PreparedSource
 from foundrytools import Font
 from foundrytools.app.var2static import run as var2static
 
 
 def apply_unicode_subset(
-    font_path: str, unicode_ranges: list[tuple[int, int]], output_path: str
+    font_path: str, unicode_ranges: Sequence[tuple[int, int]], output_path: str
 ) -> None:
     """
     Subset font to keep only specified unicode ranges using fontTools.
@@ -49,7 +51,7 @@ def apply_unicode_subset(
 def merge_fonts(
     output_dir: str,
     base_font_path: str,
-    overrides: list[dict],
+    overrides: list[PreparedSource],
     tmp_dir: str,
 ) -> str:
     """
@@ -76,9 +78,9 @@ def merge_fonts(
     # Prepare each override font (Python side operations)
     prepared_overrides = []
     for idx, override in enumerate(overrides):
-        override_path = override["path"]
-        unicode_ranges = override.get("unicode_range")
-        width_scale = override.get("width_scale")
+        override_path = str(override.path)
+        unicode_ranges = override.unicode_ranges
+        width_scale = override.width_scale
 
         temp_file_path = override_path
 
@@ -119,7 +121,7 @@ def merge_fonts(
         [
             bin,
             "-script",
-            "scripts/merge_sans_serif_font/merger.py",
+            "scripts/font_merge/merger.py",
             config_path,
             merged_path,
         ]

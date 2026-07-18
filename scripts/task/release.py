@@ -8,14 +8,14 @@ from typing import Callable
 
 from fontTools.ttLib import TTFont
 
-from build import main as build_main
+from scripts.build.cli import main as build_main
 from scripts.common.files import (
     join_path,
     write_json,
-    write_text,
 )
 from scripts.common.process import run as run_command
 from scripts.font.operations import default_weight_map
+from scripts.version import project_version
 
 
 def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):
@@ -57,15 +57,16 @@ def rename_woff_files(dir_path: str, fn: Callable[[str], str | None]):
             print(f"Renamed: {filename} -> {new_name}")
 
 
-def parse_tag(type: str):
-    out = os.popen(f"uv version --bump {type}").readline()
-    return "v" + out.split(" ")[-1][:-1]
-
-
-def update_build_script_version(script_path: str, tag: str):
-    with open(script_path, "r", encoding="utf-8", newline="\n") as file:
-        content = re.sub(r'FONT_VERSION = ".*"', f'FONT_VERSION = "{tag}"', file.read())
-    write_text(script_path, content)
+def next_version(current: str, bump: str) -> str:
+    """Calculate the next project version without changing project files."""
+    parts = [int(part) for part in current.split(".")]
+    if len(parts) < 2:
+        raise ValueError(f"Expected a major.minor project version, got: {current}")
+    if bump == "major":
+        return f"{parts[0] + 1}.0"
+    if bump == "minor":
+        return f"{parts[0]}.{parts[1] + 1}"
+    raise ValueError(f"Unsupported version bump: {bump}")
 
 
 def git_release_commit(tag, files):
@@ -96,14 +97,15 @@ def write_unicode_map_json(font_path: str, output: str):
 
 
 def release(type: str, dry: bool):
-    tag = parse_tag(type)
+    tag = f"v{next_version(project_version(), type)}"
     choose = input(f"{'[DRY] ' if dry else ''}Tag {tag}? (Y or n) ")
     if choose != "" and choose.lower() != "y":
         print("Aborted")
         return
 
-    script_path = "build.py"
-    update_build_script_version(script_path, tag)
+    if not dry:
+        run_command(["uv", "version", "--bump", type])
+
     target_fontsource_dir = "cdn/fontsource"
     build_main(["--ttf-only", "--no-nerd-font", "--cn", "--no-hinted"], tag)
 
@@ -134,7 +136,7 @@ def release(type: str, dry: bool):
     if dry:
         print("Dry run")
     else:
-        git_release_commit(tag, [script_path, "woff2", dep_file, "pyproject.toml"])
+        git_release_commit(tag, ["woff2", dep_file, "pyproject.toml"])
 
 
 def run(args: argparse.Namespace) -> None:

@@ -1,29 +1,29 @@
 # Maple Mono Build Pipeline
 
-This package contains the top-level Maple Mono build pipeline, CLI config
-resolution, runtime path planning, and shared build helpers.
+This package contains the Maple Mono build, CJK, OpenType feature, shared font,
+font merge, and task-runner implementation.
 
 ## Architecture
 
-- `MapleBuildPipeline` in `pipeline.py` owns the top-level build flow, output
+- `MapleBuildPipeline` in `build/pipeline.py` owns the top-level build flow, output
   lifecycle, cache behavior, archive behavior, and variant sequencing.
 - Process-pool tasks run through top-level `*_job` functions with explicit job
   dataclasses so spawn/pickle behavior stays stable across platforms.
-- `util.py` contains helper functions that do not own the pipeline lifecycle,
-  including font naming, CJK post-processing, and style/path selection helpers.
-- `resolver.py` converts config file and CLI inputs into a resolved build config,
+- `font/` contains reusable naming, metrics, merge, and transform operations.
+- `build/resolver.py` converts config file and CLI inputs into a resolved build config,
   runtime output paths, and CJK static base resolution decisions.
 
 ## Files
 
 | File | Purpose |
 | ---- | ------- |
-| `cli.py` | CLI entrypoint and argument parsing for `build.py`. |
-| `config.py` | Build dataclasses, defaults, normalization, and serialization helpers. |
-| `paths.py` | Shared output path and merged variable filename helpers. |
-| `pipeline.py` | Main Maple Mono build pipeline, process-pool jobs, and public `main` entrypoint. |
-| `resolver.py` | Config-file and CLI override resolution, runtime paths, and CJK static base fallback planning. |
-| `util.py` | Pure/helper build functions shared by pipeline phases. |
+| `build/` | CLI, resolved configuration, runtime planning, font stages, and orchestration. |
+| `common/` | Filesystem, process, download, and archive infrastructure. |
+| `font/` | Shared FontTools operations, transforms, and typed table boundaries. |
+| `cjk/` | CJK data models, JSON/CLI configuration, presets, variable-font operations, and pipeline. |
+| `feature/` | Ordered feature catalog, compiler, freeze implementation, and font application. |
+| `font_merge/` | Typed merge configuration, source preparation, and FontForge wire bridge. |
+| `task/` | Thin task parser and workflow adapters. |
 
 ## Pipeline Flow
 

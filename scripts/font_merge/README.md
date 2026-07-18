@@ -1,4 +1,4 @@
-# merge_sans_serif_font
+# font_merge
 
 Short utilities for merging and polishing TrueType/OpenType fonts used by the build tasks.
 

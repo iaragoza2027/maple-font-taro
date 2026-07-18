@@ -1,11 +1,12 @@
 import json
 from os import mkdir, remove, path, makedirs
-from typing import Any, cast
+from pathlib import Path
 import uuid
 import shutil
 
 from scripts.common.files import join_path
-from scripts.merge_sans_serif_font.utils import instantiate, merge_fonts, polish
+from scripts.font_merge.models import FontSource, MergeConfig, PreparedSource
+from scripts.font_merge.utils import instantiate, merge_fonts, polish
 
 CONFIG_FILE = "config_merge.json"
 
@@ -19,44 +20,12 @@ def is_ascii_path(path_str: str) -> bool:
         return False
 
 
-def parse_unicode_range(range_str: str) -> list[tuple[int, int]]:
-    """
-    Parse unicode range string into (start, end) tuples.
-
-    Supports:
-    - Ranges: "U+0030-0039" -> [(0x0030, 0x0039)]
-    - Single codes: "U+0020" -> [(0x0020, 0x0020)]
-    - Case insensitive: "u+0030-0039" works too
-    """
-    range_str = range_str.lower().replace("u+", "")
-    if "-" in range_str:
-        start, end = range_str.split("-")
-        return [(int(start, 16), int(end, 16))]
-    else:
-        code = int(range_str, 16)
-        return [(code, code)]
-
-
 def copy_to_tmp_with_ascii_name(src_path: str, tmp_dir: str) -> str:
     """Copy font to tmp directory with ASCII-only filename."""
     temp_filename = f"{uuid.uuid4().hex}.ttf"
     temp_path = join_path(tmp_dir, temp_filename)
     shutil.copy(src_path, temp_path)
     return temp_path
-
-
-def validate_config(config: dict[str, Any]) -> None:
-    """Validate config has required fields."""
-    required = ["family_name", "output_dir", "instances"]
-    for field in required:
-        if field not in config:
-            raise ValueError(f"Missing required field: {field}")
-
-    if not isinstance(config["instances"], dict):
-        raise ValueError("'instances' must be an object with style names as keys")
-
-    if len(config["instances"]) == 0:
-        raise ValueError("'instances' must contain at least one style")
 
 
 def generate_example_config() -> str:
@@ -88,7 +57,7 @@ def generate_example_config() -> str:
     return json.dumps(example, indent=2)
 
 
-def load_config() -> dict[str, Any]:
+def load_config() -> MergeConfig:
     """Load the config file."""
     if not path.exists(CONFIG_FILE):
         example_content = generate_example_config()
@@ -102,12 +71,12 @@ def load_config() -> dict[str, Any]:
         exit(1)
 
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+        return MergeConfig.parse(json.load(f))
 
 
 def prepare_font_source(
-    source: str | dict[str, Any], output_dir: str, label: str, tmp_dir: str
-) -> dict[str, Any]:
+    source: FontSource, output_dir: str, label: str, tmp_dir: str
+) -> PreparedSource:
     """
     Prepare a font source for merging.
 
@@ -119,87 +88,41 @@ def prepare_font_source(
             "width_scale": float,   # Width scale factor (for overrides only)
         }
     """
-    result = {
-        "path": None,
-        "is_temp": False,
-        "unicode_range": None,
-        "width_scale": None,
-    }
+    font_path = str(source.path)
+    if not path.exists(font_path):
+        raise FileNotFoundError(f"Font file not found: {font_path}")
 
-    # Handle string path (base font or simple override)
-    if isinstance(source, str):
-        if not path.exists(source):
-            raise FileNotFoundError(f"Font file not found: {source}")
+    is_temp = False
+    if source.axes:
+        print(f"  Instantiating {label} from {font_path} with axes {source.axes}...")
+        temp_filename = f"inst_{label}_{uuid.uuid4().hex[:8]}.ttf"
+        temp_path = join_path(tmp_dir, temp_filename)
+        instantiate(font_path, temp_path, source.axes)
+        print(f"  Instantiated: {temp_path}")
+        font_path = temp_path
+        is_temp = True
+    elif not is_ascii_path(font_path):
+        print(f"  Copying non-ASCII path font to tmp: {font_path}")
+        font_path = copy_to_tmp_with_ascii_name(font_path, output_dir)
+        is_temp = True
 
-        font_path = source
-        if is_ascii_path(font_path):
-            result["path"] = font_path
-        else:
-            print(f"  Copying non-ASCII path font to tmp: {source}")
-            result["path"] = copy_to_tmp_with_ascii_name(source, output_dir)
-            result["is_temp"] = True
-        return result
-
-    # Handle object config (override font)
-    if isinstance(source, dict):
-        font_path = source.get("path")
-        if not font_path:
-            raise ValueError("Override missing 'path' field")
-
-        if not path.exists(font_path):
-            raise FileNotFoundError(f"Font file not found: {font_path}")
-
-        # Parse unicode range if provided
-        if "unicode_range" in source:
-            unicode_ranges = []
-            for range_str in source["unicode_range"]:
-                unicode_ranges.extend(parse_unicode_range(range_str))
-            result["unicode_range"] = unicode_ranges
-
-        # Get width scale if provided
-        if "width_scale" in source:
-            width_scale = float(source["width_scale"])
-            if width_scale <= 0:
-                raise ValueError(f"width_scale must be > 0, got {width_scale}")
-            result["width_scale"] = width_scale
-
-        # Handle variable font instantiation
-        axes = source.get("axes", {})
-        if axes:
-            print(f"  Instantiating {label} from {font_path} with axes {axes}...")
-            temp_filename = f"inst_{label}_{uuid.uuid4().hex[:8]}.ttf"
-            temp_path = join_path(tmp_dir, temp_filename)
-            instantiate(font_path, temp_path, axes)
-            print(f"  Instantiated: {temp_path}")
-            font_path = temp_path
-            result["is_temp"] = True
-        else:
-            # Static font - copy if non-ASCII path
-            if is_ascii_path(font_path):
-                result["path"] = font_path
-            else:
-                print(f"  Copying non-ASCII path font to tmp: {font_path}")
-                result["path"] = copy_to_tmp_with_ascii_name(font_path, output_dir)
-                result["is_temp"] = True
-            return result
-
-        result["path"] = font_path
-        return result
-
-    raise ValueError(f"Invalid font source type: {type(source)}")
+    return PreparedSource(
+        path=Path(font_path),
+        is_temp=is_temp,
+        unicode_ranges=source.unicode_ranges,
+        width_scale=source.width_scale,
+    )
 
 
 def main(cleanup: bool = False):
     print("Font merge script (Multi-Font Support)")
 
     # Load and validate config
-    config_data = load_config()
-    validate_config(config_data)
-
-    family_name = config_data["family_name"]
-    output_dir = config_data["output_dir"]
-    line_height_config = config_data.get("line_height")
-    instances = cast(dict[str, list[str | dict[str, Any]]], config_data["instances"])
+    config = load_config()
+    family_name = config.family_name
+    output_dir = str(config.output_dir)
+    line_height_config = config.line_height
+    instances = config.instances
 
     # Create directories
     if not path.exists(output_dir):
@@ -234,41 +157,26 @@ def main(cleanup: bool = False):
             base_config = prepare_font_source(
                 font_sources[0], output_dir, f"{style_name}_base", tmp_dir
             )
-            if base_config["is_temp"]:
-                temp_files_to_clean.append(base_config["path"])
-            print(f"  Base font: {base_config['path']}")
+            if base_config.is_temp:
+                temp_files_to_clean.append(str(base_config.path))
+            print(f"  Base font: {base_config.path}")
 
             # Prepare override fonts (remaining sources)
             print("\n2. Preparing override fonts...")
             overrides = []
             for idx, source in enumerate(font_sources[1:], start=1):
                 # Check enable flag for override configs
-                if isinstance(source, dict):
-                    enable = source.get("enable", True)
-                    if not enable:
-                        print(f"  Override {idx} is disabled. Skipping.")
-                        continue
+                if not source.enable:
+                    print(f"  Override {idx} is disabled. Skipping.")
+                    continue
 
                 override_config = prepare_font_source(
                     source, output_dir, f"{style_name}_override_{idx}", tmp_dir
                 )
 
-                # Override specific configs from original source
-                if isinstance(source, dict):
-                    if "unicode_range" in source:
-                        override_config["unicode_range"] = []
-                        for range_str in cast(list[str], source["unicode_range"]):
-                            override_config["unicode_range"].extend(
-                                parse_unicode_range(range_str)
-                            )
-                    if "width_scale" in source:
-                        override_config["width_scale"] = float(
-                            cast(str | float, source["width_scale"])
-                        )
-
-                print(f"  Override {idx}: {override_config['path']}")
-                if override_config["is_temp"]:
-                    temp_files_to_clean.append(override_config["path"])
+                print(f"  Override {idx}: {override_config.path}")
+                if override_config.is_temp:
+                    temp_files_to_clean.append(str(override_config.path))
 
                 overrides.append(override_config)
 
@@ -279,7 +187,7 @@ def main(cleanup: bool = False):
             print("\n3. Merging fonts...")
             merged_path = merge_fonts(
                 output_dir=output_dir,
-                base_font_path=base_config["path"],
+                base_font_path=str(base_config.path),
                 overrides=overrides,
                 tmp_dir=tmp_dir,
             )

@@ -11,7 +11,7 @@
     "**/__pycache__/**",
     "maple-font-page",
     "FontPatcher",
-    "scripts/merge_sans_serif_font/merger.py"
+    "scripts/font_merge/merger.py"
   ],
   "pythonVersion": "3.10",
   "typeCheckingMode": "basic"

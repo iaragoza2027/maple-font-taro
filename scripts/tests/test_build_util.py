@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fontTools.ttLib import TTFont
 
@@ -11,7 +11,10 @@ from scripts.config.base import (
     ResolvedCJKBuildEntry,
 )
 from scripts.config.resolver import BuildConfigResolver, BuildRuntimeContext
-from scripts.cjk.static import postprocess_cjk_extended_static_font
+from scripts.cjk.static import (
+    apply_cjk_width_transform,
+    postprocess_cjk_extended_static_font,
+)
 from scripts.cjk.models import CJKBuildConfig, CJKSourceConfig
 from scripts.cjk.presets import build_preset_config, get_preset
 
@@ -65,6 +68,42 @@ def make_custom_entry() -> ResolvedCJKBuildEntry:
 
 
 class PostprocessCJKStaticFontTest(unittest.TestCase):
+    def test_slim_width_transforms_full_and_residual_half_widths(self) -> None:
+        font_config = BuildConfigResolver().load_defaults()
+        font_config.feature.width = "slim"
+        font = MagicMock()
+
+        with (
+            patch("scripts.cjk.static.change_glyph_width_or_scale") as full_width,
+            patch("scripts.cjk.static.smart_change_width") as half_width,
+        ):
+            skip_verify = apply_cjk_width_transform(
+                font,
+                font_config,
+                CJKCommonBuildOptions(),
+            )
+
+        self.assertFalse(skip_verify)
+        full_width.assert_called_once_with(
+            font=font,
+            match_width=1200,
+            target_width=1000,
+            scale_factor=(1.0, 1.0),
+            special_names=[
+                "ellipsis.full",
+                "quoteleft.full",
+                "quoteright.full",
+                "quotedblleft.full",
+                "quotedblright.full",
+            ],
+        )
+        half_width.assert_called_once_with(
+            font=font,
+            target_width=500,
+            original_ref_width=600,
+            scale_zero_width=False,
+        )
+
     def test_builtin_entry_applies_meta_table(self) -> None:
         font_config = BuildConfigResolver().load_defaults()
         runtime_context = make_runtime_context()

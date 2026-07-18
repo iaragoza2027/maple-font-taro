@@ -8,7 +8,7 @@ from multiprocessing import current_process
 import sys
 import threading
 from array import array
-from concurrent.futures import Executor, ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import Executor
 from os import cpu_count, makedirs
 from pathlib import Path
 from typing import Any, Iterable, Sequence, TypeVar, cast
@@ -59,6 +59,7 @@ from scripts.cjk.variable import (
 )
 from scripts.utils.files import archive, get_directory_hash
 from scripts.utils.logging import configure_logging, log_task, logger, set_log_task
+from scripts.utils.process import create_process_executor
 from scripts.font_ops.fonttools_types import (
     CFFTable,
     GlyfTable,
@@ -161,14 +162,10 @@ class StaticFontCache:
 
 def create_font_executor() -> Executor:
     """Create a bounded executor for expensive font instantiation work."""
-    try:
-        return ProcessPoolExecutor(
-            max_workers=min(4, cpu_count() or 4),
-            initializer=configure_logging,
-        )
-    except (OSError, PermissionError):
-        logger.warning("Process pool unavailable; falling back to thread pool")
-        return ThreadPoolExecutor(max_workers=4)
+    return create_process_executor(
+        min(4, cpu_count() or 4),
+        fallback_to_threads=True,
+    )
 
 
 def get_ttfautohint_options(params: dict[str, Any]) -> dict[str, Any]:
@@ -937,7 +934,7 @@ def convert_cff_master_files_to_glyf_tables_parallel(
     chunks = chunked(tuple(glyph_order), chunk_size)
     glyf_tables = [build_glyf_table(glyph_order) for _ in input_paths]
     max_workers = min(4, cpu_count() or 4)
-    with ProcessPoolExecutor(
+    with create_process_executor(
         max_workers=max_workers,
         initializer=init_cff_glyph_chunk_worker,
         initargs=(input_paths,),
@@ -1216,9 +1213,14 @@ def feature_weight_instances(feature_font: TTFont) -> tuple[CJKWeightInstance, .
 class CJKBuilder:
     """Coordinate the shared CJK build pipeline without holding live fonts."""
 
-    def __init__(self, config: CJKBuildConfig) -> None:
+    def __init__(
+        self,
+        config: CJKBuildConfig,
+        executor: Executor | None = None,
+    ) -> None:
         self.config = config
-        self.process_pool: Executor | None = None
+        self.process_pool = executor
+        self._owns_process_pool = executor is None
         self.regular_output = config.output.dir / config.output.regular_variable
         self.italic_output = config.output.dir / config.output.italic_variable
         self.static_dir = config.output.dir / config.output.static_dir
@@ -1226,7 +1228,8 @@ class CJKBuilder:
     def build(self, vf_only: bool = False) -> None:
         task = self.config.locale_name.lower()
         log_task(task, "Building CJK fonts")
-        self.process_pool = create_font_executor()
+        if self.process_pool is None:
+            self.process_pool = create_font_executor()
         try:
             self.config.output.dir.mkdir(parents=True, exist_ok=True)
             regular_font, source_state = self._build_regular_variable_font()
@@ -1253,7 +1256,7 @@ class CJKBuilder:
             self._write_static_artifacts(static_dir)
             logger.info("CJK build complete")
         finally:
-            if self.process_pool is not None:
+            if self._owns_process_pool and self.process_pool is not None:
                 self.process_pool.shutdown(wait=True, cancel_futures=True)
                 self.process_pool = None
 
@@ -1628,9 +1631,13 @@ def instantiate_static_font_job(job: StaticInstanceJob) -> None:
     )
 
 
-def build_cjk_fonts(config: CJKBuildConfig, vf_only: bool = False) -> None:
+def build_cjk_fonts(
+    config: CJKBuildConfig,
+    vf_only: bool = False,
+    executor: Executor | None = None,
+) -> None:
     """Build regular, italic, and optionally static CJK fonts."""
-    CJKBuilder(config).build(vf_only=vf_only)
+    CJKBuilder(config, executor).build(vf_only=vf_only)
 
 
 def build_cjk_from_config_file(

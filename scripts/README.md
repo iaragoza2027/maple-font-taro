@@ -15,14 +15,17 @@ and task-runner implementation.
 
 ## Logging
 
-CLI entrypoints configure one `scripts` logger to write plain `[LEVEL] message`
-records to stderr. Adjacent groups with different levels or top-level tasks are
-separated by one blank line. Set `MAPLE_LOG_LEVEL` to `DEBUG`, `INFO`, `WARNING`,
-`ERROR`, or `CRITICAL` to control verbosity; the default is `INFO`.
+CLI entrypoints configure one `scripts` logger to write `[LEVEL] [task] message`
+records to stderr. Top-level task groups are separated by one blank line. Set
+`MAPLE_LOG_LEVEL` to `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL` to control
+verbosity; the default is `INFO`. `build.py --debug` uses `DEBUG` as the default
+for that CLI invocation, while an explicit `MAPLE_LOG_LEVEL` still takes priority.
 
 Machine-readable dry-run output remains on stdout. In particular, CI keeps
 `build.py --dry` as JSON-only stdout so it can be piped to tools such as `jq`.
 Worker processes configure the same logger before running font jobs.
+Downloads with a known content length refresh their percentage and transferred
+size on one stderr line instead of emitting one record per chunk.
 
 ## Files
 
@@ -95,7 +98,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["build_fontmake_fonts"] --> TEMP["Create fonts/temp"]
+    A["prepare_fontmake_sources"] --> TEMP["Create fonts/temp"]
     TEMP --> SRC["Prepare regular and italic<br/>Glyphs sources once"]
     SRC --> PREP["Fill missing master glyphs,<br/>apply aliases and width transforms"]
     PREP --> CHECK["Validate and materialize one<br/>Designspace/UFO tree per source"]
@@ -134,7 +137,7 @@ flowchart TD
     AT --> AU["ttfautohint with Regular reference"]
     AU --> AV["save fonts/TTF-AutoHint file"]
     AV --> AK{"woff2 wanted and not debug?"}
-    AK -->|"yes"| AL["WOFF2 task: run_process_jobs build_woff2_font_job"]
+    AK -->|"yes"| AL["WOFF2 task: convert_to_web<br/>with shared executor"]
     AK -->|"no"| AM["skip WOFF2"]
 ```
 
@@ -271,6 +274,7 @@ flowchart TD
 | Keep `config.cli` pure and use `pipeline.main(args, version)` as the public entrypoint | Allow CLI parsing to be reused without importing or executing the build pipeline. |
 | Keep process-pool workers at module top level | Avoid pickling bound methods, closures, or partials. |
 | Use explicit job dataclasses | Make each parallel task's inputs visible and serializable. |
+| Reuse one executor across the build lifecycle | Avoid repeatedly starting workers between base, web, Nerd Font, and CJK stages; CFF glyph chunks retain a specialized pool for their custom initializer. |
 | Keep build configuration and resolution outside `pipeline.py` | Keep the execution pipeline focused on build orchestration. |
 | Resolve CJK static bases in `BuildRuntimeContext` | Keep cache, download, hash, and variable fallback decisions outside the execution pipeline. |
 
@@ -281,10 +285,10 @@ flowchart TD
 | Config and CLI | `cli.py`, `BuildConfigResolver` |
 | Runtime orchestration | `MapleBuildPipeline` |
 | CJK static base resolution | `BuildRuntimeContext.resolve_cjk_static_base` |
-| Fontmake source build | `build_fontmake_fonts` |
-| Static TTF instantiation | `MapleStaticInstanceJob`, `instantiate_maple_static_font_job` |
-| Base TTF postprocess | `MonoBuildJob`, `build_mono_job` |
+| Fontmake source build | `prepare_fontmake_sources`, `compile_fontmake_format` |
+| Base static postprocess | `StaticPostprocessJob`, `postprocess_static_font_job` |
 | Autohint output | `MonoAutohintJob`, `build_mono_autohint_job` |
+| Web font conversion | `convert_to_web` |
 | Nerd Font output | `NerdFontBuildJob`, `build_nf_job` |
 | CJK extended output | `build_cjk_extended_outputs` and CJK utilities |
 | Build record and archive | `MapleBuildPipeline` |

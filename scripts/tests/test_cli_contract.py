@@ -94,6 +94,39 @@ class PublicCliContractTest(unittest.TestCase):
         self.assertTrue(parsed_args.dry)
         self.assertEqual(run_pipeline.call_args.kwargs["version"], "v7.9")
 
+    def test_debug_build_enables_debug_logging_for_the_cli_lifetime(self) -> None:
+        observed_levels: list[str | None] = []
+        with (
+            patch.dict(os.environ, {}, clear=True),
+            patch("scripts.pipeline.configure_logging"),
+            patch(
+                "scripts.pipeline.run",
+                side_effect=lambda *_args, **_kwargs: observed_levels.append(
+                    os.environ.get("MAPLE_LOG_LEVEL")
+                ),
+            ),
+        ):
+            run_build_cli(["--debug", "--dry"], version="v7.9")
+            self.assertNotIn("MAPLE_LOG_LEVEL", os.environ)
+
+        self.assertEqual(observed_levels, ["DEBUG"])
+
+    def test_explicit_log_level_overrides_debug_default(self) -> None:
+        observed_levels: list[str | None] = []
+        with (
+            patch.dict(os.environ, {"MAPLE_LOG_LEVEL": "ERROR"}, clear=True),
+            patch("scripts.pipeline.configure_logging"),
+            patch(
+                "scripts.pipeline.run",
+                side_effect=lambda *_args, **_kwargs: observed_levels.append(
+                    os.environ.get("MAPLE_LOG_LEVEL")
+                ),
+            ),
+        ):
+            run_build_cli(["--debug", "--dry"], version="v7.9")
+
+        self.assertEqual(observed_levels, ["ERROR"])
+
 
 if __name__ == "__main__":
     unittest.main()

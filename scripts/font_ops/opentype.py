@@ -12,6 +12,7 @@ from scripts.utils.logging import logger
 
 def add_ital_axis_to_stat(font: TTFont):
     """Add a fake ``ital`` axis to italic variable fonts."""
+    logger.debug("Add italic STAT axis")
     from fontTools.ttLib.tables import otTables as ot
 
     name = font["name"]

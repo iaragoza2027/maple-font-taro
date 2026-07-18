@@ -680,7 +680,7 @@ options:
   -h, --help            show this help message and exit
   -v, --version         show program's version number and exit
   -d, --dry             Output config and exit
-  --debug               Add `Debug` suffix to family name and faster build
+  --debug               Add `Debug` suffix, enable debug logging, and use a faster build
 
 Feature Options:
   -n, --normal          Use normal preset, just like `JetBrains Mono` with slashed

@@ -1,30 +1,38 @@
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Executor
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
 from fontTools.ttLib import TTFont
 
-from scripts.utils.logging import logger
+from scripts.utils.logging import logger, set_log_task
+from scripts.utils.process import create_process_executor, run_jobs
 
 
 WebFontFlavor = Literal["woff", "woff2"]
 
 
+@dataclass(frozen=True, slots=True)
+class WebFontConversionJob:
+    font_path: Path
+    target_dir: Path
+    flavor: WebFontFlavor
+
+
 def _convert_font_to_web(
-    font_path: Path,
-    target_dir: Path,
-    flavor: WebFontFlavor,
+    job: WebFontConversionJob,
 ) -> Path:
-    target_path = target_dir / f"{font_path.name}.{flavor}"
-    font = TTFont(font_path, recalcTimestamp=False)
+    set_log_task(job.flavor)
+    target_path = job.target_dir / f"{job.font_path.name}.{job.flavor}"
+    font = TTFont(job.font_path, recalcTimestamp=False)
     try:
-        font.flavor = flavor
+        font.flavor = job.flavor
         font.save(target_path, reorderTables=False)
     finally:
         font.close()
-    logger.info("Saved %s font to %s", flavor.upper(), target_path)
+    logger.info("Saved %s font to %s", job.flavor.upper(), target_path)
     return target_path
 
 
@@ -32,6 +40,7 @@ def convert_to_web(
     input_path: str | Path,
     output_dir: str | Path | None = None,
     flavor: WebFontFlavor = "woff2",
+    executor: Executor | None = None,
 ) -> list[Path]:
     """Convert an SFNT font or a flat directory of fonts to WOFF or WOFF2."""
     source = Path(input_path)
@@ -55,14 +64,11 @@ def convert_to_web(
         else source
     )
     target_dir.mkdir(parents=True, exist_ok=True)
-    with ThreadPoolExecutor(max_workers=min(len(font_paths), 4)) as executor:
-        outputs = list(
-            executor.map(
-                _convert_font_to_web,
-                font_paths,
-                [target_dir] * len(font_paths),
-                [flavor] * len(font_paths),
-            )
-        )
+    jobs = [WebFontConversionJob(path, target_dir, flavor) for path in font_paths]
+    if executor is not None:
+        return run_jobs(executor, _convert_font_to_web, jobs)
 
-    return outputs
+    with create_process_executor(
+        min(len(font_paths), 4), fallback_to_threads=True
+    ) as process_executor:
+        return run_jobs(process_executor, _convert_font_to_web, jobs)

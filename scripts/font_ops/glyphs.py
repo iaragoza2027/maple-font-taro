@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from concurrent.futures import Executor, ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import Executor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -12,10 +12,20 @@ from fontTools.designspaceLib import DesignSpaceDocument
 from glyphsLib import load, to_designspace
 from ufo2ft.filters import DecomposeTransformedComponentsFilter
 
-from scripts.font_ops.glyph_transform import smart_change_ufo_width
+from scripts.font_ops.glyph_transform import (
+    SmartWidthThickenFilter,
+    scale_ufo_width,
+)
+from scripts.font_ops.metrics import calculate_line_height_metrics
+from scripts.font_ops.names import default_weight_map
 from scripts.font_ops.opentype import DEFAULT_COMPAT_ALIASES
 from scripts.utils.files import write_json
-from scripts.utils.logging import configure_logging, logger, set_log_task
+from scripts.utils.logging import logger, set_log_task
+from scripts.utils.process import (
+    create_process_executor,
+    create_thread_executor,
+    run_jobs,
+)
 
 
 SourceStyle = Literal["regular", "italic"]
@@ -28,6 +38,7 @@ class PreparedGlyphsSource:
     style: SourceStyle
     designspace: DesignSpaceDocument
     errors: tuple[dict[str, Any], ...]
+    vertical_metric: tuple[int, int]
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,8 +53,9 @@ class FontmakeBranchJob:
     designspace_path: Path
     output: FontmakeOutput
     target: Path
-    interpolate: bool = False
+    interpolate: bool | str = False
     source_label: str = ""
+    width_transform: tuple[int, int] | None = None
 
 
 class SourceCompatibilityError(RuntimeError):
@@ -133,17 +145,52 @@ def compile_fontmake_branches(
     if not jobs:
         return
     if executor is not None:
-        list(executor.map(_compile_fontmake_branch, jobs))
+        run_jobs(executor, _compile_fontmake_branch, jobs)
         return
     if use_processes:
-        with ProcessPoolExecutor(
-            max_workers=len(jobs),
-            initializer=configure_logging,
-        ) as executor:
-            list(executor.map(_compile_fontmake_branch, jobs))
+        with create_process_executor(
+            len(jobs), fallback_to_threads=True
+        ) as process_executor:
+            run_jobs(process_executor, _compile_fontmake_branch, jobs)
         return
-    with ThreadPoolExecutor(max_workers=len(jobs)) as executor:
-        list(executor.map(_compile_fontmake_branch, jobs))
+    with create_thread_executor(len(jobs)) as thread_executor:
+        run_jobs(thread_executor, _compile_fontmake_branch, jobs)
+
+
+def _fontmake_options(job: FontmakeBranchJob) -> dict[str, Any]:
+    options: dict[str, Any] = {
+        "output": (job.output,),
+        "use_production_names": False,
+        "autohint": False,
+        "subset": False,
+        "feature_writers": [],
+        "generate_GDEF": False,
+        "check_compatibility": True,
+    }
+    width_filters = (
+        [SmartWidthThickenFilter(*job.width_transform)]
+        if job.width_transform is not None
+        else []
+    )
+    if job.output == "variable":
+        options.update(
+            output_path=str(job.target),
+            remove_overlaps=False,
+        )
+        if width_filters:
+            options["filters"] = width_filters
+        return options
+
+    options.update(
+        output_dir=str(job.target),
+        interpolate=job.interpolate,
+        remove_overlaps=True,
+        overlaps_backend="pathops",
+        filters=[DecomposeTransformedComponentsFilter(), *width_filters],
+    )
+    if job.output == "otf":
+        options["optimize_cff"] = CFFOptimization.SUBROUTINIZE
+    return options
 
 
 def _compile_fontmake_branch(job: FontmakeBranchJob) -> None:
@@ -156,55 +203,9 @@ def _compile_fontmake_branch(job: FontmakeBranchJob) -> None:
     project = FontProject()
     if job.output == "variable":
         job.target.parent.mkdir(parents=True, exist_ok=True)
-        project.run_from_designspace(
-            job.designspace_path,
-            output=("variable",),
-            output_path=str(job.target),
-            use_production_names=False,
-            remove_overlaps=False,
-            autohint=False,
-            subset=False,
-            feature_writers=[],
-            generate_GDEF=False,
-            check_compatibility=True,
-        )
-        return
-
-    job.target.mkdir(parents=True, exist_ok=True)
-    if job.output == "otf":
-        project.run_from_designspace(
-            job.designspace_path,
-            output=("otf",),
-            output_dir=str(job.target),
-            interpolate=job.interpolate,
-            use_production_names=False,
-            remove_overlaps=True,
-            overlaps_backend="pathops",
-            autohint=False,
-            subset=False,
-            feature_writers=[],
-            filters=[DecomposeTransformedComponentsFilter()],
-            generate_GDEF=False,
-            check_compatibility=True,
-            optimize_cff=CFFOptimization.SUBROUTINIZE,
-        )
-        return
-
-    project.run_from_designspace(
-        job.designspace_path,
-        output=("ttf",),
-        output_dir=str(job.target),
-        interpolate=job.interpolate,
-        use_production_names=False,
-        remove_overlaps=True,
-        overlaps_backend="pathops",
-        autohint=False,
-        subset=False,
-        feature_writers=[],
-        filters=[DecomposeTransformedComponentsFilter()],
-        generate_GDEF=False,
-        check_compatibility=True,
-    )
+    else:
+        job.target.mkdir(parents=True, exist_ok=True)
+    project.run_from_designspace(job.designspace_path, **_fontmake_options(job))
 
 
 def write_source_issue_report(
@@ -259,6 +260,8 @@ def prepare_glyphs_source(
     style: SourceStyle,
     target_width: int | None = None,
     original_ref_width: int = 600,
+    weight_mapping: dict[str, int] | None = None,
+    line_height: float = 1,
 ) -> PreparedGlyphsSource:
     """Load and normalize one Glyphs source for every fontmake output branch."""
     path = Path(source_path)
@@ -267,6 +270,7 @@ def prepare_glyphs_source(
     glyphs_font.classes = []
     glyphs_font.featurePrefixes = []
     glyphs_font.features = []
+    _apply_instance_weight_mapping(glyphs_font, weight_mapping)
     designspace = to_designspace(
         glyphs_font,
         generate_GDEF=False,
@@ -287,6 +291,7 @@ def prepare_glyphs_source(
     )
     if default_source is None or default_source.font is None:
         raise ValueError(f"Glyphs source is missing a wght 400 master: {path}")
+    vertical_metric = _get_ufo_vertical_metric(default_source.font)
 
     for source in sources:
         is_default = source is default_source
@@ -297,6 +302,7 @@ def prepare_glyphs_source(
         if source.font is None:
             raise ValueError(f"Glyphs source master has no UFO font: {path}")
         source.font.features.text = ""
+        _set_ufo_build_metadata(source.font, line_height, vertical_metric)
 
     skip_export = set(designspace.lib.get("public.skipExportGlyphs", ()))
     glyph_names = sorted(
@@ -345,7 +351,7 @@ def prepare_glyphs_source(
         assert source.font is not None
         _alias_ufo_codepoints(source.font)
         if target_width is not None:
-            smart_change_ufo_width(
+            scale_ufo_width(
                 source.font,
                 target_width=target_width,
                 original_ref_width=original_ref_width,
@@ -372,7 +378,69 @@ def prepare_glyphs_source(
         style=style,
         designspace=designspace,
         errors=tuple(errors),
+        vertical_metric=vertical_metric,
     )
+
+
+def _apply_instance_weight_mapping(
+    glyphs_font: Any,
+    weight_mapping: dict[str, int] | None,
+) -> None:
+    """Set variable instance user weights before Designspace generation."""
+    if weight_mapping is None or weight_mapping == default_weight_map:
+        return
+    if weight_mapping["thin"] != 100:
+        raise ValueError("Font weight of 'thin' must be 100")
+    if weight_mapping["extrabold"] != 800:
+        raise ValueError("Font weight of 'extrabold' must be 800")
+
+    for instance in glyphs_font.instances:
+        weight_name = instance.name.replace(" ", "").lower()
+        if weight_name in weight_mapping:
+            instance.customParameters["weightClass"] = weight_mapping[weight_name]
+
+
+def _get_ufo_vertical_metric(font: Any) -> tuple[int, int]:
+    info = font.info
+    ascender = info.openTypeHheaAscender
+    descender = info.openTypeHheaDescender
+    if ascender is None:
+        ascender = info.ascender
+    if descender is None:
+        descender = info.descender
+    if ascender is None or descender is None:
+        raise ValueError("UFO source is missing vertical metrics")
+    return int(round(ascender)), int(round(descender))
+
+
+def _set_ufo_build_metadata(
+    font: Any,
+    line_height: float,
+    vertical_metric: tuple[int, int],
+) -> None:
+    info = font.info
+    info.postscriptIsFixedPitch = True
+
+    panose: list[int] = list(info.openTypeOS2Panose or (0,) * 10)
+    panose[0] = 2
+    panose[3] = 9
+    info.openTypeOS2Panose = panose
+    info.openTypeGaspRangeRecords = [
+        {
+            "rangeMaxPPEM": 65535,
+            "rangeGaspBehavior": [0, 1, 2, 3],
+        }
+    ]
+
+    if line_height == 1:
+        return
+    ascender, descender = calculate_line_height_metrics(line_height, vertical_metric)
+    info.openTypeHheaAscender = ascender
+    info.openTypeHheaDescender = descender
+    info.openTypeOS2TypoAscender = ascender
+    info.openTypeOS2TypoDescender = descender
+    info.openTypeOS2WinAscent = ascender
+    info.openTypeOS2WinDescent = -descender
 
 
 def materialize_prepared_source(

@@ -8,8 +8,8 @@ import unittest
 from unittest.mock import patch
 
 from scripts.utils.logging import (
-    LevelSeparatedFormatter,
     configure_logging,
+    log_progress,
     log_task,
     logger,
     set_log_task,
@@ -66,30 +66,6 @@ class LoggingConfigurationTest(unittest.TestCase):
         self.assertEqual(len(self.package_logger.handlers), 1)
         self.assertEqual(self.package_logger.level, logging.DEBUG)
 
-    def test_formatter_separates_different_log_levels(self) -> None:
-        formatter = LevelSeparatedFormatter()
-        info = logging.LogRecord("scripts", logging.INFO, __file__, 1, "Info", (), None)
-        warning = logging.LogRecord(
-            "scripts", logging.WARNING, __file__, 1, "Warning", (), None
-        )
-
-        self.assertEqual(formatter.format(info), "[INFO] [system] Info")
-        self.assertEqual(formatter.format(warning), "\n[WARNING] [system] Warning")
-
-    def test_task_log_starts_a_new_group(self) -> None:
-        formatter = LevelSeparatedFormatter()
-        first_task = logging.LogRecord(
-            "scripts", logging.INFO, __file__, 1, "First", (), None
-        )
-        first_task.task = "first"
-        second_task = logging.LogRecord(
-            "scripts", logging.INFO, __file__, 1, "Second", (), None
-        )
-        second_task.task = "second"
-
-        self.assertEqual(formatter.format(first_task), "[INFO] [first] First")
-        self.assertEqual(formatter.format(second_task), "\n[INFO] [second] Second")
-
     def test_task_context_is_inherited_by_regular_logs(self) -> None:
         stderr = StringIO()
         with redirect_stderr(stderr):
@@ -102,6 +78,32 @@ class LoggingConfigurationTest(unittest.TestCase):
             "[INFO] [woff2] Converting static fonts to WOFF2\n"
             "[INFO] [woff2] Saved WOFF2 font to "
             "fonts/Woff2/MapleMono-Regular.ttf.woff2\n",
+        )
+
+    def test_task_switch_inserts_one_unprefixed_blank_line(self) -> None:
+        stderr = StringIO()
+        with redirect_stderr(stderr):
+            configure_logging()
+            log_task("prepare", "Preparing sources")
+            log_task("ttf", "Building TTF fonts")
+
+        self.assertEqual(
+            stderr.getvalue(),
+            "[INFO] [prepare] Preparing sources\n\n[INFO] [ttf] Building TTF fonts\n",
+        )
+
+    def test_progress_refreshes_the_same_log_line(self) -> None:
+        stderr = StringIO()
+        with redirect_stderr(stderr):
+            configure_logging()
+            set_log_task("download")
+            log_progress("Downloading archive.zip: %s%%", 25)
+            log_progress("Downloading archive.zip: %s%%", 100, complete=True)
+
+        self.assertEqual(
+            stderr.getvalue(),
+            "\r[INFO] [download] Downloading archive.zip: 25%"
+            "\r[INFO] [download] Downloading archive.zip: 100%\n",
         )
 
 

@@ -5,6 +5,7 @@ import unittest
 import json
 from pathlib import Path
 from threading import Barrier, current_thread
+from typing import cast
 from unittest.mock import patch
 
 from fontmake.font_project import CFFOptimization, FontProject
@@ -21,18 +22,25 @@ from glyphsLib.classes import (
     GSPath,
 )
 from fontTools.ttLib import TTFont
+from fontTools.varLib.instancer import instantiateVariableFont
 
 from scripts.config.base import ResolvedBuildConfig
 from scripts.feature.apply import patch_font_feature
+from scripts.font_ops.fonttools_types import OS2Table, PostTable
 from scripts.font_ops.glyphs import (
+    FontmakeBranchJob,
     SourceCompatibilityError,
     SourceStyle,
+    _fontmake_options,
+    compile_fontmake_branches,
     compile_fontmake_outputs,
     materialize_prepared_source,
     prepare_glyphs_source,
     validate_source_reports,
     write_source_issue_report,
 )
+from scripts.font_ops.glyph_transform import SmartWidthThickenFilter
+from scripts.font_ops.names import default_weight_map
 from scripts.font_ops.opentype import add_ital_axis_to_stat
 
 
@@ -87,6 +95,96 @@ def compile_fixture(
 
 
 class GlyphsVariableSourceTest(unittest.TestCase):
+    def test_prepare_sets_build_metadata_on_every_ufo_master(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source_path = Path(tmp) / "Fixture.glyphs"
+            write_glyphs_fixture(
+                source_path,
+                {".notdef": ("Thin", "Regular", "ExtraBold")},
+            )
+
+            prepared = prepare_glyphs_source(
+                source_path,
+                "regular",
+                line_height=1.2,
+            )
+
+            self.assertEqual(prepared.vertical_metric, (800, -200))
+            for source in prepared.designspace.sources:
+                assert source.font is not None
+                info = source.font.info
+                self.assertIs(info.postscriptIsFixedPitch, True)
+                self.assertEqual(info.openTypeOS2Panose, [2, 0, 0, 9, 0, 0, 0, 0, 0, 0])
+                assert info.openTypeGaspRangeRecords is not None
+                self.assertEqual(
+                    dict(info.openTypeGaspRangeRecords[0]),
+                    {
+                        "rangeMaxPPEM": 65535,
+                        "rangeGaspBehavior": [0, 1, 2, 3],
+                    },
+                )
+                self.assertEqual(info.openTypeHheaAscender, 960)
+                self.assertEqual(info.openTypeHheaDescender, -240)
+                self.assertEqual(info.openTypeOS2TypoAscender, 960)
+                self.assertEqual(info.openTypeOS2TypoDescender, -240)
+                self.assertEqual(info.openTypeOS2WinAscent, 960)
+                self.assertEqual(info.openTypeOS2WinDescent, 240)
+
+    def test_fontmake_compiles_prepared_variable_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source_path = root / "Fixture.glyphs"
+            output_path = root / "Fixture[wght].ttf"
+            write_glyphs_fixture(
+                source_path,
+                {".notdef": ("Thin", "Regular", "ExtraBold")},
+            )
+            with source_path.open(encoding="utf-8") as source_file:
+                glyphs_font = load(source_file)
+            instance = GSInstance()
+            instance.name = "ExtraLight"
+            instance.weightValue = 200
+            glyphs_font.instances.append(instance)
+            glyphs_font.save(source_path)
+
+            prepared = prepare_glyphs_source(
+                source_path,
+                "regular",
+                weight_mapping={**default_weight_map, "extralight": 275},
+                line_height=1.2,
+            )
+            designspace_path = materialize_prepared_source(
+                prepared,
+                root / "prepared",
+            )
+            compile_fontmake_branches(
+                [FontmakeBranchJob(designspace_path, "variable", output_path)]
+            )
+
+            generated = TTFont(output_path)
+            instances = {
+                generated["name"].getDebugName(item.subfamilyNameID): item
+                for item in generated["fvar"].instances
+            }
+            os2 = cast(OS2Table, generated["OS/2"])
+            post = cast(PostTable, generated["post"])
+            self.assertEqual(instances["ExtraLight"].coordinates["wght"], 275)
+            self.assertTrue(post.isFixedPitch)
+            self.assertEqual(os2.panose.bFamilyType, 2)
+            self.assertEqual(os2.panose.bProportion, 9)
+            self.assertEqual(generated["gasp"].gaspRange, {65535: 15})
+            self.assertEqual(generated["hhea"].ascent, 960)
+            self.assertEqual(generated["hhea"].descent, -240)
+            self.assertEqual(os2.sTypoAscender, 960)
+            self.assertEqual(os2.sTypoDescender, -240)
+            self.assertEqual(os2.usWinAscent, 960)
+            self.assertEqual(os2.usWinDescent, 240)
+            self.assertEqual(generated["hhea"].advanceWidthMax, 600)
+            self.assertEqual(os2.xAvgCharWidth, 600)
+            self.assertNotEqual(generated["head"].yMax, 960)
+            self.assertNotEqual(generated["head"].yMin, -240)
+            generated.close()
+
     def test_compatibility_aliases_are_added_to_every_ufo_master(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             source_path = Path(tmp) / "Fixture.glyphs"
@@ -442,6 +540,118 @@ class GlyphsVariableSourceTest(unittest.TestCase):
                 CFFOptimization.SUBROUTINIZE,
             )
             self.assertNotIn("subroutinizer", otf_call.kwargs)
+
+    def test_fontmake_accepts_static_filter_without_filtering_variable_names(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source_path = root / "Fixture.glyphs"
+            write_glyphs_fixture(
+                source_path,
+                {".notdef": ("Thin", "Regular", "ExtraBold")},
+            )
+            prepared = prepare_glyphs_source(source_path, "regular")
+            designspace_path = materialize_prepared_source(
+                prepared,
+                root / "prepared",
+            )
+
+            compile_fontmake_branches(
+                [
+                    FontmakeBranchJob(
+                        designspace_path,
+                        "variable",
+                        root / "variable.ttf",
+                    ),
+                    FontmakeBranchJob(
+                        designspace_path,
+                        "ttf",
+                        root / "ttf",
+                        interpolate=r".* Regular",
+                    ),
+                ]
+            )
+
+            self.assertEqual(
+                sorted(path.name for path in (root / "ttf").glob("*.ttf")),
+                ["Fixture-Regular.ttf"],
+            )
+            variable_font = TTFont(root / "variable.ttf")
+            try:
+                instance_names = {
+                    variable_font["name"].getDebugName(instance.subfamilyNameID)
+                    for instance in variable_font["fvar"].instances
+                }
+            finally:
+                variable_font.close()
+            self.assertEqual(instance_names, {"Regular"})
+
+    def test_width_thickening_is_a_post_conversion_filter(self) -> None:
+        width_transform = (500, 600)
+        for output in ("variable", "ttf", "otf"):
+            with self.subTest(output=output):
+                job = FontmakeBranchJob(
+                    Path("Fixture.designspace"),
+                    output,
+                    Path("output.ttf"),
+                    interpolate=output != "variable",
+                    width_transform=width_transform,
+                )
+                filters = _fontmake_options(job)["filters"]
+                width_filter = next(
+                    item
+                    for item in filters
+                    if isinstance(item, SmartWidthThickenFilter)
+                )
+                self.assertFalse(width_filter.pre)
+                self.assertEqual(width_filter.options.target_width, 500)
+                self.assertEqual(width_filter.options.original_ref_width, 600)
+
+    def test_slim_width_compiles_production_variable_source(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            output_path = root / "MapleMonoSL[wght].ttf"
+            prepared = prepare_glyphs_source(
+                "source/MapleMono[wght].glyphs",
+                "regular",
+                target_width=500,
+                original_ref_width=600,
+            )
+            designspace_path = materialize_prepared_source(
+                prepared,
+                root / "prepared",
+            )
+
+            compile_fontmake_branches(
+                [
+                    FontmakeBranchJob(
+                        designspace_path,
+                        "variable",
+                        output_path,
+                        width_transform=(500, 600),
+                    )
+                ]
+            )
+
+            variable_font = TTFont(output_path)
+            try:
+                self.assertEqual(len(variable_font["fvar"].instances), 8)
+                for coordinate in (100, 400, 800):
+                    instance = instantiateVariableFont(
+                        variable_font,
+                        {"wght": coordinate},
+                        inplace=False,
+                    )
+                    try:
+                        widths = {
+                            width for width, _ in instance["hmtx"].metrics.values()
+                        }
+                        self.assertLessEqual(widths, {0, 500})
+                    finally:
+                        instance.close()
+            finally:
+                variable_font.close()
 
     def test_italic_stat_axis_supports_fontmake_without_axis_values(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

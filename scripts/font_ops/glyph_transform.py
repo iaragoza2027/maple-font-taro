@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, List, Tuple
 from fontTools.misc.transform import Transform
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables._g_l_y_f import GlyphCoordinates, Glyph
+from ufo2ft.filters import BaseFilter
 
 if TYPE_CHECKING:
     from ufoLib2 import Font as UFOFont
@@ -225,6 +226,7 @@ def smart_change_width(
     target_width: int,
     original_ref_width: int,
     also_scale_y: bool = False,
+    scale_zero_width: bool = True,
 ) -> None:
     """
     Global font resizer. Scales all glyphs horizontally and applies
@@ -243,6 +245,8 @@ def smart_change_width(
     composites: list[str] = []
 
     for glyph_name in font.getGlyphOrder():
+        if not scale_zero_width and font["hmtx"][glyph_name][0] == 0:
+            continue
         _change_glyph_width(
             glyf=glyf,
             hmtx=hmtx,
@@ -264,28 +268,53 @@ def smart_change_width(
         hmtx[glyph_name] = (hmtx[glyph_name][0], new_lsb)
 
 
-def smart_change_ufo_width(
+class SmartWidthThickenFilter(BaseFilter):
+    """Apply Maple's width-aware thickening after outline conversion."""
+
+    _args = ("target_width", "original_ref_width")
+
+    def start(self) -> None:
+        if self.options.original_ref_width <= 0:
+            raise ValueError("Original reference width must be positive")
+        if self.options.target_width <= 0:
+            raise ValueError("Target width must be positive")
+        self._strength = (
+            1 - self.options.target_width / self.options.original_ref_width
+        ) / 3
+
+    def filter(self, glyph: Any) -> bool:
+        if glyph.width != self.options.target_width or not len(glyph):
+            return False
+
+        for contour in glyph:
+            transformed = _apply_smart_thicken(
+                [(point.x, point.y) for point in contour],
+                self._strength,
+            )
+            for point, (x, y) in zip(contour, transformed, strict=True):
+                point.x = x
+                point.y = y
+        return True
+
+
+def scale_ufo_width(
     font: UFOFont,
     target_width: int,
     original_ref_width: int,
 ) -> None:
-    """Apply the shared Maple width transform before binary compilation."""
+    """Scale UFO geometry without changing cross-master contour compatibility."""
     if original_ref_width <= 0:
         raise ValueError("Original reference width must be positive")
 
     scale_x = target_width / original_ref_width
-    thicken_strength = (1 - scale_x) / 3
 
     for glyph in font:
         if glyph.width not in {0, original_ref_width}:
             continue
 
         for contour in glyph:
-            scaled = [(point.x * scale_x, point.y) for point in contour]
-            transformed = _apply_smart_thicken(scaled, thicken_strength)
-            for point, (x, y) in zip(contour, transformed, strict=True):
-                point.x = x
-                point.y = y
+            for point in contour:
+                point.x *= scale_x
 
         for component in glyph.components:
             transform = component.transformation

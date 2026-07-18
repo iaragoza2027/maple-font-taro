@@ -32,7 +32,7 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
     parser.add_argument(
         "--debug",
         action="store_true",
-        help="Add `Debug` suffix to family name and faster build",
+        help="Add `Debug` suffix, enable debug logging, and use a faster build",
     )
 
     feature_group = parser.add_argument_group("Feature Options")

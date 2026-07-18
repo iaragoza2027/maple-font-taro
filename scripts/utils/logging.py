@@ -21,29 +21,9 @@ _VALID_LEVELS = {
 logger = logging.getLogger("scripts")
 logger.addHandler(logging.NullHandler())
 _current_task: ContextVar[str] = ContextVar("maple_log_task", default="system")
-
-
-class LevelSeparatedFormatter(logging.Formatter):
-    """Separate adjacent log groups when their severity changes."""
-
-    def __init__(self) -> None:
-        super().__init__("[%(levelname)s] [%(task)s] %(message)s")
-        self.previous_level: int | None = None
-        self.previous_task: str | None = None
-
-    def format(self, record: logging.LogRecord) -> str:
-        task = str(getattr(record, "task", "system"))
-        if not hasattr(record, "task"):
-            setattr(record, "task", task)
-        message = super().format(record)
-        separator = ""
-        if self.previous_level is not None and (
-            self.previous_level != record.levelno or task != self.previous_task
-        ):
-            separator = "\n"
-        self.previous_level = record.levelno
-        self.previous_task = task
-        return separator + message
+_last_started_task: ContextVar[str | None] = ContextVar(
+    "maple_last_started_log_task", default=None
+)
 
 
 class TaskContextFilter(logging.Filter):
@@ -57,6 +37,8 @@ class TaskContextFilter(logging.Filter):
 
 def configure_logging() -> None:
     """Configure the project logger without changing third-party logging."""
+    _current_task.set("system")
+    _last_started_task.set(None)
     requested_level = os.environ.get(ENVIRONMENT_VARIABLE, DEFAULT_LEVEL_NAME).upper()
     level = _VALID_LEVELS.get(requested_level, logging.INFO)
 
@@ -71,7 +53,9 @@ def configure_logging() -> None:
     if handler is None:
         handler = logging.StreamHandler()
         handler.set_name(_HANDLER_NAME)
-        handler.setFormatter(LevelSeparatedFormatter())
+        handler.setFormatter(
+            logging.Formatter("[%(levelname)s] [%(task)s] %(message)s")
+        )
         handler.addFilter(TaskContextFilter())
         logger.addHandler(handler)
 
@@ -92,7 +76,54 @@ def set_log_task(task: str) -> None:
     _current_task.set(task)
 
 
+def _write_blank_line() -> None:
+    """Write a task separator without manufacturing an empty log record."""
+    for handler in logger.handlers:
+        if handler.get_name() != _HANDLER_NAME:
+            continue
+        handler.acquire()
+        try:
+            stream = getattr(handler, "stream", None)
+            if stream is not None:
+                stream.write("\n")
+                stream.flush()
+        finally:
+            handler.release()
+
+
+def log_progress(message: str, *args: Any, complete: bool = False) -> None:
+    """Refresh one INFO progress record in place on the project log stream."""
+    if not logger.isEnabledFor(logging.INFO):
+        return
+    record = logger.makeRecord(
+        logger.name,
+        logging.INFO,
+        __file__,
+        0,
+        message,
+        args,
+        None,
+    )
+    for handler in logger.handlers:
+        if handler.get_name() != _HANDLER_NAME or not handler.filter(record):
+            continue
+        handler.acquire()
+        try:
+            stream = getattr(handler, "stream", None)
+            if stream is not None:
+                stream.write(f"\r{handler.format(record)}")
+                if complete:
+                    stream.write("\n")
+                stream.flush()
+        finally:
+            handler.release()
+
+
 def log_task(task: str, message: str, *args: Any) -> None:
     """Start a named task and retain its label for subsequent log records."""
+    previous_task = _last_started_task.get()
+    if previous_task is not None and previous_task != task:
+        _write_blank_line()
     set_log_task(task)
+    _last_started_task.set(task)
     logger.info(message, *args)

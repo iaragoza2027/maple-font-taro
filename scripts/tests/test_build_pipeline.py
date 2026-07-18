@@ -2,22 +2,27 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from concurrent.futures import Executor
 from pathlib import Path
-from unittest.mock import PropertyMock, patch
+from typing import cast
+from unittest.mock import MagicMock, PropertyMock, patch
 
 from scripts.config.base import CJKCommonBuildOptions, ResolvedCJKBuildEntry
 from scripts.pipeline import (
     FontmakeBuildContext,
     MapleBuildPipeline,
-    Woff2BuildJob,
+    PreparedFontmakeSource,
     build_cjk_extended_variable_outputs,
     build_woff2_fonts,
     collect_build_files,
+    compile_fontmake_format,
+    prepare_fontmake_sources,
     prune_build_files,
 )
 from scripts.config.resolver import BuildConfigResolver, BuildRuntimeContext
 from scripts.cjk.models import CJKBuildConfig, CJKSourceConfig
 from scripts.cjk.presets import CJKPresetId, build_preset_config, get_preset
+from scripts.font_ops.glyphs import GlyphsSourceReport
 
 
 def make_font_config():
@@ -74,6 +79,88 @@ def make_custom_entry(locale_name: str = "HK") -> ResolvedCJKBuildEntry:
 
 
 class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
+    def test_prepare_sources_resolves_regular_vertical_metric(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            font_config = make_font_config()
+            font_config.feature.line_height = 1.2
+            runtime_context = make_runtime_context(tmp_path)
+            report = GlyphsSourceReport(Path("source.glyphs"), "regular", ())
+            executor_mock = MagicMock()
+            executor_mock.map.return_value = (
+                PreparedFontmakeSource(
+                    "regular",
+                    report,
+                    "regular.designspace",
+                    (1100, -300),
+                ),
+                PreparedFontmakeSource(
+                    "italic",
+                    GlyphsSourceReport(Path("italic.glyphs"), "italic", ()),
+                    "italic.designspace",
+                    (1080, -320),
+                ),
+            )
+
+            context = prepare_fontmake_sources(
+                font_config,
+                runtime_context,
+                cast(Executor, executor_mock),
+            )
+
+            self.assertEqual(runtime_context.resolved_vertical_metric, (1100, -300))
+            self.assertEqual(len(context.sources), 2)
+
+    def test_fontmake_format_filters_only_targeted_static_instances(self) -> None:
+        context = FontmakeBuildContext(
+            Path("temp"),
+            Path("temp/variable"),
+            Path("temp/ttf"),
+            Path("temp/otf"),
+            (
+                PreparedFontmakeSource(
+                    "regular",
+                    GlyphsSourceReport(Path("regular.glyphs"), "regular", ()),
+                    "regular.designspace",
+                    (1020, -300),
+                ),
+                PreparedFontmakeSource(
+                    "italic",
+                    GlyphsSourceReport(Path("italic.glyphs"), "italic", ()),
+                    "italic.designspace",
+                    (1020, -300),
+                ),
+            ),
+            (500, 600),
+        )
+        executor = cast(Executor, MagicMock())
+
+        with patch("scripts.pipeline.compile_fontmake_branches") as compile_branches:
+            compile_fontmake_format(
+                context,
+                "ttf",
+                executor,
+                target_styles=["Regular", "Bold", "Italic", "BoldItalic"],
+            )
+            static_jobs = compile_branches.call_args.args[0]
+
+            compile_fontmake_format(context, "variable", executor)
+            variable_jobs = compile_branches.call_args.args[0]
+
+            compile_fontmake_format(context, "otf", executor)
+            full_static_jobs = compile_branches.call_args.args[0]
+
+        self.assertEqual(
+            {job.interpolate for job in static_jobs},
+            {r".* (?:Regular|Bold|Italic|BoldItalic)"},
+        )
+        self.assertEqual({job.interpolate for job in variable_jobs}, {False})
+        self.assertEqual({job.interpolate for job in full_static_jobs}, {True})
+        self.assertEqual(
+            {job.width_transform for job in (*static_jobs, *variable_jobs)},
+            {(500, 600)},
+        )
+
     def test_build_runs_full_static_branch_in_order(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             font_config = make_font_config()
@@ -245,22 +332,15 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             output_ttf.mkdir(parents=True)
             (output_ttf / "MapleMono-Regular.ttf").touch()
 
-            with patch("scripts.pipeline.run_process_jobs") as run_jobs:
-                build_woff2_fonts(font_config, runtime_context)
+            executor = cast(Executor, MagicMock())
+            with patch("scripts.pipeline.convert_to_web") as convert:
+                build_woff2_fonts(font_config, runtime_context, executor)
 
-            run_jobs.assert_called_once()
-            pool_size, worker, jobs, executor = run_jobs.call_args.args
-            self.assertEqual(pool_size, font_config.pool_size)
-            self.assertEqual(worker.__name__, "build_woff2_font_job")
-            self.assertIsNone(executor)
-            self.assertEqual(
-                jobs,
-                [
-                    Woff2BuildJob(
-                        str(output_ttf / "MapleMono-Regular.ttf"),
-                        runtime_context.output_woff2,
-                    )
-                ],
+            convert.assert_called_once_with(
+                runtime_context.output_ttf,
+                output_dir=runtime_context.output_woff2,
+                flavor="woff2",
+                executor=executor,
             )
             self.assertTrue(pipeline.should_build_woff2_outputs())
 
@@ -297,7 +377,7 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             with patch(
                 "scripts.pipeline.build_cjk_extended_variable_fonts",
                 side_effect=lambda entry, *_args: (
-                    captured_output_dirs.append(_args[-1]) or None
+                    captured_output_dirs.append(_args[-2]) or None
                 ),
             ):
                 build_cjk_extended_variable_outputs(font_config, runtime_context)
@@ -307,13 +387,13 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 [Path(runtime_context.output_dir) / "Variable-HK"],
             )
 
-    def test_start_logs_default_and_resolved_width_configuration(self) -> None:
+    def test_start_uses_a_human_readable_summary(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             runtime_context = make_runtime_context(Path(tmp))
-            for width, target_width, suffix in (
-                ("default", 600, "none"),
-                ("narrow", 550, "NR"),
-                ("slim", 500, "SL"),
+            for width, width_summary in (
+                ("default", None),
+                ("narrow", "Width: narrow (600 -> 550, suffix NR)"),
+                ("slim", "Width: slim (600 -> 500, suffix SL)"),
             ):
                 font_config = make_font_config()
                 font_config.feature.width = width
@@ -322,17 +402,18 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 with patch("scripts.pipeline.logger.info") as log_info:
                     pipeline.start_build_timer()
 
-                messages = [
-                    call.args[0] % call.args[1:] for call in log_info.call_args_list
-                ]
+                log_info.assert_called_once()
+                message = log_info.call_args.args[0] % log_info.call_args.args[1:]
                 self.assertTrue(
-                    any(
-                        f"requested={width}, source_glyph_width=600, "
-                        f"resolved_target_width={target_width}, family_suffix={suffix}"
-                        in message
-                        for message in messages
-                    )
+                    message.startswith("Build started: Maple Mono (Version")
                 )
+                self.assertIn("Formats: TTF, OTF, WOFF2 | Styles: all", message)
+                self.assertIn("Hinting: enabled | Ligatures: enabled", message)
+                self.assertIn("CJK: disabled | Cache: disabled", message)
+                if width_summary is None:
+                    self.assertNotIn("Width:", message)
+                else:
+                    self.assertIn(width_summary, message)
 
     def test_finish_logs_sorted_outputs_and_default_feature_config(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

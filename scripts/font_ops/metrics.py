@@ -35,11 +35,7 @@ def adjust_line_height(
     if "OS/2" not in font:
         raise ValueError("No OS/2 table found.")
 
-    asc, desc = metric
-    ascender_ratio = asc / (asc - desc)
-    target_total_height = int(round(factor * (asc - desc)))
-    new_ascender = int(round(target_total_height * ascender_ratio))
-    new_descender = new_ascender - target_total_height
+    new_ascender, new_descender = calculate_line_height_metrics(factor, metric)
 
     logger.debug(
         "Update vertical metrics: ascender=%s, descender=%s",
@@ -55,3 +51,15 @@ def adjust_line_height(
     os2.sTypoDescender = new_descender
     os2.usWinAscent = new_ascender
     os2.usWinDescent = -new_descender
+
+
+def calculate_line_height_metrics(
+    factor: float,
+    metric: tuple[float, float],
+) -> tuple[int, int]:
+    ascender, descender = metric
+    total_height = ascender - descender
+    ascender_ratio = ascender / total_height
+    target_total_height = int(round(factor * total_height))
+    target_ascender = int(round(target_total_height * ascender_ratio))
+    return target_ascender, target_ascender - target_total_height

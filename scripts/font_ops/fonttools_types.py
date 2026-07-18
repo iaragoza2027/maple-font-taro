@@ -21,6 +21,7 @@ class OS2Table(Protocol):
     usWeightClass: int
     usWinAscent: int
     usWinDescent: int
+    ulCodePageRange1: int
     version: int
     xAvgCharWidth: int
 

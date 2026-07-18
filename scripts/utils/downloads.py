@@ -6,7 +6,28 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 from zipfile import ZipFile
 
-from scripts.utils.logging import logger
+from scripts.utils.logging import log_progress, logger
+
+
+def _format_size(size: int) -> str:
+    value = float(size)
+    for unit in ("B", "KiB", "MiB", "GiB"):
+        if value < 1024 or unit == "GiB":
+            return f"{value:.1f} {unit}" if unit != "B" else f"{size} B"
+        value /= 1024
+    raise AssertionError("unreachable")
+
+
+def _download_progress_message(
+    target_path: str | Path,
+    downloaded_size: int,
+    total_size: int,
+) -> str:
+    percentage = min(downloaded_size * 100 // total_size, 100)
+    return (
+        f"Downloading {Path(target_path).name}: {percentage:3d}% "
+        f"({_format_size(downloaded_size)} / {_format_size(total_size)})"
+    )
 
 
 def download_file(url: str, target_path: str | Path) -> None:
@@ -18,9 +39,40 @@ def download_file(url: str, target_path: str | Path) -> None:
     request = Request(url, headers={"User-Agent": user_agent})
     with urlopen(request) as response, Path(target_path).open("wb") as output:
         downloaded_size = 0
-        while chunk := response.read(8192):
-            output.write(chunk)
-            downloaded_size += len(chunk)
+        try:
+            total_size = int(response.headers.get("Content-Length", 0))
+        except (TypeError, ValueError):
+            total_size = 0
+        last_percentage = -1
+        progress_message: str | None = None
+        if total_size > 0:
+            progress_message = _download_progress_message(target_path, 0, total_size)
+            log_progress(progress_message)
+            last_percentage = 0
+        try:
+            while chunk := response.read(8192):
+                output.write(chunk)
+                downloaded_size += len(chunk)
+                if total_size <= 0:
+                    continue
+                percentage = min(downloaded_size * 100 // total_size, 100)
+                if percentage == last_percentage or percentage == 100:
+                    continue
+                last_percentage = percentage
+                progress_message = _download_progress_message(
+                    target_path,
+                    downloaded_size,
+                    total_size,
+                )
+                log_progress(progress_message)
+        finally:
+            if total_size > 0:
+                progress_message = _download_progress_message(
+                    target_path,
+                    downloaded_size,
+                    total_size,
+                )
+                log_progress(progress_message, complete=True)
     logger.info("Downloaded file: path=%s, bytes=%s", target_path, downloaded_size)
 
 

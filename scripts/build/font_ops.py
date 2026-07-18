@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib.util
-import re
 from pathlib import Path
 from typing import cast
 
@@ -61,55 +60,6 @@ def check_ftcli() -> None:
         raise BuildDependencyError(
             f"Error checking foundrytools-cli version: {e}"
         ) from e
-
-
-def rename_glyph_name(
-    font: TTFont,
-    map: dict[str, str],
-    post_extra_names: bool = True,
-) -> None:
-    def get_new_name_from_map(old_name: str, mapping: dict[str, str]) -> str | None:
-        new_name = mapping.get(old_name)
-        if not new_name:
-            parts = re.split(r"[\._]", old_name, maxsplit=2)
-            name = mapping.get(parts[0])
-            if name:
-                new_name = name + old_name[len(parts[0]) :]
-        return new_name
-
-    print("Rename glyph names")
-    glyph_names = font.getGlyphOrder()
-    extra_names = font["post"].extraNames
-    modified = False
-    merged_map = {
-        **map,
-        **{
-            "uni2047.liga": "question_question.liga",
-            "uni2047.liga.cv62": "question_question.liga.cv62",
-            "dotlessi": "idotless",
-            "f_f": "f_f.liga",
-            "tag_uni061C.liga": "tag_mark.liga",
-            "tag_u1F5C8.liga": "tag_note.liga",
-            "tag_uni26A0.liga": "tag_warning.liga",
-            "uni266F_start.bg": "sharp_start.bg",
-            "uni266F_end.bg": "sharp_end.bg",
-        },
-    }
-
-    for index, _ in enumerate(glyph_names):
-        old_name = str(glyph_names[index])
-        new_name = get_new_name_from_map(old_name, merged_map)
-        if not new_name or new_name == old_name:
-            continue
-
-        glyph_names[index] = new_name
-        modified = True
-
-        if post_extra_names and old_name in extra_names:
-            extra_names[extra_names.index(old_name)] = new_name
-
-    if modified:
-        font.setGlyphOrder(glyph_names)
 
 
 def get_unique_identifier(

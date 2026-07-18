@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "fontmake>=3.12.1",
     "foundrytools-cli==2.1.1",
     "glyphslib==6.12.7",
     "python-minifier==3.1.0",
@@ -14,10 +15,17 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "pyright>=1.1.411",
     "ruff>=0.15.22",
+    "ty>=0.0.60",
 ]
 
 [tool.ruff]
 target-version = "py310"
 extend-exclude = ["maple-font-page", "FontPatcher"]
+
+[tool.ty.environment]
+python-version = "3.10"
+
+[tool.ty.src]
+include = ["scripts", "build.py", "task.py"]
+exclude = ["scripts/font_merge/merger.py"]

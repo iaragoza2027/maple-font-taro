@@ -38,7 +38,7 @@ Use the smallest command that validates the change.
 uv sync
 uv run ruff format --check .
 uv run ruff check .
-uv run pyright
+uv run ty check
 uv run python -m unittest discover -s scripts/tests
 ```
 
@@ -61,12 +61,12 @@ bun run format
 bun run build
 ```
 
-`maple-font-page/` and the downloaded `FontPatcher/` tool are intentionally excluded from root Python Ruff and Pyright checks. Validate landing-page code with its Bun commands instead; never lint, format, or type-check FontPatcher as project code.
+`maple-font-page/` and the downloaded `FontPatcher/` tool are intentionally excluded from root Python Ruff and ty checks. Validate landing-page code with its Bun commands instead; never lint, format, or type-check FontPatcher as project code.
 
 ## Validation by Change Type
 
-- **Python changes:** Run Ruff format check, Ruff lint, Pyright, and the unit suite. Apply formatting with `uv run ruff format <paths>` when needed; do not hand-format generated files.
-- **FontTools type-adaptation changes:** Run `uv run pyright` and verify the changed code in Pylance. Both read `pyrightconfig.json`; keep table-field types in `scripts/fonttools_types.py` precise enough to expose invalid field names and values.
+- **Python changes:** Run Ruff format check, Ruff lint, ty, and the unit suite. Apply formatting with `uv run ruff format <paths>` when needed; do not hand-format generated files.
+- **FontTools type-adaptation changes:** Run `uv run ty check`; keep table-field types in `scripts/fonttools_types.py` precise enough to expose invalid field names and values.
 - **Feature changes under `scripts/feature/`:** Run `uv run task.py fea`, then inspect all generated changes before keeping them.
 - **Build configuration or pipeline changes:** Start with `uv run build.py --dry`. Use `--debug`, `--ttf-only`, and `--least-styles` before attempting a full build.
 - **CJK changes:** Avoid full CJK builds unless required; they may download large source archives and take a long time.
@@ -81,10 +81,10 @@ uv run ruff check . --fix
 uv run ruff format .
 uv run ruff format --check .
 uv run ruff check .
-uv run pyright
+uv run ty check
 ```
 
-Ruff auto-fixes are limited to its default safe fixes. Pyright reports type diagnostics but does not rewrite code. Do not pass `--unsafe-fixes` or add diagnostic suppressions; review the resulting diff and run the relevant unit tests or build validation before keeping any automated edit.
+Ruff auto-fixes are limited to its default safe fixes. ty reports type diagnostics; do not apply automated type fixes or add diagnostic suppressions without reviewing the resulting diff and running the relevant unit tests or build validation.
 
 ## Generated Outputs
 
@@ -100,8 +100,7 @@ Treat `fonts/` as disposable build output. Do not commit generated churn unless 
 - Keep import paths rooted at `scripts.*`; do not reintroduce the previous package namespace or filesystem paths.
 - Keep output ordering stable to minimize generated diffs.
 - Use structured parsing for JSON and font data. Add comments only for non-obvious font or build behavior.
-- Pyright checks FontTools table fields through `scripts/fonttools_types.py`. Add only verified fields and use narrow `Protocol` casts at the table boundary instead of suppressing diagnostics or casting to `Any`.
-- Pylance and `uv run pyright` share `pyrightconfig.json` and its default attribute-access diagnostics. Do not add editor-only suppressions for FontTools table fields.
+- ty checks FontTools table fields through `scripts/fonttools_types.py`. Add only verified fields and use narrow `Protocol` casts at the table boundary instead of suppressing diagnostics or casting to `Any`.
 
 ## Dependencies, Network, and Release Safety
 

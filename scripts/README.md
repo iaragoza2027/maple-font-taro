@@ -84,9 +84,13 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["build_variable_fonts"] --> B["Open source variable fonts<br/>MapleMono[wght]-VF.ttf<br/>MapleMono-Italic[wght]-VF.ttf"]
-    B --> C["rename_glyph_name<br/>using .glyphs mapping"]
-    C --> D["alias_codepoints"]
+    A["build_variable_fonts"] --> TEMP["Create fonts/temp"]
+    TEMP --> SRC["Run regular and italic<br/>generate_variable_font workers in parallel"]
+    SRC --> CHECK["Each worker loads its .glyphs source,<br/>prepares masters, validates, and runs fontmake"]
+    CHECK --> ISSUES{"Any aggregated source errors?"}
+    ISSUES -->|"yes"| FAIL["Write fonts/source-issues.json<br/>and stop before publishing"]
+    ISSUES -->|"no"| B["Postprocess both raw VFs<br/>inside fonts/temp"]
+    B --> D["alias_codepoints"]
     D --> E{"width option set?"}
     E -->|"yes"| F["smart_change_width"]
     E -->|"no"| G["skip width transform"]
@@ -104,7 +108,7 @@ flowchart TD
     O --> Q["verify_glyph_width"]
     P --> Q
     Q --> R["add_gasp"]
-    R --> S["save fonts/Variable family VF"]
+    R --> S["Publish both processed VFs<br/>to fonts/Variable"]
     S --> T["ftcli fix monospace fonts/Variable"]
     T --> U["instantiate_base_static_fonts"]
 
@@ -139,6 +143,11 @@ flowchart TD
     AT --> AU["ttfautohint with Regular reference"]
     AU --> AV["save fonts/TTF-AutoHint file"]
 ```
+
+The precompiled `source/MapleMono[wght]-VF.ttf` and
+`source/MapleMono-Italic[wght]-VF.ttf` files are reference artifacts only. The
+build always generates fresh variable fonts from the corresponding `.glyphs`
+sources and never falls back to those binaries.
 
 ## Nerd Font Flow
 

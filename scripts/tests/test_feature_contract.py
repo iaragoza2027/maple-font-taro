@@ -15,6 +15,14 @@ def content_hash(content: str) -> str:
 
 
 class FeatureGenerationContractTest(unittest.TestCase):
+    def test_cv37_uses_glyphs_canonical_cyrillic_source_names(self) -> None:
+        content = generate_fea_string(is_italic=True, is_cn=False)
+
+        self.assertIn("sub umacroncyr by umacron-cy.cv37;", content)
+        self.assertIn("sub udieresiscyr by udieresis-cy.cv37;", content)
+        self.assertIn("sub uacutedblcyr by uacutedbl-cy.cv37;", content)
+        self.assertNotIn("sub umacron-cy by umacron-cy.cv37;", content)
+
     def test_representative_feature_outputs_remain_stable(self) -> None:
         cases = {
             "regular": (
@@ -23,7 +31,7 @@ class FeatureGenerationContractTest(unittest.TestCase):
             ),
             "italic": (
                 generate_fea_string(is_italic=True, is_cn=False),
-                "f4516e6980b1c66a20f62ceb07c2f85d6e3701404a9aa86b2f20a894badf446f",
+                "f5a4028d237a6b0f7042eb39df5318b200c0de058547cb2d8912b6b4091f1f4b",
             ),
             "cn-only": (
                 generate_fea_string_cn_only(),

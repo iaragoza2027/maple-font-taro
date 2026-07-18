@@ -30,7 +30,6 @@ from scripts.build.font_ops import (
     get_static_style_name,
     get_unique_identifier,
     postprocess_cjk_extended_static_font,
-    rename_glyph_name,
 )
 from scripts.cjk.pipeline import (
     build_cjk_fonts,
@@ -42,6 +41,13 @@ from scripts.cjk.variable import load_font_eager, merge_vf
 from scripts.common.files import join_path
 from scripts.common.process import is_ci, run
 from scripts.feature.apply import patch_font_feature
+from scripts.font.generation import (
+    GlyphsSourceReport,
+    SourceCompatibilityError,
+    SourceStyle,
+    generate_variable_font,
+    validate_source_reports,
+)
 from scripts.font.types import HeadTable, OS2Table
 from scripts.font.operations import (
     add_gasp,
@@ -53,7 +59,6 @@ from scripts.font.operations import (
     update_font_names,
     verify_glyph_width,
     archive_fonts,
-    match_unicode_names,
     merge_ttfonts,
 )
 
@@ -563,86 +568,123 @@ def build_variable_fonts(
     font_config: ResolvedBuildConfig,
     runtime_context: BuildRuntimeContext,
 ):
-    """Build variable font versions from source files."""
-    input_files = [
-        join_path(runtime_context.src_dir, "MapleMono-Italic[wght]-VF.ttf"),
-        join_path(runtime_context.src_dir, "MapleMono[wght]-VF.ttf"),
-    ]
-    for input_file in input_files:
-        font = TTFont(input_file)
-        basename = path.basename(input_file)
-        print(f"👉 Variable version for {basename}")
+    """Generate variable fonts from Glyphs sources and apply project metadata."""
+    source_dir = Path(runtime_context.src_dir)
+    temp_path = Path(runtime_context.output_dir) / "temp"
+    source_specs: tuple[tuple[Path, SourceStyle, Path], ...] = (
+        (
+            source_dir / "MapleMono[wght].glyphs",
+            "regular",
+            temp_path / "regular-raw.ttf",
+        ),
+        (
+            source_dir / "MapleMono-Italic[wght].glyphs",
+            "italic",
+            temp_path / "italic-raw.ttf",
+        ),
+    )
 
-        # fix auto rename by FontLab
-        rename_glyph_name(
-            font=font,
-            map=match_unicode_names(
-                input_file.replace(".ttf", ".glyphs").replace("-VF", "")
-            ),
-        )
+    output_dir = Path(runtime_context.output_variable)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    shutil.rmtree(temp_path, ignore_errors=True)
+    temp_path.mkdir(parents=True)
+    try:
+        reports: list[GlyphsSourceReport] = []
+        with ProcessPoolExecutor(max_workers=len(source_specs)) as executor:
+            futures = [
+                executor.submit(
+                    generate_variable_font,
+                    source_path,
+                    style,
+                    raw_path,
+                )
+                for source_path, style, raw_path in source_specs
+            ]
+            for future in as_completed(futures):
+                reports.append(future.result())
+        validate_source_reports(reports, runtime_context.output_dir)
 
-        alias_codepoints(font=font)
+        processed_paths: dict[str, Path] = {}
+        for source_path, style, raw_path in source_specs:
+            print(f"👉 Postprocess variable font from {source_path.name}")
+            is_italic = style == "italic"
+            file_name = font_config.family_name_compact
+            if is_italic:
+                file_name += "-Italic"
+            output_name = f"{file_name}[wght].ttf"
+            font = TTFont(raw_path)
+            try:
+                alias_codepoints(font=font)
 
-        if font_config.get_width_name():
-            smart_change_width(
-                font=font,
-                target_width=font_config.get_target_width(),
-                original_ref_width=font_config.glyph_width,
-            )
+                if font_config.get_width_name():
+                    smart_change_width(
+                        font=font,
+                        target_width=font_config.get_target_width(),
+                        original_ref_width=font_config.glyph_width,
+                    )
 
-        is_italic = "Italic" in input_file
+                patch_font_feature(
+                    config=font_config,
+                    font=font,
+                    issue_fea_dir=runtime_context.output_dir,
+                    is_italic=is_italic,
+                    is_cn=False,
+                    is_variable=True,
+                    is_hinted=False,
+                    fea_path=runtime_context.feature_file_path(is_italic),
+                )
 
-        patch_font_feature(
-            config=font_config,
-            font=font,
-            issue_fea_dir=runtime_context.output_dir,
-            is_italic=is_italic,
-            is_cn=False,
-            is_variable=True,
-            is_hinted=False,
-            fea_path=runtime_context.feature_file_path(is_italic),
-        )
+                style_name = "Italic" if is_italic else "Regular"
+                postscript_name = f"{font_config.family_name_compact}-{style_name}"
+                update_font_names(
+                    font=font,
+                    family_name=font_config.family_name,
+                    style_name=style_name,
+                    full_name=f"{font_config.family_name} {style_name}",
+                    version_str=font_config.version_str,
+                    postscript_name=postscript_name,
+                    unique_identifier=get_unique_identifier(
+                        font_config=font_config,
+                        postscript_name=postscript_name,
+                        variable=True,
+                    ),
+                    is_skip_subfamily=True,
+                )
 
-        style_name = "Italic" if is_italic else "Regular"
-        postscript_name = f"{font_config.family_name_compact}-{style_name}"
-        update_font_names(
-            font=font,
-            family_name=font_config.family_name,
-            style_name=style_name,
-            full_name=f"{font_config.family_name} {style_name}",
-            version_str=font_config.version_str,
-            postscript_name=postscript_name,
-            unique_identifier=get_unique_identifier(
-                font_config=font_config,
-                postscript_name=postscript_name,
-                variable=True,
-            ),
-            is_skip_subfamily=True,
-        )
+                if is_italic:
+                    add_ital_axis_to_stat(font)
 
-        if is_italic:
-            add_ital_axis_to_stat(font)
+                patch_instance(font, font_config.weight_mapping)
 
-        patch_instance(font, font_config.weight_mapping)
+                if font_config.line_height != 1:
+                    calculated_metric = (
+                        font["hhea"].ascender,
+                        font["hhea"].descender,
+                    )
+                    runtime_context.resolved_vertical_metric = calculated_metric
+                    adjust_line_height(
+                        font,
+                        font_config.line_height,
+                        calculated_metric,
+                    )
 
-        if font_config.line_height != 1:
-            calculated_metric = (font["hhea"].ascender, font["hhea"].descender)
-            runtime_context.resolved_vertical_metric = calculated_metric
-            adjust_line_height(font, font_config.line_height, calculated_metric)
+                verify_glyph_width(
+                    font=font,
+                    expect_widths=font_config.get_valid_glyph_width_list(),
+                    file_name=output_name,
+                )
+                add_gasp(font)
 
-        verify_glyph_width(
-            font=font,
-            expect_widths=font_config.get_valid_glyph_width_list(),
-            file_name=basename,
-        )
+                processed_path = temp_path / output_name
+                font.save(processed_path)
+                processed_paths[style] = processed_path
+            finally:
+                font.close()
 
-        add_gasp(font)
-
-        file_name = font_config.family_name_compact
-        if is_italic:
-            file_name += "-Italic"
-
-        font.save(join_path(runtime_context.output_variable, f"{file_name}[wght].ttf"))
+        for processed_path in processed_paths.values():
+            shutil.copy2(processed_path, output_dir / processed_path.name)
+    finally:
+        shutil.rmtree(temp_path, ignore_errors=True)
 
     print("\n✨ Instantiate and optimize fonts...\n")
 
@@ -1390,6 +1432,6 @@ def main(parsed_args, version: str | None = None):
             return
 
         MapleBuildPipeline(font_config, runtime_context).build()
-    except BuildDependencyError as error:
+    except (BuildDependencyError, SourceCompatibilityError) as error:
         print(f"❗ {error}")
         raise SystemExit(1) from error

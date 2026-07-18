@@ -40,27 +40,6 @@ def del_font_name(font: TTFont, id: int):
     font["name"].removeNames(nameID=id)
 
 
-def match_unicode_names(file_path: str) -> dict[str, str]:
-    try:
-        from glyphsLib import GSFont
-    except ImportError:
-        print("❗ glyphsLib is not found. Please run `pip install glyphsLib`")
-        exit(1)
-
-    font = GSFont(file_path)
-    result = {}
-
-    for glyph in font.glyphs:
-        glyph_name = glyph.name
-        unicode_values = glyph.unicode
-
-        if glyph_name and unicode_values:
-            unicode_str = f"uni{''.join(unicode_values).upper().zfill(4)}"
-            result[unicode_str] = glyph_name
-
-    return result
-
-
 # https://github.com/subframe7536/maple-font/issues/314
 def verify_glyph_width(
     font: TTFont, expect_widths: list[int], file_name: str | None = None
@@ -271,6 +250,14 @@ def add_ital_axis_to_stat(font: TTFont):
     axisValRec.Format = 1
     axisValRec.ValueNameID = id
     axisValRec.Value = 1.0
+    if stat_table.AxisValueArray is None:
+        axis_value_array_factory = cast(
+            Callable[[], Any],
+            getattr(ot, "AxisValueArray"),
+        )
+        stat_table.AxisValueArray = axis_value_array_factory()
+        stat_table.AxisValueArray.AxisValue = []
+        stat_table.AxisValueCount = 0
     stat_table.AxisValueArray.AxisValue.append(axisValRec)
     stat_table.AxisValueCount += 1
 

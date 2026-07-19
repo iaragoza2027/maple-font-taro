@@ -9,10 +9,9 @@ import re
 import shutil
 import time
 from os import environ, listdir, makedirs, remove
-from typing import Callable, Literal, cast
+from typing import Callable, Literal
 from dehinter.font import dehint
-from fontTools.ttLib import TTFont
-from fontTools.varLib.instancer import instantiateVariableFont
+from scripts.font_ops.fonttools import TTFont, instantiate_variable_font
 from ttfautohint import ttfautohint
 from scripts.font_ops.glyph_transform import smart_change_width
 from scripts.config.base import ResolvedBuildConfig, ResolvedCJKBuildEntry
@@ -69,7 +68,6 @@ from scripts.font_ops.metadata import (
     set_monospace_metadata,
     strip_name_whitespace,
 )
-from scripts.font_ops.fonttools_types import HeadTable, OS2Table
 from scripts.font_ops.merge import merge_ttfonts
 from scripts.font_ops.metrics import adjust_line_height, verify_glyph_width
 from scripts.font_ops.names import (
@@ -209,9 +207,9 @@ def postprocess_static_font(
 
     # Preserve the established intermediate weight classes used by Maple Mono.
     if style_with_prefix_space == " Thin":
-        cast(OS2Table, font["OS/2"]).usWeightClass = 250
+        font.table("OS/2").usWeightClass = 250
     elif style_with_prefix_space == " ExtraLight":
-        cast(OS2Table, font["OS/2"]).usWeightClass = 275
+        font.table("OS/2").usWeightClass = 275
 
     if font_config.line_height != 1:
         adjust_line_height(
@@ -309,7 +307,7 @@ def build_mono_autohint(
     )
 
     # Ensure flags to respect hint info
-    head = cast(HeadTable, font["head"])
+    head = font.table("head")
     head.flags |= 1 << 2 | 1 << 3
 
     buf = BytesIO()
@@ -961,12 +959,11 @@ def instantiate_cjk_extended_static_fonts(
                     entry.display_name,
                     style_compact,
                 )
-                static_font = instantiateVariableFont(
+                static_font = instantiate_variable_font(
                     var_font,
                     {"wght": instance.coordinate},
-                    inplace=False,
                     static=True,
-                    downgradeCFF2="CFF2" in var_font,
+                    downgrade_cff2="CFF2" in var_font,
                 )
                 try:
                     postscript_name = postprocess_cjk_extended_static_font(

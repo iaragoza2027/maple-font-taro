@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from typing import cast
 
-from fontTools.ttLib import TTFont
+from scripts.font_ops.fonttools import TTFont
 
-from scripts.font_ops.fonttools_types import OS2Table
 from scripts.utils.logging import logger
 
 
@@ -42,11 +40,11 @@ def adjust_line_height(
         new_ascender,
         new_descender,
     )
-    font["head"].yMax = new_ascender
-    font["head"].yMin = new_descender
-    font["hhea"].ascent = new_ascender
-    font["hhea"].descent = new_descender
-    os2 = cast(OS2Table, font["OS/2"])
+    font.table("head").yMax = new_ascender
+    font.table("head").yMin = new_descender
+    font.table("hhea").ascent = new_ascender
+    font.table("hhea").descent = new_descender
+    os2 = font.table("OS/2")
     os2.sTypoAscender = new_ascender
     os2.sTypoDescender = new_descender
     os2.usWinAscent = new_ascender
@@ -60,6 +58,6 @@ def calculate_line_height_metrics(
     ascender, descender = metric
     total_height = ascender - descender
     ascender_ratio = ascender / total_height
-    target_total_height = int(round(factor * total_height))
-    target_ascender = int(round(target_total_height * ascender_ratio))
+    target_total_height = round(factor * total_height)
+    target_ascender = round(target_total_height * ascender_ratio)
     return target_ascender, target_ascender - target_total_height

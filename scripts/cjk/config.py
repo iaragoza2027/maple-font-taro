@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Iterable, Literal
 
 from fontTools.subset import parse_unicodes
-from fontTools.ttLib import TTFont
+from scripts.font_ops.fonttools import TTFont
 
 from scripts.cjk.models import (
     CJK_MASTER_WEIGHTS,

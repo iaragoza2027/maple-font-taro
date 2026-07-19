@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from fontTools.ttLib import TTFont
+from scripts.font_ops.fonttools import TTFont
 
 from scripts.config.base import (
     CJKCommonBuildOptions,

@@ -20,10 +20,9 @@ from fontTools.pens.recordingPen import RecordingPen
 from fontTools.pens.t2CharStringPen import T2CharStringPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
-from fontTools.ttLib import TTFont, newTable
+from scripts.font_ops.fonttools import TTFont, instantiate_variable_font, newTable
 from fontTools.ttLib.tables.DefaultTable import DefaultTable
 from fontTools.ttLib.scaleUpem import scale_upem
-from fontTools.varLib.instancer import instantiateVariableFont
 from ttfautohint import StemWidthMode, ttfautohint
 
 if __package__ in {None, ""}:
@@ -60,10 +59,8 @@ from scripts.cjk.variable import (
 from scripts.utils.files import archive, get_directory_hash
 from scripts.utils.logging import configure_logging, log_task, logger, set_log_task
 from scripts.utils.process import create_process_executor
-from scripts.font_ops.fonttools_types import (
-    CFFTable,
+from scripts.font_ops.fonttools import (
     GlyfTable,
-    HeadTable,
     SubsetOptions,
 )
 from scripts.font_ops.names import set_font_name, update_font_names
@@ -253,17 +250,16 @@ def instantiate_variable_font_file(
     font = load_font_eager(input_path)
     try:
         logger.debug("Instantiate variable font: path=%s, axes=%s", input_path, axes)
-        instance = instantiateVariableFont(
+        instance = instantiate_variable_font(
             font,
             axes,
-            inplace=False,
             optimize=optimize,
             static=static,
-            downgradeCFF2=static and "CFF2" in font,
+            downgrade_cff2=static and "CFF2" in font,
         )
         try:
             if target_upem is not None and "head" in instance:
-                source_upem = int(cast(HeadTable, instance["head"]).unitsPerEm)
+                source_upem = instance.table("head").unitsPerEm
                 if source_upem != target_upem:
                     logger.debug(
                         "Scale source UPEM: source=%s, target=%s",
@@ -347,13 +343,12 @@ def instantiate_italic_master_file(
     font = load_font_eager(input_path)
     try:
         logger.debug("Instantiate italic font: path=%s, axes=%s", input_path, axes)
-        instance = instantiateVariableFont(
+        instance = instantiate_variable_font(
             font,
             axes,
-            inplace=False,
             optimize=False,
             static=True,
-            downgradeCFF2="CFF2" in font,
+            downgrade_cff2="CFF2" in font,
         )
         try:
             skew_glyphs(instance, italic_angle)
@@ -606,7 +601,7 @@ def transform_cff_glyphs(
         return
 
     is_cff2 = table_tag == "CFF2"
-    top_dict = cast(CFFTable, font[table_tag]).cff.topDictIndex[0]
+    top_dict = font.table(table_tag).cff.topDictIndex[0]
     char_strings = top_dict.CharStrings
     glyph_set = font.getGlyphSet()
     target_glyphs = (
@@ -1310,7 +1305,7 @@ class CJKBuilder:
             subset_path,
             self.config,
             self._require_process_pool(),
-            int(cast(HeadTable, feature_font["head"]).unitsPerEm),
+            feature_font.table("head").unitsPerEm,
             outline_mode,
         )
         return (
@@ -1606,12 +1601,11 @@ def instantiate_static_font_file(
         is_italic,
     )
     var_font = get_static_worker_font(input_path)
-    instance = instantiateVariableFont(
+    instance = instantiate_variable_font(
         var_font,
         {"wght": coordinate},
-        inplace=False,
         static=True,
-        downgradeCFF2="CFF2" in var_font,
+        downgrade_cff2="CFF2" in var_font,
     )
     try:
         finalize_static_font_instance(instance, output_path, name, is_italic, config)

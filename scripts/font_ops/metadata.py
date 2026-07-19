@@ -1,18 +1,10 @@
 from __future__ import annotations
 
 import math
-from typing import cast
 
 from fontTools.misc.roundTools import otRound
 from fontTools.pens.statisticsPen import StatisticsPen
-from fontTools.ttLib import TTFont
-
-from scripts.font_ops.fonttools_types import (
-    HeadTable,
-    HheaTable,
-    OS2Table,
-    PostTable,
-)
+from scripts.font_ops.fonttools import TTFont
 
 
 ITALIC_BIT = 0
@@ -36,10 +28,10 @@ def fix_italic_metadata(font: TTFont, min_slant: float = 2.0) -> float:
     if abs(italic_angle) < abs(min_slant):
         italic_angle = 0.0
 
-    os2 = cast(OS2Table, font["OS/2"])
-    head = cast(HeadTable, font["head"])
-    hhea = cast(HheaTable, font["hhea"])
-    post = cast(PostTable, font["post"])
+    os2 = font.table("OS/2")
+    head = font.table("head")
+    hhea = font.table("hhea")
+    post = font.table("post")
 
     is_italic = italic_angle != 0
     os2.fsSelection = _set_bit(os2.fsSelection, ITALIC_BIT, is_italic)
@@ -71,9 +63,9 @@ def set_monospace_metadata(font: TTFont) -> None:
     if not metrics:
         raise ValueError("The font does not contain horizontal metrics.")
 
-    os2 = cast(OS2Table, font["OS/2"])
-    hhea = cast(HheaTable, font["hhea"])
-    post = cast(PostTable, font["post"])
+    os2 = font.table("OS/2")
+    hhea = font.table("hhea")
+    post = font.table("post")
 
     post.isFixedPitch = True
     os2.panose.bFamilyType = 2

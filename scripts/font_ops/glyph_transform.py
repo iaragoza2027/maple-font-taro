@@ -4,7 +4,7 @@ import math
 from typing import TYPE_CHECKING, Any, List, Tuple
 
 from fontTools.misc.transform import Transform
-from fontTools.ttLib import TTFont
+from scripts.font_ops.fonttools import TTFont
 from fontTools.ttLib.tables._g_l_y_f import GlyphCoordinates, Glyph
 from ufo2ft.filters import BaseFilter
 
@@ -66,8 +66,7 @@ def _apply_smart_thicken(coords: List[Coordinate], strength: float) -> List[Coor
 
     new_coords = []
 
-    # Pre-convert to float for math operations
-    f_coords = [(float(x), float(y)) for x, y in coords]
+    f_coords = list(coords)
 
     for i in range(n):
         prev_p = f_coords[i - 1]
@@ -429,7 +428,7 @@ def change_glyph_width_or_scale(
             glyph.coordinates.calcIntBounds()
         )
 
-        new_lsb = lsb + int(round(delta))
+        new_lsb = lsb + round(delta)
         hmtx[glyph_name] = (target_width, new_lsb)
 
     # Recalculate composite bounds after all components (including combining

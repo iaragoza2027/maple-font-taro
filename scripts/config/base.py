@@ -4,7 +4,7 @@ import argparse
 from dataclasses import asdict, dataclass, field
 from os import getenv
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal
 
 from scripts.cjk.config import (
     config_from_data,
@@ -164,7 +164,7 @@ def normalize_build_formats(value: Any) -> list[BuildFormatId]:
             continue
         if item not in BUILD_FORMATS:
             raise ValueError(f"Unsupported build format: {item}")
-        build_format = cast(BuildFormatId, item)
+        build_format = item
         if build_format not in normalized:
             normalized.append(build_format)
     return normalized or list(BUILD_FORMATS)
@@ -187,7 +187,7 @@ def normalize_cjk_locale_list(value: Any) -> list[BuiltinCJKLocaleId]:
             continue
         if item not in BUILTIN_CJK_LOCALES:
             raise ValueError(f"Unsupported CJK locale: {item}")
-        locale = cast(BuiltinCJKLocaleId, item)
+        locale = item
         if locale not in normalized:
             normalized.append(locale)
     return normalized

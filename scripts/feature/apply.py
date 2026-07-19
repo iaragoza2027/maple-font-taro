@@ -6,7 +6,7 @@ from fontTools.feaLib.builder import (
     addOpenTypeFeatures,
     addOpenTypeFeaturesFromString,
 )
-from fontTools.ttLib import TTFont
+from scripts.font_ops.fonttools import TTFont
 
 from scripts.config.base import ResolvedBuildConfig, normalize_feature_freeze
 from scripts.feature.compiler import generate_fea_string, get_freeze_moving_rules
@@ -30,7 +30,7 @@ def patch_font_feature(
             addOpenTypeFeatures(font, fea_path)
     elif not (is_hinted and config.infinite_arrow):
         enable_infinite = (
-            bool(config.infinite_arrow)
+            config.infinite_arrow
             if config.infinite_arrow is not None
             else not is_hinted
         )

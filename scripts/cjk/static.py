@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import cast
 
-from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables._m_e_t_a import table__m_e_t_a
 
 from scripts.config.base import (
@@ -12,7 +11,7 @@ from scripts.config.base import (
     ResolvedCJKBuildEntry,
 )
 from scripts.config.resolver import BuildRuntimeContext
-from scripts.font_ops.fonttools_types import HheaTable, OS2Table, PostTable
+from scripts.font_ops.fonttools import MetaTable, TTFont
 from scripts.font_ops.glyph_transform import (
     change_glyph_width_or_scale,
     smart_change_width,
@@ -41,9 +40,9 @@ def build_cjk_postscript_prefix(
 def apply_cjk_meta_table(
     font: TTFont, language_tag: str, code_page_range1: int
 ) -> None:
-    cast(OS2Table, font["OS/2"]).ulCodePageRange1 = code_page_range1
+    font.table("OS/2").ulCodePageRange1 = code_page_range1
     meta = table__m_e_t_a("meta")
-    meta.data = {
+    cast(MetaTable, meta).data = {
         "dlng": language_tag,
         "slng": language_tag,
     }
@@ -87,7 +86,7 @@ def apply_cjk_metrics(
     font_config: ResolvedBuildConfig,
     runtime_context: BuildRuntimeContext,
 ) -> None:
-    cast(OS2Table, font["OS/2"]).xAvgCharWidth = font_config.get_target_width()
+    font.table("OS/2").xAvgCharWidth = font_config.get_target_width()
     adjust_line_height(
         font, font_config.line_height, runtime_context.resolved_vertical_metric
     )
@@ -116,11 +115,11 @@ def apply_cjk_width_transform(
     if target_width or scale_factor:
         match_width = 2 * font_config.glyph_width
         if target_width and font_config.get_width_name() != "slim":
-            cast(PostTable, font["post"]).isFixedPitch = False
-            os2 = cast(OS2Table, font["OS/2"])
+            font.table("post").isFixedPitch = False
+            os2 = font.table("OS/2")
             os2.panose.bProportion = 0
             os2.panose.bSpacing = 0
-            cast(HheaTable, font["hhea"]).advanceWidthMax = target_width
+            font.table("hhea").advanceWidthMax = target_width
             logger.debug(
                 "Changed CJK glyph width; mark font as proportional and skip width checks"
             )
@@ -154,14 +153,14 @@ def apply_cjk_width_transform(
         )
 
     if font_config.get_width_name():
-        previous_advance_width_max = cast(HheaTable, font["hhea"]).advanceWidthMax
+        previous_advance_width_max = font.table("hhea").advanceWidthMax
         smart_change_width(
             font=font,
             target_width=font_config.get_target_width(),
             original_ref_width=font_config.glyph_width,
             scale_zero_width=False,
         )
-        cast(HheaTable, font["hhea"]).advanceWidthMax = previous_advance_width_max
+        font.table("hhea").advanceWidthMax = previous_advance_width_max
 
     return skip_verify
 

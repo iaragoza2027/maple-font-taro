@@ -5,7 +5,6 @@ import unittest
 import json
 from pathlib import Path
 from threading import Barrier, current_thread
-from typing import cast
 from unittest.mock import patch
 
 from fontmake.font_project import CFFOptimization, FontProject
@@ -21,12 +20,10 @@ from glyphsLib.classes import (
     GSNode,
     GSPath,
 )
-from fontTools.ttLib import TTFont
-from fontTools.varLib.instancer import instantiateVariableFont
+from scripts.font_ops.fonttools import TTFont, instantiate_variable_font
 
 from scripts.config.base import ResolvedBuildConfig
 from scripts.feature.apply import patch_font_feature
-from scripts.font_ops.fonttools_types import OS2Table, PostTable
 from scripts.font_ops.glyphs import (
     FontmakeBranchJob,
     SourceCompatibilityError,
@@ -166,8 +163,8 @@ class GlyphsVariableSourceTest(unittest.TestCase):
                 generated["name"].getDebugName(item.subfamilyNameID): item
                 for item in generated["fvar"].instances
             }
-            os2 = cast(OS2Table, generated["OS/2"])
-            post = cast(PostTable, generated["post"])
+            os2 = generated.table("OS/2")
+            post = generated.table("post")
             self.assertEqual(instances["ExtraLight"].coordinates["wght"], 275)
             self.assertTrue(post.isFixedPitch)
             self.assertEqual(os2.panose.bFamilyType, 2)
@@ -338,11 +335,12 @@ class GlyphsVariableSourceTest(unittest.TestCase):
             with source_path.open(encoding="utf-8") as source_file:
                 font = load(source_file)
             target = font.glyphs["target"]
+            assert target is not None
+            master = font.masters[-1]
+            assert master is not None
             for layer in target.layers:
                 component_name = (
-                    "baseTwo"
-                    if layer.associatedMasterId == font.masters[-1].id
-                    else "baseOne"
+                    "baseTwo" if layer.associatedMasterId == master.id else "baseOne"
                 )
                 layer.components.append(GSComponent(component_name))
             font.save(source_path)
@@ -375,8 +373,12 @@ class GlyphsVariableSourceTest(unittest.TestCase):
             )
             with source_path.open(encoding="utf-8") as source_file:
                 font = load(source_file)
+            master = font.masters[-1]
+            assert master is not None
             for glyph_name in ("first", "second"):
-                layer = font.glyphs[glyph_name].layers[font.masters[-1].id]
+                glyph = font.glyphs[glyph_name]
+                assert glyph is not None
+                layer = glyph.layers[master.id]
                 contour = GSPath()
                 contour.nodes.extend(
                     (
@@ -638,10 +640,9 @@ class GlyphsVariableSourceTest(unittest.TestCase):
             try:
                 self.assertEqual(len(variable_font["fvar"].instances), 8)
                 for coordinate in (100, 400, 800):
-                    instance = instantiateVariableFont(
+                    instance = instantiate_variable_font(
                         variable_font,
                         {"wght": coordinate},
-                        inplace=False,
                     )
                     try:
                         widths = {

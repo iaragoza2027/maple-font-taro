@@ -6,7 +6,7 @@ from os import environ, path, remove
 from urllib.request import urlopen
 
 from fontTools.subset import Subsetter
-from fontTools.varLib import TTFont
+from scripts.font_ops.fonttools import TTFont
 
 from scripts.utils.downloads import check_font_patcher
 from scripts.utils.process import get_font_forge_bin, run as run_command
@@ -93,6 +93,8 @@ def check_update():
 
 
 def get_nerd_font_patcher_args(mono: bool, propo: bool = False):
+    if FONT_FORGE_BIN is None:
+        raise RuntimeError("FontForge is required to build Nerd Font assets")
     nf_args = [
         FONT_FORGE_BIN,
         "FontPatcher/font-patcher",

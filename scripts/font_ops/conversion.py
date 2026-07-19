@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from fontTools.ttLib import TTFont
+from scripts.font_ops.fonttools import TTFont
 
 from scripts.utils.logging import logger, set_log_task
 from scripts.utils.process import create_process_executor, run_jobs

@@ -22,8 +22,8 @@ def get_calt_lookup(
     enable_tag: bool = True,
     remove_italic_calt: bool = False,
     infinite_options: InfiniteOptions = InfiniteOptions(),
-) -> list[list[ast.Lookup]]:
-    lookup = [
+) -> list[ast.FeatureContent]:
+    lookup: list[ast.FeatureContent] = [
         whitespace.get_lookup(cls_var, infinite_options),
         asciitilde.get_lookup(),
         cross.get_lookup(cls_hex_letter),

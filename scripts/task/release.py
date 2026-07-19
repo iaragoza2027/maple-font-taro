@@ -6,7 +6,7 @@ import re
 import shutil
 from typing import Callable
 
-from fontTools.ttLib import TTFont
+from scripts.font_ops.fonttools import TTFont
 
 from scripts.pipeline import main as build_main
 from scripts.font_ops.conversion import convert_to_web

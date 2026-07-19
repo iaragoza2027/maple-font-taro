@@ -12,7 +12,7 @@ def get_lookup(cls_var: ast.Clazz):
     cls_number = ast.Clazz("Number", ["+", "-", cls_digit])
     cls_quote_like = ast.Clazz("QuoteLike", ["`", "'", '"'])
 
-    surround = [
+    surround: list[tuple[ast.GlyphContext, ast.GlyphContext]] = [
         (cls_var, [cls_space, ast.SPC, cls_leading_symbol_liga]),
         (cls_var, [ast.SPC, cls_leading_symbol_liga]),
         (cls_var, ast.cls(cls_var, cls_number)),

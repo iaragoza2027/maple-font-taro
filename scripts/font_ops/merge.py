@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from typing import cast
 
 from fontTools.merge import Merger
-from fontTools.ttLib import TTFont
+from scripts.font_ops.fonttools import TTFont, adapt_ttfont
 
-from scripts.font_ops.fonttools_types import HheaTable
 from scripts.utils.logging import logger
 
 
@@ -13,7 +11,7 @@ def merge_ttfonts(
     base_font_path: str, extra_font_path: str, use_pyftmerge: bool = False
 ) -> TTFont:
     if use_pyftmerge:
-        return Merger().merge([base_font_path, extra_font_path])
+        return adapt_ttfont(Merger().merge([base_font_path, extra_font_path]))
 
     try:
         base_font = TTFont(base_font_path)
@@ -55,10 +53,8 @@ def merge_ttfonts(
 
         if "hhea" in base_font:
             if base_hmtx:
-                cast(HheaTable, base_font["hhea"]).numberOfHMetrics = len(
-                    base_hmtx.metrics
-                )
-            cast(HheaTable, base_font["hhea"]).recalc(base_font)
+                base_font.table("hhea").numberOfHMetrics = len(base_hmtx.metrics)
+            base_font.table("hhea").recalc(base_font)
         return base_font
     except Exception:
         raise

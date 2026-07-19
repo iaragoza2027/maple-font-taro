@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 import re
-from typing import Literal
+from typing import Literal, TypeAlias
 
 
 class Line:
@@ -55,6 +55,9 @@ class Lookup:
 
         arr.append(Line(f"}} {self.name};"))
         return arr
+
+
+FeatureContent: TypeAlias = Clazz | Lookup | Line | Sequence["FeatureContent"] | None
 
 
 class Feature:

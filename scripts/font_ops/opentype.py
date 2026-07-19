@@ -3,9 +3,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any, cast
 
-from fontTools.ttLib import TTFont, newTable
+from scripts.font_ops.fonttools import TTFont, newTable
 
-from scripts.font_ops.fonttools_types import GaspTable
 from scripts.font_ops.names import default_weight_map, set_font_name
 from scripts.utils.logging import logger
 
@@ -107,7 +106,7 @@ def patch_instance(font: TTFont, all_weight_map: dict[str, int]):
 def add_gasp(font: TTFont):
     logger.debug("Update GASP table")
     font["gasp"] = newTable("gasp")
-    gasp = cast(GaspTable, font["gasp"])
+    gasp = font.table("gasp")
     gasp.gaspRange = {65535: 15}
 
 

@@ -8,20 +8,12 @@ import math
 from pathlib import Path
 from typing import Any, Iterable, cast
 
-from fontTools.ttLib import TTFont
+from scripts.font_ops.fonttools import TTFont
 from fontTools.ttLib.tables._g_l_y_f import GlyphCoordinates
 from fontTools.ttLib.tables.TupleVariation import TupleVariation
 from fontTools.varLib.instancer import otRound
 
 from scripts.utils.logging import logger
-
-from scripts.font_ops.fonttools_types import (
-    HeadTable,
-    HheaTable,
-    MetricsTable,
-    OS2Table,
-    PostTable,
-)
 
 
 FontInput = str | Path | TTFont
@@ -118,9 +110,9 @@ def rebuild_weight_masters_with_regular_default(
     if max_master is not None:
         _require_tables(max_master, CORE_GLYF_TABLES, "Max master")
 
-    glyf = font["glyf"]
-    h_metrics = font["hmtx"].metrics
-    v_metrics = cast(MetricsTable, font["vmtx"]).metrics if "vmtx" in font else None
+    glyf = font.table("glyf")
+    h_metrics = font.table("hmtx").metrics
+    v_metrics = font.table("vmtx").metrics if "vmtx" in font else None
     variations: dict[str, list[TupleVariation]] = {}
 
     for glyph_name in font.getGlyphOrder():
@@ -220,7 +212,7 @@ def normalize_weight_axis(
 
     font["fvar"].axes = [axis]
     axis.minValue = 100.0
-    axis.defaultValue = float(default_value)
+    axis.defaultValue = default_value
     axis.maxValue = 800.0
     axis.flags = 0
     axis.axisNameID = axis_name_id
@@ -255,7 +247,7 @@ def remap_named_instances(
         )
         if instance is None:
             raise ValueError(f"Missing wght instance: {name}")
-        instance.coordinates = {"wght": float(instance_weight)}
+        instance.coordinates = {"wght": instance_weight}
         instance.subfamilyNameID = name_id
         instance.postscriptNameID = 0xFFFF
         font["name"].names = [r for r in font["name"].names if r.nameID != name_id]
@@ -268,14 +260,14 @@ def remap_named_instances(
 def update_italic_metadata(font: TTFont, italic_angle_deg: float) -> None:
     """Update font metadata for italic style."""
     if "post" in font:
-        cast(PostTable, font["post"]).italicAngle = -italic_angle_deg
+        font.table("post").italicAngle = -italic_angle_deg
     if "OS/2" in font:
-        os2 = cast(OS2Table, font["OS/2"])
+        os2 = font.table("OS/2")
         os2.fsSelection = (os2.fsSelection & ~0x40) | 0x01
     if "head" in font:
-        cast(HeadTable, font["head"]).macStyle |= 0x02
+        font.table("head").macStyle |= 0x02
     if "hhea" in font:
-        hhea = cast(HheaTable, font["hhea"])
+        hhea = font.table("hhea")
         hhea.caretSlopeRise = 1000
         hhea.caretSlopeRun = otRound(math.tan(math.radians(italic_angle_deg)) * 1000)
 
@@ -328,14 +320,14 @@ def skew_glyphs(font: TTFont, italic_angle_deg: float) -> None:
 def recalculate_font_metrics(font: TTFont) -> None:
     """Recalculate common horizontal and OS/2 metrics."""
     if "hhea" in font and "hmtx" in font:
-        hhea = cast(HheaTable, font["hhea"])
-        hhea.numberOfHMetrics = len(font["hmtx"].metrics)
+        hhea = font.table("hhea")
+        hhea.numberOfHMetrics = len(font.table("hmtx").metrics)
         hhea.recalc(font)
 
     if "OS/2" in font:
-        font["OS/2"].recalcAvgCharWidth(font)
-        font["OS/2"].recalcUnicodeRanges(font)
-        font["OS/2"].recalcCodePageRanges(font)
+        font.table("OS/2").recalcAvgCharWidth(font)
+        font.table("OS/2").recalcUnicodeRanges(font)
+        font.table("OS/2").recalcCodePageRanges(font)
 
 
 def make_italic_master_file(
@@ -445,9 +437,9 @@ def rebuild_weight_masters_from_paths(
 
 
 def _glyph_coordinates(font: TTFont, glyph_name: str) -> GlyphCoordinates:
-    glyf = font["glyf"]
-    h_metrics = font["hmtx"].metrics
-    v_metrics = cast(MetricsTable, font["vmtx"]).metrics if "vmtx" in font else None
+    glyf = font.table("glyf")
+    h_metrics = font.table("hmtx").metrics
+    v_metrics = font.table("vmtx").metrics if "vmtx" in font else None
     result = glyf._getCoordinatesAndControls(glyph_name, h_metrics, v_metrics)
     if result is None:
         return GlyphCoordinates()
@@ -552,8 +544,8 @@ def _validate_merge_inputs(base: TTFont, extra: TTFont) -> None:
     _require_tables(base, required_tables, "Base font")
     _require_tables(extra, required_tables, "Extra font")
 
-    base_head = cast(HeadTable, base["head"])
-    extra_head = cast(HeadTable, extra["head"])
+    base_head = base.table("head")
+    extra_head = extra.table("head")
     if base_head.unitsPerEm != extra_head.unitsPerEm:
         raise ValueError(
             "Cannot merge fonts with different UPEM values: "

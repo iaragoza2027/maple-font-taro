@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from fontTools.ttLib import TTFont
+from scripts.font_ops.fonttools import TTFont
 
 if TYPE_CHECKING:
     from scripts.config.base import ResolvedBuildConfig

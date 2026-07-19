@@ -183,7 +183,7 @@ def tag_custom(
                 source_list.append(ast.gly(g))
 
         # Parse target
-        target_list = []
+        target_list: list[str | ast.Clazz] = []
         for target_gly in target:
             if target_gly in __map:
                 target_list.append(f"{__map[target_gly]}.bg")

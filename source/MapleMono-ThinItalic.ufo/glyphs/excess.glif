@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="excess" format="2">
+  <advance width="600"/>
+  <unicode hex="2239"/>
+  <outline>
+    <component base="Eth.decorator" xOffset="41" yOffset="-50"/>
+    <component base="period" xOffset="223" yOffset="130"/>
+    <component base="period" xOffset="276" yOffset="430"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>Eth.decorator</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>period</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>2</integer>
+          <key>name</key>
+          <string>period</string>
+        </dict>
+      </array>
+      <key>com.schriftgestaltung.componentsSmartComponentValues</key>
+      <array>
+        <dict>
+          <key>Wt</key>
+          <integer>300</integer>
+        </dict>
+        <dict/>
+        <dict/>
+      </array>
+    </dict>
+  </lib>
+</glyph>

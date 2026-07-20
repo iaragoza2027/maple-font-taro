@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="f_f.liga.cv44" format="2">
+  <advance width="600"/>
+  <anchor x="220" y="0" name="bottom_1"/>
+  <anchor x="349" y="730" name="top_1"/>
+  <anchor x="-380" y="0" name="bottom_2"/>
+  <anchor x="-251" y="730" name="top_2"/>
+  <anchor x="220" y="0" name="bottom"/>
+  <anchor x="349" y="730" name="top"/>
+  <outline>
+    <component base="f.cv44"/>
+    <component base="f.cv44" xOffset="-600"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>f.cv44</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>f.cv44</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

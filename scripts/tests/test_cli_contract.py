@@ -43,7 +43,15 @@ class PublicCliContractTest(unittest.TestCase):
         result = self.run_cli("task.py", "--help")
 
         self.assertEqual(result.returncode, 0)
-        for command in ("nf", "fea", "release", "page", "cjk", "publish"):
+        for command in (
+            "nf",
+            "fea",
+            "designspace",
+            "release",
+            "page",
+            "cjk",
+            "publish",
+        ):
             self.assertIn(command, result.stdout)
 
     def test_invalid_build_argument_returns_argparse_error(self) -> None:

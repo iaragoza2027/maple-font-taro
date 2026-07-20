@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="measuredangle" format="2">
+  <advance width="600"/>
+  <unicode hex="2221"/>
+  <outline>
+    <component base="angle"/>
+    <component base="quarter_cirle.decorator"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>angle</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>quarter_cirle.decorator</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

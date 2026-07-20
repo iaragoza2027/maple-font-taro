@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="tonos.case" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="389" y="703" type="curve" smooth="yes"/>
+      <point x="326" y="590" type="line" smooth="yes"/>
+      <point x="317" y="575"/>
+      <point x="305" y="568"/>
+      <point x="289" y="568" type="curve" smooth="yes"/>
+      <point x="273" y="568"/>
+      <point x="270" y="576"/>
+      <point x="277" y="591" type="curve" smooth="yes"/>
+      <point x="336" y="703" type="line" smooth="yes"/>
+      <point x="345" y="720"/>
+      <point x="358" y="728"/>
+      <point x="376" y="728" type="curve" smooth="yes"/>
+      <point x="394" y="728"/>
+      <point x="399" y="720"/>
+    </contour>
+  </outline>
+</glyph>

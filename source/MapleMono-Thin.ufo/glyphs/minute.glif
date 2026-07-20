@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="minute" format="2">
+  <advance width="600"/>
+  <unicode hex="2032"/>
+  <outline>
+    <component base="numeral-greek" xScale="0.9961946980917455" xyScale="0.08715574274765817" yxScale="-0.08715574274765817" yScale="0.9961946980917455" xOffset="100" yOffset="-20"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>numeral-greek</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

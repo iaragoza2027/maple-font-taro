@@ -369,6 +369,47 @@ class BuildConfigResolverCJKEntryTest(unittest.TestCase):
         )
 
 
+class BuildConfigResolverCodepointAliasTest(unittest.TestCase):
+    def _resolve(self, codepoint_alias):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "config.json").write_text(
+                json.dumps({"codepoint_alias": codepoint_alias}),
+                encoding="utf-8",
+            )
+            return BuildConfigResolver(project_root=root).resolve(parse_args([]))
+
+    def test_resolves_and_serializes_extra_codepoint_aliases(self) -> None:
+        font_config = self._resolve({"0xE000": "0x004B"})
+
+        self.assertEqual(font_config.codepoint_alias, {0xE000: 0x004B})
+        self.assertEqual(
+            font_config.to_dict()["metrics"]["codepoint_alias"],
+            {"0xE000": "0x004B"},
+        )
+        self.assertEqual(
+            font_config.to_build_record()["codepoint_alias"],
+            {"0xE000": "0x004B"},
+        )
+
+    def test_empty_mapping_adds_no_extra_aliases(self) -> None:
+        self.assertEqual(self._resolve({}).codepoint_alias, {})
+
+    def test_rejects_invalid_unicode_scalars(self) -> None:
+        for mapping in (
+            {"2126": "0x03A9"},
+            {"0x110000": "0x004B"},
+            {"0xE000": "0xD800"},
+            {"0xE000": "0xE000"},
+        ):
+            with self.subTest(mapping=mapping), self.assertRaises(ValueError):
+                self._resolve(mapping)
+
+    def test_rejects_overriding_builtin_alias(self) -> None:
+        with self.assertRaisesRegex(ValueError, "built in"):
+            self._resolve({"0x212A": "0x0041"})
+
+
 class BuildRuntimeContextFontPatcherTest(unittest.TestCase):
     def test_should_use_font_patcher_is_pure_decision(self) -> None:
         runtime_context = make_runtime_context(Path("."))

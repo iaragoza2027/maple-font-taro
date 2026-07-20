@@ -643,6 +643,20 @@ For example, if you want to make regular font weight a little bit lighter, just 
 }
 ```
 
+### Extra Codepoint Aliases
+
+Use `codepoint_alias` in `config.json` to add aliases after font compilation.
+Both keys and values use hexadecimal Unicode notation; built-in compatibility
+aliases remain enabled and cannot be overridden.
+
+```json
+{
+  "codepoint_alias": {
+    "0xE000": "0x004B"
+  }
+}
+```
+
 ### CJK-extended version
 
 CJK-extended builds are disabled by default. Run `python build.py --cjk cn` to generate Maple Mono + CN static fonts. The default output mode is `--cjk-format static`, while `--cjk-format variable` persists merged Maple Mono + locale variable fonts only. The legacy `--cn` flag is still accepted as a compatibility alias for selecting the `cn` locale.
@@ -729,7 +743,13 @@ Build Options:
 
 ### Design
 
-Using [FontLab](https://www.fontlab.com/) or [Glyphs](https://glyphs.app), generate variable TTF into `source/` folder.
+Edit the tracked `.vfc` sources with [FontLab](https://www.fontlab.com/) and export matching `.glyphs` files into `source/`. Then refresh the committed Designspace/UFO build sources:
+
+```sh
+uv run task.py designspace
+```
+
+The exported `.glyphs` files are local intermediates and are not tracked.
 
 ### Build
 
@@ -742,6 +762,8 @@ uv run build.py --ttf-only --cn --debug
 uv run task.py nf
 # Update fea file
 uv run task.py fea
+# Update Designspace and UFO sources
+uv run task.py designspace
 # Update landing page info
 uv run task.py page --sync
 # Release

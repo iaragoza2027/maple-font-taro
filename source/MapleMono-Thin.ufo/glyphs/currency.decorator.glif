@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="currency.decorator" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="567" y="269" type="curve" smooth="yes"/>
+      <point x="33" y="269" type="line" smooth="yes"/>
+      <point x="18" y="269"/>
+      <point x="10" y="277"/>
+      <point x="10" y="292" type="curve" smooth="yes"/>
+      <point x="10" y="307"/>
+      <point x="18" y="314"/>
+      <point x="33" y="314" type="curve" smooth="yes"/>
+      <point x="567" y="314" type="line" smooth="yes"/>
+      <point x="582" y="314"/>
+      <point x="590" y="307"/>
+      <point x="590" y="292" type="curve" smooth="yes"/>
+      <point x="590" y="277"/>
+      <point x="582" y="269"/>
+    </contour>
+    <contour>
+      <point x="567" y="409" type="curve" smooth="yes"/>
+      <point x="33" y="409" type="line" smooth="yes"/>
+      <point x="18" y="409"/>
+      <point x="10" y="417"/>
+      <point x="10" y="432" type="curve" smooth="yes"/>
+      <point x="10" y="447"/>
+      <point x="18" y="454"/>
+      <point x="33" y="454" type="curve" smooth="yes"/>
+      <point x="567" y="454" type="line" smooth="yes"/>
+      <point x="582" y="454"/>
+      <point x="590" y="447"/>
+      <point x="590" y="432" type="curve" smooth="yes"/>
+      <point x="590" y="417"/>
+      <point x="582" y="409"/>
+    </contour>
+  </outline>
+</glyph>

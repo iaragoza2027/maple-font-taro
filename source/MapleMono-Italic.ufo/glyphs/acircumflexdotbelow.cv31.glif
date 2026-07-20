@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="acircumflexdotbelow.cv31" format="2">
+  <advance width="600"/>
+  <anchor x="225" y="0" name="_bottom"/>
+  <anchor x="206" y="0" name="bottom"/>
+  <anchor x="303" y="550" name="top"/>
+  <anchor x="380" y="0" name="ogonek"/>
+  <outline>
+    <component base="dotbelowcomb" xOffset="605"/>
+    <component base="circumflexcomb" xOffset="605"/>
+    <component base="a.cv31"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>dotbelowcomb</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>circumflexcomb</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>2</integer>
+          <key>name</key>
+          <string>a.cv31</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

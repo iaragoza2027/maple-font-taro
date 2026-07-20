@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="Theta.decorator" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="373" y="352" type="curve" smooth="yes"/>
+      <point x="227" y="352" type="line" smooth="yes"/>
+      <point x="212" y="352"/>
+      <point x="205" y="360"/>
+      <point x="205" y="375" type="curve" smooth="yes"/>
+      <point x="205" y="390"/>
+      <point x="212" y="397"/>
+      <point x="227" y="397" type="curve" smooth="yes"/>
+      <point x="373" y="397" type="line" smooth="yes"/>
+      <point x="388" y="397"/>
+      <point x="395" y="390"/>
+      <point x="395" y="375" type="curve" smooth="yes"/>
+      <point x="395" y="360"/>
+      <point x="388" y="352"/>
+    </contour>
+  </outline>
+</glyph>

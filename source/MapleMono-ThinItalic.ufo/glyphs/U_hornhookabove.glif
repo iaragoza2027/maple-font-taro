@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="Uhornhookabove" format="2">
+  <advance width="600"/>
+  <unicode hex="1EEC"/>
+  <anchor x="429" y="730" name="_horn"/>
+  <anchor x="629" y="730" name="topright"/>
+  <anchor x="220" y="0" name="bottom"/>
+  <anchor x="441" y="730" name="horn"/>
+  <anchor x="275" y="0" name="ogonek"/>
+  <anchor x="396" y="975" name="top"/>
+  <outline>
+    <component base="Uhorn"/>
+    <component base="hookabovecomb.case" xOffset="600"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>Uhorn</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>hookabovecomb.case</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

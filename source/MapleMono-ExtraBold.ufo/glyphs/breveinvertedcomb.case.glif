@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="breveinvertedcomb.case" format="2">
+  <anchor x="-300" y="730" name="_top"/>
+  <anchor x="-300" y="950" name="top"/>
+  <outline>
+    <contour>
+      <point x="-474" y="856" type="curve" smooth="yes"/>
+      <point x="-462" y="885"/>
+      <point x="-434" y="908" type="qcurve" smooth="yes"/>
+      <point x="-383" y="949"/>
+      <point x="-300" y="950" type="qcurve" smooth="yes"/>
+      <point x="-217" y="950"/>
+      <point x="-166" y="908" type="qcurve" smooth="yes"/>
+      <point x="-139" y="886"/>
+      <point x="-126" y="856" type="qcurve" smooth="yes"/>
+      <point x="-112" y="823"/>
+      <point x="-132" y="800"/>
+      <point x="-173" y="800" type="curve" smooth="yes"/>
+      <point x="-187" y="800"/>
+      <point x="-197" y="804"/>
+      <point x="-206" y="810" type="curve" smooth="yes"/>
+      <point x="-222" y="821"/>
+      <point x="-234" y="839"/>
+      <point x="-255" y="852" type="curve" smooth="yes"/>
+      <point x="-273" y="863"/>
+      <point x="-300" y="863" type="qcurve" smooth="yes"/>
+      <point x="-327" y="863"/>
+      <point x="-345" y="852" type="qcurve" smooth="yes"/>
+      <point x="-367" y="838"/>
+      <point x="-379" y="819"/>
+      <point x="-397" y="808" type="curve" smooth="yes"/>
+      <point x="-405" y="803"/>
+      <point x="-415" y="800"/>
+      <point x="-428" y="800" type="curve" smooth="yes"/>
+      <point x="-469" y="800"/>
+      <point x="-488" y="823"/>
+    </contour>
+  </outline>
+</glyph>

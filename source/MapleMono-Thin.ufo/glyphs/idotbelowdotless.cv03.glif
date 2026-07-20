@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="idotbelowdotless.cv03" format="2">
+  <advance width="600"/>
+  <anchor x="315" y="-205" name="bottom"/>
+  <anchor x="330" y="0" name="ogonek"/>
+  <anchor x="315" y="550" name="top"/>
+  <outline>
+    <component base="idotless.cv03"/>
+    <component base="dotbelowcomb" xOffset="615"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>idotless.cv03</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>dotbelowcomb</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

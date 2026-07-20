@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="znotationbagmembership" format="2">
+  <advance width="600"/>
+  <unicode hex="22FF"/>
+  <outline>
+    <contour>
+      <point x="210" y="380" type="curve" smooth="yes"/>
+      <point x="210" y="335" type="line"/>
+      <point x="473" y="335" type="line" smooth="yes"/>
+      <point x="515" y="335"/>
+      <point x="540" y="312"/>
+      <point x="540" y="270" type="curve" smooth="yes"/>
+      <point x="540" y="228"/>
+      <point x="515" y="205"/>
+      <point x="473" y="205" type="curve" smooth="yes"/>
+      <point x="210" y="205" type="line"/>
+      <point x="210" y="170" type="line" smooth="yes"/>
+      <point x="210" y="143"/>
+      <point x="223" y="130"/>
+      <point x="250" y="130" type="curve" smooth="yes"/>
+      <point x="475" y="130" type="line" smooth="yes"/>
+      <point x="519" y="130"/>
+      <point x="540" y="109"/>
+      <point x="540" y="65" type="curve" smooth="yes"/>
+      <point x="540" y="21"/>
+      <point x="519" y="0"/>
+      <point x="475" y="0" type="curve" smooth="yes"/>
+      <point x="160" y="0" type="line" smooth="yes"/>
+      <point x="93" y="0"/>
+      <point x="60" y="33"/>
+      <point x="60" y="100" type="curve" smooth="yes"/>
+      <point x="60" y="450" type="line" smooth="yes"/>
+      <point x="60" y="517"/>
+      <point x="93" y="550"/>
+      <point x="160" y="550" type="curve" smooth="yes"/>
+      <point x="475" y="550" type="line" smooth="yes"/>
+      <point x="519" y="550"/>
+      <point x="540" y="529"/>
+      <point x="540" y="485" type="curve" smooth="yes"/>
+      <point x="540" y="441"/>
+      <point x="519" y="420"/>
+      <point x="475" y="420" type="curve" smooth="yes"/>
+      <point x="250" y="420" type="line" smooth="yes"/>
+      <point x="221" y="420"/>
+      <point x="210" y="408"/>
+    </contour>
+  </outline>
+</glyph>

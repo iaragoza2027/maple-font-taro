@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="starofdavid" format="2">
+  <advance width="600"/>
+  <unicode hex="2721"/>
+  <outline>
+    <contour>
+      <point x="448" y="347" type="line"/>
+      <point x="505" y="204" type="line"/>
+      <point x="339" y="204" type="line"/>
+      <point x="230" y="59" type="line"/>
+      <point x="173" y="204" type="line"/>
+      <point x="7" y="204" type="line"/>
+      <point x="115" y="347" type="line"/>
+      <point x="58" y="491" type="line"/>
+      <point x="224" y="491" type="line"/>
+      <point x="332" y="635" type="line"/>
+      <point x="390" y="491" type="line"/>
+      <point x="556" y="491" type="line"/>
+    </contour>
+    <contour>
+      <point x="436" y="377" type="line"/>
+      <point x="500" y="462" type="line"/>
+      <point x="401" y="462" type="line"/>
+    </contour>
+    <contour>
+      <point x="257" y="491" type="line"/>
+      <point x="357" y="491" type="line"/>
+      <point x="322" y="579" type="line"/>
+    </contour>
+    <contour>
+      <point x="362" y="232" type="line"/>
+      <point x="460" y="232" type="line"/>
+      <point x="426" y="319" type="line"/>
+    </contour>
+    <contour>
+      <point x="328" y="233" type="line"/>
+      <point x="416" y="347" type="line"/>
+      <point x="368" y="461" type="line"/>
+      <point x="235" y="461" type="line"/>
+      <point x="147" y="347" type="line"/>
+      <point x="195" y="233" type="line"/>
+    </contour>
+    <contour>
+      <point x="136" y="377" type="line"/>
+      <point x="201" y="462" type="line"/>
+      <point x="102" y="462" type="line"/>
+    </contour>
+    <contour>
+      <point x="241" y="117" type="line"/>
+      <point x="307" y="204" type="line"/>
+      <point x="207" y="204" type="line"/>
+    </contour>
+    <contour>
+      <point x="61" y="232" type="line"/>
+      <point x="161" y="232" type="line"/>
+      <point x="126" y="318" type="line"/>
+    </contour>
+  </outline>
+</glyph>

@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="shha-cy" format="2">
+  <advance width="600"/>
+  <unicode hex="04BB"/>
+  <anchor x="300.0" y="0.0" name="bottom"/>
+  <anchor x="20.0" y="550.0" name="topleft"/>
+  <outline>
+    <component base="che-cy" xScale="-1.0" yScale="-1.0" xOffset="600" yOffset="550"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>che-cy</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

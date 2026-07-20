@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="o-cy" format="2">
+  <advance width="600"/>
+  <unicode hex="043E"/>
+  <anchor x="300" y="0" name="bottom"/>
+  <anchor x="300" y="275" name="center"/>
+  <anchor x="320" y="550" name="horn"/>
+  <anchor x="355" y="0" name="ogonek"/>
+  <anchor x="300" y="550" name="top"/>
+  <anchor x="580" y="550" name="topright"/>
+  <outline>
+    <component base="o"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>o</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

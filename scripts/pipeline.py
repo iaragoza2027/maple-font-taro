@@ -55,13 +55,10 @@ from scripts.utils.process import (
 from scripts.feature.apply import patch_font_feature
 from scripts.font_ops.glyphs import (
     FontmakeBranchJob,
-    GlyphsSourceReport,
-    SourceCompatibilityError,
     SourceStyle,
     compile_fontmake_branches,
     materialize_prepared_source,
-    prepare_glyphs_source,
-    validate_source_reports,
+    prepare_designspace_source,
 )
 from scripts.font_ops.metadata import (
     fix_italic_metadata,
@@ -77,6 +74,7 @@ from scripts.font_ops.names import (
 )
 from scripts.font_ops.opentype import (
     add_ital_axis_to_stat,
+    alias_codepoints,
 )
 
 
@@ -106,8 +104,7 @@ class FontmakeSourceJob:
 @dataclass(frozen=True)
 class PreparedFontmakeSource:
     style: SourceStyle
-    report: GlyphsSourceReport
-    designspace_path: str | None
+    designspace_path: str
     vertical_metric: tuple[int, int]
 
 
@@ -228,6 +225,7 @@ def postprocess_static_font(
         is_hinted=False,
         fea_path=runtime_context.feature_file_path(is_italic),
     )
+    alias_codepoints(font, font_config.codepoint_alias)
 
     verify_glyph_width(
         font=font,
@@ -262,7 +260,7 @@ def postprocess_static_font_job(job: StaticPostprocessJob) -> None:
 def build_fontmake_source_job(job: FontmakeSourceJob) -> PreparedFontmakeSource:
     set_log_task("prepare")
     logger.info("Preparing %s", Path(job.source_path).name)
-    prepared = prepare_glyphs_source(
+    prepared = prepare_designspace_source(
         job.source_path,
         job.style,
         target_width=job.target_width,
@@ -270,16 +268,8 @@ def build_fontmake_source_job(job: FontmakeSourceJob) -> PreparedFontmakeSource:
         weight_mapping=job.weight_mapping,
         line_height=job.line_height,
     )
-    report = GlyphsSourceReport(
-        source_path=prepared.source_path,
-        style=prepared.style,
-        errors=prepared.errors,
-    )
-    if prepared.errors:
-        return PreparedFontmakeSource(job.style, report, None, prepared.vertical_metric)
     return PreparedFontmakeSource(
         job.style,
-        report,
         str(materialize_prepared_source(prepared, job.workspace)),
         prepared.vertical_metric,
     )
@@ -532,7 +522,7 @@ def prepare_fontmake_sources(
     runtime_context: BuildRuntimeContext,
     executor: Executor | None = None,
 ) -> FontmakeBuildContext:
-    """Prepare and materialize both Glyphs sources for later format tasks."""
+    """Prepare committed Designspace/UFO sources for later format tasks."""
     log_task("prepare", "Preparing font sources")
     source_dir = Path(runtime_context.src_dir)
     temp_path = Path(runtime_context.output_dir) / "temp"
@@ -541,11 +531,11 @@ def prepare_fontmake_sources(
     raw_otf_dir = temp_path / "otf"
     source_specs: tuple[tuple[Path, SourceStyle], ...] = (
         (
-            source_dir / "MapleMono[wght].glyphs",
+            source_dir / "MapleMono[wght].designspace",
             "regular",
         ),
         (
-            source_dir / "MapleMono-Italic[wght].glyphs",
+            source_dir / "MapleMono-Italic[wght].designspace",
             "italic",
         ),
     )
@@ -578,9 +568,6 @@ def prepare_fontmake_sources(
                 )
         else:
             prepared_sources = tuple(executor.map(build_fontmake_source_job, jobs))
-        validate_source_reports(
-            [source.report for source in prepared_sources], runtime_context.output_dir
-        )
         if font_config.line_height != 1:
             regular_source = next(
                 source for source in prepared_sources if source.style == "regular"
@@ -634,7 +621,6 @@ def compile_fontmake_format(
                 width_transform=context.width_transform,
             )
             for source in context.sources
-            if source.designspace_path is not None
         ],
         use_processes=True,
         executor=executor,
@@ -685,6 +671,7 @@ def postprocess_variable_font_job(
 
         if is_italic:
             add_ital_axis_to_stat(font)
+        alias_codepoints(font, job.font_config.codepoint_alias)
 
         verify_glyph_width(
             font=font,
@@ -1688,7 +1675,7 @@ def run(parsed_args, version: str | None = None):
             return
 
         MapleBuildPipeline(font_config, runtime_context).build()
-    except (BuildDependencyError, SourceCompatibilityError) as error:
+    except BuildDependencyError as error:
         logger.error("Build failed: %s", error)
         raise SystemExit(1) from error
 

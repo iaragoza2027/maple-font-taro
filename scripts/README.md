@@ -99,14 +99,12 @@ flowchart TD
 ```mermaid
 flowchart TD
     A["prepare_fontmake_sources"] --> TEMP["Create fonts/temp"]
-    TEMP --> SRC["Prepare regular and italic<br/>Glyphs sources once"]
-    SRC --> PREP["Fill missing master glyphs,<br/>apply aliases and width transforms"]
-    PREP --> CHECK["Validate and materialize one<br/>Designspace/UFO tree per source"]
-    CHECK --> ISSUES{"Any aggregated source errors?"}
-    ISSUES -->|"yes"| FAIL["Write fonts/source-issues.json<br/>and stop before publishing"]
-    ISSUES -->|"no"| VF["fontmake Variable TTF<br/>keep overlaps"]
-    ISSUES -->|"no"| TTF["fontmake Static TTF<br/>pathops + transformed components"]
-    ISSUES -->|"no"| OTF_DECISION{"OTF requested?"}
+    TEMP --> SRC["Load committed regular and italic<br/>Designspace/UFO sources"]
+    SRC --> PREP["Apply weight, line-height,<br/>and width configuration"]
+    PREP --> CHECK["Materialize one temporary<br/>Designspace/UFO tree per source"]
+    CHECK --> VF["fontmake Variable TTF<br/>keep overlaps"]
+    CHECK --> TTF["fontmake Static TTF<br/>pathops + transformed components"]
+    CHECK --> OTF_DECISION{"OTF requested?"}
     OTF_DECISION -->|"yes"| OTF["fontmake Static OTF<br/>CFF optimize + subroutinize"]
     OTF_DECISION -->|"no"| SKIP_OTF["skip OTF"]
 
@@ -141,10 +139,13 @@ flowchart TD
     AK -->|"no"| AM["skip WOFF2"]
 ```
 
-The precompiled `source/MapleMono[wght]-VF.ttf` and
-`source/MapleMono-Italic[wght]-VF.ttf` files are reference artifacts only. The
-build always generates fresh variable fonts from the corresponding `.glyphs`
-sources and never falls back to those binaries.
+The tracked `.vfc` files are the editable FontLab sources. Export matching local
+`.glyphs` files and run `uv run task.py designspace` to normalize master layers,
+validate compatibility, and refresh the committed Designspace/UFO sources. The
+task writes failures to `fonts/source-issues.json` without replacing valid
+generated sources. Builds apply weight, width, line-height, and codepoint-alias
+configuration in a temporary tree and never fall back to the reference variable
+TTF binaries.
 
 ## Nerd Font Flow
 

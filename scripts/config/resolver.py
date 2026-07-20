@@ -25,6 +25,7 @@ from scripts.config.base import (
     default_weight_mapping,
     normalize_build_formats,
     normalize_cjk_locale_list,
+    parse_codepoint_alias,
     parse_scale_factor,
 )
 from scripts.utils.errors import BuildDependencyError
@@ -35,6 +36,7 @@ from scripts.utils.downloads import check_font_patcher, download_zip_and_extract
 from scripts.utils.files import join_path
 from scripts.utils.process import get_font_forge_bin
 from scripts.feature.compiler import normal_enabled_features
+from scripts.font_ops.opentype import DEFAULT_COMPAT_ALIASES
 from scripts.utils.files import get_directory_hash
 from scripts.utils.logging import logger
 
@@ -476,6 +478,17 @@ class BuildConfigResolver:
                 **config.metrics.weight_mapping,
                 **dict(data["weight_mapping"]),
             }
+        if "codepoint_alias" in data:
+            codepoint_alias = parse_codepoint_alias(data["codepoint_alias"])
+            builtin_aliases = sorted(
+                set(codepoint_alias).intersection(DEFAULT_COMPAT_ALIASES)
+            )
+            if builtin_aliases:
+                aliases = ", ".join(f"0x{value:04X}" for value in builtin_aliases)
+                raise ValueError(
+                    f"Codepoint aliases are built in and cannot be changed: {aliases}"
+                )
+            config.metrics.codepoint_alias = codepoint_alias
         if "remove_tag_liga" in data:
             config.feature.remove_tag_liga = bool(data["remove_tag_liga"])
         if "feature_freeze" in data:

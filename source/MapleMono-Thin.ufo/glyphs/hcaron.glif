@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="hcaron" format="2">
+  <advance width="600"/>
+  <unicode hex="021F"/>
+  <anchor x="300" y="0" name="bottom"/>
+  <anchor x="300" y="365" name="center"/>
+  <anchor x="135" y="965" name="top"/>
+  <outline>
+    <component base="h"/>
+    <component base="caroncomb" xOffset="435" yOffset="180"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>h</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>caroncomb</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

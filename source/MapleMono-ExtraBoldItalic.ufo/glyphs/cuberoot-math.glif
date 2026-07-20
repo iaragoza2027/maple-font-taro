@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="cuberoot-math" format="2">
+  <advance width="600"/>
+  <unicode hex="221B"/>
+  <outline>
+    <component base="radical"/>
+    <component base="three.numr" xScale="0.8" yScale="0.8" xOffset="32" yOffset="160"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>radical</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>three.numr</string>
+        </dict>
+      </array>
+      <key>com.schriftgestaltung.componentsSmartComponentValues</key>
+      <array>
+        <dict/>
+        <dict>
+          <key>Wt</key>
+          <integer>900</integer>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="arrow_double.decorator.cv01" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="271" y="275" type="line"/>
+      <point x="251" y="295" type="line" smooth="yes"/>
+      <point x="227" y="319"/>
+      <point x="227" y="341"/>
+      <point x="251" y="365" type="curve" smooth="yes"/>
+      <point x="271" y="385" type="line"/>
+      <point x="542" y="385" type="line"/>
+      <point x="542" y="515" type="line"/>
+      <point x="402" y="515" type="line"/>
+      <point x="430" y="543" type="line" smooth="yes"/>
+      <point x="462" y="575"/>
+      <point x="462" y="606"/>
+      <point x="430" y="638" type="curve" smooth="yes"/>
+      <point x="398" y="670"/>
+      <point x="366" y="670"/>
+      <point x="334" y="638" type="curve" smooth="yes"/>
+      <point x="94" y="400" type="line" smooth="yes"/>
+      <point x="46" y="353"/>
+      <point x="46" y="307"/>
+      <point x="94" y="260" type="curve" smooth="yes"/>
+      <point x="334" y="22" type="line" smooth="yes"/>
+      <point x="366" y="-10"/>
+      <point x="398" y="-9"/>
+      <point x="430" y="23" type="curve" smooth="yes"/>
+      <point x="462" y="55"/>
+      <point x="462" y="85"/>
+      <point x="430" y="117" type="curve" smooth="yes"/>
+      <point x="402" y="145" type="line"/>
+      <point x="542" y="145" type="line"/>
+      <point x="542" y="275" type="line"/>
+    </contour>
+  </outline>
+</glyph>

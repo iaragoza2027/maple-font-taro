@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="asciitilde.sta.seq" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="566.55" y="264" type="curve"/>
+      <point x="557.734" y="214" type="line"/>
+      <point x="385.734" y="214"/>
+      <point x="384.062" y="386"/>
+      <point x="272.062" y="386" type="curve" smooth="yes"/>
+      <point x="216.062" y="386"/>
+      <point x="158.42" y="354"/>
+      <point x="128.782" y="288" type="curve" smooth="yes"/>
+      <point x="112.258" y="251" type="line" smooth="yes"/>
+      <point x="103.908" y="232"/>
+      <point x="100.497" y="224"/>
+      <point x="80.497" y="224" type="curve" smooth="yes"/>
+      <point x="61.497" y="224"/>
+      <point x="50.084" y="233"/>
+      <point x="58.258" y="251" type="curve" smooth="yes"/>
+      <point x="74.606" y="287" type="line" smooth="yes"/>
+      <point x="117.357" y="382"/>
+      <point x="187.879" y="436"/>
+      <point x="280.879" y="436" type="curve" smooth="yes"/>
+      <point x="439.879" y="436"/>
+      <point x="422.55" y="264"/>
+    </contour>
+  </outline>
+</glyph>

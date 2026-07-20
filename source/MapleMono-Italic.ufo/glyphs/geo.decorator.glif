@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="geo.decorator" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="384.825" y="396" type="curve" smooth="yes"/>
+      <point x="472.825" y="396" type="line" smooth="yes"/>
+      <point x="500.825" y="396"/>
+      <point x="517.294" y="410"/>
+      <point x="522.231" y="438" type="curve" smooth="yes"/>
+      <point x="527.168" y="466"/>
+      <point x="515.637" y="480"/>
+      <point x="487.637" y="480" type="curve" smooth="yes"/>
+      <point x="450.637" y="480" type="line" smooth="yes"/>
+      <point x="437.637" y="480"/>
+      <point x="430.519" y="485"/>
+      <point x="425.811" y="498" type="curve" smooth="yes"/>
+      <point x="410.746" y="543"/>
+      <point x="372.977" y="567"/>
+      <point x="319.977" y="567" type="curve" smooth="yes"/>
+      <point x="266.977" y="567"/>
+      <point x="220.922" y="544"/>
+      <point x="189.811" y="498" type="curve" smooth="yes"/>
+      <point x="181.695" y="486"/>
+      <point x="171.637" y="480"/>
+      <point x="158.637" y="480" type="curve" smooth="yes"/>
+      <point x="121.637" y="480" type="line" smooth="yes"/>
+      <point x="93.637" y="480"/>
+      <point x="77.168" y="466"/>
+      <point x="72.231" y="438" type="curve" smooth="yes"/>
+      <point x="67.294" y="410"/>
+      <point x="78.825" y="396"/>
+      <point x="106.825" y="396" type="curve" smooth="yes"/>
+      <point x="194.825" y="396" type="line" smooth="yes"/>
+      <point x="217.825" y="396"/>
+      <point x="232.589" y="406"/>
+      <point x="249.702" y="435" type="curve" smooth="yes"/>
+      <point x="261.229" y="455"/>
+      <point x="279.05" y="471"/>
+      <point x="303.05" y="471" type="curve" smooth="yes"/>
+      <point x="327.05" y="471"/>
+      <point x="339.229" y="455"/>
+      <point x="343.702" y="435" type="curve" smooth="yes"/>
+      <point x="350.589" y="406"/>
+      <point x="361.825" y="396"/>
+    </contour>
+  </outline>
+</glyph>

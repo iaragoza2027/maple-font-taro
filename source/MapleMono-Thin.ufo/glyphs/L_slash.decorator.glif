@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="Lslash.decorator" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="375" y="485" type="curve" smooth="yes"/>
+      <point x="50" y="261" type="line" smooth="yes"/>
+      <point x="30" y="247"/>
+      <point x="20" y="252"/>
+      <point x="20" y="277" type="curve" smooth="yes"/>
+      <point x="20" y="289"/>
+      <point x="25" y="298"/>
+      <point x="35" y="305" type="curve" smooth="yes"/>
+      <point x="360" y="529" type="line" smooth="yes"/>
+      <point x="380" y="543"/>
+      <point x="390" y="538"/>
+      <point x="390" y="513" type="curve" smooth="yes"/>
+      <point x="390" y="501"/>
+      <point x="385" y="492"/>
+    </contour>
+  </outline>
+</glyph>

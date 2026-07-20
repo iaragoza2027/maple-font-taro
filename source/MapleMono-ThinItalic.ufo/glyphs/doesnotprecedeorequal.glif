@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="doesnotprecedeorequal" format="2">
+  <advance width="600"/>
+  <unicode hex="22E0"/>
+  <outline>
+    <component base="precedesorequal"/>
+    <component base="slashlongcomb" xOffset="614" yOffset="80"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>precedesorequal</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>slashlongcomb</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

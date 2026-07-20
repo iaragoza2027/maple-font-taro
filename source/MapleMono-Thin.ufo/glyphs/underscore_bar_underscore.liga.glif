@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="underscore_bar_underscore.liga" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="485" y="-145" type="curve" smooth="yes"/>
+      <point x="-1085" y="-145" type="line" smooth="yes"/>
+      <point x="-1102" y="-145"/>
+      <point x="-1110" y="-137"/>
+      <point x="-1110" y="-120" type="curve" smooth="yes"/>
+      <point x="-1110" y="-103"/>
+      <point x="-1102" y="-95"/>
+      <point x="-1085" y="-95" type="curve" smooth="yes"/>
+      <point x="-325" y="-95" type="line"/>
+      <point x="-325" y="755" type="line" smooth="yes"/>
+      <point x="-325" y="772"/>
+      <point x="-317" y="780"/>
+      <point x="-300" y="780" type="curve" smooth="yes"/>
+      <point x="-283" y="780"/>
+      <point x="-275" y="772"/>
+      <point x="-275" y="755" type="curve" smooth="yes"/>
+      <point x="-275" y="-95" type="line"/>
+      <point x="485" y="-95" type="line" smooth="yes"/>
+      <point x="502" y="-95"/>
+      <point x="510" y="-103"/>
+      <point x="510" y="-120" type="curve" smooth="yes"/>
+      <point x="510" y="-137"/>
+      <point x="502" y="-145"/>
+    </contour>
+  </outline>
+</glyph>

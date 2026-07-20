@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="less_math.decorator" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="383.456" y="99" type="curve" smooth="yes"/>
+      <point x="76.789" y="237" type="line" smooth="yes"/>
+      <point x="40.611" y="253"/>
+      <point x="27.43" y="286"/>
+      <point x="35.188" y="330" type="curve" smooth="yes"/>
+      <point x="42.946" y="374"/>
+      <point x="66.589" y="406"/>
+      <point x="109.586" y="423" type="curve" smooth="yes"/>
+      <point x="464.919" y="561" type="line" smooth="yes"/>
+      <point x="533.68" y="588"/>
+      <point x="562.977" y="567"/>
+      <point x="550.811" y="498" type="curve" smooth="yes"/>
+      <point x="546.226" y="472"/>
+      <point x="530.876" y="453"/>
+      <point x="508.466" y="445" type="curve" smooth="yes"/>
+      <point x="244.714" y="350" type="line" smooth="yes"/>
+      <point x="221.127" y="341"/>
+      <point x="215.248" y="319"/>
+      <point x="237.661" y="310" type="curve" smooth="yes"/>
+      <point x="468.087" y="216" type="line" smooth="yes"/>
+      <point x="487.676" y="208"/>
+      <point x="496.326" y="189"/>
+      <point x="491.741" y="163" type="curve" smooth="yes"/>
+      <point x="479.575" y="94"/>
+      <point x="443.696" y="72"/>
+    </contour>
+  </outline>
+</glyph>

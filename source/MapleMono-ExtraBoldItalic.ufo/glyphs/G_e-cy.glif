@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="Ge-cy" format="2">
+  <advance width="600"/>
+  <unicode hex="0413"/>
+  <anchor x="500" y="0" name="bottomright"/>
+  <anchor x="387" y="730" name="top"/>
+  <outline>
+    <contour>
+      <point x="108.237" y="-10" type="curve" smooth="yes"/>
+      <point x="58.237" y="-10"/>
+      <point x="37.645" y="15"/>
+      <point x="46.461" y="65" type="curve" smooth="yes"/>
+      <point x="146.086" y="630" type="line" smooth="yes"/>
+      <point x="157.9" y="697"/>
+      <point x="196.719" y="730"/>
+      <point x="263.719" y="730" type="curve" smooth="yes"/>
+      <point x="540.719" y="730" type="line" smooth="yes"/>
+      <point x="585.719" y="730"/>
+      <point x="604.839" y="708"/>
+      <point x="596.905" y="663" type="curve" smooth="yes"/>
+      <point x="588.97" y="618"/>
+      <point x="562.915" y="595"/>
+      <point x="517.915" y="595" type="curve" smooth="yes"/>
+      <point x="339.915" y="595" type="line" smooth="yes"/>
+      <point x="306.915" y="595"/>
+      <point x="287.093" y="579"/>
+      <point x="281.098" y="545" type="curve" smooth="yes"/>
+      <point x="196.461" y="65" type="line" smooth="yes"/>
+      <point x="187.645" y="15"/>
+      <point x="158.237" y="-10"/>
+    </contour>
+  </outline>
+</glyph>

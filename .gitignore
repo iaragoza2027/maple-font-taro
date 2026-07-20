@@ -13,6 +13,7 @@ source/cjk/**/*.ttf
 source/cjk/**/*.otf
 source/cjk/**/*.vfc
 source/cjk/temp/
+source/*.glyphs
 cdn
 
 __pycache__

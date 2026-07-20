@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="J.bg.cv40" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="487" y="-300" type="line"/>
+      <point x="720" y="1020" type="line"/>
+      <point x="80" y="1020" type="line"/>
+      <point x="-153" y="-300" type="line"/>
+    </contour>
+    <contour>
+      <point x="328.61" y="219" type="curve" smooth="yes"/>
+      <point x="407.25" y="665" type="line" smooth="yes"/>
+      <point x="416.07" y="715"/>
+      <point x="445.48" y="740"/>
+      <point x="495.48" y="740" type="curve" smooth="yes"/>
+      <point x="545.48" y="740"/>
+      <point x="566.07" y="715"/>
+      <point x="557.25" y="665" type="curve" smooth="yes"/>
+      <point x="478.61" y="219" type="line" smooth="yes"/>
+      <point x="453.75" y="78"/>
+      <point x="342.23" y="-10"/>
+      <point x="188.23" y="-10" type="curve" smooth="yes"/>
+      <point x="64.23" y="-10"/>
+      <point x="-12.53" y="48"/>
+      <point x="-22.49" y="156" type="curve" smooth="yes"/>
+      <point x="-27.14" y="209"/>
+      <point x="7.49" y="241"/>
+      <point x="65.48" y="241" type="curve" smooth="yes"/>
+      <point x="105.49" y="241"/>
+      <point x="120.84" y="226"/>
+      <point x="132.38" y="178" type="curve" smooth="yes"/>
+      <point x="140.86" y="141"/>
+      <point x="169.04" y="125"/>
+      <point x="212.04" y="125" type="curve" smooth="yes"/>
+      <point x="273.04" y="125"/>
+      <point x="317.85" y="158"/>
+    </contour>
+  </outline>
+</glyph>

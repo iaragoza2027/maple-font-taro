@@ -15,7 +15,7 @@ class FontOpsBoundaryTest(unittest.TestCase):
             [
                 sys.executable,
                 "-c",
-                "import scripts.font_ops.fonttools, scripts.font_ops.glyph_transform, scripts.font_ops.glyphs, scripts.font_ops.merge, scripts.font_ops.metadata, scripts.font_ops.metrics, scripts.font_ops.names, scripts.font_ops.opentype, sys; assert not any(name.startswith(('scripts.cjk', 'scripts.config', 'scripts.resolver')) for name in sys.modules)",
+                "import scripts.font_ops.fonttools, scripts.font_ops.glyph_transform, scripts.font_ops.glyphs, scripts.font_ops.merge, scripts.font_ops.metadata, scripts.font_ops.metrics, scripts.font_ops.names, scripts.font_ops.opentype, sys; assert 'glyphsLib' not in sys.modules; assert not any(name.startswith(('scripts.cjk', 'scripts.config', 'scripts.resolver')) for name in sys.modules)",
             ],
             cwd=PROJECT_ROOT,
             check=False,

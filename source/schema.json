@@ -141,6 +141,18 @@
         }
       }
     },
+    "codepoint_alias": {
+      "type": "object",
+      "description": "Additional codepoint aliases applied after font compilation. Built-in compatibility aliases are always enabled.",
+      "propertyNames": {
+        "pattern": "^0x[0-9A-Fa-f]{4,6}$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^0x[0-9A-Fa-f]{4,6}$"
+      },
+      "default": {}
+    },
     "use_hinted": {
       "type": "boolean",
       "description": "Whether to use hinted TTF as base font",

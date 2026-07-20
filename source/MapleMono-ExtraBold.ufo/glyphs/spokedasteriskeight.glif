@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="spokedasteriskeight" format="2">
+  <advance width="600"/>
+  <unicode hex="2733"/>
+  <outline>
+    <contour>
+      <point x="580" y="369" type="line"/>
+      <point x="580" y="325" type="line"/>
+      <point x="339" y="331" type="line"/>
+      <point x="514" y="166" type="line"/>
+      <point x="481" y="134" type="line"/>
+      <point x="316" y="309" type="line"/>
+      <point x="324" y="68" type="line"/>
+      <point x="278" y="68" type="line"/>
+      <point x="285" y="309" type="line"/>
+      <point x="119" y="134" type="line"/>
+      <point x="87" y="166" type="line"/>
+      <point x="262" y="331" type="line"/>
+      <point x="22" y="325" type="line"/>
+      <point x="22" y="370" type="line"/>
+      <point x="262" y="362" type="line"/>
+      <point x="87" y="528" type="line"/>
+      <point x="119" y="559" type="line"/>
+      <point x="285" y="385" type="line"/>
+      <point x="278" y="625" type="line"/>
+      <point x="324" y="625" type="line"/>
+      <point x="316" y="385" type="line"/>
+      <point x="481" y="559" type="line"/>
+      <point x="514" y="528" type="line"/>
+      <point x="339" y="362" type="line"/>
+    </contour>
+  </outline>
+</glyph>

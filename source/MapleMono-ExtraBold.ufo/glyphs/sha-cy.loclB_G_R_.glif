@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="sha-cy.loclBGR" format="2">
+  <advance width="600"/>
+  <anchor x="297.0" y="550.0" name="top"/>
+  <anchor x="297.0" y="0.0" name="bottom"/>
+  <outline>
+    <component base="m" xScale="-1.0" yScale="-1.0" xOffset="597" yOffset="550"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>m</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

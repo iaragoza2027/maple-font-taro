@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="bar_hyphen.mid.seq.cv67" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="584" y="305" type="line"/>
+      <point x="-36" y="305" type="line"/>
+      <point x="-27" y="355" type="line"/>
+      <point x="593" y="355" type="line"/>
+    </contour>
+    <contour>
+      <point x="152" y="-245" type="curve" smooth="yes"/>
+      <point x="355" y="905" type="line" smooth="yes"/>
+      <point x="358" y="922"/>
+      <point x="367" y="930"/>
+      <point x="384" y="930" type="curve" smooth="yes"/>
+      <point x="401" y="930"/>
+      <point x="408" y="922"/>
+      <point x="405" y="905" type="curve" smooth="yes"/>
+      <point x="202" y="-245" type="line" smooth="yes"/>
+      <point x="199" y="-262"/>
+      <point x="189" y="-270"/>
+      <point x="172" y="-270" type="curve" smooth="yes"/>
+      <point x="155" y="-270"/>
+      <point x="149" y="-262"/>
+    </contour>
+  </outline>
+</glyph>

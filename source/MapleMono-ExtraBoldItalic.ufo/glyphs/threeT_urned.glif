@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="threeTurned" format="2">
+  <advance width="600"/>
+  <unicode hex="218B"/>
+  <outline>
+    <component base="three" xScale="-1.0" yScale="-1.0" xOffset="571" yOffset="730"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>three</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

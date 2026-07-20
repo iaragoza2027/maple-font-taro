@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="verticallinelowmod" format="2">
+  <advance width="600"/>
+  <unicode hex="02CC"/>
+  <outline>
+    <component base="cy.decorator" xOffset="-230" yOffset="130"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>cy.decorator</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="corresponds" format="2">
+  <advance width="600"/>
+  <unicode hex="2258"/>
+  <outline>
+    <component base="equal"/>
+    <component base="parenleft.superior" xScale="-0.10575174019916055" xyScale="-0.5997479215844347" yxScale="0.5820213820302149" yScale="-0.10262607300115581" xOffset="-20.0" yOffset="852.0"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>equal</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>parenleft.superior</string>
+        </dict>
+      </array>
+      <key>com.schriftgestaltung.componentsSmartComponentValues</key>
+      <array>
+        <dict/>
+        <dict>
+          <key>Wt</key>
+          <integer>975</integer>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

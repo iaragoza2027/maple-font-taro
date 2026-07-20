@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="anglearcright.decorator" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="495" y="65" type="curve" smooth="yes"/>
+      <point x="495" y="48"/>
+      <point x="487" y="40"/>
+      <point x="470" y="40" type="curve" smooth="yes"/>
+      <point x="100" y="40" type="line" smooth="yes"/>
+      <point x="60" y="40"/>
+      <point x="40" y="60"/>
+      <point x="40" y="100" type="curve" smooth="yes"/>
+      <point x="40" y="470" type="line" smooth="yes"/>
+      <point x="40" y="485"/>
+      <point x="47" y="493"/>
+      <point x="62" y="493" type="curve" smooth="yes"/>
+      <point x="77" y="493"/>
+      <point x="85" y="486"/>
+      <point x="85" y="471" type="curve" smooth="yes"/>
+      <point x="85" y="120" type="line" smooth="yes"/>
+      <point x="85" y="100"/>
+      <point x="95" y="90"/>
+      <point x="115" y="90" type="curve" smooth="yes"/>
+      <point x="470" y="90" type="line" smooth="yes"/>
+      <point x="487" y="90"/>
+      <point x="495" y="82"/>
+    </contour>
+  </outline>
+</glyph>

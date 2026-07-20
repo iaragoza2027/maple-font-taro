@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="semicolon_semicolon_semicolon.liga" format="2">
+  <advance width="600"/>
+  <outline>
+    <component base="semicolon" xOffset="-600"/>
+    <component base="semicolon" xOffset="-160"/>
+    <component base="semicolon" xOffset="-1040"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>semicolon</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>semicolon</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>2</integer>
+          <key>name</key>
+          <string>semicolon</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

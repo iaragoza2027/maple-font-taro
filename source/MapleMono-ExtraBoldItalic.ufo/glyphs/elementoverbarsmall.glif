@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="elementoverbarsmall" format="2">
+  <advance width="600"/>
+  <unicode hex="22F7"/>
+  <outline>
+    <component base="element" xScale="0.6" yScale="0.6" xOffset="112" yOffset="135"/>
+    <component base="endash" xScale="0.6" yScale="0.6" xOffset="174" yOffset="417"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>element</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>endash</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

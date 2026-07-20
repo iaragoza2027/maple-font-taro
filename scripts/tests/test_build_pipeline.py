@@ -22,7 +22,6 @@ from scripts.pipeline import (
 from scripts.config.resolver import BuildConfigResolver, BuildRuntimeContext
 from scripts.cjk.models import CJKBuildConfig, CJKSourceConfig
 from scripts.cjk.presets import CJKPresetId, build_preset_config, get_preset
-from scripts.font_ops.glyphs import GlyphsSourceReport
 
 
 def make_font_config():
@@ -85,18 +84,15 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             font_config = make_font_config()
             font_config.feature.line_height = 1.2
             runtime_context = make_runtime_context(tmp_path)
-            report = GlyphsSourceReport(Path("source.glyphs"), "regular", ())
             executor_mock = MagicMock()
             executor_mock.map.return_value = (
                 PreparedFontmakeSource(
                     "regular",
-                    report,
                     "regular.designspace",
                     (1100, -300),
                 ),
                 PreparedFontmakeSource(
                     "italic",
-                    GlyphsSourceReport(Path("italic.glyphs"), "italic", ()),
                     "italic.designspace",
                     (1080, -320),
                 ),
@@ -120,13 +116,11 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             (
                 PreparedFontmakeSource(
                     "regular",
-                    GlyphsSourceReport(Path("regular.glyphs"), "regular", ()),
                     "regular.designspace",
                     (1020, -300),
                 ),
                 PreparedFontmakeSource(
                     "italic",
-                    GlyphsSourceReport(Path("italic.glyphs"), "italic", ()),
                     "italic.designspace",
                     (1020, -300),
                 ),

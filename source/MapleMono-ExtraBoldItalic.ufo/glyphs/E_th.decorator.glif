@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="Eth.decorator" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="247.306" y="325" type="curve" smooth="yes"/>
+      <point x="27.306" y="325" type="line" smooth="yes"/>
+      <point x="-5.694" y="325"/>
+      <point x="-19.873" y="341"/>
+      <point x="-13.877" y="375" type="curve" smooth="yes"/>
+      <point x="-7.882" y="409"/>
+      <point x="11.939" y="425"/>
+      <point x="44.939" y="425" type="curve" smooth="yes"/>
+      <point x="264.939" y="425" type="line" smooth="yes"/>
+      <point x="297.939" y="425"/>
+      <point x="312.118" y="409"/>
+      <point x="306.123" y="375" type="curve" smooth="yes"/>
+      <point x="300.127" y="341"/>
+      <point x="280.306" y="325"/>
+    </contour>
+  </outline>
+</glyph>

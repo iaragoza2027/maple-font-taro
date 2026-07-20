@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="tbar.decorator" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="399" y="239" type="curve" smooth="yes"/>
+      <point x="85" y="239" type="line" smooth="yes"/>
+      <point x="60" y="239"/>
+      <point x="49" y="252"/>
+      <point x="54" y="277" type="curve" smooth="yes"/>
+      <point x="58" y="302"/>
+      <point x="73" y="314"/>
+      <point x="98" y="314" type="curve" smooth="yes"/>
+      <point x="412" y="314" type="line" smooth="yes"/>
+      <point x="437" y="314"/>
+      <point x="448" y="302"/>
+      <point x="444" y="277" type="curve" smooth="yes"/>
+      <point x="439" y="252"/>
+      <point x="424" y="239"/>
+    </contour>
+  </outline>
+</glyph>

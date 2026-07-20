@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="arrow_header.decorator" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="163" y="373" type="curve" smooth="yes"/>
+      <point x="403" y="613" type="line" smooth="yes"/>
+      <point x="415" y="625"/>
+      <point x="427" y="626"/>
+      <point x="439" y="614" type="curve" smooth="yes"/>
+      <point x="451" y="602"/>
+      <point x="450" y="590"/>
+      <point x="438" y="578" type="curve" smooth="yes"/>
+      <point x="211" y="351" type="line" smooth="yes"/>
+      <point x="197" y="337"/>
+      <point x="197" y="323"/>
+      <point x="211" y="309" type="curve" smooth="yes"/>
+      <point x="438" y="82" type="line" smooth="yes"/>
+      <point x="450" y="70"/>
+      <point x="451" y="59"/>
+      <point x="439" y="47" type="curve" smooth="yes"/>
+      <point x="427" y="35"/>
+      <point x="415" y="35"/>
+      <point x="403" y="47" type="curve" smooth="yes"/>
+      <point x="163" y="287" type="line" smooth="yes"/>
+      <point x="134" y="316"/>
+      <point x="134" y="344"/>
+    </contour>
+  </outline>
+</glyph>

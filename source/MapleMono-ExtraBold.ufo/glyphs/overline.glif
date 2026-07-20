@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="overline" format="2">
+  <advance width="600"/>
+  <unicode hex="203E"/>
+  <outline>
+    <contour>
+      <point x="540" y="690" type="curve" smooth="yes"/>
+      <point x="60" y="690" type="line" smooth="yes"/>
+      <point x="13" y="690"/>
+      <point x="-10" y="713"/>
+      <point x="-10" y="760" type="curve" smooth="yes"/>
+      <point x="-10" y="807"/>
+      <point x="13" y="830"/>
+      <point x="60" y="830" type="curve" smooth="yes"/>
+      <point x="540" y="830" type="line" smooth="yes"/>
+      <point x="587" y="830"/>
+      <point x="610" y="807"/>
+      <point x="610" y="760" type="curve" smooth="yes"/>
+      <point x="610" y="713"/>
+      <point x="587" y="690"/>
+    </contour>
+  </outline>
+</glyph>

@@ -34,6 +34,39 @@ WIDTH_MAP = {
 }
 
 
+def _parse_codepoint(value: Any, field: str) -> int:
+    if not isinstance(value, str) or not value.startswith("0x"):
+        raise ValueError(f"{field} must use 0x-prefixed hexadecimal notation")
+    digits = value[2:]
+    if not 4 <= len(digits) <= 6 or any(
+        character not in "0123456789abcdefABCDEF" for character in digits
+    ):
+        raise ValueError(f"Invalid Unicode codepoint for {field}: {value}")
+    codepoint = int(digits, 16)
+    if codepoint > 0x10FFFF or 0xD800 <= codepoint <= 0xDFFF:
+        raise ValueError(f"Invalid Unicode scalar for {field}: {value}")
+    return codepoint
+
+
+def parse_codepoint_alias(value: Any) -> dict[int, int]:
+    if not isinstance(value, dict):
+        raise ValueError("codepoint_alias must be an object")
+    mapping: dict[int, int] = {}
+    for raw_alias, raw_source in value.items():
+        alias = _parse_codepoint(raw_alias, "codepoint_alias key")
+        source = _parse_codepoint(raw_source, f"codepoint_alias[{raw_alias}]")
+        if alias == source:
+            raise ValueError(f"Codepoint alias cannot map to itself: {raw_alias}")
+        mapping[alias] = source
+    return mapping
+
+
+def serialize_codepoint_alias(mapping: dict[int, int]) -> dict[str, str]:
+    return {
+        f"0x{alias:04X}": f"0x{source:04X}" for alias, source in sorted(mapping.items())
+    }
+
+
 def default_feature_freeze() -> dict[str, str]:
     return {
         "cv01": "ignore",
@@ -341,6 +374,7 @@ class BuildIdentityConfig:
 @dataclass(slots=True)
 class BuildMetricsConfig:
     weight_mapping: dict[str, int] = field(default_factory=default_weight_mapping)
+    codepoint_alias: dict[int, int] = field(default_factory=dict)
     vertical_metric: tuple[int, int] = (1020, -300)
     glyph_width: int = 600
     glyph_width_cn_narrow: int = 1000
@@ -452,6 +486,10 @@ class ResolvedBuildConfig:
         return self.metrics.weight_mapping
 
     @property
+    def codepoint_alias(self) -> dict[int, int]:
+        return self.metrics.codepoint_alias
+
+    @property
     def vertical_metric(self) -> tuple[int, int]:
         return self.metrics.vertical_metric
 
@@ -547,6 +585,9 @@ class ResolvedBuildConfig:
             "metrics": {
                 **asdict(self.metrics),
                 "vertical_metric": list(self.metrics.vertical_metric),
+                "codepoint_alias": serialize_codepoint_alias(
+                    self.metrics.codepoint_alias
+                ),
             },
         }
 
@@ -563,6 +604,7 @@ class ResolvedBuildConfig:
             if self.infinite_arrow is None
             else self.infinite_arrow,
             "weight_mapping": dict(self.weight_mapping),
+            "codepoint_alias": serialize_codepoint_alias(self.codepoint_alias),
             "feature_freeze": dict(self.feature_freeze),
             "formats": list(self.formats),
             "nerd_font": self.nerd_font.to_dict(include_enable=False),
@@ -669,7 +711,9 @@ __all__ = [
     "normalize_cjk_config",
     "normalize_cjk_locale_list",
     "normalize_feature_freeze",
+    "parse_codepoint_alias",
     "parse_scale_factor",
     "serialize_cjk_config",
+    "serialize_codepoint_alias",
     "normal_enabled_features",
 ]

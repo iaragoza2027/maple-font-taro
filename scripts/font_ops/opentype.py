@@ -130,9 +130,11 @@ DEFAULT_COMPAT_ALIASES: dict[int, int] = {
 }
 
 
-def alias_codepoints(font: TTFont, mapping: dict[int, int] | None = None):
-    if mapping is None:
-        mapping = DEFAULT_COMPAT_ALIASES
+def alias_codepoints(
+    font: TTFont,
+    extra_mapping: dict[int, int] | None = None,
+) -> None:
+    mapping = {**(extra_mapping or {}), **DEFAULT_COMPAT_ALIASES}
 
     dst_glyphs: dict[int, str] = {}
     for source, destination in mapping.items():

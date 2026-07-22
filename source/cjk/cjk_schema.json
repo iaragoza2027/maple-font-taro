@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/subframe7536/maple-font/source/cjk/cjk_schema.json",
   "title": "Maple Mono CJK Build Config",
-  "description": "JSON config consumed by scripts.cjk.config.config_from_json(). Output paths, font naming, temporary paths, and incompatible glyph behavior are derived from locale_name and are not customizable.",
+  "description": "Agent-friendly CJK build config. Start with locale_name, source.path, and source.masters. Output paths and professional font names are generated from locale_name. Fields marked Advanced are only needed for unusual source fonts.",
   "type": "object",
   "unevaluatedProperties": false,
   "required": ["locale_name", "source"],
@@ -13,16 +13,37 @@
     },
     "locale_name": {
       "$ref": "#/$defs/localeName",
-      "description": "Compact locale suffix used to derive output paths and font names, for example CN, JP, TC, KR, or HK."
+      "description": "Short label used in generated family names, file names, and output directories, for example CN, JP, TC, KR, or HK. You do not need to configure PostScript or family names separately."
     },
     "source": {
       "type": "object",
+      "description": "Variable font to merge and the coordinates used for Maple's light, regular, and bold ends. The builder detects glyf or CFF2 outlines automatically.",
       "additionalProperties": false,
       "required": ["path", "masters"],
       "properties": {
         "path": {
           "$ref": "#/$defs/path",
-          "description": "Input CJK glyf or CFF2 variable font."
+          "description": "Local cache path for the input CJK variable font. The font must contain fvar and exactly one of glyf or CFF2."
+        },
+        "download": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["url"],
+          "properties": {
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "minLength": 1,
+              "description": "URL used to populate source.path when the local file does not exist. GitHub URLs use the configured mirror."
+            },
+            "path_in_archive": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*//)(?!.*\\\\)(?!.*\/$).+$",
+              "description": "For a 7z download, the exact file path relative to the archive root, using / separators. Omit for a direct file download."
+            }
+          },
+          "description": "Optional source download. The builder detects 7z content automatically; 7z downloads require path_in_archive."
         },
         "masters": {
           "type": "object",
@@ -39,13 +60,7 @@
               "$ref": "#/$defs/masterLocation"
             }
           },
-          "description": "Source axis locations keyed by Maple output weights. Keys must be exactly 100, 400, and 800."
-        },
-        "outline_mode": {
-          "type": "string",
-          "enum": ["auto", "glyf", "cff2"],
-          "default": "auto",
-          "description": "Expected source outline format. auto detects glyf or CFF2 from the source font."
+          "description": "Maple weight mapping. Keys are fixed: 100 is the light end, 400 is regular, and 800 is the bold end. Each value gives coordinates in the source variable font. wght is required; add axes such as ROND only when the source font uses them."
         },
         "drop_tables": {
           "type": "array",
@@ -55,7 +70,7 @@
           },
           "uniqueItems": true,
           "default": [],
-          "description": "OpenType tables removed from the source subset before merge work."
+          "description": "Advanced: OpenType table tags removed before merging. Usually omit this field. Use it only when source layout, variation, or vertical-metric tables must not be copied into generated fonts."
         }
       }
     },
@@ -69,57 +84,59 @@
             "$ref": "#/$defs/unicodeRange"
           },
           "default": [],
-          "description": "Unicode ranges copied from the source font. Empty or omitted falls back to the default CJK ranges."
+          "examples": [["0x3000-0x303F", "0x4E00-0x9FFF"]],
+          "description": "Characters to copy from the source font. Use hexadecimal strings such as 0x4E00-0x9FFF. Empty or omitted uses the default CJK ranges."
         },
         "filter_encoding": {
           "type": ["string", "null"],
           "minLength": 1,
           "default": null,
-          "description": "Optional Python codec name used to keep only codepoints encodable by that encoding, for example cp932."
+          "description": "Advanced: keep only characters supported by this text encoding. For example, cp932 limits a Japanese build to characters representable by that encoding. Omit for no encoding filter."
         },
         "exclude_feature_codepoints": {
           "type": "boolean",
           "default": true,
-          "description": "When true, removes source glyphs whose codepoints are already supplied by the Maple feature font."
+          "description": "Keep the default true to prefer Maple's existing symbols and punctuation. Set false only when the source font should replace those codepoints."
         }
       }
     },
     "transform": {
       "type": "object",
+      "description": "Optional size and position adjustments applied to imported CJK glyphs. Omit the section when the source already aligns with Maple Mono.",
       "additionalProperties": false,
       "properties": {
         "target_advance_width": {
           "type": "integer",
           "minimum": 1,
           "default": 1200,
-          "description": "Target advance width for imported CJK glyphs before downstream Maple width handling."
+          "description": "Target full-width advance for imported CJK glyphs. The default 1200 matches two 600-unit Maple Mono cells."
         },
         "x_scale": {
           "type": "number",
           "exclusiveMinimum": 0,
           "default": 1,
-          "description": "Horizontal scale applied to imported CJK outlines."
+          "description": "Horizontal outline scale. Use 1 for no change; for example 1.02 makes glyphs 2% wider."
         },
         "y_scale": {
           "type": "number",
           "exclusiveMinimum": 0,
           "default": 1,
-          "description": "Vertical scale applied to imported CJK outlines."
+          "description": "Vertical outline scale. Use 1 for no change; for example 1.05 makes glyphs 5% taller."
         },
         "x_shift": {
           "type": "integer",
           "default": 0,
-          "description": "Horizontal shift applied to imported CJK outlines."
+          "description": "Horizontal movement in font units after scaling. Positive values move glyphs right."
         },
         "y_shift": {
           "type": "integer",
           "default": 0,
-          "description": "Vertical shift applied to imported CJK outlines."
+          "description": "Vertical movement in font units after scaling. Positive values move glyphs up."
         },
         "italic_angle": {
           "type": "number",
           "default": 10,
-          "description": "Italic slant angle used when generating italic CJK base fonts."
+          "description": "Slant angle used to generate italic CJK glyphs. Use 0 to keep them upright."
         }
       }
     }
@@ -150,7 +167,7 @@
       "additionalProperties": {
         "type": "number"
       },
-      "description": "Source font axis coordinates for one Maple output weight. Must include wght."
+      "description": "Coordinates in the source font's fvar axes for one Maple output weight. wght is required. Copy any additional four-letter axis tags from the source font, such as ROND."
     },
     "codepoint": {
       "oneOf": [

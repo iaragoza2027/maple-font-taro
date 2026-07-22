@@ -149,7 +149,7 @@ class BuildRuntimeContext:
     def cjk_static_download_url(self, locale: BuiltinCJKLocaleId) -> str:
         archive_name = self.cjk_static_archive_name(locale)
         return (
-            f"https://{self.effective_github_mirror}/subframe7536/maple-font/"
+            "https://github.com/subframe7536/maple-font/"
             f"releases/download/cjk-base/{archive_name}"
         )
 
@@ -222,6 +222,7 @@ class BuildRuntimeContext:
             url=self.cjk_static_download_url(locale),
             zip_path=archive_name,
             output_dir=str(static_dir),
+            github_mirror=self.effective_github_mirror,
         )
 
     def build_cjk_static_base_from_variable(
@@ -230,7 +231,10 @@ class BuildRuntimeContext:
     ) -> None:
         from scripts.cjk.pipeline import build_cjk_fonts
 
-        build_cjk_fonts(preset_config)
+        build_cjk_fonts(
+            preset_config,
+            github_mirror=self.effective_github_mirror,
+        )
 
     def _resolve_local_cjk_static_base(
         self,

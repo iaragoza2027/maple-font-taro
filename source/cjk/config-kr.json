@@ -3,7 +3,9 @@
   "locale_name": "KR",
   "source": {
     "path": "ChironGoRoundTCVF.ttf",
-    "outline_mode": "cff2",
+    "download": {
+      "url": "https://github.com/chiron-fonts/chiron-go-round-tc/raw/v1.011/VAR_TTF/ChironGoRoundTCVF.ttf"
+    },
     "drop_tables": ["BASE", "VVAR", "vhea", "vmtx"],
     "masters": {
       "100": {

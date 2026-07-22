@@ -13,6 +13,7 @@ from scripts.pipeline import (
     MapleBuildPipeline,
     PreparedFontmakeSource,
     build_cjk_extended_variable_outputs,
+    ensure_cjk_variable_fonts,
     build_woff2_fonts,
     collect_build_files,
     compile_fontmake_format,
@@ -20,7 +21,7 @@ from scripts.pipeline import (
     prune_build_files,
 )
 from scripts.config.resolver import BuildConfigResolver, BuildRuntimeContext
-from scripts.cjk.models import CJKBuildConfig, CJKSourceConfig
+from scripts.cjk.models import CJKBuildConfig, CJKOutputConfig, CJKSourceConfig
 from scripts.cjk.presets import CJKPresetId, build_preset_config, get_preset
 
 
@@ -78,6 +79,28 @@ def make_custom_entry(locale_name: str = "HK") -> ResolvedCJKBuildEntry:
 
 
 class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
+    def test_cjk_variable_source_uses_effective_github_mirror(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            entry = make_custom_entry()
+            entry.build_config = CJKBuildConfig(
+                source=entry.build_config.source,
+                output=CJKOutputConfig(dir=Path(tmp)),
+            )
+
+            with patch("scripts.pipeline.build_cjk_fonts") as build:
+                result = ensure_cjk_variable_fonts(
+                    entry,
+                    "mirror.example.com/github.com",
+                )
+
+            self.assertIsNone(result)
+            build.assert_called_once_with(
+                entry.build_config,
+                vf_only=True,
+                executor=None,
+                github_mirror="mirror.example.com/github.com",
+            )
+
     def test_prepare_sources_resolves_regular_vertical_metric(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)

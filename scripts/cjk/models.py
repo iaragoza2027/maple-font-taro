@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Literal
 
 
-OutlineMode = Literal["auto", "glyf", "cff2"]
 UnicodePreset = Literal["cn", "jp", "tc", "kr"]
 CJK_MASTER_WEIGHTS = (100, 400, 800)
 CJKMasterLocations = dict[int, dict[str, float]]
@@ -106,12 +105,20 @@ class CJKWeightInstance:
 
 
 @dataclass(frozen=True)
+class CJKDownloadConfig:
+    """Optional download used to populate a CJK source cache."""
+
+    url: str
+    path_in_archive: str | None = None
+
+
+@dataclass(frozen=True)
 class CJKSourceConfig:
     """Input CJK variable font configuration."""
 
     path: Path
     masters: CJKMasterLocations
-    outline_mode: OutlineMode = "auto"
+    download: CJKDownloadConfig | None = None
     drop_tables: tuple[str, ...] = ()
 
 

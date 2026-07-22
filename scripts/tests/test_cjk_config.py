@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import fields
 import json
 import tempfile
 import unittest
@@ -9,12 +10,206 @@ from pathlib import Path
 from scripts.cjk.config import (
     add_cjk_arguments,
     apply_cli_overrides,
+    config_from_data,
     config_from_json,
+    serialize_cjk_build_config,
 )
 from scripts.cjk.presets import build_preset_config
+from scripts.cjk.models import CJKSourceConfig
 
 
 class CJKConfigSurfaceTest(unittest.TestCase):
+    def test_outline_mode_is_removed_from_public_config(self) -> None:
+        parser = argparse.ArgumentParser()
+        add_cjk_arguments(parser)
+        schema = json.loads(
+            Path("source/cjk/cjk_schema.json").read_text(encoding="utf-8")
+        )
+        config = build_preset_config("cn")
+
+        self.assertNotIn(
+            "outline_mode", {field.name for field in fields(CJKSourceConfig)}
+        )
+        self.assertNotIn("outline_mode", {action.dest for action in parser._actions})
+        self.assertNotIn(
+            "outline_mode",
+            schema["properties"]["source"]["properties"],
+        )
+        self.assertNotIn(
+            "outline_mode",
+            serialize_cjk_build_config(config)["source"],
+        )
+
+    def test_rejects_removed_outline_mode_with_migration_help(self) -> None:
+        with self.assertRaisesRegex(
+            ValueError,
+            "outline_mode was removed; delete it.*detected automatically",
+        ):
+            config_from_data(
+                {
+                    "locale_name": "HK",
+                    "source": {
+                        "path": "source.ttf",
+                        "outline_mode": "glyf",
+                        "masters": {
+                            "100": {"wght": 100},
+                            "400": {"wght": 400},
+                            "800": {"wght": 800},
+                        },
+                    },
+                }
+            )
+
+    def test_rejects_unknown_source_field_with_supported_names(self) -> None:
+        with self.assertRaisesRegex(
+            ValueError,
+            "Unsupported source field.*unexpected.*Supported fields",
+        ):
+            config_from_data(
+                {
+                    "locale_name": "HK",
+                    "source": {
+                        "path": "source.ttf",
+                        "unexpected": True,
+                        "masters": {
+                            "100": {"wght": 100},
+                            "400": {"wght": 400},
+                            "800": {"wght": 800},
+                        },
+                    },
+                }
+            )
+
+    def test_download_round_trips_when_configured(self) -> None:
+        config = config_from_data(
+            {
+                "locale_name": "HK",
+                "source": {
+                    "path": "source.ttf",
+                    "download": {
+                        "url": "https://example.com/source.7z",
+                        "path_in_archive": "fonts/source.ttf",
+                    },
+                    "masters": {
+                        "100": {"wght": 100},
+                        "400": {"wght": 400},
+                        "800": {"wght": 800},
+                    },
+                },
+            }
+        )
+
+        self.assertIsNotNone(config.source.download)
+        assert config.source.download is not None
+        self.assertEqual(config.source.download.url, "https://example.com/source.7z")
+        self.assertEqual(
+            config.source.download.path_in_archive,
+            "fonts/source.ttf",
+        )
+        self.assertEqual(
+            serialize_cjk_build_config(config)["source"]["download"],
+            {
+                "url": "https://example.com/source.7z",
+                "path_in_archive": "fonts/source.ttf",
+            },
+        )
+
+    def test_download_is_omitted_when_not_configured(self) -> None:
+        config = config_from_data(
+            {
+                "locale_name": "HK",
+                "source": {
+                    "path": "source.ttf",
+                    "masters": {
+                        "100": {"wght": 100},
+                        "400": {"wght": 400},
+                        "800": {"wght": 800},
+                    },
+                },
+            }
+        )
+
+        self.assertNotIn("download", serialize_cjk_build_config(config)["source"])
+
+    def test_rejects_removed_download_url_with_migration_help(self) -> None:
+        with self.assertRaisesRegex(
+            ValueError,
+            "download_url was removed; use source.download.url",
+        ):
+            config_from_data(
+                {
+                    "locale_name": "HK",
+                    "source": {
+                        "path": "source.ttf",
+                        "download_url": "https://example.com/source.ttf",
+                        "masters": {
+                            "100": {"wght": 100},
+                            "400": {"wght": 400},
+                            "800": {"wght": 800},
+                        },
+                    },
+                }
+            )
+
+    def test_rejects_unsafe_download_archive_paths(self) -> None:
+        for path in ("", "/font.otf", "C:/font.otf", "../font.otf", "a\\font.otf"):
+            with (
+                self.subTest(path=path),
+                self.assertRaisesRegex(
+                    ValueError,
+                    "path_in_archive",
+                ),
+            ):
+                config_from_data(
+                    {
+                        "locale_name": "HK",
+                        "source": {
+                            "path": "source.ttf",
+                            "download": {
+                                "url": "https://example.com/source.7z",
+                                "path_in_archive": path,
+                            },
+                            "masters": {
+                                "100": {"wght": 100},
+                                "400": {"wght": 400},
+                                "800": {"wght": 800},
+                            },
+                        },
+                    }
+                )
+
+    def test_rejects_invalid_download_object(self) -> None:
+        base_source = {
+            "path": "source.ttf",
+            "masters": {
+                "100": {"wght": 100},
+                "400": {"wght": 400},
+                "800": {"wght": 800},
+            },
+        }
+        for download, message in (
+            (None, "must be an object"),
+            ({}, "download.url"),
+            ({"url": ""}, "download.url"),
+            (
+                {"url": "https://example.com/source.ttf", "unexpected": True},
+                "Unsupported source.download field",
+            ),
+        ):
+            with (
+                self.subTest(download=download),
+                self.assertRaisesRegex(
+                    ValueError,
+                    message,
+                ),
+            ):
+                config_from_data(
+                    {
+                        "locale_name": "HK",
+                        "source": {**base_source, "download": download},
+                    }
+                )
+
     def test_zero_italic_angle_is_an_explicit_override(self) -> None:
         parser = argparse.ArgumentParser()
         add_cjk_arguments(parser)
@@ -23,6 +218,16 @@ class CJKConfigSurfaceTest(unittest.TestCase):
         config = apply_cli_overrides(build_preset_config("cn"), args)
 
         self.assertEqual(config.transform.italic_angle, 0)
+
+    def test_source_override_does_not_reuse_preset_download(self) -> None:
+        parser = argparse.ArgumentParser()
+        add_cjk_arguments(parser)
+        args = parser.parse_args(["--source", "custom.ttf"])
+
+        config = apply_cli_overrides(build_preset_config("cn"), args)
+
+        self.assertEqual(config.source.path, Path("custom.ttf"))
+        self.assertIsNone(config.source.download)
 
     def test_non_positive_scale_is_rejected(self) -> None:
         parser = argparse.ArgumentParser()
@@ -71,6 +276,35 @@ class CJKConfigSurfaceTest(unittest.TestCase):
         )
 
         self.assertNotIn("feature_font", schema["properties"])
+
+    def test_cjk_schema_exposes_optional_download_object(self) -> None:
+        schema = json.loads(
+            Path("source/cjk/cjk_schema.json").read_text(encoding="utf-8")
+        )
+        source_schema = schema["properties"]["source"]
+
+        self.assertIn("download", source_schema["properties"])
+        self.assertNotIn("download", source_schema["required"])
+        self.assertEqual(
+            source_schema["properties"]["download"]["required"],
+            ["url"],
+        )
+        self.assertNotIn("download_url", source_schema["properties"])
+
+    def test_builtin_jp_download_selects_fixed_archive_member(self) -> None:
+        config = config_from_json("source/cjk/config-jp.json")
+
+        self.assertIsNotNone(config.source.download)
+        assert config.source.download is not None
+        self.assertEqual(
+            config.source.download.url,
+            "https://github.com/CyanoHao/Resource-Han-Rounded/releases/"
+            "download/v1.910/RHR-CFF2-JP-1.910.7z",
+        )
+        self.assertEqual(
+            config.source.download.path_in_archive,
+            "ResourceHanRoundedJP-VF.otf",
+        )
 
     def test_top_level_schema_wraps_custom_entries_with_enable(self) -> None:
         schema = json.loads(Path("source/schema.json").read_text(encoding="utf-8"))

@@ -110,6 +110,46 @@ def resolve_quietly(
 
 
 class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
+    def test_static_download_uses_effective_github_mirror(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            runtime_context = make_runtime_context(tmp_path)
+            runtime_context.effective_github_mirror = "mirror.example.com/github.com"
+            entry = make_entry(tmp_path)
+
+            with patch(
+                "scripts.config.resolver.download_zip_and_extract",
+                return_value=True,
+            ) as download:
+                downloaded = runtime_context.download_cjk_static_base(
+                    "cn",
+                    entry.build_config,
+                )
+
+            self.assertTrue(downloaded)
+            self.assertEqual(
+                download.call_args.kwargs["github_mirror"],
+                "mirror.example.com/github.com",
+            )
+            self.assertEqual(
+                download.call_args.kwargs["url"],
+                "https://github.com/subframe7536/maple-font/releases/download/cjk-base/cn-static.zip",
+            )
+
+    def test_variable_fallback_uses_effective_github_mirror(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime_context = make_runtime_context(Path(tmp))
+            runtime_context.effective_github_mirror = "mirror.example.com"
+            config = make_preset(Path(tmp))
+
+            with patch("scripts.cjk.pipeline.build_cjk_fonts") as build:
+                runtime_context.build_cjk_static_base_from_variable(config)
+
+            build.assert_called_once_with(
+                config,
+                github_mirror="mirror.example.com",
+            )
+
     def test_reuses_valid_local_cache(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)

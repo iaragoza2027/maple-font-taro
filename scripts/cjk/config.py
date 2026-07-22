@@ -5,14 +5,14 @@ import json
 import re
 from dataclasses import replace
 from pathlib import Path
-from typing import Any, Iterable, Literal
+from typing import Any, Iterable
 
 from fontTools.subset import parse_unicodes
-from scripts.font_ops.fonttools import TTFont
 
 from scripts.cjk.models import (
     CJK_MASTER_WEIGHTS,
     CJKBuildConfig,
+    CJKDownloadConfig,
     CJKMasterLocations,
     CJKNamingConfig,
     CJKOutputConfig,
@@ -20,10 +20,10 @@ from scripts.cjk.models import (
     CJKTransformConfig,
     CJKUnicodeConfig,
     DEFAULT_CJK_RANGES,
-    OutlineMode,
     UNICODE_PRESETS,
 )
 from scripts.cjk.variable import load_font_eager, weight_axis
+from scripts.utils.downloads import validate_archive_path
 
 
 LOCALE_NAME_PATTERN = re.compile(r"^[A-Za-z0-9]+$")
@@ -188,33 +188,6 @@ def parse_axis_assignments(values: Iterable[str] | None) -> dict[str, float]:
     return axes
 
 
-def detect_outline_mode(
-    font: TTFont, requested: OutlineMode
-) -> Literal["glyf", "cff2"]:
-    """Resolve an outline mode from config and font tables."""
-    if requested == "glyf":
-        if "glyf" not in font:
-            raise ValueError(
-                "Requested glyf outlines, but source font has no glyf table"
-            )
-        return "glyf"
-    if requested == "cff2":
-        if "CFF2" not in font:
-            raise ValueError(
-                "Requested CFF2 outlines, but source font has no CFF2 table"
-            )
-        return "cff2"
-    if "glyf" in font:
-        return "glyf"
-    if "CFF2" in font:
-        return "cff2"
-    if "CFF " in font:
-        raise ValueError(
-            "CFF source fonts are static-only; this CJK builder requires a glyf or CFF2 variable font"
-        )
-    raise ValueError("Source font must contain either glyf or CFF2 outlines")
-
-
 def infer_weight_values(
     source_path: Path,
     wght_min: float | None = None,
@@ -318,7 +291,8 @@ def apply_cli_overrides(
     config: CJKBuildConfig, args: argparse.Namespace
 ) -> CJKBuildConfig:
     """Apply direct CLI overrides on top of a JSON or default config."""
-    source_path = resolve_cli_path(getattr(args, "source", None)) or config.source.path
+    source_override = resolve_cli_path(getattr(args, "source", None))
+    source_path = source_override or config.source.path
     fixed_axes = parse_axis_assignments(getattr(args, "axis", None))
     has_master_override = fixed_axes or any(
         getattr(args, name, None) is not None
@@ -338,7 +312,7 @@ def apply_cli_overrides(
     source = CJKSourceConfig(
         path=source_path,
         masters=masters,
-        outline_mode=getattr(args, "outline_mode", None) or config.source.outline_mode,
+        download=None if source_override is not None else config.source.download,
         drop_tables=tuple(
             getattr(args, "drop_table", None) or config.source.drop_tables
         ),
@@ -393,7 +367,6 @@ def config_from_cli(args: argparse.Namespace) -> CJKBuildConfig:
     source_path = resolve_cli_path(getattr(args, "source", None))
     if source_path is None:
         raise ValueError("--source is required when --config is not provided")
-    outline_mode = getattr(args, "outline_mode", None) or "auto"
     locale_name = validate_locale_name(getattr(args, "locale_name", None) or "CJK")
     config = CJKBuildConfig(
         source=CJKSourceConfig(
@@ -405,7 +378,6 @@ def config_from_cli(args: argparse.Namespace) -> CJKBuildConfig:
                 getattr(args, "wght_regular", None),
                 getattr(args, "wght_max", None),
             ),
-            outline_mode=outline_mode,
             drop_tables=tuple(getattr(args, "drop_table", None) or ()),
         ),
         locale_name=locale_name,
@@ -440,10 +412,50 @@ def config_from_data(
     source_data = data.get("source", {})
     if not source_data.get("path"):
         raise ValueError("source.path is required")
+    if "outline_mode" in source_data:
+        raise ValueError(
+            "source.outline_mode was removed; delete it because the source font "
+            "outline format is detected automatically"
+        )
+    allowed_source_keys = {"path", "download", "masters", "drop_tables"}
+    unknown_source_keys = sorted(set(source_data) - allowed_source_keys)
+    if unknown_source_keys:
+        raise ValueError(
+            "Unsupported source field(s): "
+            f"{', '.join(unknown_source_keys)}. Supported fields: "
+            f"{', '.join(sorted(allowed_source_keys))}."
+        )
     locale_name = validate_locale_name(data.get("locale_name"))
-    outline_mode = source_data.get("outline_mode", "auto")
-    if outline_mode not in {"auto", "glyf", "cff2"}:
-        raise ValueError("source.outline_mode must be one of: auto, glyf, cff2")
+    download_data = source_data.get("download")
+    download: CJKDownloadConfig | None = None
+    if "download" in source_data:
+        if not isinstance(download_data, dict):
+            raise ValueError("source.download must be an object")
+        allowed_download_keys = {"url", "path_in_archive"}
+        unknown_download_keys = sorted(set(download_data) - allowed_download_keys)
+        if unknown_download_keys:
+            raise ValueError(
+                "Unsupported source.download field(s): "
+                f"{', '.join(unknown_download_keys)}. Supported fields: "
+                f"{', '.join(sorted(allowed_download_keys))}."
+            )
+        url = download_data.get("url")
+        if not isinstance(url, str) or not url.strip():
+            raise ValueError("source.download.url must be a non-empty string")
+        path_in_archive = download_data.get("path_in_archive")
+        if path_in_archive is not None:
+            if not isinstance(path_in_archive, str):
+                raise ValueError("source.download.path_in_archive must be a string")
+            try:
+                validate_archive_path(path_in_archive)
+            except ValueError as error:
+                raise ValueError(
+                    f"Invalid source.download.path_in_archive: {error}"
+                ) from error
+        download = CJKDownloadConfig(
+            url=url,
+            path_in_archive=path_in_archive,
+        )
 
     unicode_data = data.get("unicode", {})
     transform_data = data.get("transform", {})
@@ -452,7 +464,7 @@ def config_from_data(
         source=CJKSourceConfig(
             path=resolve_config_path(config_base_dir, source_data.get("path"), ""),
             masters=parse_master_locations(source_data.get("masters")),
-            outline_mode=outline_mode,
+            download=download,
             drop_tables=tuple(source_data.get("drop_tables", ())),
         ),
         locale_name=locale_name,
@@ -489,17 +501,22 @@ def config_from_json(config_path: str | Path) -> CJKBuildConfig:
 
 def serialize_cjk_build_config(config: CJKBuildConfig) -> dict[str, Any]:
     """Serialize the customizable portion of a CJK build config."""
+    source: dict[str, Any] = {
+        "path": str(config.source.path),
+        "masters": {
+            str(weight): dict(axes) for weight, axes in config.source.masters.items()
+        },
+        "drop_tables": list(config.source.drop_tables),
+    }
+    if config.source.download is not None:
+        source["download"] = {"url": config.source.download.url}
+        if config.source.download.path_in_archive is not None:
+            source["download"]["path_in_archive"] = (
+                config.source.download.path_in_archive
+            )
     return {
         "locale_name": config.locale_name,
-        "source": {
-            "path": str(config.source.path),
-            "masters": {
-                str(weight): dict(axes)
-                for weight, axes in config.source.masters.items()
-            },
-            "outline_mode": config.source.outline_mode,
-            "drop_tables": list(config.source.drop_tables),
-        },
+        "source": source,
         "unicode": {
             "ranges": [list(range_pair) for range_pair in config.unicode.ranges],
             "filter_encoding": config.unicode.filter_encoding,
@@ -528,11 +545,6 @@ def add_cjk_arguments(parser: argparse.ArgumentParser) -> None:
         "--locale-name",
         default="CJK",
         help="Compact locale suffix used for derived output names in direct CLI builds",
-    )
-    parser.add_argument(
-        "--outline-mode",
-        choices=("auto", "glyf", "cff2"),
-        help="Expected source outline format",
     )
     parser.add_argument(
         "--axis",

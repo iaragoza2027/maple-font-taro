@@ -3,7 +3,9 @@
   "locale_name": "CN",
   "source": {
     "path": "WenYuanRoundedSCVF.ttf",
-    "outline_mode": "glyf",
+    "download": {
+      "url": "https://github.com/takushun-wu/WenYuanFonts/releases/download/v1.000/WenYuanRoundedSCVF.ttf"
+    },
     "drop_tables": ["BASE", "VVAR", "vhea", "vmtx"],
     "masters": {
       "100": {

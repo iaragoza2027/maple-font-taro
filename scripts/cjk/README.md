@@ -51,6 +51,61 @@ For example, `locale_name: "CN"` derives `source/cjk/cn`,
 `source/cjk/cn/temp`. These derived values are not configurable from JSON or
 CLI flags.
 
+Each `source` may define an optional `download` object. A build reuses
+`source.path` when it already exists; otherwise it downloads `download.url` to
+a temporary sibling and atomically installs the selected font at `source.path`.
+For a 7z URL, set `download.path_in_archive` to the exact file path relative to
+the archive root. The archive format is detected from its content. Config
+parsing and dry runs never download source fonts.
+
+GitHub downloads use the root `github_mirror` setting. The `GITHUB` environment
+variable takes precedence for both `build.py` and `task.py`; release and raw
+GitHub URLs are resolved by the shared download utility before each request.
+
+## Configuration Guide
+
+A custom config only needs a locale label, a variable-font path, and three
+source weight locations:
+
+```json
+{
+  "$schema": "./cjk_schema.json",
+  "locale_name": "HK",
+  "source": {
+    "path": "MyCJK-VF.ttf",
+    "masters": {
+      "100": { "wght": 200 },
+      "400": { "wght": 400 },
+      "800": { "wght": 900 }
+    }
+  }
+}
+```
+
+To populate the local cache from a 7z archive, add:
+
+```json
+"download": {
+  "url": "https://example.com/MyCJK-VF.7z",
+  "path_in_archive": "fonts/MyCJK-VF.otf"
+}
+```
+
+Use `/` separators in `path_in_archive`. Omit it when `url` points directly to
+the font file.
+
+The builder detects `glyf` or `CFF2` outlines automatically. It also derives
+the family name, PostScript name, output file names, and cache directories from
+`locale_name`; users and agents should not invent professional font names.
+
+| Term | Configuration meaning |
+| ---- | --------------------- |
+| master | One source variable-font position used for Maple's 100, 400, or 800 weight. |
+| axis tag | A source-font control such as `wght` (weight) or `ROND` (roundness). Read these from the source font's `fvar` table. |
+| `drop_tables` | Advanced OpenType cleanup. Omit it unless a source table conflicts with merging. |
+| Unicode range | Characters to import, for example `0x4E00-0x9FFF`. Omit ranges to use the CJK defaults. |
+| transform | Optional scale and movement corrections. Omit it when the source already aligns correctly. |
+
 ## Data Flow
 
 ```mermaid
@@ -58,7 +113,13 @@ flowchart TD
     CLI["task.py cjk --preset locale<br/>or compatibility wrapper"] --> P["build_preset_config(locale)"]
     P --> JSON["source/cjk/config-{locale}.json"]
     JSON --> CFG["CJKBuildConfig<br/>locale_name derives outputs and names"]
-    SRC["source/cjk source variable font<br/>glyf or CFF2"] --> SUB["Select Unicode ranges<br/>from JSON"]
+    CACHE{"source.path exists?"} -->|"yes"| SRC["cached source variable font<br/>glyf or CFF2"]
+    CACHE -->|"no"| DL["download source.download.url<br/>to temporary file"]
+    DL --> ARC{"7z content?"}
+    ARC -->|"yes"| PICK["extract download.path_in_archive"]
+    ARC -->|"no"| SRC
+    PICK --> SRC
+    SRC --> SUB["Select Unicode ranges<br/>from JSON"]
     BASE["source/MapleMono-CN-feature-VF.ttf<br/>weight metadata and feature glyphs"]
     CFG --> SUB
     SUB --> SS["Subset source font<br/>drop configured tables"]
@@ -123,12 +184,12 @@ flowchart TD
 
 ## Built-in Presets
 
-| Preset | Config | Source | Outline | Output |
+| Preset | Config | Source | Auto-detected result | Output |
 | ------ | ------ | ------ | ------- | ------ |
 | CN | `source/cjk/config-cn.json` | `source/cjk/WenYuanRoundedSCVF.ttf` | glyf | `source/cjk/cn` |
 | JP | `source/cjk/config-jp.json` | `source/cjk/ResourceHanRoundedJP-VF.otf` | CFF2 | `source/cjk/jp` |
-| TC | `source/cjk/config-tc.json` | `source/cjk/ChironGoRoundTCVF.ttf` | CFF2 | `source/cjk/tc` |
-| KR | `source/cjk/config-kr.json` | `source/cjk/ChironGoRoundTCVF.ttf` | CFF2 | `source/cjk/kr` |
+| TC | `source/cjk/config-tc.json` | `source/cjk/ChironGoRoundTCVF.ttf` | glyf | `source/cjk/tc` |
+| KR | `source/cjk/config-kr.json` | `source/cjk/ChironGoRoundTCVF.ttf` | glyf | `source/cjk/kr` |
 
 ## Design Decisions
 
@@ -136,6 +197,7 @@ flowchart TD
 | -------- | --------- |
 | Keep all built-in CJK assets under `source/cjk` | Avoid locale-specific source roots and make preset configs portable. |
 | Store built-in presets as JSON | Keep source paths, ranges, masters, Unicode filters, and transforms visible without changing Python code. |
+| Cache downloaded source fonts at `source.path` | Make repeated builds deterministic and avoid downloading large CJK assets when already available. |
 | Derive naming and outputs from `locale_name` | Prevent drift between JSON config, generated paths, and font names. |
 | Never allow incompatible glyphs | Fail early when source and feature glyph geometry cannot be merged safely. |
 | Keep `MapleMono-CN-feature-VF.ttf` as the metadata source | Reuse weight axis names, static instance names, and feature glyphs consistently. |

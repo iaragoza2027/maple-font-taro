@@ -11,7 +11,7 @@ from array import array
 from concurrent.futures import Executor
 from os import cpu_count, makedirs
 from pathlib import Path
-from typing import Any, Iterable, Sequence, TypeVar, cast
+from typing import Any, Iterable, Literal, Sequence, TypeVar, cast
 
 from fontTools import subset
 from fontTools.misc.transform import Transform
@@ -34,7 +34,6 @@ from scripts.cjk.config import (
     apply_unicode_override,
     config_from_cli,
     config_from_json,
-    detect_outline_mode,
     ordered_master_locations,
 )
 from scripts.cjk.models import (
@@ -57,6 +56,7 @@ from scripts.cjk.variable import (
     weight_axis,
 )
 from scripts.utils.files import archive, get_directory_hash
+from scripts.utils.downloads import resolve_cached_download
 from scripts.utils.logging import configure_logging, log_task, logger, set_log_task
 from scripts.utils.process import create_process_executor
 from scripts.font_ops.fonttools import (
@@ -105,7 +105,7 @@ class StaticInstanceJob:
 
 @dataclass(frozen=True)
 class SourceBuildState:
-    outline_mode: str
+    outline_format: Literal["glyf", "cff2"]
     subset_path: Path
     source_codepoints: set[int]
     keep_codepoints: set[int]
@@ -117,6 +117,33 @@ class BuildStats:
     added_glyphs: tuple[str, ...]
     added_codepoints: int
     incompatible_glyphs: int = 0
+
+
+def detect_outline_format(
+    font: TTFont,
+    source_path: str | Path,
+) -> Literal["glyf", "cff2"]:
+    """Detect the single supported variable outline format in a source font."""
+    has_glyf = "glyf" in font
+    has_cff2 = "CFF2" in font
+    if has_glyf and has_cff2:
+        raise ValueError(
+            f"CJK source font contains both glyf and CFF2 outlines: {source_path}; "
+            "expected exactly one variable outline format"
+        )
+    if has_glyf:
+        return "glyf"
+    if has_cff2:
+        return "cff2"
+    if "CFF " in font:
+        raise ValueError(
+            f"CJK source font uses static CFF outlines: {source_path}; "
+            "use a variable font containing glyf or CFF2 outlines"
+        )
+    raise ValueError(
+        f"CJK source font has no supported outlines: {source_path}; "
+        "expected exactly one of glyf or CFF2"
+    )
 
 
 class CFFChunkWorkerState:
@@ -1115,15 +1142,15 @@ def prepare_source_masters(
     config: CJKBuildConfig,
     process_pool: Executor,
     target_upem: int,
-    outline_mode: str,
+    outline_format: Literal["glyf", "cff2"],
 ) -> tuple[Path, Path, Path]:
     """Instantiate transformed source masters for the variable-base pipeline."""
     logger.info(
         "Prepare CJK source masters: subset=%s, outline=%s",
         subset_path,
-        outline_mode,
+        outline_format,
     )
-    if outline_mode != "cff2":
+    if outline_format != "cff2":
         paths = instantiate_masters_from_vf(
             subset_path,
             config.temp_dir / "source-masters",
@@ -1236,10 +1263,12 @@ class CJKBuilder:
         self,
         config: CJKBuildConfig,
         executor: Executor | None = None,
+        github_mirror: str = "github.com",
     ) -> None:
         self.config = config
         self.process_pool = executor
         self._owns_process_pool = executor is None
+        self.github_mirror = github_mirror
         self.regular_output = config.output.dir / config.output.regular_variable
         self.italic_output = config.output.dir / config.output.italic_variable
         self.static_dir = config.output.dir / config.output.static_dir
@@ -1247,6 +1276,14 @@ class CJKBuilder:
     def build(self, vf_only: bool = False) -> None:
         task = self.config.locale_name.lower()
         log_task(task, "Building CJK fonts")
+        download = self.config.source.download
+        resolve_cached_download(
+            "CJK source font",
+            self.config.source.path,
+            None if download is None else download.url,
+            self.github_mirror,
+            path_in_archive=None if download is None else download.path_in_archive,
+        )
         if self.process_pool is None:
             self.process_pool = create_font_executor()
         try:
@@ -1297,22 +1334,22 @@ class CJKBuilder:
                 raise ValueError(
                     f"Source font must be variable: {self.config.source.path}"
                 )
-            outline_mode = detect_outline_mode(
+            outline_format = detect_outline_format(
                 source_font,
-                self.config.source.outline_mode,
+                self.config.source.path,
             )
             source_codepoints = get_cmap_codepoints(source_font)
             keep_codepoints = get_allowed_codepoints(source_font, self.config)
         finally:
             source_font.close()
 
-        if outline_mode == "cff2":
+        if outline_format == "cff2":
             logger.debug("Convert CFF2 source masters to glyf TTF")
         logger.debug("CJK source Unicode count: count=%s", len(source_codepoints))
         logger.debug("CJK selected Unicode count: count=%s", len(keep_codepoints))
 
         subset_path = self.config.temp_dir / (
-            "source-subset.otf" if outline_mode == "cff2" else "source-subset.ttf"
+            "source-subset.otf" if outline_format == "cff2" else "source-subset.ttf"
         )
         logger.info(
             "Subset CJK source font: source=%s, selected_unicodes=%s, output=%s",
@@ -1341,11 +1378,11 @@ class CJKBuilder:
             self.config,
             self._require_process_pool(),
             feature_font.table("head").unitsPerEm,
-            outline_mode,
+            outline_format,
         )
         return (
             SourceBuildState(
-                outline_mode=outline_mode,
+                outline_format=outline_format,
                 subset_path=subset_path,
                 source_codepoints=source_codepoints,
                 keep_codepoints=keep_codepoints,
@@ -1683,9 +1720,10 @@ def build_cjk_fonts(
     config: CJKBuildConfig,
     vf_only: bool = False,
     executor: Executor | None = None,
+    github_mirror: str = "github.com",
 ) -> None:
     """Build regular, italic, and optionally static CJK fonts."""
-    CJKBuilder(config, executor).build(vf_only=vf_only)
+    CJKBuilder(config, executor, github_mirror).build(vf_only=vf_only)
 
 
 def build_cjk_from_config_file(
@@ -1700,13 +1738,20 @@ def build_cjk_from_config_file(
     )
 
 
-def build_cjk_from_args(args: argparse.Namespace) -> None:
+def build_cjk_from_args(
+    args: argparse.Namespace,
+    github_mirror: str = "github.com",
+) -> None:
     """Build CJK fonts from JSON config plus CLI overrides or direct CLI flags."""
     if args.config:
         config = apply_cli_overrides(config_from_json(args.config), args)
     else:
         config = config_from_cli(args)
-    build_cjk_fonts(apply_unicode_override(config, args.unicodes), args.vf_only)
+    build_cjk_fonts(
+        apply_unicode_override(config, args.unicodes),
+        args.vf_only,
+        github_mirror=github_mirror,
+    )
 
 
 def main() -> None:

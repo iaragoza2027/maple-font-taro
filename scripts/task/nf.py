@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import argparse
 import json
-from os import environ, path, remove
-from urllib.request import urlopen
+from os import path, remove
 
 from fontTools.subset import Subsetter
 from scripts.font_ops.fonttools import TTFont
 
-from scripts.utils.downloads import check_font_patcher
+from scripts.utils.downloads import (
+    check_font_patcher,
+    download_json,
+    github_mirror_from_config,
+)
 from scripts.utils.process import get_font_forge_bin, run as run_command
 from scripts.font_ops.metadata import set_monospace_metadata
 from scripts.font_ops.names import (
@@ -57,6 +60,7 @@ def update_config_json(config_path: str, version: str):
 
 
 def check_update():
+    github_mirror = github_mirror_from_config()
     current_version = None
     with open("./config.json", "r", encoding="utf-8") as file:
         data = json.load(file)
@@ -64,32 +68,32 @@ def check_update():
 
     latest_version = current_version
     logger.info("Fetch latest Nerd Font version")
-    with urlopen(
-        "https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest"
-    ) as response:
-        data = json.loads(response.read().decode("utf-8").split("\n")[0])
-        for key in data:
-            if key == "tag_name":
-                latest_version = str(data[key])[1:]
-                break
+    data = download_json(
+        "https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest",
+        github_mirror,
+    )
+    for key in data:
+        if key == "tag_name":
+            latest_version = str(data[key])[1:]
+            break
 
-        if latest_version == current_version:
-            logger.info("Nerd Font version is current: version=%s", current_version)
-            if not check_font_patcher(latest_version):
-                logger.error("FontPatcher is unavailable after download attempt")
-                exit(1)
-            return
-
-        logger.info(
-            "Update Nerd Font version: current=%s, latest=%s",
-            current_version,
-            latest_version,
-        )
-        if not check_font_patcher(latest_version, environ.get("GITHUB", "github.com")):
-            logger.error("Failed to update FontPatcher")
+    if latest_version == current_version:
+        logger.info("Nerd Font version is current: version=%s", current_version)
+        if not check_font_patcher(latest_version, github_mirror):
+            logger.error("FontPatcher is unavailable after download attempt")
             exit(1)
-        update_config_json("./config.json", latest_version)
-        update_config_json("./source/preset-normal.json", latest_version)
+        return
+
+    logger.info(
+        "Update Nerd Font version: current=%s, latest=%s",
+        current_version,
+        latest_version,
+    )
+    if not check_font_patcher(latest_version, github_mirror):
+        logger.error("Failed to update FontPatcher")
+        exit(1)
+    update_config_json("./config.json", latest_version)
+    update_config_json("./source/preset-normal.json", latest_version)
 
 
 def get_nerd_font_patcher_args(mono: bool, propo: bool = False):

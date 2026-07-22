@@ -9,6 +9,7 @@ from scripts.cjk.config import (
     apply_unicode_override,
 )
 from scripts.cjk.presets import build_preset_config, list_presets
+from scripts.utils.downloads import github_mirror_from_config
 
 
 def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):
@@ -23,13 +24,14 @@ def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
 
 
 def run(args: argparse.Namespace) -> None:
+    github_mirror = github_mirror_from_config()
     if args.preset:
         config = build_preset_config(args.preset)
         config = apply_cli_overrides(config, args)
         config = apply_unicode_override(config, args.unicodes)
-        build_cjk_fonts(config, args.vf_only)
+        build_cjk_fonts(config, args.vf_only, github_mirror=github_mirror)
         return
 
     from scripts.cjk.pipeline import build_cjk_from_args
 
-    build_cjk_from_args(args)
+    build_cjk_from_args(args, github_mirror)

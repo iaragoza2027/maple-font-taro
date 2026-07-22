@@ -755,6 +755,7 @@ def build_static_fonts(
 
 def ensure_cjk_variable_fonts(
     entry: ResolvedCJKBuildEntry,
+    github_mirror: str,
     executor: Executor | None = None,
 ) -> tuple[Path, Path] | None:
     preset_config = entry.build_config
@@ -775,7 +776,12 @@ def ensure_cjk_variable_fonts(
         return regular_path, italic_path
 
     try:
-        build_cjk_fonts(preset_config, vf_only=True, executor=executor)
+        build_cjk_fonts(
+            preset_config,
+            vf_only=True,
+            executor=executor,
+            github_mirror=github_mirror,
+        )
     except FileNotFoundError as error:
         logger.warning(
             "Skip CJK output: locale=%s, reason=%s", entry.display_name, error
@@ -798,7 +804,11 @@ def build_cjk_extended_variable_fonts(
     output_dir: Path,
     executor: Executor | None = None,
 ) -> tuple[Path, Path] | None:
-    base_variable_paths = ensure_cjk_variable_fonts(entry, executor)
+    base_variable_paths = ensure_cjk_variable_fonts(
+        entry,
+        runtime_context.effective_github_mirror,
+        executor,
+    )
     if base_variable_paths is None:
         return None
 

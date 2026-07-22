@@ -6,7 +6,12 @@
     "download": {
       "url": "https://github.com/chiron-fonts/chiron-go-round-tc/raw/v1.011/VAR_TTF/ChironGoRoundTCVF.ttf"
     },
-    "drop_tables": ["BASE", "VVAR", "vhea", "vmtx"],
+    "drop_tables": [
+      "BASE",
+      "VVAR",
+      "vhea",
+      "vmtx"
+    ],
     "masters": {
       "100": {
         "wght": 250
@@ -20,15 +25,27 @@
     }
   },
   "unicode": {
-    "ranges": ["0x2460-0x24FF", "0x3000-0x303F", "0x3130-0x318F", "0x3200-0x33FF", "0x4E00-0x9FFF", "0xA960-0xA97F", "0xAC00-0xD7AF", "0xD7B0-0xD7FF", "0xF900-0xFAFF", "0xFE30-0xFE6F", "0xFF00-0xFFEF"],
+    "ranges": [
+      "0x2460-0x24FF",
+      "0x3000-0x303F",
+      "0x3130-0x318F",
+      "0x3200-0x33FF",
+      "0x4E00-0x9FFF",
+      "0xA960-0xA97F",
+      "0xAC00-0xD7AF",
+      "0xD7B0-0xD7FF",
+      "0xF900-0xFAFF",
+      "0xFE30-0xFE6F",
+      "0xFF00-0xFFEF"
+    ],
     "exclude_feature_codepoints": true
   },
   "transform": {
     "target_advance_width": 1200,
-    "x_scale": 1,
-    "y_scale": 1,
+    "x_scale": 1.02,
+    "y_scale": 1.05,
     "x_shift": 100,
-    "y_shift": 0,
+    "y_shift": -25,
     "italic_angle": 10
   }
 }

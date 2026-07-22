@@ -27,7 +27,11 @@ VARIABLE_GLYF_TABLES = (*CORE_GLYF_TABLES, "gvar")
 
 def load_font_eager(font_path: str | Path) -> TTFont:
     """Load a font without keeping lazy table reads tied to the source file."""
-    font = TTFont(BytesIO(Path(font_path).read_bytes()), lazy=False)
+    font = TTFont(
+        BytesIO(Path(font_path).read_bytes()),
+        lazy=False,
+        recalcTimestamp=False,
+    )
     ensure_decompiled = getattr(font, "ensureDecompiled", None)
     if ensure_decompiled:
         ensure_decompiled()

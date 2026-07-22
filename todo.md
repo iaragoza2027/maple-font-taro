@@ -42,6 +42,7 @@
 - [x] customizable locale name
 - [x] fix cjk base font load priority regression: local cache > download from github release > instantiate from variable font > error
   - [x] stabilize directory hash with config-derived static hash files
+- [x] stablize cjk sha
 - [ ] setup download url for cjk variable source font, and use it in build config resolution, auto download if not exist, and use local cache if exist
 - [ ] generate build summary and basic usage and description in fonts/ , and for custom build, use it as release notes
 - [ ] support custom build that just merge custom cjk static font into generated maple mono, get rid of cjk variable font. via config, or cli flags, weight name as config key, only generate the static font with these configured weight name

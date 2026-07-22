@@ -39,8 +39,10 @@ class OS2Table(Protocol):
 
 
 class HeadTable(Protocol):
+    created: int
     flags: int
     macStyle: int
+    modified: int
     unitsPerEm: int
     yMax: int
     yMin: int

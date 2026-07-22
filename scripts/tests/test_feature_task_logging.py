@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from scripts.task.fea import build_fea
+from scripts.utils.files import join_path
 
 
 class FeatureTaskLoggingTest(unittest.TestCase):
@@ -39,11 +40,18 @@ class FeatureTaskLoggingTest(unittest.TestCase):
             "regular_cn.fea",
             "italic_cn.fea",
         ]:
-            self.assertIn(f"Saved feature file to generated/{filename}", messages)
-        self.assertIn("Synchronized feature schema: path=source/schema.json", messages)
+            self.assertIn(
+                f"Saved feature file to {join_path('generated', filename)}", messages
+            )
+        self.assertIn(
+            f"Synchronized feature schema: path={join_path('source', 'schema.json')}",
+            messages,
+        )
         self.assertIn("Synchronized feature configuration: path=config.json", messages)
         self.assertIn(
-            "Synchronized browser feature rules: path=scripts/in_browser.py", messages
+            "Synchronized browser feature rules: "
+            f"path={join_path('scripts', 'in_browser.py')}",
+            messages,
         )
 
 

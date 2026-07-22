@@ -265,5 +265,9 @@ def materialize_prepared_source(
         source.font = None
         source.path = str(ufo_path.resolve())
 
+    for instance in prepared.designspace.instances:
+        if instance.filename is not None:
+            instance.path = str((root / Path(instance.filename)).resolve())
+
     prepared.designspace.write(designspace_path.resolve())
     return designspace_path

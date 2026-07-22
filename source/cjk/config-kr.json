@@ -27,7 +27,7 @@
     "target_advance_width": 1200,
     "x_scale": 1,
     "y_scale": 1,
-    "x_shift": 0,
+    "x_shift": 100,
     "y_shift": 0,
     "italic_angle": 10
   }

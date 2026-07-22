@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any, cast
 
-from scripts.font_ops.fonttools import TTFont, newTable
+from scripts.font_ops.fonttools import SubsetOptions, TTFont, newTable
 
 from scripts.font_ops.names import default_weight_map, set_font_name
 from scripts.utils.logging import logger
@@ -111,16 +111,20 @@ def add_gasp(font: TTFont):
 
 
 def remove_target_glyph(font: TTFont, glyph_name_suffix: str):
-    from fontTools.subset import Options, Subsetter
+    from fontTools.subset import Options
 
     keep_glyphs = [
         glyph_name
         for glyph_name in font.getGlyphOrder()
         if not glyph_name.endswith(glyph_name_suffix)
     ]
-    subsetter = Subsetter(Options(hinting=False))
-    subsetter.populate(glyphs=keep_glyphs)
-    subsetter.subset(font)
+    from scripts.font_ops.subset import subset_to_glyphs
+
+    subset_to_glyphs(
+        font,
+        keep_glyphs,
+        options=cast(SubsetOptions, Options(hinting=False)),
+    )
 
 
 DEFAULT_COMPAT_ALIASES: dict[int, int] = {

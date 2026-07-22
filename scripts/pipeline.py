@@ -35,8 +35,16 @@ from scripts.cjk.pipeline import (
     feature_weight_instances,
     get_ttfautohint_options,
 )
-from scripts.cjk.variable import load_font_eager, merge_vf
+from scripts.cjk.variable import (
+    drop_font_tables,
+    load_font_eager,
+    merge_masters_into_vf,
+    merge_vf,
+    recalculate_font_metrics,
+)
 from scripts.font_ops.conversion import convert_to_web
+from scripts.font_ops.nerd_font import parse_codes_from_json
+from scripts.font_ops.subset import subset_to_codepoints
 from scripts.utils.files import archive_fonts, join_path
 from scripts.utils.logging import (
     ENVIRONMENT_VARIABLE,
@@ -328,11 +336,8 @@ def build_nf_by_prebuild_nerd_font(
     font_config: ResolvedBuildConfig,
     runtime_context: BuildRuntimeContext,
 ) -> TTFont:
-    suffix = font_config.get_nf_suffix()
-    if suffix:
-        suffix = "-" + suffix
-
-    nf_base_font_path = f"{runtime_context.src_dir}/MapleMono-NF-Base{suffix}.ttf"
+    variant = font_config.get_nf_variant()
+    nf_base_font_path = str(variant.base_path(runtime_context.src_dir))
     tmp_target_path = None
     if font_config.get_width_name():
         tmp_font = TTFont(nf_base_font_path)
@@ -387,11 +392,8 @@ def build_nf_by_font_patcher(
 
     run_command(_nf_args + [join_path(runtime_context.ttf_base_dir, font_basename)])
 
-    nf_file_name = "NerdFont" + font_config.get_nf_suffix()
-
-    _path = join_path(
-        runtime_context.output_nf, font_basename.replace("-", f"{nf_file_name}-")
-    )
+    variant = font_config.get_nf_variant()
+    _path = str(variant.patched_font_path(runtime_context.output_nf, font_basename))
     font = TTFont(_path)
     remove(_path)
 
@@ -412,7 +414,7 @@ def build_nf(
     logger.info(
         "Build Nerd Font variant: source=%s, suffix=%s",
         f,
-        font_config.get_nf_suffix(),
+        font_config.get_nf_variant().suffix,
     )
     nf_font = get_ttfont(f, font_config, runtime_context)
 
@@ -425,7 +427,7 @@ def build_nf(
         )
     )
 
-    nf_sym = f"NF{font_config.get_nf_suffix_compact()}"
+    nf_sym = font_config.get_nf_variant().symbol
     postscript_name = f"{font_config.family_name_compact}-{nf_sym}-{style_compact_nf}"
 
     update_font_names(
@@ -788,12 +790,41 @@ def ensure_cjk_variable_fonts(
     return regular_path, italic_path
 
 
+def load_nerd_font_variable_source(
+    font_config: ResolvedBuildConfig,
+    runtime_context: BuildRuntimeContext,
+) -> TTFont:
+    """Load the static Nerd Font glyph source used by CJK Variable outputs."""
+    variant = font_config.get_nf_variant()
+
+    if runtime_context.should_use_font_patcher(font_config):
+        source_path = variant.patched_style_path(
+            runtime_context.output_nf,
+            font_config.family_name_compact,
+        )
+        font = load_font_eager(source_path)
+        return subset_to_codepoints(font, parse_codes_from_json())
+
+    source_path = variant.base_path(runtime_context.src_dir)
+    font = load_font_eager(source_path)
+    if font_config.get_width_name():
+        smart_change_width(
+            font=font,
+            target_width=font_config.get_target_width(),
+            original_ref_width=font_config.glyph_width,
+            also_scale_y=True,
+        )
+    return font
+
+
 def build_cjk_extended_variable_fonts(
     entry: ResolvedCJKBuildEntry,
     font_config: ResolvedBuildConfig,
     runtime_context: BuildRuntimeContext,
     output_dir: Path,
     executor: Executor | None = None,
+    output_locale: str | None = None,
+    include_nerd_font: bool = False,
 ) -> tuple[Path, Path] | None:
     base_variable_paths = ensure_cjk_variable_fonts(
         entry,
@@ -821,61 +852,102 @@ def build_cjk_extended_variable_fonts(
         (True, base_variable_paths[1]),
     )
     output_paths: list[Path] = []
+    nerd_font = (
+        load_nerd_font_variable_source(font_config, runtime_context)
+        if include_nerd_font
+        else None
+    )
 
-    for (is_italic, base_path), (_, extra_path) in zip(core_pairs, base_pairs):
-        if not base_path.exists():
-            logger.warning("Core variable font not found: path=%s", base_path)
-            return None
-        if not extra_path.exists():
-            logger.warning("CJK variable font not found: path=%s", extra_path)
-            return None
+    try:
+        for (is_italic, base_path), (_, extra_path) in zip(core_pairs, base_pairs):
+            if not base_path.exists():
+                logger.warning("Core variable font not found: path=%s", base_path)
+                return None
+            if not extra_path.exists():
+                logger.warning("CJK variable font not found: path=%s", extra_path)
+                return None
 
-        merged_font, added_glyphs, added_codepoints = merge_vf(base_path, extra_path)
-        try:
-            locale_suffix = entry.locale_name
-            family_name = build_cjk_family_name(font_config, locale_suffix)
-            postscript_prefix = build_cjk_postscript_prefix(font_config, locale_suffix)
-            postscript_name = postscript_prefix + ("-Italic" if is_italic else "")
-            style_name = "Italic" if is_italic else "Regular"
-            update_font_names(
-                font=merged_font,
-                family_name=family_name,
-                style_name=style_name,
-                full_name=f"{family_name} {style_name}",
-                version_str=font_config.version_str,
-                postscript_name=postscript_name,
-                unique_identifier=get_unique_identifier(
-                    font_config=font_config,
-                    postscript_name=postscript_name,
-                    narrow=entry.common_options.narrow,
-                    variable=True,
-                ),
-                is_skip_subfamily=True,
-            )
-            if (
-                entry.is_builtin
-                and entry.common_options.fix_meta_table
-                and entry.preset_spec
-            ):
-                apply_cjk_meta_table(
-                    merged_font,
-                    entry.preset_spec.meta_languages,
-                    entry.preset_spec.code_page_range1,
+            merged_font = load_font_eager(base_path)
+            try:
+                nf_added_glyphs = 0
+                nf_added_codepoints = 0
+                if nerd_font is not None:
+                    added, added_codepoints = merge_masters_into_vf(
+                        merged_font,
+                        nerd_font,
+                        nerd_font,
+                        nerd_font,
+                    )
+                    nf_added_glyphs = len(added)
+                    nf_added_codepoints = added_codepoints
+
+                merged_font, cjk_added_glyphs, cjk_added_codepoints = merge_vf(
+                    merged_font, extra_path
                 )
-            output_path = output_dir / merged_variable_name(
-                postscript_prefix, is_italic
-            )
-            logger.debug(
-                "Merge CJK variable font: locale=%s, glyphs_added=%s, unicodes_added=%s",
-                entry.display_name,
-                len(added_glyphs),
-                added_codepoints,
-            )
-            merged_font.save(output_path)
-            logger.info("Saved merged variable font to %s", output_path)
-            output_paths.append(output_path)
-        finally:
-            merged_font.close()
+                recalculate_font_metrics(merged_font)
+                drop_font_tables(merged_font, ("HVAR", "VVAR"))
+
+                locale_suffix = output_locale or entry.locale_name
+                if locale_suffix.startswith("NF-"):
+                    locale_name = locale_suffix[3:]
+                    nf_symbol = font_config.get_nf_variant().symbol
+                    family_name = f"{font_config.family_name} {nf_symbol} {locale_name}"
+                    postscript_prefix = (
+                        f"{font_config.family_name_compact}-{nf_symbol}-{locale_name}"
+                    )
+                else:
+                    family_name = build_cjk_family_name(font_config, locale_suffix)
+                    postscript_prefix = build_cjk_postscript_prefix(
+                        font_config, locale_suffix
+                    )
+                postscript_name = postscript_prefix + ("-Italic" if is_italic else "")
+                style_name = "Italic" if is_italic else "Regular"
+                update_font_names(
+                    font=merged_font,
+                    family_name=family_name,
+                    style_name=style_name,
+                    full_name=f"{family_name} {style_name}",
+                    version_str=font_config.version_str,
+                    postscript_name=postscript_name,
+                    unique_identifier=get_unique_identifier(
+                        font_config=font_config,
+                        postscript_name=postscript_name,
+                        narrow=entry.common_options.narrow,
+                        variable=True,
+                    ),
+                    is_skip_subfamily=True,
+                )
+                if (
+                    entry.is_builtin
+                    and entry.common_options.fix_meta_table
+                    and entry.preset_spec
+                ):
+                    apply_cjk_meta_table(
+                        merged_font,
+                        entry.preset_spec.meta_languages,
+                        entry.preset_spec.code_page_range1,
+                    )
+                output_path = output_dir / merged_variable_name(
+                    postscript_prefix, is_italic
+                )
+                logger.debug(
+                    "Merge CJK variable font: locale=%s, nf_glyphs_added=%s, "
+                    "nf_unicodes_added=%s, cjk_glyphs_added=%s, "
+                    "cjk_unicodes_added=%s",
+                    entry.display_name,
+                    nf_added_glyphs,
+                    nf_added_codepoints,
+                    len(cjk_added_glyphs),
+                    cjk_added_codepoints,
+                )
+                merged_font.save(output_path)
+                logger.info("Saved merged variable font to %s", output_path)
+                output_paths.append(output_path)
+            finally:
+                merged_font.close()
+    finally:
+        if nerd_font is not None:
+            nerd_font.close()
 
     return output_paths[0], output_paths[1]
 
@@ -890,7 +962,7 @@ def cjk_static_base_profiles(
         runtime_context.is_nf_built and entry.common_options.with_nerd_font
     )
     if should_build_nf_cjk:
-        nf_suffix = f"NF{font_config.get_nf_suffix_compact()}"
+        nf_suffix = font_config.get_nf_variant().symbol
         nf_font_config = deepcopy(font_config)
         nf_font_config.identity.family_name = f"{font_config.family_name} {nf_suffix}"
         nf_font_config.identity.family_name_compact = (
@@ -1152,23 +1224,36 @@ def build_cjk_extended_variable_outputs(
     built_any = False
     for entry in entries:
         log_task(entry.locale_name.lower(), "Building CJK variable outputs")
-        try:
-            merged_paths = build_cjk_extended_variable_fonts(
-                entry,
-                font_config,
-                runtime_context,
-                variable_output_dir(runtime_context.output_dir, entry.locale_name),
-                executor,
-            )
-        except FileNotFoundError as error:
-            logger.warning(
-                "Skip CJK output: locale=%s, reason=%s",
-                entry.display_name,
-                error,
-            )
-            continue
-        if merged_paths is not None:
-            built_any = True
+        include_nf = (
+            font_config.nerd_font.enable and entry.common_options.with_nerd_font
+        )
+        profiles = []
+        if include_nf:
+            profiles.append((f"NF-{entry.locale_name}", True))
+        if not include_nf or font_config.use_cjk_both:
+            profiles.append((entry.locale_name, False))
+
+        for output_locale, profile_include_nf in profiles:
+            try:
+                merged_paths = build_cjk_extended_variable_fonts(
+                    entry,
+                    font_config,
+                    runtime_context,
+                    variable_output_dir(runtime_context.output_dir, output_locale),
+                    executor,
+                    output_locale=output_locale,
+                    include_nerd_font=profile_include_nf,
+                )
+            except FileNotFoundError as error:
+                logger.warning(
+                    "Skip CJK output: locale=%s, output=%s, reason=%s",
+                    entry.display_name,
+                    output_locale,
+                    error,
+                )
+                continue
+            if merged_paths is not None:
+                built_any = True
 
     runtime_context.is_cjk_built = built_any
     if not built_any:

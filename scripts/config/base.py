@@ -15,6 +15,7 @@ from scripts.feature.compiler import (
     normal_enabled_features,
 )
 from scripts.in_browser import get_freeze_config_str as get_browser_freeze_config_str
+from scripts.font_ops.nerd_font import NerdFontVariant
 from scripts.font_ops.names import default_weight_map
 
 if TYPE_CHECKING:
@@ -548,23 +549,17 @@ class ResolvedBuildConfig:
         )
 
     def get_nf_suffix_compact(self) -> str:
-        full = self.get_nf_suffix()
-        if not full:
-            return ""
-        return full[1]
+        return self.get_nf_variant().compact
 
     def get_nf_suffix(self) -> Literal["Mono", "Propo", ""]:
-        extra_args = self.nerd_font.extra_args
-        if (
-            self.nerd_font.mono
-            or "-s" in extra_args
-            or "--mono" in extra_args
-            or "--single-width-glyphs" in extra_args
-        ):
-            return "Mono"
-        if self.nerd_font.propo or "--variable-width-glyphs" in extra_args:
-            return "Propo"
-        return ""
+        return self.get_nf_variant().suffix
+
+    def get_nf_variant(self) -> NerdFontVariant:
+        return NerdFontVariant.from_options(
+            mono=self.nerd_font.mono,
+            propo=self.nerd_font.propo,
+            extra_args=self.nerd_font.extra_args,
+        )
 
     def get_valid_glyph_width_list(
         self,

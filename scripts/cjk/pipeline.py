@@ -13,7 +13,7 @@ from os import cpu_count, makedirs
 from pathlib import Path
 from typing import Any, Iterable, Literal, Sequence, TypeVar, cast
 
-from fontTools import subset
+from fontTools.subset import Options
 from fontTools.misc.transform import Transform
 from fontTools.pens.cu2quPen import Cu2QuMultiPen
 from fontTools.pens.recordingPen import RecordingPen
@@ -64,6 +64,7 @@ from scripts.font_ops.fonttools import (
     SubsetOptions,
 )
 from scripts.font_ops.names import set_font_name, update_font_names
+from scripts.font_ops.subset import subset_to_codepoints
 
 
 RESERVED_NAME_IDS = {1, 2, 4, 6, 16, 17, 25}
@@ -440,27 +441,6 @@ def instantiate_italic_masters_from_vf(
     return cast(tuple[Path, Path, Path], tuple(paths))
 
 
-def subset_font(font: TTFont, codepoints: set[int]) -> None:
-    """Subset font to specified Unicode codepoints."""
-    if "gvar" in font:
-        variations = font["gvar"].variations
-        for glyph_name in font.getGlyphOrder():
-            if glyph_name not in variations:
-                variations[glyph_name] = []
-    options = cast(SubsetOptions, subset.Options())
-    options.layout_features = []
-    options.name_IDs = ["*"]
-    options.name_legacy = True
-    options.name_languages = ["*"]
-    options.recalc_bounds = True
-    options.recalc_timestamp = False
-    options.notdef_outline = True
-    options.recommended_glyphs = False
-    sub = subset.Subsetter(options=options)
-    sub.populate(unicodes=codepoints)
-    sub.subset(font)
-
-
 def get_allowed_codepoints(source_font: TTFont, config: CJKBuildConfig) -> set[int]:
     """Select source codepoints allowed by configured ranges and encoding."""
     allowed = {
@@ -498,7 +478,21 @@ def prepare_source_subset(
             else keep_codepoints
         )
         removed = len(keep_codepoints) - len(filtered_codepoints)
-        subset_font(font, filtered_codepoints)
+        if "gvar" in font:
+            variations = font["gvar"].variations
+            for glyph_name in font.getGlyphOrder():
+                if glyph_name not in variations:
+                    variations[glyph_name] = []
+        options = cast(SubsetOptions, Options())
+        options.layout_features = []
+        options.name_IDs = ["*"]
+        options.name_legacy = True
+        options.name_languages = ["*"]
+        options.recalc_bounds = True
+        options.recalc_timestamp = False
+        options.notdef_outline = True
+        options.recommended_glyphs = False
+        subset_to_codepoints(font, filtered_codepoints, options=options)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         font.save(out_path)
         return removed

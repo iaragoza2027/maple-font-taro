@@ -27,6 +27,7 @@ from scripts.pipeline import (
 from scripts.config.resolver import BuildConfigResolver, BuildRuntimeContext
 from scripts.cjk.models import CJKBuildConfig, CJKOutputConfig, CJKSourceConfig
 from scripts.cjk.presets import CJKPresetId, build_preset_config, get_preset
+from scripts.cjk.variable import _cmap_supports_codepoint
 
 
 def make_font_config():
@@ -495,7 +496,7 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             self.assertEqual(runtime_context.resolved_vertical_metric, (1200, -320))
             read_metric_mock.assert_called_once_with(cached_font)
 
-    def test_variable_cjk_outputs_use_entry_locale_name(self) -> None:
+    def test_variable_cjk_outputs_use_nf_entry_locale_name(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             runtime_context = make_runtime_context(Path(tmp))
             font_config = make_font_config()
@@ -504,16 +505,39 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
 
             with patch(
                 "scripts.pipeline.build_cjk_extended_variable_fonts",
-                side_effect=lambda entry, *_args: (
-                    captured_output_dirs.append(_args[-2]) or None
+                side_effect=lambda entry, *_args, **kwargs: (
+                    captured_output_dirs.append(kwargs["output_locale"]) or None
                 ),
             ):
                 build_cjk_extended_variable_outputs(font_config, runtime_context)
 
-            self.assertEqual(
-                captured_output_dirs,
-                [Path(runtime_context.output_dir) / "Variable-HK"],
-            )
+            self.assertEqual(captured_output_dirs, ["NF-HK"])
+
+    def test_variable_cjk_outputs_build_both_nf_profiles_when_requested(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime_context = make_runtime_context(Path(tmp))
+            font_config = make_font_config()
+            font_config.behavior.use_cjk_both = True
+            font_config.cjk.entries = [make_custom_entry("HK")]
+            captured_profiles: list[tuple[str, bool]] = []
+
+            with patch(
+                "scripts.pipeline.build_cjk_extended_variable_fonts",
+                side_effect=lambda entry, *_args, **kwargs: (
+                    captured_profiles.append(
+                        (kwargs["output_locale"], kwargs["include_nerd_font"])
+                    )
+                    or None
+                ),
+            ):
+                build_cjk_extended_variable_outputs(font_config, runtime_context)
+
+            self.assertEqual(captured_profiles, [("NF-HK", True), ("HK", False)])
+
+    def test_variable_cmap_limits_codepoints_by_subtable_format(self) -> None:
+        self.assertTrue(_cmap_supports_codepoint(4, 0xFFFF))
+        self.assertFalse(_cmap_supports_codepoint(4, 0x10000))
+        self.assertTrue(_cmap_supports_codepoint(12, 0x10000))
 
     def test_start_uses_a_human_readable_summary(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

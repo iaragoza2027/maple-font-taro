@@ -4,8 +4,9 @@ import argparse
 import json
 from os import path, remove
 
-from fontTools.subset import Subsetter
 from scripts.font_ops.fonttools import TTFont
+from scripts.font_ops.nerd_font import NerdFontVariant, parse_codes_from_json
+from scripts.font_ops.subset import subset_to_codepoints
 
 from scripts.utils.downloads import (
     check_font_patcher,
@@ -34,18 +35,6 @@ def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
         help="Do not check version and update if available",
     )
     return parser
-
-
-def parse_codes_from_json(data) -> list[int]:
-    try:
-        return [
-            int(f"0x{value['code']}", 16)
-            for key, value in data.items()
-            if isinstance(value, dict) and "code" in value
-        ]
-    except json.JSONDecodeError:
-        logger.error("Invalid JSON in Nerd Font glyph data")
-        exit(1)
 
 
 def update_config_json(config_path: str, version: str):
@@ -113,27 +102,17 @@ def get_nerd_font_patcher_args(mono: bool, propo: bool = False):
     return nf_args
 
 
-def get_font_suffix(mono: bool, propo: bool) -> str:
-    if mono and propo:
-        raise ValueError(
-            "Cannot build both `mono` and `propo` glyphs versions simultaneously."
-        )
-    if mono:
-        return "Mono"
-    if propo:
-        return "Propo"
-    return ""
-
-
 def build_nf(mono: bool, propo: bool = False):
-    suffix = get_font_suffix(mono, propo)
+    variant = NerdFontVariant.from_options(mono, propo, reject_conflict=True)
+    suffix = variant.suffix
     nf_args = get_nerd_font_patcher_args(mono, propo)
 
-    nf_file_name = "NerdFont" + suffix
     style_name = "Regular"
 
     run_command(nf_args + [BASE_FONT_PATH])
-    output_path = f"{FAMILY_NAME.replace(' ', '')}{nf_file_name}-{style_name}.ttf"
+    output_path = variant.patched_font_path(
+        ".", f"{FAMILY_NAME.replace(' ', '')}-{style_name}.ttf"
+    )
     nf_font = TTFont(output_path)
     remove(output_path)
 
@@ -154,12 +133,10 @@ def build_nf(mono: bool, propo: bool = False):
 
 def subset(mono: bool, propo: bool, unicodes: list[int]):
     font = build_nf(mono, propo)
-    subsetter = Subsetter()
-    subsetter.populate(unicodes=unicodes)
-    subsetter.subset(font)
+    subset_to_codepoints(font, unicodes)
 
-    suffix = get_font_suffix(mono, propo)
-    output_path = f"source/MapleMono-NF-Base{f'-{suffix}' if suffix else ''}.ttf"
+    variant = NerdFontVariant.from_options(mono, propo, reject_conflict=True)
+    output_path = str(variant.base_path("source"))
 
     if not propo:
         set_monospace_metadata(font)
@@ -177,11 +154,10 @@ def nerd_font(no_update: bool):
     if not no_update:
         check_update()
 
-    with open("./FontPatcher/glyphnames.json", "r", encoding="utf-8") as file:
-        unicodes = parse_codes_from_json(json.load(file))
-        subset(mono=False, propo=False, unicodes=unicodes)
-        subset(mono=True, propo=False, unicodes=unicodes)
-        subset(mono=False, propo=True, unicodes=unicodes)
+    unicodes = parse_codes_from_json()
+    subset(mono=False, propo=False, unicodes=unicodes)
+    subset(mono=True, propo=False, unicodes=unicodes)
+    subset(mono=False, propo=True, unicodes=unicodes)
 
 
 def run(args: argparse.Namespace) -> None:

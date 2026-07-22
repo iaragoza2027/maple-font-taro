@@ -580,11 +580,29 @@ def _merge_cmap(base: TTFont, extra: TTFont, added_glyphs: set[str]) -> int:
         if glyph_name in added_glyphs and codepoint not in base_codepoints
     }
 
+    merged_codepoints: set[int] = set()
     for table in base["cmap"].tables:
         if table.isUnicode():
-            table.cmap.update(extra_entries)
+            supported_entries = {
+                codepoint: glyph_name
+                for codepoint, glyph_name in extra_entries.items()
+                if _cmap_supports_codepoint(table.format, codepoint)
+            }
+            table.cmap.update(supported_entries)
+            merged_codepoints.update(supported_entries)
 
-    return len(extra_entries)
+    return len(merged_codepoints)
+
+
+def _cmap_supports_codepoint(table_format: int, codepoint: int) -> bool:
+    """Return whether a cmap subtable format can encode a codepoint."""
+    if table_format == 0:
+        return codepoint <= 0xFF
+    if table_format in (2, 4, 6):
+        return codepoint <= 0xFFFF
+    if table_format in (10, 12, 13):
+        return codepoint <= 0x10FFFF
+    return codepoint <= 0xFFFF
 
 
 def _merge_glyph_tables(base: TTFont, extra: TTFont) -> list[str]:

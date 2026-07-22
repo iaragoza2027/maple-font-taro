@@ -1460,6 +1460,9 @@ class MapleBuildPipeline:
         self.should_use_cache = font_config.cache
         self.target_styles = self._resolve_target_styles()
         self.start_time = 0.0
+        self._cache_identity_checked = False
+        self._cache_identity_valid = True
+        self._cache_reuse_logged: set[str] = set()
 
     def build(self) -> None:
         self.start_build_timer()
@@ -1469,45 +1472,37 @@ class MapleBuildPipeline:
             max_workers=max(self.font_config.pool_size, 2),
             fallback_to_threads=True,
         ) as process_executor:
-            if self.should_build_base_outputs():
+            base_formats = self.base_formats_to_build()
+            if base_formats:
                 fontmake_context = prepare_fontmake_sources(
                     self.font_config,
                     self.runtime_context,
                     process_executor,
                 )
                 try:
-                    fontmake_formats: tuple[Literal["variable", "ttf", "otf"], ...] = (
-                        ("variable", "ttf", "otf")
-                        if (
-                            self.font_config.wants_format("otf")
-                            and not self.font_config.debug
-                        )
-                        else ("variable", "ttf")
-                    )
                     compile_fontmake_formats(
                         fontmake_context,
-                        fontmake_formats,
+                        base_formats,
                         process_executor,
                         target_styles=self.target_styles,
                     )
-                    build_variable_fonts(
-                        self.font_config,
-                        self.runtime_context,
-                        fontmake_context,
-                        process_executor,
-                    )
-                    build_static_fonts(
-                        self.font_config,
-                        self.runtime_context,
-                        fontmake_context,
-                        "ttf",
-                        self.target_styles,
-                        process_executor,
-                    )
-                    if (
-                        self.font_config.wants_format("otf")
-                        and not self.font_config.debug
-                    ):
+                    if "variable" in base_formats:
+                        build_variable_fonts(
+                            self.font_config,
+                            self.runtime_context,
+                            fontmake_context,
+                            process_executor,
+                        )
+                    if "ttf" in base_formats:
+                        build_static_fonts(
+                            self.font_config,
+                            self.runtime_context,
+                            fontmake_context,
+                            "ttf",
+                            self.target_styles,
+                            process_executor,
+                        )
+                    if "otf" in base_formats:
                         build_static_fonts(
                             self.font_config,
                             self.runtime_context,
@@ -1518,23 +1513,24 @@ class MapleBuildPipeline:
                         )
                 finally:
                     shutil.rmtree(fontmake_context.temp_path, ignore_errors=True)
-                if self.font_config.needs_hinted_ttf():
-                    build_base_fonts(
-                        self.font_config,
-                        self.runtime_context,
-                        self.target_styles,
-                        process_executor,
-                    )
-                if self.should_build_woff2_outputs():
-                    build_woff2_fonts(
-                        self.font_config,
-                        self.runtime_context,
-                        process_executor,
-                    )
-                elif self.font_config.wants_format("woff2"):
-                    log_task("woff2", "Skipping WOFF2 conversion for a debug build")
             else:
                 self.reuse_base_output_cache()
+
+            if self.should_build_hinted_ttf(base_formats):
+                build_base_fonts(
+                    self.font_config,
+                    self.runtime_context,
+                    self.target_styles,
+                    process_executor,
+                )
+            if self.should_build_woff2_outputs(base_formats):
+                build_woff2_fonts(
+                    self.font_config,
+                    self.runtime_context,
+                    process_executor,
+                )
+            elif self.font_config.wants_format("woff2") and self.font_config.debug:
+                log_task("woff2", "Skipping WOFF2 conversion for a debug build")
 
             if self.should_build_nerd_fonts():
                 build_nerd_fonts(
@@ -1586,6 +1582,10 @@ class MapleBuildPipeline:
             logger.info("Clean build cache")
             shutil.rmtree(self.runtime_context.output_dir, ignore_errors=True)
             shutil.rmtree(self.runtime_context.output_woff2, ignore_errors=True)
+        elif not self._cache_matches_build():
+            logger.info("Clean invalidated build cache")
+            shutil.rmtree(self.runtime_context.output_dir, ignore_errors=True)
+            shutil.rmtree(self.runtime_context.output_woff2, ignore_errors=True)
         ensure_base_output_dirs(self.runtime_context)
 
     def start_build_timer(self) -> None:
@@ -1620,7 +1620,156 @@ class MapleBuildPipeline:
         logger.info("Build started: %s", " | ".join(details))
 
     def should_build_base_outputs(self) -> bool:
-        return not self.should_use_cache or not self.runtime_context.has_cache
+        return bool(self.base_formats_to_build())
+
+    def base_formats_to_build(
+        self,
+    ) -> tuple[Literal["variable", "ttf", "otf"], ...]:
+        """Return only the base formats that are missing from the cache."""
+        required: list[Literal["variable", "ttf", "otf"]] = ["variable"]
+        if self._requires_ttf():
+            required.append("ttf")
+        if self.font_config.wants_format("otf") and not self.font_config.debug:
+            required.append("otf")
+
+        if not self.should_use_cache:
+            return tuple(required)
+        if not self._cache_matches_build():
+            return tuple(required)
+
+        missing_formats: list[Literal["variable", "ttf", "otf"]] = []
+        for build_format in required:
+            if self._has_cached_base_format(build_format):
+                self._log_cache_reuse(build_format)
+            else:
+                missing_formats.append(build_format)
+        return tuple(missing_formats)
+
+    def _cache_matches_build(self) -> bool:
+        if not self.should_use_cache or self._cache_identity_checked:
+            return self._cache_identity_valid
+
+        self._cache_identity_checked = True
+        record_path = Path(self.runtime_context.output_root) / "build-config.json"
+        if not record_path.is_file():
+            return True
+
+        try:
+            data = json.loads(record_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            self._cache_identity_valid = False
+            logger.info(
+                "Invalidate font cache: unreadable build record path=%s", record_path
+            )
+            return False
+        if not isinstance(data, dict):
+            self._cache_identity_valid = False
+            logger.info(
+                "Invalidate font cache: invalid build record path=%s", record_path
+            )
+            return False
+
+        cached_family_name = data.get("family_name")
+        if (
+            isinstance(cached_family_name, str)
+            and cached_family_name != self.font_config.family_name
+        ):
+            self._cache_identity_valid = False
+            logger.info(
+                "Invalidate font cache: family name changed from %s to %s",
+                cached_family_name,
+                self.font_config.family_name,
+            )
+        return self._cache_identity_valid
+
+    def _log_cache_reuse(
+        self,
+        build_format: Literal["variable", "ttf", "otf"],
+    ) -> None:
+        if build_format in self._cache_reuse_logged:
+            return
+        self._cache_reuse_logged.add(build_format)
+        output_dir = {
+            "variable": self.runtime_context.output_variable,
+            "ttf": self.runtime_context.output_ttf,
+            "otf": self.runtime_context.output_otf,
+        }[build_format]
+        logger.info(
+            "Reuse cached %s outputs: path=%s", build_format.upper(), output_dir
+        )
+
+    def _requires_ttf(self) -> bool:
+        return (
+            self.font_config.wants_format("ttf")
+            or self.font_config.wants_format("woff2")
+            or self.font_config.needs_hinted_ttf()
+        )
+
+    def _has_cached_base_format(
+        self,
+        build_format: Literal["variable", "ttf", "otf"],
+    ) -> bool:
+        if build_format == "variable":
+            output_dir = Path(self.runtime_context.output_variable)
+            expected_files = (
+                f"{self.font_config.family_name_compact}[wght].ttf",
+                f"{self.font_config.family_name_compact}-Italic[wght].ttf",
+            )
+            return all(
+                (output_dir / file_name).is_file() for file_name in expected_files
+            )
+
+        output_dir = Path(
+            self.runtime_context.output_ttf
+            if build_format == "ttf"
+            else self.runtime_context.output_otf
+        )
+        extension = f".{build_format}"
+        files = (
+            [
+                file_name
+                for file_name in output_dir.iterdir()
+                if file_name.is_file()
+                and file_name.suffix == extension
+                and is_target_style_file(file_name.name, self.target_styles)
+            ]
+            if output_dir.is_dir()
+            else []
+        )
+        expected_count = len(self.target_styles) if self.target_styles else 4
+        return len(files) >= expected_count
+
+    def should_build_hinted_ttf(
+        self,
+        base_formats: tuple[Literal["variable", "ttf", "otf"], ...],
+    ) -> bool:
+        if not self.font_config.needs_hinted_ttf():
+            return False
+        if "ttf" in base_formats:
+            return True
+        if not self.should_use_cache:
+            return True
+        if self._has_cached_hinted_ttf():
+            logger.info(
+                "Reuse cached TTF-AutoHint outputs: path=%s",
+                self.runtime_context.output_ttf_hinted,
+            )
+            return False
+        return True
+
+    def _has_cached_hinted_ttf(self) -> bool:
+        output_dir = Path(self.runtime_context.output_ttf_hinted)
+        if not output_dir.is_dir():
+            return False
+        files = [
+            file_name
+            for file_name in output_dir.iterdir()
+            if file_name.is_file()
+            and file_name.suffix == ".ttf"
+            and is_target_style_file(file_name.name, self.target_styles)
+        ]
+        expected_count = len(self.target_styles) if self.target_styles else 4
+        return len(files) >= expected_count
 
     def reuse_base_output_cache(self) -> None:
         regular_variable_path = Path(self.runtime_context.output_variable) / (
@@ -1633,7 +1782,7 @@ class MapleBuildPipeline:
         self.runtime_context.resolved_vertical_metric = read_font_vertical_metric(
             regular_variable_path
         )
-        logger.info("Reuse cached Variable, TTF, and TTF-AutoHint outputs")
+        logger.info("Reuse cached base font outputs")
 
     def should_build_nerd_fonts(self) -> bool:
         return self.font_config.nerd_font.enable
@@ -1641,8 +1790,31 @@ class MapleBuildPipeline:
     def should_build_cjk_outputs(self) -> bool:
         return bool(self.font_config.get_selected_cjk_entries())
 
-    def should_build_woff2_outputs(self) -> bool:
-        return self.font_config.wants_format("woff2") and not self.font_config.debug
+    def should_build_woff2_outputs(
+        self,
+        base_formats: tuple[Literal["variable", "ttf", "otf"], ...] = (),
+    ) -> bool:
+        if not self.font_config.wants_format("woff2") or self.font_config.debug:
+            return False
+        if "ttf" in base_formats or not self.should_use_cache:
+            return True
+        output_dir = Path(self.runtime_context.output_woff2)
+        if not output_dir.is_dir():
+            return True
+        files = [
+            file_name
+            for file_name in output_dir.iterdir()
+            if file_name.is_file()
+            and file_name.suffix == ".woff2"
+            and is_target_style_file(file_name.name, self.target_styles)
+        ]
+        expected_count = len(self.target_styles) if self.target_styles else 4
+        if len(files) < expected_count:
+            return True
+        logger.info(
+            "Reuse cached WOFF2 outputs: path=%s", self.runtime_context.output_woff2
+        )
+        return False
 
     def should_persist_cjk_variable_outputs(self) -> bool:
         return self.font_config.cjk_output_format == "variable"

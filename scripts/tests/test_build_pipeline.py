@@ -394,6 +394,19 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             font_config.nerd_font.enable = False
             runtime_context = make_runtime_context(Path(tmp))
             runtime_context.has_cache = True
+            variable_dir = Path(runtime_context.output_variable)
+            variable_dir.mkdir(parents=True, exist_ok=True)
+            (variable_dir / "MapleMono[wght].ttf").touch()
+            (variable_dir / "MapleMono-Italic[wght].ttf").touch()
+            for directory, suffix in (
+                (Path(runtime_context.output_ttf), ".ttf"),
+                (Path(runtime_context.output_ttf_hinted), ".ttf"),
+                (Path(runtime_context.output_otf), ".otf"),
+                (Path(runtime_context.output_woff2), ".woff2"),
+            ):
+                directory.mkdir(parents=True, exist_ok=True)
+                for style in ("Regular", "Bold", "Italic", "BoldItalic"):
+                    (directory / f"MapleMono-{style}{suffix}").touch()
             events: list[str] = []
 
             pipeline = MapleBuildPipeline(font_config, runtime_context)
@@ -449,6 +462,77 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             build_base_mock.assert_not_called()
             build_nf_mock.assert_not_called()
             build_cjk_mock.assert_not_called()
+
+    def test_cache_builds_only_missing_base_format(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            font_config = make_font_config()
+            font_config.behavior.cache = True
+            font_config.nerd_font.enable = False
+            runtime_context = make_runtime_context(Path(tmp))
+
+            for directory, suffix in (
+                (Path(runtime_context.output_variable), "[wght].ttf"),
+                (Path(runtime_context.output_ttf), ".ttf"),
+                (Path(runtime_context.output_ttf_hinted), ".ttf"),
+                (Path(runtime_context.output_woff2), ".woff2"),
+            ):
+                directory.mkdir(parents=True, exist_ok=True)
+                if suffix == "[wght].ttf":
+                    (directory / "MapleMono[wght].ttf").touch()
+                    (directory / "MapleMono-Italic[wght].ttf").touch()
+                else:
+                    for style in ("Regular", "Bold", "Italic", "BoldItalic"):
+                        (directory / f"MapleMono-{style}{suffix}").touch()
+
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+            self.assertEqual(pipeline.base_formats_to_build(), ("otf",))
+
+            Path(runtime_context.output_otf).mkdir(parents=True, exist_ok=True)
+            for style in ("Regular", "Bold", "Italic", "BoldItalic"):
+                (Path(runtime_context.output_otf) / f"MapleMono-{style}.otf").touch()
+            self.assertEqual(pipeline.base_formats_to_build(), ())
+
+            logging_pipeline = MapleBuildPipeline(font_config, runtime_context)
+            with patch("scripts.pipeline.logger.info") as log_info:
+                logging_pipeline.base_formats_to_build()
+                logging_pipeline.should_build_hinted_ttf(("otf",))
+                logging_pipeline.should_build_woff2_outputs(("otf",))
+
+            messages = [call.args[0] for call in log_info.call_args_list]
+            self.assertIn("Reuse cached %s outputs: path=%s", messages)
+            self.assertIn("Reuse cached TTF-AutoHint outputs: path=%s", messages)
+            self.assertIn("Reuse cached WOFF2 outputs: path=%s", messages)
+
+    def test_cache_invalidates_when_family_name_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            font_config = make_font_config()
+            font_config.behavior.cache = True
+            runtime_context = make_runtime_context(tmp_path)
+            output_root = Path(runtime_context.output_root)
+            output_root.mkdir(parents=True, exist_ok=True)
+            (output_root / "build-config.json").write_text(
+                '{"family_name": "Other Font"}',
+                encoding="utf-8",
+            )
+            stale_output = output_root / "stale-output.ttf"
+            stale_output.touch()
+
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+            with patch("scripts.pipeline.logger.info") as log_info:
+                self.assertEqual(
+                    pipeline.base_formats_to_build(),
+                    ("variable", "ttf", "otf"),
+                )
+                pipeline.prepare_output_root()
+
+            self.assertFalse(stale_output.exists())
+            messages = [call.args[0] for call in log_info.call_args_list]
+            self.assertIn(
+                "Invalidate font cache: family name changed from %s to %s",
+                messages,
+            )
+            self.assertIn("Clean invalidated build cache", messages)
 
     def test_woff2_stage_uses_static_ttf_outputs_and_skips_debug_builds(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

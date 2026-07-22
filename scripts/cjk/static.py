@@ -120,14 +120,14 @@ def apply_cjk_width_transform(
             os2.panose.bProportion = 0
             os2.panose.bSpacing = 0
             font.table("hhea").advanceWidthMax = target_width
-            logger.debug(
+            logger.warning(
                 "Changed CJK glyph width; mark font as proportional and skip width checks"
             )
         elif target_width is None:
             target_width = match_width
 
         if scale_factor:
-            logger.debug(
+            logger.info(
                 "Scale CJK glyphs: width_factor=%s, height_factor=%s",
                 scale_factor[0],
                 scale_factor[1],
@@ -189,7 +189,7 @@ def postprocess_cjk_extended_static_font(
     style_compact: str,
     locale_suffix: str | None = None,
 ) -> str:
-    logger.debug(
+    logger.info(
         "Postprocess CJK static font: locale=%s, style=%s",
         entry.display_name,
         style_compact,

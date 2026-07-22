@@ -309,6 +309,11 @@ def instantiate_masters_from_vf(
 ) -> tuple[Path, Path, Path]:
     """Instantiate the configured static masters from a variable font."""
     output_dir.mkdir(parents=True, exist_ok=True)
+    logger.info(
+        "Instantiate CJK masters: input=%s, output_dir=%s",
+        vf_path,
+        output_dir,
+    )
     futures = []
     paths: list[Path] = []
     for output_weight, axes in ordered_master_locations(masters):
@@ -328,6 +333,7 @@ def instantiate_masters_from_vf(
         futures.append(process_pool.submit(instantiate_variable_font_job, job))
     for future in futures:
         future.result()
+    logger.info("CJK masters ready: output_dir=%s", output_dir)
     return cast(tuple[Path, Path, Path], tuple(paths))
 
 
@@ -382,6 +388,12 @@ def instantiate_italic_masters_from_vf(
 ) -> tuple[Path, Path, Path]:
     """Instantiate and skew configured static masters from a variable font."""
     output_dir.mkdir(parents=True, exist_ok=True)
+    logger.info(
+        "Instantiate italic CJK masters: input=%s, output_dir=%s, angle=%s",
+        vf_path,
+        output_dir,
+        italic_angle,
+    )
     futures = []
     paths: list[Path] = []
     for output_weight, axes in ordered_master_locations(masters):
@@ -397,6 +409,7 @@ def instantiate_italic_masters_from_vf(
         futures.append(process_pool.submit(instantiate_italic_master_job, job))
     for future in futures:
         future.result()
+    logger.info("Italic CJK masters ready: output_dir=%s", output_dir)
     return cast(tuple[Path, Path, Path], tuple(paths))
 
 
@@ -1105,8 +1118,13 @@ def prepare_source_masters(
     outline_mode: str,
 ) -> tuple[Path, Path, Path]:
     """Instantiate transformed source masters for the variable-base pipeline."""
+    logger.info(
+        "Prepare CJK source masters: subset=%s, outline=%s",
+        subset_path,
+        outline_mode,
+    )
     if outline_mode != "cff2":
-        return instantiate_masters_from_vf(
+        paths = instantiate_masters_from_vf(
             subset_path,
             config.temp_dir / "source-masters",
             config.source.masters,
@@ -1115,6 +1133,8 @@ def prepare_source_masters(
             target_upem=target_upem,
             transform_config=config,
         )
+        logger.info("CJK source masters prepared: output_dir=%s", paths[0].parent)
+        return paths
 
     cff_master_paths = instantiate_masters_from_vf(
         subset_path,
@@ -1143,6 +1163,10 @@ def prepare_source_masters(
         cff_master_path_strings,
         ttf_master_path_strings,
         config,
+    )
+    logger.info(
+        "CFF2 source masters converted to glyf: output_dir=%s",
+        ttf_master_paths[0].parent,
     )
     return (ttf_master_paths[0], ttf_master_paths[1], ttf_master_paths[2])
 
@@ -1290,6 +1314,12 @@ class CJKBuilder:
         subset_path = self.config.temp_dir / (
             "source-subset.otf" if outline_mode == "cff2" else "source-subset.ttf"
         )
+        logger.info(
+            "Subset CJK source font: source=%s, selected_unicodes=%s, output=%s",
+            self.config.source.path,
+            len(keep_codepoints),
+            subset_path,
+        )
         removed = prepare_source_subset(
             self.config.source.path,
             keep_codepoints,
@@ -1299,6 +1329,11 @@ class CJKBuilder:
         )
         logger.debug(
             "Removed base and feature Unicode values from CJK subset: count=%s", removed
+        )
+        logger.info(
+            "CJK source subset ready: output=%s, removed_unicodes=%s",
+            subset_path,
+            removed,
         )
 
         master_paths = prepare_source_masters(
@@ -1320,6 +1355,7 @@ class CJKBuilder:
         )
 
     def _build_regular_variable_font(self) -> tuple[TTFont, SourceBuildState]:
+        logger.info("Build regular CJK variable font")
         feature_font = load_feature_variable_font(self.config.feature_font_path)
         try:
             source_state, protected_glyphs = self._prepare_source_build_state(
@@ -1339,12 +1375,14 @@ class CJKBuilder:
                 len(feature_font.getGlyphOrder()),
                 len(get_cmap_codepoints(feature_font)),
             )
+            logger.info("Regular CJK variable font ready")
             return feature_font, source_state
         except Exception:
             feature_font.close()
             raise
 
     def _build_italic_variable_font(self, source_state: SourceBuildState) -> TTFont:
+        logger.info("Build italic CJK variable font")
         feature_font = load_feature_variable_font(self.config.feature_font_path)
         try:
             protected_glyphs = set(get_unicode_cmap(feature_font).values())
@@ -1364,6 +1402,7 @@ class CJKBuilder:
                 self.config.transform.italic_angle,
                 self.config.locale_name.lower(),
             )
+            logger.info("Italic feature masters ready")
             italic_font = make_italic_variable_font(
                 feature_font,
                 self.config.transform.italic_angle,
@@ -1380,6 +1419,7 @@ class CJKBuilder:
             italic_master_paths = self._build_source_italic_master_paths(
                 source_state.master_paths
             )
+            logger.info("Italic source masters ready")
             stats = self._merge_master_paths(italic_font, italic_master_paths)
             self._log_build_stats("Italic", stats)
             finalize_variable_font(
@@ -1395,6 +1435,7 @@ class CJKBuilder:
                 len(italic_font.getGlyphOrder()),
                 len(get_cmap_codepoints(italic_font)),
             )
+            logger.info("Italic CJK variable font ready")
             return italic_font
         except Exception:
             italic_font.close()
@@ -1406,6 +1447,7 @@ class CJKBuilder:
     ) -> tuple[Path, Path, Path]:
         italic_master_dir = self.config.temp_dir / "source-italic-masters"
         italic_master_dir.mkdir(parents=True, exist_ok=True)
+        logger.info("Create italic source masters: output_dir=%s", italic_master_dir)
         italic_master_paths = (
             italic_master_dir / "source-italic-min-master.ttf",
             italic_master_dir / "source-italic-regular-master.ttf",
@@ -1423,6 +1465,7 @@ class CJKBuilder:
             )
         for future in futures:
             future.result()
+        logger.info("Italic source masters created: output_dir=%s", italic_master_dir)
         return italic_master_paths
 
     def _merge_master_paths(
@@ -1447,7 +1490,7 @@ class CJKBuilder:
                 master.close()
 
     def _log_build_stats(self, label: str, stats: BuildStats) -> None:
-        logger.debug(
+        logger.info(
             "%s CJK merge results: glyphs_added=%s, unicodes_added=%s",
             label,
             len(stats.added_glyphs),
@@ -1471,6 +1514,7 @@ class CJKBuilder:
     def _build_static_fonts(self, var_font_names: Iterable[str]) -> Path:
         static_dir = self.static_dir
         makedirs(static_dir, exist_ok=True)
+        var_font_names = tuple(var_font_names)
         futures = []
         feature_font = load_feature_variable_font(self.config.feature_font_path)
         try:
@@ -1478,6 +1522,12 @@ class CJKBuilder:
             if feature_axis is None:
                 raise ValueError("Feature font is missing wght axis")
             feature_instances = feature_weight_instances(feature_font)
+            logger.info(
+                "Generate CJK static fonts: variable_fonts=%s, instances=%s, output_dir=%s",
+                len(var_font_names),
+                len(var_font_names) * len(feature_instances),
+                static_dir,
+            )
             for font_name in var_font_names:
                 is_italic = "Italic" in font_name
                 input_path = self.config.output.dir / font_name
@@ -1530,6 +1580,7 @@ class CJKBuilder:
 
         for future in futures:
             future.result()
+        logger.info("CJK static fonts ready: output_dir=%s", static_dir)
         return static_dir
 
     def _write_static_artifacts(self, static_dir: Path) -> None:
@@ -1539,11 +1590,14 @@ class CJKBuilder:
             file.flush()
         logger.info("Update CJK static font hash: path=%s", hash_path)
 
+        archive_path = self.config.output.dir / self.config.output.archive_name
+        logger.info("Archive CJK static fonts: path=%s", archive_path)
         archive(
             str(static_dir),
-            str(self.config.output.dir / self.config.output.archive_name),
+            str(archive_path),
             lambda path: path.endswith(".ttf"),
         )
+        logger.info("CJK static font archive ready: path=%s", archive_path)
 
 
 def finalize_static_font_instance(

@@ -541,6 +541,17 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
             otf = TTFont(root / "otf" / "Fixture-Regular.otf")
             self.assertIn("glyf", ttf.keys())
             self.assertNotIn("CFF ", ttf.keys())
+            self.assertEqual(ttf["gasp"].gaspRange, {65535: 15})
+            self.assertEqual(ttf.table("maxp").maxZones, 1)
+            self.assertFalse({"cvt ", "fpgm", "prep"} & set(ttf.keys()))
+            self.assertEqual(
+                sum(
+                    len(glyph.program.getBytecode())
+                    for glyph in ttf["glyf"].glyphs.values()
+                    if hasattr(glyph, "program")
+                ),
+                0,
+            )
             self.assertEqual(otf.sfntVersion, "OTTO")
             self.assertIn("CFF ", otf.keys())
             self.assertNotIn("glyf", otf.keys())

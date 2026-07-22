@@ -10,7 +10,6 @@ import shutil
 import time
 from os import environ, listdir, makedirs, remove
 from typing import Callable, Literal
-from dehinter.font import dehint
 from scripts.font_ops.fonttools import TTFont, instantiate_variable_font
 from ttfautohint import ttfautohint
 from scripts.font_ops.glyph_transform import smart_change_width
@@ -173,8 +172,6 @@ def postprocess_static_font(
     fix_italic_metadata(font)
     set_monospace_metadata(font)
     strip_name_whitespace(font)
-    if is_ttf:
-        dehint(font, verbose=False)
 
     style_compact = source_path.stem.split("-")[-1]
 
@@ -587,24 +584,19 @@ def prepare_fontmake_sources(
     )
 
 
-def compile_fontmake_format(
+def compile_fontmake_formats(
     context: FontmakeBuildContext,
-    build_format: Literal["variable", "ttf", "otf"],
+    build_formats: tuple[Literal["variable", "ttf", "otf"], ...],
     executor: Executor | None = None,
     *,
     target_styles: list[str] | None = None,
 ) -> None:
-    """Compile all prepared sources for one output format in parallel."""
-    raw_dir = {
-        "variable": context.raw_variable_dir,
-        "ttf": context.raw_ttf_dir,
-        "otf": context.raw_otf_dir,
-    }[build_format]
-    log_task(build_format, "Building %s fonts via `fontmake`", build_format)
-    interpolate: bool | str = build_format != "variable"
-    if interpolate and target_styles is not None:
+    """Compile all requested Fontmake branches in one shared job batch."""
+    log_task("fontmake", "Building %s fonts via `fontmake`", ", ".join(build_formats))
+    static_interpolate: bool | str = True
+    if target_styles is not None:
         style_pattern = "|".join(re.escape(style) for style in target_styles)
-        interpolate = rf".* (?:{style_pattern})"
+        static_interpolate = rf".* (?:{style_pattern})"
 
     compile_fontmake_branches(
         [
@@ -612,14 +604,20 @@ def compile_fontmake_format(
                 designspace_path=Path(source.designspace_path),
                 output=build_format,
                 target=(
-                    raw_dir / f"{source.style}.ttf"
+                    context.raw_variable_dir / f"{source.style}.ttf"
                     if build_format == "variable"
-                    else raw_dir
+                    else {
+                        "ttf": context.raw_ttf_dir,
+                        "otf": context.raw_otf_dir,
+                    }[build_format]
                 ),
-                interpolate=interpolate,
+                interpolate=(
+                    False if build_format == "variable" else static_interpolate
+                ),
                 source_label=source.style,
                 width_transform=context.width_transform,
             )
+            for build_format in build_formats
             for source in context.sources
         ],
         use_processes=True,
@@ -693,8 +691,7 @@ def build_variable_fonts(
     context: FontmakeBuildContext,
     executor: Executor | None = None,
 ) -> None:
-    """Build and postprocess all variable outputs in parallel."""
-    compile_fontmake_format(context, "variable", executor)
+    """Postprocess all compiled variable outputs in parallel."""
     jobs = [
         VariablePostprocessJob(
             raw_path=str(context.raw_variable_dir / f"{source.style}.ttf"),
@@ -722,17 +719,11 @@ def build_static_fonts(
     target_styles: list[str] | None,
     executor: Executor | None = None,
 ) -> None:
-    """Build and postprocess one requested static output format."""
+    """Postprocess one compiled static output format."""
     output_dir = Path(
         runtime_context.output_ttf
         if build_format == "ttf"
         else runtime_context.output_otf
-    )
-    compile_fontmake_format(
-        context,
-        build_format,
-        executor,
-        target_styles=target_styles,
     )
     raw_dir = context.raw_ttf_dir if build_format == "ttf" else context.raw_otf_dir
     static_jobs = [
@@ -1400,6 +1391,20 @@ class MapleBuildPipeline:
                     process_executor,
                 )
                 try:
+                    fontmake_formats: tuple[Literal["variable", "ttf", "otf"], ...] = (
+                        ("variable", "ttf", "otf")
+                        if (
+                            self.font_config.wants_format("otf")
+                            and not self.font_config.debug
+                        )
+                        else ("variable", "ttf")
+                    )
+                    compile_fontmake_formats(
+                        fontmake_context,
+                        fontmake_formats,
+                        process_executor,
+                        target_styles=self.target_styles,
+                    )
                     build_variable_fonts(
                         self.font_config,
                         self.runtime_context,
@@ -1428,12 +1433,13 @@ class MapleBuildPipeline:
                         )
                 finally:
                     shutil.rmtree(fontmake_context.temp_path, ignore_errors=True)
-                build_base_fonts(
-                    self.font_config,
-                    self.runtime_context,
-                    self.target_styles,
-                    process_executor,
-                )
+                if self.font_config.needs_hinted_ttf():
+                    build_base_fonts(
+                        self.font_config,
+                        self.runtime_context,
+                        self.target_styles,
+                        process_executor,
+                    )
                 if self.should_build_woff2_outputs():
                     build_woff2_fonts(
                         self.font_config,

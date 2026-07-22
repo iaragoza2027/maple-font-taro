@@ -102,9 +102,10 @@ flowchart TD
     TEMP --> SRC["Load committed regular and italic<br/>Designspace/UFO sources"]
     SRC --> PREP["Apply weight, line-height,<br/>and width configuration"]
     PREP --> CHECK["Materialize one temporary<br/>Designspace/UFO tree per source"]
-    CHECK --> VF["fontmake Variable TTF<br/>keep overlaps"]
-    CHECK --> TTF["fontmake Static TTF<br/>pathops + transformed components"]
-    CHECK --> OTF_DECISION{"OTF requested?"}
+    CHECK --> BATCH["Submit all requested formats<br/>to the shared process pool"]
+    BATCH --> VF["fontmake Variable TTF<br/>keep overlaps"]
+    BATCH --> TTF["fontmake Static TTF<br/>pathops + transformed components"]
+    BATCH --> OTF_DECISION{"OTF requested?"}
     OTF_DECISION -->|"yes"| OTF["fontmake Static OTF<br/>CFF optimize + subroutinize"]
     OTF_DECISION -->|"no"| SKIP_OTF["skip OTF"]
 
@@ -128,7 +129,9 @@ flowchart TD
     AG --> AH["update static names and features"]
     AH --> AI["verify glyph width"]
     AI --> AJ["publish fonts/TTF and fonts/OTF"]
-    AJ --> AQ["select_build_files fonts/TTF"]
+    AJ --> HINT_DECISION{"Hinted TTF exposed<br/>or consumed?"}
+    HINT_DECISION -->|"yes"| AQ["select_build_files fonts/TTF"]
+    HINT_DECISION -->|"no"| AK
     AQ --> AR["Create MonoAutohintJob list"]
     AR --> AS["run_process_jobs build_mono_autohint_job"]
     AS --> AT["patch hinted feature set"]
@@ -286,7 +289,7 @@ flowchart TD
 | Config and CLI | `cli.py`, `BuildConfigResolver` |
 | Runtime orchestration | `MapleBuildPipeline` |
 | CJK static base resolution | `BuildRuntimeContext.resolve_cjk_static_base` |
-| Fontmake source build | `prepare_fontmake_sources`, `compile_fontmake_format` |
+| Fontmake source build | `prepare_fontmake_sources`, `compile_fontmake_formats` |
 | Base static postprocess | `StaticPostprocessJob`, `postprocess_static_font_job` |
 | Autohint output | `MonoAutohintJob`, `build_mono_autohint_job` |
 | Web font conversion | `convert_to_web` |

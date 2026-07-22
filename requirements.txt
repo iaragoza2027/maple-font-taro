@@ -20,8 +20,6 @@ cffsubr==0.4.0
     # via ufo2ft
 compreffor==0.6.0
     # via ufo2ft
-dehinter==4.0.0
-    # via maple-font
 fontmake==3.12.1
     # via maple-font
 fontmath==0.9.4
@@ -33,7 +31,6 @@ fonttools==4.62.1
     #   booleanoperations
     #   cffsubr
     #   compreffor
-    #   dehinter
     #   fontmake
     #   fontmath
     #   glyphslib
@@ -73,8 +70,6 @@ skia-pathops==0.9.2
 texttable==1.7.0
     # via py7zr
 ttfautohint-py==0.6.0
-    # via maple-font
-typing-extensions==4.15.0
     # via maple-font
 ufo2ft==3.7.0
     # via fontmake

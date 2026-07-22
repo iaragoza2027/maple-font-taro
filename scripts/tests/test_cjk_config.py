@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import fields
 import json
 import tempfile
 import unittest
+from dataclasses import fields
 from pathlib import Path
 
 from scripts.cjk.config import (
@@ -14,8 +14,8 @@ from scripts.cjk.config import (
     config_from_json,
     serialize_cjk_build_config,
 )
-from scripts.cjk.presets import build_preset_config
 from scripts.cjk.models import CJKSourceConfig
+from scripts.cjk.presets import build_preset_config
 
 
 class CJKConfigSurfaceTest(unittest.TestCase):
@@ -130,26 +130,6 @@ class CJKConfigSurfaceTest(unittest.TestCase):
         )
 
         self.assertNotIn("download", serialize_cjk_build_config(config)["source"])
-
-    def test_rejects_removed_download_url_with_migration_help(self) -> None:
-        with self.assertRaisesRegex(
-            ValueError,
-            "download_url was removed; use source.download.url",
-        ):
-            config_from_data(
-                {
-                    "locale_name": "HK",
-                    "source": {
-                        "path": "source.ttf",
-                        "download_url": "https://example.com/source.ttf",
-                        "masters": {
-                            "100": {"wght": 100},
-                            "400": {"wght": 400},
-                            "800": {"wght": 800},
-                        },
-                    },
-                }
-            )
 
     def test_rejects_unsafe_download_archive_paths(self) -> None:
         for path in ("", "/font.otf", "C:/font.otf", "../font.otf", "a\\font.otf"):

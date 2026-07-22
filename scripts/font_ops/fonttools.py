@@ -99,6 +99,10 @@ class GaspTable(Protocol):
     gaspRange: dict[int, int]
 
 
+class MaxpTable(Protocol):
+    maxZones: int
+
+
 class MetaTable(Protocol):
     data: dict[str, str | bytes]
 
@@ -147,6 +151,9 @@ class TTFont(FontToolsTTFont):
     def table(self, tag: Literal["gasp"]) -> GaspTable: ...
 
     @overload
+    def table(self, tag: Literal["maxp"]) -> MaxpTable: ...
+
+    @overload
     def table(self, tag: Literal["hmtx", "vmtx"]) -> MetricsTable: ...
 
     @overload
@@ -192,6 +199,7 @@ __all__ = [
     "GlyfTable",
     "HeadTable",
     "HheaTable",
+    "MaxpTable",
     "MetaTable",
     "MetricsTable",
     "OS2Table",

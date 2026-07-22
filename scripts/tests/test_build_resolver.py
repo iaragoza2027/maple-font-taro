@@ -492,5 +492,40 @@ class BuildRuntimeContextFontPatcherTest(unittest.TestCase):
                     runtime_context.ensure_font_patcher_available(font_config)
 
 
+class BuildRuntimeContextCacheTest(unittest.TestCase):
+    def test_cache_skips_hinted_directory_when_not_required(self) -> None:
+        font_config = make_font_config()
+        font_config.behavior.formats = ["otf"]
+        font_config.nerd_font.enable = False
+        checked_paths: list[str] = []
+
+        def record_check(dir_path: str, **_kwargs) -> bool:
+            checked_paths.append(dir_path)
+            return True
+
+        with (
+            patch("scripts.config.resolver.check_file_count", record_check),
+            patch("scripts.config.resolver.get_font_forge_bin", return_value=None),
+        ):
+            runtime_context = BuildRuntimeContext.from_config(font_config)
+
+        self.assertTrue(runtime_context.has_cache)
+        self.assertFalse(any(path.endswith("TTF-AutoHint") for path in checked_paths))
+
+    def test_cache_requires_hinted_directory_for_ttf_outputs(self) -> None:
+        font_config = make_font_config()
+
+        def reject_hinted(dir_path: str, **_kwargs) -> bool:
+            return not dir_path.endswith("TTF-AutoHint")
+
+        with (
+            patch("scripts.config.resolver.check_file_count", reject_hinted),
+            patch("scripts.config.resolver.get_font_forge_bin", return_value=None),
+        ):
+            runtime_context = BuildRuntimeContext.from_config(font_config)
+
+        self.assertFalse(runtime_context.has_cache)
+
+
 if __name__ == "__main__":
     unittest.main()

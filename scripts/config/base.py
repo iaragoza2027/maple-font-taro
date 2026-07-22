@@ -531,6 +531,22 @@ class ResolvedBuildConfig:
     def wants_format(self, build_format: str) -> bool:
         return build_format in self.formats
 
+    def needs_hinted_ttf(self) -> bool:
+        """Return whether this build exposes or consumes hinted base TTFs."""
+        if self.wants_format("ttf"):
+            return True
+        if not self.use_hinted:
+            return False
+        if self.nerd_font.enable:
+            return True
+        if self.cjk_output_format != "static":
+            return False
+        return any(
+            self.use_cjk_both
+            or not (self.nerd_font.enable and entry.common_options.with_nerd_font)
+            for entry in self.get_selected_cjk_entries()
+        )
+
     def get_nf_suffix_compact(self) -> str:
         full = self.get_nf_suffix()
         if not full:

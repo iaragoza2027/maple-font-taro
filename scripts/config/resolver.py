@@ -101,7 +101,10 @@ class BuildRuntimeContext:
                     join_path(output_root, "Variable"), min_count=2, end=".ttf"
                 )
                 and check_file_count(output_ttf, min_count=4, end=".ttf")
-                and check_file_count(output_ttf_hinted, min_count=4, end=".ttf")
+                and (
+                    not config.needs_hinted_ttf()
+                    or check_file_count(output_ttf_hinted, min_count=4, end=".ttf")
+                )
                 and (
                     not config.wants_format("otf")
                     or check_file_count(

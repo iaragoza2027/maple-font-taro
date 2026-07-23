@@ -7,27 +7,52 @@ from pathlib import Path
 from typing import cast
 from unittest.mock import MagicMock, PropertyMock, patch
 
+from fontTools.fontBuilder import FontBuilder
+from fontTools.pens.ttGlyphPen import TTGlyphPen
+
 from scripts.config.base import (
     BuildFormatId,
     CJKCommonBuildOptions,
     ResolvedCJKBuildEntry,
 )
-from scripts.pipeline import (
+from scripts.pipeline.orchestrator import (
     FontmakeBuildContext,
     MapleBuildPipeline,
     PreparedFontmakeSource,
-    build_cjk_extended_variable_outputs,
-    ensure_cjk_variable_fonts,
     build_woff2_fonts,
-    collect_build_files,
     compile_fontmake_formats,
     prepare_fontmake_sources,
-    prune_build_files,
 )
-from scripts.config.resolver import BuildConfigResolver, BuildRuntimeContext
+from scripts.pipeline.cjk_outputs import (
+    build_cjk_extended_variable_outputs,
+    ensure_cjk_variable_fonts,
+)
+from scripts.pipeline.artifacts import collect_build_files, prune_build_files
+from scripts.config.resolver import BuildConfigResolver
+from scripts.config.runtime import BuildRuntimeContext
 from scripts.cjk.config import CJKBuildConfig, CJKOutputConfig, CJKSourceConfig
 from scripts.cjk.presets import CJKPresetId, build_preset_config, get_preset
 from scripts.cjk.variable import _cmap_supports_codepoint
+
+
+TEST_STYLES = (
+    "Thin",
+    "ThinItalic",
+    "ExtraLight",
+    "ExtraLightItalic",
+    "Light",
+    "LightItalic",
+    "Regular",
+    "Italic",
+    "Medium",
+    "MediumItalic",
+    "SemiBold",
+    "SemiBoldItalic",
+    "Bold",
+    "BoldItalic",
+    "ExtraBold",
+    "ExtraBoldItalic",
+)
 
 
 def make_font_config():
@@ -52,6 +77,29 @@ def make_runtime_context(tmp_path: Path) -> BuildRuntimeContext:
         font_forge_bin=None,
         resolved_vertical_metric=(1020, -300),
     )
+
+
+def write_test_font(path: Path) -> None:
+    builder = FontBuilder(1000, isTTF=True)
+    builder.setupGlyphOrder([".notdef"])
+    builder.setupCharacterMap({})
+    builder.setupGlyf({".notdef": TTGlyphPen(None).glyph()})
+    builder.setupHorizontalMetrics({".notdef": (600, 0)})
+    builder.setupHorizontalHeader(ascent=800, descent=-200)
+    builder.setupNameTable(
+        {
+            "familyName": "Maple Mono",
+            "styleName": "Regular",
+            "uniqueFontIdentifier": "Maple Mono Regular",
+            "fullName": "Maple Mono Regular",
+            "psName": "MapleMono-Regular",
+        }
+    )
+    builder.setupOS2()
+    builder.setupPost()
+    builder.setupMaxp()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    builder.save(path)
 
 
 def make_builtin_entry(locale: CJKPresetId = "cn") -> ResolvedCJKBuildEntry:
@@ -92,17 +140,32 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 output=CJKOutputConfig(dir=Path(tmp)),
             )
 
-            with patch("scripts.pipeline.build_cjk_fonts") as build:
+            font_config = make_font_config()
+
+            def build_outputs(*_args, **_kwargs) -> None:
+                write_test_font(Path(tmp) / "MapleMono-CJK-VF.ttf")
+                write_test_font(Path(tmp) / "MapleMono-CJK-Italic-VF.ttf")
+
+            with patch(
+                "scripts.pipeline.cjk_outputs.build_cjk_fonts",
+                side_effect=build_outputs,
+            ) as build:
                 result = ensure_cjk_variable_fonts(
                     entry,
-                    make_font_config(),
+                    font_config,
                     "mirror.example.com/github.com",
                 )
 
-            self.assertIsNone(result)
+            self.assertEqual(
+                result,
+                (
+                    Path(tmp) / "MapleMono-CJK-VF.ttf",
+                    Path(tmp) / "MapleMono-CJK-Italic-VF.ttf",
+                ),
+            )
             build.assert_called_once_with(
                 entry.build_config,
-                make_font_config(),
+                font_config,
                 vf_only=True,
                 executor=None,
                 github_mirror="mirror.example.com/github.com",
@@ -159,7 +222,9 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
         )
         executor = cast(Executor, MagicMock())
 
-        with patch("scripts.pipeline.compile_fontmake_branches") as compile_branches:
+        with patch(
+            "scripts.pipeline.orchestrator.compile_fontmake_branches"
+        ) as compile_branches:
             compile_fontmake_formats(
                 context,
                 ("variable", "ttf", "otf"),
@@ -227,39 +292,39 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                     side_effect=lambda: events.append("finish"),
                 ),
                 patch(
-                    "scripts.pipeline.build_woff2_fonts",
+                    "scripts.pipeline.orchestrator.build_woff2_fonts",
                     side_effect=lambda *_: events.append("woff2"),
                 ),
                 patch(
-                    "scripts.pipeline.prepare_fontmake_sources",
+                    "scripts.pipeline.orchestrator.prepare_fontmake_sources",
                     side_effect=lambda *_: events.append("prepare") or fontmake_context,
                 ),
                 patch(
-                    "scripts.pipeline.compile_fontmake_formats",
+                    "scripts.pipeline.orchestrator.compile_fontmake_formats",
                     side_effect=lambda *_args, **_kwargs: events.append("compile"),
                 ),
                 patch(
-                    "scripts.pipeline.build_variable_fonts",
+                    "scripts.pipeline.orchestrator.build_variable_fonts",
                     side_effect=lambda *_: events.append("variable"),
                 ),
                 patch(
-                    "scripts.pipeline.build_static_fonts",
+                    "scripts.pipeline.orchestrator.build_static_fonts",
                     side_effect=lambda *_args: events.append(_args[3]),
                 ),
                 patch(
-                    "scripts.pipeline.build_base_fonts",
+                    "scripts.pipeline.orchestrator.build_base_fonts",
                     side_effect=lambda *_: events.append("ttf-autohint"),
                 ),
                 patch(
-                    "scripts.pipeline.build_nerd_fonts",
+                    "scripts.pipeline.orchestrator.build_nerd_fonts",
                     side_effect=lambda *_: events.append("nf"),
                 ),
                 patch(
-                    "scripts.pipeline.build_cjk_extended_static_outputs",
+                    "scripts.pipeline.orchestrator.build_cjk_extended_static_outputs",
                     side_effect=lambda *_: events.append("cjk-static"),
                 ),
                 patch(
-                    "scripts.pipeline.cleanup_unselected_base_formats",
+                    "scripts.pipeline.orchestrator.cleanup_unselected_base_formats",
                     side_effect=lambda *_: events.append("cleanup"),
                 ),
             ):
@@ -303,14 +368,14 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 patch.object(MapleBuildPipeline, "start_build_timer"),
                 patch.object(MapleBuildPipeline, "prepare_output_root"),
                 patch(
-                    "scripts.pipeline.prepare_fontmake_sources",
+                    "scripts.pipeline.orchestrator.prepare_fontmake_sources",
                     return_value=context,
                 ),
                 patch(
-                    "scripts.pipeline.compile_fontmake_formats",
+                    "scripts.pipeline.orchestrator.compile_fontmake_formats",
                     side_effect=RuntimeError("compile failed"),
                 ),
-                patch("scripts.pipeline.shutil.rmtree") as rmtree,
+                patch("scripts.pipeline.orchestrator.shutil.rmtree") as rmtree,
                 self.assertRaisesRegex(RuntimeError, "compile failed"),
             ):
                 pipeline.build()
@@ -376,14 +441,14 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 patch.object(MapleBuildPipeline, "write_build_record"),
                 patch.object(MapleBuildPipeline, "finish_build"),
                 patch(
-                    "scripts.pipeline.prepare_fontmake_sources",
+                    "scripts.pipeline.orchestrator.prepare_fontmake_sources",
                     return_value=context,
                 ),
-                patch("scripts.pipeline.compile_fontmake_formats"),
-                patch("scripts.pipeline.build_variable_fonts"),
-                patch("scripts.pipeline.build_static_fonts"),
-                patch("scripts.pipeline.build_base_fonts") as autohint,
-                patch("scripts.pipeline.cleanup_unselected_base_formats"),
+                patch("scripts.pipeline.orchestrator.compile_fontmake_formats"),
+                patch("scripts.pipeline.orchestrator.build_variable_fonts"),
+                patch("scripts.pipeline.orchestrator.build_static_fonts"),
+                patch("scripts.pipeline.orchestrator.build_base_fonts") as autohint,
+                patch("scripts.pipeline.orchestrator.cleanup_unselected_base_formats"),
             ):
                 pipeline.build()
 
@@ -398,8 +463,8 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             runtime_context.has_cache = True
             variable_dir = Path(runtime_context.output_variable)
             variable_dir.mkdir(parents=True, exist_ok=True)
-            (variable_dir / "MapleMono[wght].ttf").touch()
-            (variable_dir / "MapleMono-Italic[wght].ttf").touch()
+            write_test_font(variable_dir / "MapleMono[wght].ttf")
+            write_test_font(variable_dir / "MapleMono-Italic[wght].ttf")
             for directory, suffix in (
                 (Path(runtime_context.output_ttf), ".ttf"),
                 (Path(runtime_context.output_ttf_hinted), ".ttf"),
@@ -407,11 +472,17 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 (Path(runtime_context.output_woff2), ".woff2"),
             ):
                 directory.mkdir(parents=True, exist_ok=True)
-                for style in ("Regular", "Bold", "Italic", "BoldItalic"):
-                    (directory / f"MapleMono-{style}{suffix}").touch()
+                for style in TEST_STYLES:
+                    file_name = (
+                        f"MapleMono-{style}.ttf.woff2"
+                        if suffix == ".woff2"
+                        else f"MapleMono-{style}{suffix}"
+                    )
+                    write_test_font(directory / file_name)
             events: list[str] = []
 
             pipeline = MapleBuildPipeline(font_config, runtime_context)
+            pipeline.write_build_record()
             with patch.object(
                 MapleBuildPipeline,
                 "prepare_output_root",
@@ -438,22 +509,22 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                                 side_effect=lambda: events.append("finish"),
                             ):
                                 with patch(
-                                    "scripts.pipeline.prepare_fontmake_sources"
+                                    "scripts.pipeline.orchestrator.prepare_fontmake_sources"
                                 ) as prepare_sources_mock:
                                     with patch(
-                                        "scripts.pipeline.build_variable_fonts"
+                                        "scripts.pipeline.orchestrator.build_variable_fonts"
                                     ) as build_variable_mock:
                                         with patch(
-                                            "scripts.pipeline.build_static_fonts"
+                                            "scripts.pipeline.orchestrator.build_static_fonts"
                                         ) as build_static_mock:
                                             with patch(
-                                                "scripts.pipeline.build_base_fonts"
+                                                "scripts.pipeline.orchestrator.build_base_fonts"
                                             ) as build_base_mock:
                                                 with patch(
-                                                    "scripts.pipeline.build_nerd_fonts"
+                                                    "scripts.pipeline.orchestrator.build_nerd_fonts"
                                                 ) as build_nf_mock:
                                                     with patch(
-                                                        "scripts.pipeline.build_cjk_extended_static_outputs"
+                                                        "scripts.pipeline.orchestrator.build_cjk_extended_static_outputs"
                                                     ) as build_cjk_mock:
                                                         pipeline.build()
 
@@ -480,30 +551,38 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             ):
                 directory.mkdir(parents=True, exist_ok=True)
                 if suffix == "[wght].ttf":
-                    (directory / "MapleMono[wght].ttf").touch()
-                    (directory / "MapleMono-Italic[wght].ttf").touch()
+                    write_test_font(directory / "MapleMono[wght].ttf")
+                    write_test_font(directory / "MapleMono-Italic[wght].ttf")
                 else:
-                    for style in ("Regular", "Bold", "Italic", "BoldItalic"):
-                        (directory / f"MapleMono-{style}{suffix}").touch()
+                    for style in TEST_STYLES:
+                        file_name = (
+                            f"MapleMono-{style}.ttf.woff2"
+                            if suffix == ".woff2"
+                            else f"MapleMono-{style}{suffix}"
+                        )
+                        write_test_font(directory / file_name)
 
             pipeline = MapleBuildPipeline(font_config, runtime_context)
+            pipeline.write_build_record()
             self.assertEqual(pipeline.base_formats_to_build(), ("otf",))
 
             Path(runtime_context.output_otf).mkdir(parents=True, exist_ok=True)
-            for style in ("Regular", "Bold", "Italic", "BoldItalic"):
-                (Path(runtime_context.output_otf) / f"MapleMono-{style}.otf").touch()
+            for style in TEST_STYLES:
+                write_test_font(
+                    Path(runtime_context.output_otf) / f"MapleMono-{style}.otf"
+                )
             self.assertEqual(pipeline.base_formats_to_build(), ())
 
             logging_pipeline = MapleBuildPipeline(font_config, runtime_context)
-            with patch("scripts.pipeline.logger.info") as log_info:
+            with patch("scripts.pipeline.orchestrator.logger.info") as log_info:
                 logging_pipeline.base_formats_to_build()
                 logging_pipeline.should_build_hinted_ttf(("otf",))
                 logging_pipeline.should_build_woff2_outputs(("otf",))
 
             messages = [call.args[0] for call in log_info.call_args_list]
-            self.assertIn("Reuse cached %s outputs: path=%s", messages)
-            self.assertIn("Reuse cached TTF-AutoHint outputs: path=%s", messages)
-            self.assertIn("Reuse cached WOFF2 outputs: path=%s", messages)
+            self.assertIn("Reuse cached %s outputs", messages)
+            self.assertIn("Reuse cached TTF-AutoHint outputs", messages)
+            self.assertIn("Reuse cached WOFF2 outputs", messages)
 
     def test_cache_invalidates_when_family_name_changes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -521,7 +600,10 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             stale_output.touch()
 
             pipeline = MapleBuildPipeline(font_config, runtime_context)
-            with patch("scripts.pipeline.logger.info") as log_info:
+            with (
+                patch("scripts.pipeline.orchestrator.logger.info") as log_info,
+                patch("scripts.pipeline.orchestrator.logger.debug") as log_debug,
+            ):
                 self.assertEqual(
                     pipeline.base_formats_to_build(),
                     ("variable", "ttf", "otf"),
@@ -531,10 +613,38 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             self.assertFalse(stale_output.exists())
             messages = [call.args[0] for call in log_info.call_args_list]
             self.assertIn(
-                "Invalidate font cache: family name changed from %s to %s",
+                "Invalidate font cache: build identity changed path=%s",
                 messages,
             )
-            self.assertIn("Clean invalidated build cache", messages)
+            self.assertIn(
+                "Clean invalidated build cache",
+                [call.args[0] for call in log_debug.call_args_list],
+            )
+
+    def test_cache_identity_tracks_sources_but_not_runtime_controls(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            source_dir = tmp_path / "source"
+            source_dir.mkdir()
+            designspace = source_dir / "MapleMono[wght].designspace"
+            designspace.write_text("first", encoding="utf-8")
+
+            font_config = make_font_config()
+            font_config.behavior.cache = True
+            runtime_context = make_runtime_context(tmp_path)
+            runtime_context.src_dir = str(source_dir)
+            Path(runtime_context.output_root).mkdir(parents=True)
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+            pipeline.write_build_record()
+
+            font_config.behavior.archive = not font_config.behavior.archive
+            font_config.metrics.pool_size += 1
+            unchanged = MapleBuildPipeline(font_config, runtime_context)
+            self.assertTrue(unchanged._cache_matches_build())
+
+            designspace.write_text("second", encoding="utf-8")
+            changed = MapleBuildPipeline(font_config, runtime_context)
+            self.assertFalse(changed._cache_matches_build())
 
     def test_woff2_stage_uses_static_ttf_outputs_and_skips_debug_builds(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -548,7 +658,7 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             (output_ttf / "MapleMono-Regular.ttf").touch()
 
             executor = cast(Executor, MagicMock())
-            with patch("scripts.pipeline.convert_to_web") as convert:
+            with patch("scripts.pipeline.base_fonts.convert_to_web") as convert:
                 build_woff2_fonts(font_config, runtime_context, executor)
 
             convert.assert_called_once_with(
@@ -574,7 +684,7 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
 
             pipeline = MapleBuildPipeline(font_config, runtime_context)
             with patch(
-                "scripts.pipeline.read_font_vertical_metric",
+                "scripts.pipeline.orchestrator.read_font_vertical_metric",
                 return_value=(1200, -320),
             ) as read_metric_mock:
                 pipeline.reuse_base_output_cache()
@@ -590,9 +700,10 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             captured_output_dirs: list[Path] = []
 
             with patch(
-                "scripts.pipeline.build_cjk_extended_variable_fonts",
+                "scripts.pipeline.cjk_outputs.build_cjk_extended_variable_fonts",
                 side_effect=lambda entry, *_args, **kwargs: (
-                    captured_output_dirs.append(kwargs["output_locale"]) or None
+                    captured_output_dirs.append(kwargs["output_locale"])
+                    or (Path("regular"), Path("italic"))
                 ),
             ):
                 build_cjk_extended_variable_outputs(font_config, runtime_context)
@@ -608,12 +719,12 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             captured_profiles: list[tuple[str, bool]] = []
 
             with patch(
-                "scripts.pipeline.build_cjk_extended_variable_fonts",
+                "scripts.pipeline.cjk_outputs.build_cjk_extended_variable_fonts",
                 side_effect=lambda entry, *_args, **kwargs: (
                     captured_profiles.append(
                         (kwargs["output_locale"], kwargs["include_nerd_font"])
                     )
-                    or None
+                    or (Path("regular"), Path("italic"))
                 ),
             ):
                 build_cjk_extended_variable_outputs(font_config, runtime_context)
@@ -637,17 +748,15 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 font_config.feature.width = width
                 pipeline = MapleBuildPipeline(font_config, runtime_context)
 
-                with patch("scripts.pipeline.logger.info") as log_info:
+                with patch("scripts.pipeline.orchestrator.logger.info") as log_info:
                     pipeline.start_build_timer()
 
                 log_info.assert_called_once()
                 message = log_info.call_args.args[0] % log_info.call_args.args[1:]
-                self.assertTrue(
-                    message.startswith("Build started: Maple Mono (Version")
-                )
-                self.assertIn("Formats: TTF, OTF, WOFF2 | Styles: all", message)
-                self.assertIn("Hinting: enabled | Ligatures: enabled", message)
-                self.assertIn("CJK: disabled | Cache: disabled", message)
+                self.assertTrue(message.startswith("Maple Mono 7.900"))
+                self.assertIn("  Formats: TTF, OTF, WOFF2\n  Styles: all", message)
+                self.assertIn("  Options: hinting, ligatures", message)
+                self.assertIn("  CJK: off\n  Cache: off", message)
                 if width_summary is None:
                     self.assertNotIn("Width:", message)
                 else:
@@ -660,60 +769,88 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             output_root = Path(runtime_context.output_dir)
             for name in ["Variable", "TTF", "archive", ".cjk-temp", "temp"]:
                 (output_root / name).mkdir(parents=True, exist_ok=True)
+            (output_root / "Variable" / "regular.ttf").write_bytes(b"font")
+            (output_root / "Variable" / "italic.ttf").write_bytes(b"font")
+            (output_root / "TTF" / "regular.ttf").write_bytes(b"font")
+            (output_root / "archive" / "release.zip").write_bytes(b"archive")
+            (output_root / ".cjk-temp" / "ignored.ttf").write_bytes(b"font")
             (output_root / "build-config.json").write_text("{}", encoding="utf-8")
             font_config = make_font_config()
             pipeline = MapleBuildPipeline(font_config, runtime_context)
             pipeline.start_time = 10.0
 
             with (
-                patch("scripts.pipeline.time.time", return_value=12.5),
+                patch("scripts.pipeline.orchestrator.time.time", return_value=12.5),
                 patch.object(
                     type(font_config),
                     "freeze_config_str",
                     new_callable=PropertyMock,
                     return_value="",
                 ),
-                patch("scripts.pipeline.logger.info") as log_info,
+                patch("scripts.pipeline.orchestrator.logger.info") as log_info,
             ):
                 pipeline.finish_build()
 
             message = log_info.call_args.args[0] % log_info.call_args.args[1:]
-            self.assertIn("duration=2.50s", message)
-            self.assertIn("fea=default config", message)
-            self.assertIn("outputs=TTF,Variable,archive", message)
+            self.assertIn("Complete in 2.50s", message)
+            self.assertIn(
+                "Outputs: TTF: 1, Variable: 2, archive: 1",
+                message,
+            )
             self.assertNotIn(".cjk-temp", message)
             self.assertNotIn("build-config.json", message)
-            self.assertIn(f"output_root={output_root.resolve()}", message)
+            self.assertIn(f"Directory: {output_root.resolve()}", message)
 
-    def test_cjk_warnings_explain_missing_selection_and_all_failures(self) -> None:
+    def test_missing_cjk_selection_logs_reason_outside_ci(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             runtime_context = make_runtime_context(Path(tmp))
             font_config = make_font_config()
 
-            with patch("scripts.pipeline.logger.warning") as log_warning:
-                build_cjk_extended_variable_outputs(font_config, runtime_context)
-
-            log_warning.assert_called_once_with(
-                "Skip CJK outputs: reason=no CJK locale selected"
-            )
-
-            font_config.cjk.entries = [make_builtin_entry("cn")]
             with (
-                patch(
-                    "scripts.pipeline.build_cjk_extended_variable_fonts",
-                    return_value=None,
-                ),
-                patch("scripts.pipeline.logger.warning") as log_warning,
+                patch("scripts.pipeline.cjk_outputs.is_ci", return_value=False),
+                patch("scripts.pipeline.cjk_outputs.logger.warning") as log_warning,
+                patch("scripts.pipeline.cjk_outputs.logger.debug") as log_debug,
+                patch("scripts.pipeline.cjk_outputs.logger.info") as log_info,
             ):
                 build_cjk_extended_variable_outputs(font_config, runtime_context)
 
-            self.assertTrue(
-                any(
-                    "locales=%s, mode=%s, reason=all selected locale builds failed"
-                    in call.args[0]
-                    for call in log_warning.call_args_list
-                )
+            log_warning.assert_not_called()
+            log_debug.assert_not_called()
+            log_info.assert_called_once_with(
+                "Skip CJK outputs: reason=no CJK locale selected"
             )
+
+    def test_missing_cjk_selection_stays_quiet_in_ci(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime_context = make_runtime_context(Path(tmp))
+            font_config = make_font_config()
+
+            with (
+                patch("scripts.pipeline.cjk_outputs.is_ci", return_value=True),
+                patch("scripts.pipeline.cjk_outputs.logger.debug") as log_debug,
+                patch("scripts.pipeline.cjk_outputs.logger.info") as log_info,
+            ):
+                build_cjk_extended_variable_outputs(font_config, runtime_context)
+
+            log_info.assert_not_called()
+            log_debug.assert_called_once_with(
+                "Skip CJK outputs because no locale is selected"
+            )
+
+    def test_cjk_internal_missing_file_propagates(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime_context = make_runtime_context(Path(tmp))
+            font_config = make_font_config()
+            font_config.cjk.entries = [make_builtin_entry("cn")]
+
+            with (
+                patch(
+                    "scripts.pipeline.cjk_outputs.build_cjk_extended_variable_fonts",
+                    side_effect=FileNotFoundError("missing intermediate"),
+                ),
+                self.assertRaisesRegex(FileNotFoundError, "missing intermediate"),
+            ):
+                build_cjk_extended_variable_outputs(font_config, runtime_context)
 
 
 class BuildFileSelectionTest(unittest.TestCase):

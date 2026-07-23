@@ -26,7 +26,7 @@ def patch_font_feature(
 ) -> None:
     if config.apply_fea_file:
         if fea_path:
-            logger.info("Apply feature file: path=%s", fea_path)
+            logger.debug("Apply feature file: path=%s", fea_path)
             addOpenTypeFeatures(font, fea_path)
     elif not (is_hinted and config.infinite_arrow):
         enable_infinite = (

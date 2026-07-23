@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-from scripts.cjk.pipeline import build_cjk_fonts
+from scripts.cjk.builder import build_cjk_fonts
 from scripts.cjk.presets import build_preset_config, list_presets
 from scripts.cjk.resolver import (
     add_cjk_arguments,
@@ -38,6 +38,6 @@ def run(args: argparse.Namespace) -> None:
         )
         return
 
-    from scripts.cjk.pipeline import build_cjk_from_args
+    from scripts.cjk.builder import build_cjk_from_args
 
     build_cjk_from_args(args, github_mirror)

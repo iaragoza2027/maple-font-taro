@@ -11,7 +11,8 @@ from unittest.mock import patch
 from scripts.config.cli import parse_args
 from scripts.config.base import CJKCommonBuildOptions, ResolvedCJKBuildEntry
 from scripts.utils.errors import BuildDependencyError
-from scripts.config.resolver import BuildConfigResolver, BuildRuntimeContext
+from scripts.config.resolver import BuildConfigResolver
+from scripts.config.runtime import BuildRuntimeContext
 from scripts.cjk.config import (
     CJKBuildConfig,
     CJKNamingConfig,
@@ -20,6 +21,10 @@ from scripts.cjk.config import (
 )
 from scripts.cjk.presets import CJKPresetId, get_preset
 from scripts.utils.files import get_directory_hash
+from scripts.pipeline.nerd_fonts import (
+    ensure_font_patcher_available,
+    should_use_font_patcher,
+)
 
 
 def make_runtime_context(tmp_path: Path) -> BuildRuntimeContext:
@@ -44,6 +49,14 @@ def make_runtime_context(tmp_path: Path) -> BuildRuntimeContext:
 
 def make_font_config():
     return BuildConfigResolver().load_defaults()
+
+
+class ProjectConfigResolutionTest(unittest.TestCase):
+    def test_project_config_resolves_without_cli_namespace(self) -> None:
+        config = BuildConfigResolver().resolve_project_config()
+
+        self.assertEqual(config.family_name, "Maple Mono")
+        self.assertEqual(config.formats, ["ttf", "otf", "woff2"])
 
 
 def make_preset(tmp_path: Path, locale_name: str = "CN") -> CJKBuildConfig:
@@ -105,11 +118,23 @@ def resolve_quietly(
     entry: ResolvedCJKBuildEntry,
     required_styles: list[str],
 ):
+    def build_variable(
+        config: CJKBuildConfig,
+        *_args,
+        **_kwargs,
+    ) -> None:
+        write_static_fonts(
+            runtime_context.cjk_static_dir(config),
+            config.naming.static_file_prefix,
+            required_styles,
+        )
+
     with redirect_stdout(StringIO()):
         return runtime_context.resolve_cjk_static_base(
             entry,
             required_styles,
             make_font_config(),
+            build_variable,
         )
 
 
@@ -122,7 +147,7 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
             entry = make_entry(tmp_path)
 
             with patch(
-                "scripts.config.resolver.download_zip_and_extract",
+                "scripts.config.runtime.download_zip_and_extract",
                 return_value=True,
             ) as download:
                 downloaded = runtime_context.download_cjk_static_base(
@@ -146,10 +171,11 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
             runtime_context.effective_github_mirror = "mirror.example.com"
             config = make_preset(Path(tmp))
 
-            with patch("scripts.cjk.pipeline.build_cjk_fonts") as build:
+            with patch("scripts.cjk.builder.build_cjk_fonts") as build:
                 runtime_context.build_cjk_static_base_from_variable(
                     config,
                     make_font_config(),
+                    build,
                 )
 
             build.assert_called_once_with(
@@ -476,15 +502,14 @@ class BuildConfigResolverCodepointAliasTest(unittest.TestCase):
             self._resolve({"0x212A": "0x0041"})
 
 
-class BuildRuntimeContextFontPatcherTest(unittest.TestCase):
+class NerdFontDependencyTest(unittest.TestCase):
     def test_should_use_font_patcher_is_pure_decision(self) -> None:
-        runtime_context = make_runtime_context(Path("."))
         font_config = make_font_config()
 
-        self.assertFalse(runtime_context.should_use_font_patcher(font_config))
+        self.assertFalse(should_use_font_patcher(font_config))
 
         font_config.nerd_font.use_font_patcher = True
-        self.assertTrue(runtime_context.should_use_font_patcher(font_config))
+        self.assertTrue(should_use_font_patcher(font_config))
 
     def test_ensure_font_patcher_available_raises_for_missing_fontforge(self) -> None:
         runtime_context = make_runtime_context(Path("."))
@@ -492,7 +517,7 @@ class BuildRuntimeContextFontPatcherTest(unittest.TestCase):
         font_config.nerd_font.use_font_patcher = True
 
         with self.assertRaisesRegex(BuildDependencyError, "FontForge bin"):
-            runtime_context.ensure_font_patcher_available(font_config)
+            ensure_font_patcher_available(font_config, runtime_context)
 
     def test_ensure_font_patcher_available_raises_for_missing_patcher_assets(
         self,
@@ -508,14 +533,14 @@ class BuildRuntimeContextFontPatcherTest(unittest.TestCase):
             font_config.nerd_font.use_font_patcher = True
 
             with patch(
-                "scripts.config.resolver.check_font_patcher",
+                "scripts.pipeline.nerd_fonts.check_font_patcher",
                 return_value=False,
             ):
                 with self.assertRaisesRegex(
                     BuildDependencyError,
                     "Nerd Font Patcher assets",
                 ):
-                    runtime_context.ensure_font_patcher_available(font_config)
+                    ensure_font_patcher_available(font_config, runtime_context)
 
 
 class BuildRuntimeContextCacheTest(unittest.TestCase):
@@ -530,8 +555,8 @@ class BuildRuntimeContextCacheTest(unittest.TestCase):
             return True
 
         with (
-            patch("scripts.config.resolver.check_file_count", record_check),
-            patch("scripts.config.resolver.get_font_forge_bin", return_value=None),
+            patch("scripts.config.runtime.check_file_count", record_check),
+            patch("scripts.config.runtime.get_font_forge_bin", return_value=None),
         ):
             runtime_context = BuildRuntimeContext.from_config(font_config)
 
@@ -545,8 +570,8 @@ class BuildRuntimeContextCacheTest(unittest.TestCase):
             return not dir_path.endswith("TTF-AutoHint")
 
         with (
-            patch("scripts.config.resolver.check_file_count", reject_hinted),
-            patch("scripts.config.resolver.get_font_forge_bin", return_value=None),
+            patch("scripts.config.runtime.check_file_count", reject_hinted),
+            patch("scripts.config.runtime.get_font_forge_bin", return_value=None),
         ):
             runtime_context = BuildRuntimeContext.from_config(font_config)
 

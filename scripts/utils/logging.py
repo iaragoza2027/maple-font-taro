@@ -5,6 +5,7 @@ from __future__ import annotations
 from contextvars import ContextVar
 import logging
 import os
+import time
 from typing import Any
 
 
@@ -35,6 +36,20 @@ class TaskContextFilter(logging.Filter):
         return True
 
 
+class TaskFormatter(logging.Formatter):
+    """Keep routine INFO output compact while preserving diagnostic severity."""
+
+    def __init__(self) -> None:
+        super().__init__("%(message)s")
+
+    def format(self, record: logging.LogRecord) -> str:
+        message = super().format(record)
+        task = getattr(record, "task", "system")
+        if record.levelno == logging.INFO:
+            return f"[{task}] {message}"
+        return f"[{record.levelname}] [{task}] {message}"
+
+
 def configure_logging() -> None:
     """Configure the project logger without changing third-party logging."""
     _current_task.set("system")
@@ -53,9 +68,7 @@ def configure_logging() -> None:
     if handler is None:
         handler = logging.StreamHandler()
         handler.set_name(_HANDLER_NAME)
-        handler.setFormatter(
-            logging.Formatter("[%(levelname)s] [%(task)s] %(message)s")
-        )
+        handler.setFormatter(TaskFormatter())
         handler.addFilter(TaskContextFilter())
         logger.addHandler(handler)
 
@@ -119,11 +132,25 @@ def log_progress(message: str, *args: Any, complete: bool = False) -> None:
             handler.release()
 
 
-def log_task(task: str, message: str, *args: Any) -> None:
+def log_task(
+    task: str,
+    message: str,
+    *args: Any,
+    force_separator: bool = False,
+) -> float:
     """Start a named task and retain its label for subsequent log records."""
     previous_task = _last_started_task.get()
-    if previous_task is not None and previous_task != task:
+    if previous_task is not None and (previous_task != task or force_separator):
         _write_blank_line()
     set_log_task(task)
     _last_started_task.set(task)
     logger.info(message, *args)
+    return time.monotonic()
+
+
+def log_task_complete(started_at: float, summary: str | None = None) -> None:
+    """Finish the active task with a stable duration and optional result summary."""
+    message = f"Done in {time.monotonic() - started_at:.2f}s"
+    if summary:
+        message += f" ({summary})"
+    logger.info(message)

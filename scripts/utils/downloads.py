@@ -252,11 +252,28 @@ def download_zip_and_extract(
     github_mirror: str = GITHUB_HOST,
 ) -> bool:
     archive_path = Path(zip_path)
+    if archive_path.exists():
+        try:
+            with ZipFile(archive_path, "r") as zip_file:
+                if zip_file.testzip() is not None:
+                    raise ValueError("archive contains a corrupt member")
+        except Exception:
+            logger.warning("Remove invalid cached archive: path=%s", archive_path)
+            archive_path.unlink(missing_ok=True)
+
     if not archive_path.exists():
         logger.info("Download archive: name=%s, url=%s", name, url)
+        archive_path.parent.mkdir(parents=True, exist_ok=True)
+        temporary_archive = archive_path.with_name(f".{archive_path.name}.download")
+        temporary_archive.unlink(missing_ok=True)
         try:
-            download_file(url, archive_path, github_mirror)
+            download_file(url, temporary_archive, github_mirror)
+            with ZipFile(temporary_archive, "r") as zip_file:
+                if zip_file.testzip() is not None:
+                    raise ValueError("downloaded archive contains a corrupt member")
+            temporary_archive.replace(archive_path)
         except Exception as error:
+            temporary_archive.unlink(missing_ok=True)
             logger.error(
                 "Failed to download archive: name=%s, url=%s, error=%s",
                 name,
@@ -264,13 +281,26 @@ def download_zip_and_extract(
                 error,
             )
             return False
+
+    output_path = Path(output_dir)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        with ZipFile(archive_path, "r") as zip_file:
-            zip_file.extractall(output_dir)
+        with tempfile.TemporaryDirectory(
+            prefix=f".{output_path.name}.extract-",
+            dir=output_path.parent,
+        ) as temporary_dir:
+            temporary_output = Path(temporary_dir)
+            with ZipFile(archive_path, "r") as zip_file:
+                zip_file.extractall(temporary_output)
+            if output_path.exists():
+                shutil.rmtree(output_path)
+            temporary_output.replace(output_path)
         if remove_zip:
             archive_path.unlink()
         return True
     except Exception as error:
+        shutil.rmtree(output_path, ignore_errors=True)
+        archive_path.unlink(missing_ok=True)
         logger.error("Failed to extract archive: name=%s, error=%s", name, error)
         return False
 

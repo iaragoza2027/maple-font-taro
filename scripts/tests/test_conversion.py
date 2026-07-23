@@ -61,9 +61,13 @@ class WebFontConversionTest(unittest.TestCase):
             output_dir.mkdir()
             font = MagicMock()
 
-            with patch(
-                "scripts.font_ops.conversion.TTFont", return_value=font
-            ) as ttfont:
+            with (
+                patch(
+                    "scripts.font_ops.conversion.TTFont",
+                    return_value=font,
+                ) as ttfont,
+                patch("scripts.font_ops.conversion.logger.info") as log_info,
+            ):
                 result = _convert_font_to_web(
                     WebFontConversionJob(source, output_dir, "woff2")
                 )
@@ -74,6 +78,7 @@ class WebFontConversionTest(unittest.TestCase):
             font.save.assert_called_once_with(target, reorderTables=False)
             font.close.assert_called_once()
             self.assertEqual(result, target)
+            log_info.assert_called_once_with("Saved %s font to %s", "WOFF2", target)
 
     def test_uses_a_caller_owned_executor(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

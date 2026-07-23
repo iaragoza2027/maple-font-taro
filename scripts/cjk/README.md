@@ -8,8 +8,10 @@ produce release fonts with the selected Maple options.
 
 ## Architecture
 
-- `CJKBuilder` in `pipeline.py` owns source download, VF generation, static
+- `CJKBuilder` in `builder.py` owns source download, VF generation, static
   base-cache generation, and executor lifecycle.
+- `outlines.py` owns glyph command replay and CFF/CFF2-to-glyf conversion.
+- `cache.py` owns variable-cache identity and manifest validation.
 - `resolver.py` parses JSON and CLI input, then derives output paths and font
   names from `locale_name`.
 - `presets.py` maps preset metadata to `source/cjk/config-{locale}.json`.
@@ -28,7 +30,9 @@ produce release fonts with the selected Maple options.
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `config.py`           | CJK dataclasses, Unicode presets, and transform defaults.                                                                  |
 | `resolver.py`         | JSON loading and validation, CLI parsing, direct CLI configuration, and locale-derived paths and names.                    |
-| `pipeline.py`         | Source download, subsetting, master preparation, CFF2-to-glyf conversion, VF generation, and static base-cache generation. |
+| `builder.py`          | Source download, subsetting, master preparation, VF generation, and static base-cache generation.                           |
+| `outlines.py`         | Glyph command replay, compatible-master validation, and CFF/CFF2-to-glyf conversion.                                        |
+| `cache.py`            | Variable-cache identity, font validation, and atomic manifest publication.                                                   |
 | `presets.py`          | Built-in CN/JP/TC/KR preset metadata and JSON config loading.                                                              |
 | `static.py`           | Main-build CJK static-font naming, metrics, metadata, feature, and width post-processing.                                  |
 | `variable.py`         | Shared variable-font loading, glyph merging, `gvar` construction, italic transforms, and table cleanup.                    |

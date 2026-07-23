@@ -4,27 +4,26 @@ from __future__ import annotations
 import argparse
 import sys
 import threading
-from array import array
 from concurrent.futures import Executor
 from dataclasses import dataclass
 from io import BytesIO
-from multiprocessing import current_process
 from os import cpu_count, makedirs
 from pathlib import Path
-from typing import Any, Iterable, Literal, Sequence, TypeVar, cast
+from typing import Any, Iterable, Literal, TypeVar, cast
 
 from fontTools.misc.transform import Transform
-from fontTools.pens.cu2quPen import Cu2QuMultiPen
-from fontTools.pens.recordingPen import RecordingPen
 from fontTools.pens.t2CharStringPen import T2CharStringPen
 from fontTools.pens.transformPen import TransformPen
-from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.subset import Options
 from fontTools.ttLib.scaleUpem import scale_upem
-from fontTools.ttLib.tables.DefaultTable import DefaultTable
 from ttfautohint import StemWidthMode, ttfautohint
 
-from scripts.font_ops.fonttools import TTFont, instantiate_variable_font, newTable
+from scripts.font_ops.fonttools import (
+    TTFont,
+    instantiate_variable_font,
+    save_font_atomic,
+)
+from scripts.cjk.cache import write_cjk_variable_manifest
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -43,6 +42,14 @@ from scripts.cjk.resolver import (
     config_from_json,
     ordered_master_locations,
 )
+from scripts.cjk.outlines import (
+    as_fonttools_glyph_mapping,
+    cff_master_glyph_order,
+    convert_cff_master_files_to_glyf_tables_parallel,
+    convert_cff_static_to_glyf,
+    detect_outline_format,
+    install_existing_glyf_tables,
+)
 from scripts.cjk.variable import (
     drop_font_tables,
     get_cmap_codepoints,
@@ -57,15 +64,15 @@ from scripts.cjk.variable import (
     weight_axis,
 )
 from scripts.font_ops.fonttools import (
-    GlyfTable,
     SubsetOptions,
 )
 from scripts.font_ops.names import FontNameConfig, set_font_name, update_font_names
 from scripts.font_ops.subset import subset_to_codepoints
 from scripts.utils.downloads import resolve_cached_download
+from scripts.utils.errors import CJKSourceUnavailable
 from scripts.utils.files import archive, get_directory_hash
-from scripts.utils.logging import configure_logging, log_task, logger, set_log_task
-from scripts.utils.process import create_process_executor
+from scripts.utils.logging import logger, set_log_task
+from scripts.utils.process import SynchronousExecutor, create_process_executor
 
 RESERVED_NAME_IDS = {1, 2, 4, 6, 16, 17, 25}
 CFF_GLYPH_CHUNK_SIZE = 256
@@ -121,55 +128,6 @@ class BuildStats:
     incompatible_glyphs: int = 0
 
 
-def detect_outline_format(
-    font: TTFont,
-    source_path: str | Path,
-) -> Literal["glyf", "cff2"]:
-    """Detect the single supported variable outline format in a source font."""
-    has_glyf = "glyf" in font
-    has_cff2 = "CFF2" in font
-    if has_glyf and has_cff2:
-        raise ValueError(
-            f"CJK source font contains both glyf and CFF2 outlines: {source_path}; "
-            "expected exactly one variable outline format"
-        )
-    if has_glyf:
-        return "glyf"
-    if has_cff2:
-        return "cff2"
-    if "CFF " in font:
-        raise ValueError(
-            f"CJK source font uses static CFF outlines: {source_path}; "
-            "use a variable font containing glyf or CFF2 outlines"
-        )
-    raise ValueError(
-        f"CJK source font has no supported outlines: {source_path}; "
-        "expected exactly one of glyf or CFF2"
-    )
-
-
-class CFFChunkWorkerState:
-    """Worker-local CFF conversion state initialized once per process."""
-
-    fonts: tuple[TTFont, TTFont, TTFont] | None = None
-    labels: dict[str, str] | None = None
-
-    @classmethod
-    def initialize(cls, input_paths: tuple[str, str, str]) -> None:
-        fonts = cast(
-            tuple[TTFont, TTFont, TTFont],
-            tuple(load_font_eager(path) for path in input_paths),
-        )
-        cls.fonts = fonts
-        cls.labels = glyph_labels(fonts[0], fonts[0].getGlyphOrder())
-
-    @classmethod
-    def require(cls) -> tuple[tuple[TTFont, TTFont, TTFont], dict[str, str]]:
-        if cls.fonts is None or cls.labels is None:
-            raise RuntimeError("CFF glyph chunk worker fonts are not initialized")
-        return cls.fonts, cls.labels
-
-
 class StaticFontCache:
     """Worker-local cache for repeated variable font instantiation."""
 
@@ -186,10 +144,12 @@ class StaticFontCache:
         return font
 
 
-def create_font_executor() -> Executor:
+def create_font_executor(pool_size: int = 4) -> Executor:
     """Create a bounded executor for expensive font instantiation work."""
+    if pool_size <= 1:
+        return SynchronousExecutor()
     return create_process_executor(
-        min(4, cpu_count() or 4),
+        min(pool_size, 4, cpu_count() or 4),
         fallback_to_threads=True,
     )
 
@@ -338,7 +298,7 @@ def instantiate_masters_from_vf(
 ) -> tuple[Path, Path, Path]:
     """Instantiate the configured static masters from a variable font."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    logger.info(
+    logger.debug(
         "Instantiate CJK masters: input=%s, output_dir=%s",
         vf_path,
         output_dir,
@@ -362,7 +322,7 @@ def instantiate_masters_from_vf(
         futures.append(process_pool.submit(instantiate_variable_font_job, job))
     for future in futures:
         future.result()
-    logger.info("CJK masters ready: output_dir=%s", output_dir)
+    logger.debug("CJK masters ready: output_dir=%s", output_dir)
     return cast(tuple[Path, Path, Path], tuple(paths))
 
 
@@ -417,7 +377,7 @@ def instantiate_italic_masters_from_vf(
 ) -> tuple[Path, Path, Path]:
     """Instantiate and skew configured static masters from a variable font."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    logger.info(
+    logger.debug(
         "Instantiate italic CJK masters: input=%s, output_dir=%s, angle=%s",
         vf_path,
         output_dir,
@@ -438,7 +398,7 @@ def instantiate_italic_masters_from_vf(
         futures.append(process_pool.submit(instantiate_italic_master_job, job))
     for future in futures:
         future.result()
-    logger.info("Italic CJK masters ready: output_dir=%s", output_dir)
+    logger.debug("Italic CJK masters ready: output_dir=%s", output_dir)
     return cast(tuple[Path, Path, Path], tuple(paths))
 
 
@@ -655,338 +615,10 @@ def transform_cff_glyphs(
         )
 
 
-def build_glyf_table(glyph_order: list[str]) -> DefaultTable:
-    """Create an empty glyf table for the provided glyph order."""
-    table = newTable("glyf")
-    glyf = cast(GlyfTable, table)
-    glyf.glyphs = {}
-    glyf.setGlyphOrder(glyph_order)
-    return table
-
-
-def as_fonttools_glyph_mapping(glyph_set: Any) -> dict[str, Any]:
-    """Adapt FontTools' runtime glyph-set mapping to its narrower pen stub type."""
-    return cast(dict[str, Any], glyph_set)
-
-
-def chunked(items: Sequence[_T], chunk_size: int) -> tuple[tuple[_T, ...], ...]:
-    """Split items into stable non-empty chunks."""
-    if chunk_size <= 0:
-        raise ValueError("chunk_size must be positive")
-    return tuple(
-        tuple(items[index : index + chunk_size])
-        for index in range(0, len(items), chunk_size)
-    )
-
-
-def glyph_labels(font: TTFont, glyph_names: Sequence[str]) -> dict[str, str]:
-    """Format glyph labels with Unicode context without repeated cmap scans."""
-    codepoints_by_glyph: dict[str, list[int]] = {}
-    for codepoint, glyph_name in get_unicode_cmap(font).items():
-        codepoints_by_glyph.setdefault(glyph_name, []).append(codepoint)
-
-    labels = {}
-    for glyph_name in glyph_names:
-        codepoints = sorted(codepoints_by_glyph.get(glyph_name, ()))
-        if not codepoints:
-            labels[glyph_name] = glyph_name
-            continue
-        unicode_label = ", ".join(f"U+{codepoint:04X}" for codepoint in codepoints[:3])
-        if len(codepoints) > 3:
-            unicode_label += ", ..."
-        labels[glyph_name] = f"{glyph_name} ({unicode_label})"
-    return labels
-
-
-def format_glyph_label(font: TTFont, glyph_name: str) -> str:
-    """Format a glyph name with Unicode context when available."""
-    return glyph_labels(font, (glyph_name,))[glyph_name]
-
-
-def reverse_ttglyph_contours(glyph_name: str, glyph):
-    """Reverse a quadratic glyph's contour direction without changing point count."""
-    if getattr(glyph, "numberOfContours", 0) == 0:
-        return glyph
-    coordinates = glyph.coordinates
-    flags = glyph.flags
-    end_points = list(glyph.endPtsOfContours)
-    reversed_coordinates: list[tuple[int | float, int | float]] = []
-    reversed_flags = array("B")
-    rebuilt_end_points: list[int] = []
-    start = 0
-    for end in end_points:
-        contour_coordinates = list(coordinates[start : end + 1])
-        contour_flags = list(flags[start : end + 1])
-        if len(contour_coordinates) > 1:
-            contour_coordinates = contour_coordinates[:1] + contour_coordinates[:0:-1]
-            contour_flags = contour_flags[:1] + contour_flags[:0:-1]
-        reversed_coordinates.extend(contour_coordinates)
-        reversed_flags.extend(contour_flags)
-        rebuilt_end_points.append(len(reversed_coordinates) - 1)
-        start = end + 1
-    glyph.coordinates[:] = reversed_coordinates
-    glyph.flags = reversed_flags
-    glyph.endPtsOfContours = rebuilt_end_points
-    return glyph
-
-
-def record_glyph_commands(
-    glyph_set, glyph_name: str
-) -> list[tuple[str, tuple[Any, ...]]]:
-    """Record segment-pen commands for one glyph."""
-    pen = RecordingPen()
-    glyph_set[glyph_name].draw(pen)
-    return pen.value
-
-
-def validate_compatible_glyph_commands(
-    glyph_name: str,
-    recordings: Sequence[list[tuple[str, tuple[Any, ...]]]],
-) -> None:
-    """Require all masters to expose the same segment command structure."""
-    if not recordings:
-        return
-    reference = recordings[0]
-    for master_index, recording in enumerate(recordings[1:], start=1):
-        if len(recording) != len(reference):
-            raise ValueError(
-                f"Incompatible source outlines for {glyph_name}: "
-                f"command count {len(reference)} != {len(recording)} "
-                f"(master index 0 vs {master_index})"
-            )
-        for op_index, ((ref_op, ref_args), (op, args)) in enumerate(
-            zip(reference, recording)
-        ):
-            if op != ref_op or len(args) != len(ref_args):
-                raise ValueError(
-                    f"Incompatible source outlines for {glyph_name}: "
-                    f"command #{op_index} {ref_op}/{len(ref_args)} != "
-                    f"{op}/{len(args)} (master index 0 vs {master_index})"
-                )
-            if op == "addComponent" and args[0] != ref_args[0]:
-                raise ValueError(
-                    f"Incompatible source outlines for {glyph_name}: "
-                    f"component mismatch {ref_args[0]} != {args[0]} "
-                    f"(master index 0 vs {master_index})"
-                )
-
-
-def replay_multi_glyph_commands(
-    glyph_name: str,
-    recordings: Sequence[list[tuple[str, tuple[Any, ...]]]],
-    multi_pen: Cu2QuMultiPen,
-) -> None:
-    """Replay recorded glyph commands into a multi-master cu2qu pen."""
-    validate_compatible_glyph_commands(glyph_name, recordings)
-    for commands in zip(*recordings):
-        operation = commands[0][0]
-        args_list = [args for _, args in commands]
-        if operation == "moveTo":
-            multi_pen.moveTo(args_list)
-        elif operation == "lineTo":
-            multi_pen.lineTo(args_list)
-        elif operation == "curveTo":
-            multi_pen.curveTo(args_list)
-        elif operation == "qCurveTo":
-            multi_pen.qCurveTo(args_list)
-        elif operation == "closePath":
-            multi_pen.closePath()
-        elif operation == "endPath":
-            multi_pen.endPath()
-        elif operation == "addComponent":
-            component_names = {args[0] for args in args_list}
-            if len(component_names) != 1:
-                raise ValueError(
-                    f"Incompatible source outlines for {glyph_name}: "
-                    f"component names differ across masters"
-                )
-            multi_pen.addComponent(args_list[0][0], [args[1] for args in args_list])
-        else:
-            raise ValueError(
-                f"Unsupported segment operation {operation!r} while converting "
-                f"{glyph_name} from CFF to glyf"
-            )
-
-
-def convert_cff_glyphs_from_loaded_fonts(
-    fonts: Sequence[TTFont],
-    glyph_names: Sequence[str],
-    labels: dict[str, str] | None = None,
-) -> dict[str, tuple[Any, ...]]:
-    """Convert glyphs jointly across loaded compatible CFF masters."""
-    glyph_sets = [font.getGlyphSet() for font in fonts]
-    labels = labels if labels is not None else glyph_labels(fonts[0], glyph_names)
-    converted_glyphs: dict[str, tuple[Any, ...]] = {}
-
-    for glyph_name in glyph_names:
-        tt_pens = [
-            TTGlyphPen(
-                as_fonttools_glyph_mapping(glyph_set),
-                outputImpliedClosingLine=True,
-            )
-            for glyph_set in glyph_sets
-        ]
-        recordings = [
-            record_glyph_commands(glyph_set, glyph_name) for glyph_set in glyph_sets
-        ]
-        replay_multi_glyph_commands(
-            labels[glyph_name],
-            recordings,
-            Cu2QuMultiPen(tt_pens, max_err=1.0, reverse_direction=False),
-        )
-        converted_glyphs[glyph_name] = tuple(
-            reverse_ttglyph_contours(glyph_name, tt_pen.glyph()) for tt_pen in tt_pens
-        )
-    return converted_glyphs
-
-
-def validate_cff_master_fonts(fonts: Sequence[TTFont]) -> list[str]:
-    """Validate compatible CFF inputs and return the shared glyph order."""
-    if not fonts or "CFF " not in fonts[0]:
-        return []
-    glyph_order = fonts[0].getGlyphOrder()
-    glyph_orders = [font.getGlyphOrder() for font in fonts]
-    if any(order != glyph_order for order in glyph_orders[1:]):
-        raise ValueError("CFF source master glyph orders must match before cu2qu")
-    return glyph_order
-
-
-def install_glyf_tables(
-    fonts: Sequence[TTFont],
-    glyph_order: list[str],
-    converted_glyphs: dict[str, tuple[Any, ...]],
-) -> None:
-    """Install converted quadratic glyphs into fonts."""
-    glyf_tables = [build_glyf_table(glyph_order) for _ in fonts]
-    for glyph_name in glyph_order:
-        glyphs = converted_glyphs[glyph_name]
-        for glyph, table in zip(glyphs, glyf_tables):
-            glyf = cast(GlyfTable, table)
-            glyf.glyphs[glyph_name] = glyph
-            if getattr(glyph, "numberOfContours", 0) > 0:
-                glyph.recalcBounds(glyf)
-            else:
-                glyph.xMin = glyph.yMin = glyph.xMax = glyph.yMax = 0
-
-    for font, table in zip(fonts, glyf_tables):
-        font["glyf"] = table
-        font["loca"] = newTable("loca")
-        drop_font_tables(font, ("CFF ", "CFF2", "VORG", "VVAR", "vhea", "vmtx"))
-        update_maxp_for_glyf(font)
-
-
-def install_existing_glyf_tables(
-    fonts: Sequence[TTFont],
-    glyf_tables: Sequence[Any],
-) -> None:
-    """Install already-built glyf tables into fonts."""
-    for font, glyf in zip(fonts, glyf_tables):
-        font["glyf"] = glyf
-        font["loca"] = newTable("loca")
-        drop_font_tables(font, ("CFF ", "CFF2", "VORG", "VVAR", "vhea", "vmtx"))
-        update_maxp_for_glyf(font)
-
-
-def convert_cff_fonts_to_glyf(fonts: Sequence[TTFont]) -> None:
-    """Convert one or more compatible static CFF fonts to TrueType glyf outlines."""
-    glyph_order = validate_cff_master_fonts(fonts)
-    if not glyph_order:
-        return
-    converted_glyphs = convert_cff_glyphs_from_loaded_fonts(fonts, glyph_order)
-    install_glyf_tables(fonts, glyph_order, converted_glyphs)
-
-
-def init_cff_glyph_chunk_worker(input_paths: tuple[str, str, str]) -> None:
-    """Load CFF masters once per conversion worker process."""
-    configure_logging()
-    CFFChunkWorkerState.initialize(input_paths)
-
-
-def convert_cff_glyph_chunk_from_worker(
-    glyph_names: tuple[str, ...],
-) -> dict[str, tuple[Any, ...]]:
-    """Convert a glyph chunk using worker-local CFF masters."""
-    fonts, labels = CFFChunkWorkerState.require()
-    return convert_cff_glyphs_from_loaded_fonts(
-        fonts,
-        glyph_names,
-        labels,
-    )
-
-
-def cff_master_glyph_order(input_paths: tuple[str, str, str]) -> list[str]:
-    """Read and validate shared glyph order from CFF master files."""
-    expected_order: list[str] | None = None
-    for path in input_paths:
-        font = load_font_eager(path)
-        try:
-            if "CFF " not in font:
-                return []
-            glyph_order = font.getGlyphOrder()
-            if expected_order is None:
-                expected_order = glyph_order
-            elif glyph_order != expected_order:
-                raise ValueError(
-                    "CFF source master glyph orders must match before cu2qu"
-                )
-        finally:
-            font.close()
-    return expected_order or []
-
-
-def add_converted_glyphs_to_glyf_tables(
-    glyf_tables: Sequence[Any],
-    converted_glyphs: dict[str, tuple[Any, ...]],
-) -> None:
-    """Append one converted chunk into output glyf tables."""
-    for glyph_name, glyphs in converted_glyphs.items():
-        for glyph, glyf in zip(glyphs, glyf_tables):
-            glyf.glyphs[glyph_name] = glyph
-            if getattr(glyph, "numberOfContours", 0) > 0:
-                glyph.recalcBounds(glyf)
-            else:
-                glyph.xMin = glyph.yMin = glyph.xMax = glyph.yMax = 0
-
-
-def convert_cff_master_files_to_glyf_tables_parallel(
-    input_paths: tuple[str, str, str],
-    glyph_order: list[str],
-    chunk_size: int = CFF_GLYPH_CHUNK_SIZE,
-) -> tuple[Any, Any, Any]:
-    """Convert compatible CFF masters into glyf tables with glyph chunks."""
-    if current_process().name != "MainProcess":
-        raise RuntimeError("CFF glyph chunk conversion must run from the main process")
-    if not glyph_order:
-        return cast(
-            tuple[Any, Any, Any], tuple(build_glyf_table([]) for _ in input_paths)
-        )
-
-    chunks = chunked(tuple(glyph_order), chunk_size)
-    glyf_tables = [build_glyf_table(glyph_order) for _ in input_paths]
-    max_workers = min(4, cpu_count() or 4)
-    with create_process_executor(
-        max_workers=max_workers,
-        initializer=init_cff_glyph_chunk_worker,
-        initargs=(input_paths,),
-    ) as chunk_pool:
-        futures = [
-            chunk_pool.submit(convert_cff_glyph_chunk_from_worker, glyph_chunk)
-            for glyph_chunk in chunks
-        ]
-        for future in futures:
-            add_converted_glyphs_to_glyf_tables(glyf_tables, future.result())
-
-    return cast(tuple[Any, Any, Any], tuple(glyf_tables))
-
-
-def convert_cff_static_to_glyf(font: TTFont) -> None:
-    """Convert a static CFF font to TrueType glyf outlines."""
-    convert_cff_fonts_to_glyf((font,))
-
-
 def convert_cff_master_files_to_glyf(
     input_paths: tuple[str, str, str],
     output_paths: tuple[str, str, str],
+    executor: Executor,
     transform_config: CJKBuildConfig | None = None,
 ) -> None:
     """Convert three compatible CFF source masters to TTF together."""
@@ -994,6 +626,7 @@ def convert_cff_master_files_to_glyf(
     glyf_tables = convert_cff_master_files_to_glyf_tables_parallel(
         input_paths,
         glyph_order,
+        executor,
     )
     fonts = [load_font_eager(path) for path in input_paths]
     try:
@@ -1008,25 +641,6 @@ def convert_cff_master_files_to_glyf(
     finally:
         for font in fonts:
             font.close()
-
-
-def update_maxp_for_glyf(font: TTFont) -> None:
-    """Populate TrueType maxp fields after CFF to glyf conversion."""
-    font["maxp"].tableVersion = 0x00010000
-    for attr, value in {
-        "maxZones": 2,
-        "maxTwilightPoints": 0,
-        "maxStorage": 0,
-        "maxFunctionDefs": 0,
-        "maxInstructionDefs": 0,
-        "maxStackElements": 0,
-        "maxSizeOfInstructions": 0,
-        "maxComponentElements": 0,
-        "maxComponentDepth": 0,
-    }.items():
-        setattr(font["maxp"], attr, value)
-    font["maxp"].numGlyphs = len(font.getGlyphOrder())
-    font["maxp"].recalc(font)
 
 
 def prune_stat(font: TTFont) -> None:
@@ -1130,7 +744,7 @@ def prepare_source_masters(
     outline_format: Literal["glyf", "cff2"],
 ) -> tuple[Path, Path, Path]:
     """Instantiate transformed source masters for the variable-base pipeline."""
-    logger.info(
+    logger.debug(
         "Prepare CJK source masters: subset=%s, outline=%s",
         subset_path,
         outline_format,
@@ -1145,7 +759,7 @@ def prepare_source_masters(
             target_upem=target_upem,
             transform_config=config,
         )
-        logger.info("CJK source masters prepared: output_dir=%s", paths[0].parent)
+        logger.debug("CJK source masters prepared: output_dir=%s", paths[0].parent)
         return paths
 
     cff_master_paths = instantiate_masters_from_vf(
@@ -1174,9 +788,10 @@ def prepare_source_masters(
     convert_cff_master_files_to_glyf(
         cff_master_path_strings,
         ttf_master_path_strings,
+        process_pool,
         config,
     )
-    logger.info(
+    logger.debug(
         "CFF2 source masters converted to glyf: output_dir=%s",
         ttf_master_paths[0].parent,
     )
@@ -1263,17 +878,23 @@ class CJKBuilder:
 
     def build(self, vf_only: bool = False) -> None:
         task = self.config.locale_name.lower()
-        log_task(task, "Building CJK fonts")
+        set_log_task(task)
+        logger.debug("Build CJK fonts")
         download = self.config.source.download
-        resolve_cached_download(
-            "CJK source font",
-            self.config.source.path,
-            None if download is None else download.url,
-            self.github_mirror,
-            path_in_archive=None if download is None else download.path_in_archive,
-        )
+        try:
+            resolve_cached_download(
+                "CJK source font",
+                self.config.source.path,
+                None if download is None else download.url,
+                self.github_mirror,
+                path_in_archive=None if download is None else download.path_in_archive,
+            )
+        except FileNotFoundError as error:
+            raise CJKSourceUnavailable(str(error)) from error
         if self.process_pool is None:
-            self.process_pool = create_font_executor()
+            self.process_pool = create_font_executor(
+                getattr(self.font_config, "pool_size", 4)
+            )
         try:
             self.config.output.dir.mkdir(parents=True, exist_ok=True)
             regular_font, source_state = self._build_regular_variable_font()
@@ -1287,10 +908,10 @@ class CJKBuilder:
                 regular_font.close()
 
             if vf_only:
-                logger.info("Skip CJK static font generation because --vf-only is set")
+                logger.debug("Skip CJK static font generation because --vf-only is set")
                 return
 
-            log_task(task, "Instantiating CJK static fonts")
+            logger.debug("Instantiate CJK static fonts")
             static_dir = self._build_static_fonts(
                 (
                     self.config.output.regular_variable,
@@ -1298,7 +919,7 @@ class CJKBuilder:
                 )
             )
             self._write_static_artifacts(static_dir)
-            logger.info("CJK build complete")
+            logger.debug("CJK build complete")
         finally:
             if self._owns_process_pool and self.process_pool is not None:
                 self.process_pool.shutdown(wait=True, cancel_futures=True)
@@ -1339,7 +960,7 @@ class CJKBuilder:
         subset_path = self.config.temp_dir / (
             "source-subset.otf" if outline_format == "cff2" else "source-subset.ttf"
         )
-        logger.info(
+        logger.debug(
             "Subset CJK source font: source=%s, selected_unicodes=%s, output=%s",
             self.config.source.path,
             len(keep_codepoints),
@@ -1355,7 +976,7 @@ class CJKBuilder:
         logger.debug(
             "Removed base and feature Unicode values from CJK subset: count=%s", removed
         )
-        logger.info(
+        logger.debug(
             "CJK source subset ready: output=%s, removed_unicodes=%s",
             subset_path,
             removed,
@@ -1380,7 +1001,7 @@ class CJKBuilder:
         )
 
     def _build_regular_variable_font(self) -> tuple[TTFont, SourceBuildState]:
-        logger.info("Build regular CJK variable font")
+        logger.debug("Build regular CJK variable font")
         feature_font = load_feature_variable_font(self.config.feature_font_path)
         try:
             source_state, protected_glyphs = self._prepare_source_build_state(
@@ -1401,14 +1022,14 @@ class CJKBuilder:
                 len(feature_font.getGlyphOrder()),
                 len(get_cmap_codepoints(feature_font)),
             )
-            logger.info("Regular CJK variable font ready")
+            logger.debug("Regular CJK variable font ready")
             return feature_font, source_state
         except Exception:
             feature_font.close()
             raise
 
     def _build_italic_variable_font(self, source_state: SourceBuildState) -> TTFont:
-        logger.info("Build italic CJK variable font")
+        logger.debug("Build italic CJK variable font")
         feature_font = load_feature_variable_font(self.config.feature_font_path)
         try:
             protected_glyphs = set(get_unicode_cmap(feature_font).values())
@@ -1428,7 +1049,7 @@ class CJKBuilder:
                 self.config.transform.italic_angle,
                 self.config.locale_name.lower(),
             )
-            logger.info("Italic feature masters ready")
+            logger.debug("Italic feature masters ready")
             italic_font = make_italic_variable_font(
                 feature_font,
                 self.config.transform.italic_angle,
@@ -1445,7 +1066,7 @@ class CJKBuilder:
             italic_master_paths = self._build_source_italic_master_paths(
                 source_state.master_paths
             )
-            logger.info("Italic source masters ready")
+            logger.debug("Italic source masters ready")
             stats = self._merge_master_paths(italic_font, italic_master_paths)
             self._log_build_stats("Italic", stats)
             finalize_variable_font(
@@ -1462,7 +1083,7 @@ class CJKBuilder:
                 len(italic_font.getGlyphOrder()),
                 len(get_cmap_codepoints(italic_font)),
             )
-            logger.info("Italic CJK variable font ready")
+            logger.debug("Italic CJK variable font ready")
             return italic_font
         except Exception:
             italic_font.close()
@@ -1474,7 +1095,7 @@ class CJKBuilder:
     ) -> tuple[Path, Path, Path]:
         italic_master_dir = self.config.temp_dir / "source-italic-masters"
         italic_master_dir.mkdir(parents=True, exist_ok=True)
-        logger.info("Create italic source masters: output_dir=%s", italic_master_dir)
+        logger.debug("Create italic source masters: output_dir=%s", italic_master_dir)
         italic_master_paths = (
             italic_master_dir / "source-italic-min-master.ttf",
             italic_master_dir / "source-italic-regular-master.ttf",
@@ -1492,7 +1113,7 @@ class CJKBuilder:
             )
         for future in futures:
             future.result()
-        logger.info("Italic source masters created: output_dir=%s", italic_master_dir)
+        logger.debug("Italic source masters created: output_dir=%s", italic_master_dir)
         return italic_master_paths
 
     def _merge_master_paths(
@@ -1517,7 +1138,7 @@ class CJKBuilder:
                 master.close()
 
     def _log_build_stats(self, label: str, stats: BuildStats) -> None:
-        logger.info(
+        logger.debug(
             "%s CJK merge results: glyphs_added=%s, unicodes_added=%s",
             label,
             len(stats.added_glyphs),
@@ -1533,10 +1154,11 @@ class CJKBuilder:
     def _write_variable_outputs(
         self, regular_font: TTFont, italic_font: TTFont
     ) -> None:
-        logger.info("Save regular CJK variable font: path=%s", self.regular_output)
-        regular_font.save(self.regular_output)
-        logger.info("Save italic CJK variable font: path=%s", self.italic_output)
-        italic_font.save(self.italic_output)
+        save_font_atomic(regular_font, self.regular_output)
+        logger.info("Saved CJK variable font to %s", self.regular_output)
+        save_font_atomic(italic_font, self.italic_output)
+        logger.info("Saved CJK variable font to %s", self.italic_output)
+        write_cjk_variable_manifest(self.config, self.font_config)
 
     def _build_static_fonts(self, var_font_names: Iterable[str]) -> Path:
         static_dir = self.static_dir
@@ -1549,7 +1171,7 @@ class CJKBuilder:
             if feature_axis is None:
                 raise ValueError("Feature font is missing wght axis")
             feature_instances = feature_weight_instances(feature_font)
-            logger.info(
+            logger.debug(
                 "Generate CJK static fonts: variable_fonts=%s, instances=%s, output_dir=%s",
                 len(var_font_names),
                 len(var_font_names) * len(feature_instances),
@@ -1608,7 +1230,7 @@ class CJKBuilder:
 
         for future in futures:
             future.result()
-        logger.info("CJK static fonts ready: output_dir=%s", static_dir)
+        logger.debug("CJK static fonts ready: output_dir=%s", static_dir)
         return static_dir
 
     def _write_static_artifacts(self, static_dir: Path) -> None:
@@ -1616,16 +1238,16 @@ class CJKBuilder:
         with open(hash_path, "w") as file:
             file.write(get_directory_hash(str(static_dir)))
             file.flush()
-        logger.info("Update CJK static font hash: path=%s", hash_path)
+        logger.debug("Update CJK static font hash: path=%s", hash_path)
 
         archive_path = self.config.output.dir / self.config.output.archive_name
-        logger.info("Archive CJK static fonts: path=%s", archive_path)
+        logger.debug("Archive CJK static fonts: path=%s", archive_path)
         archive(
             str(static_dir),
             str(archive_path),
             lambda path: path.endswith(".ttf"),
         )
-        logger.info("CJK static font archive ready: path=%s", archive_path)
+        logger.debug("CJK static font archive ready: path=%s", archive_path)
 
 
 def finalize_static_font_instance(
@@ -1659,6 +1281,7 @@ def finalize_static_font_instance(
     drop_font_tables(instance, ("kern", "GPOS"))
     remove_mac_name_records(instance)
     instance.save(output_path)
+    logger.info("Saved CJK static font to %s", output_path)
 
 
 def get_static_worker_font(input_path: str) -> TTFont:
@@ -1677,7 +1300,7 @@ def instantiate_static_font_file(
 ) -> None:
     """Instantiate one static CJK font and apply final naming cleanup."""
     set_log_task(config.locale_name.lower())
-    logger.info(
+    logger.debug(
         "Instantiate CJK static font: name=%s, italic=%s",
         name,
         is_italic,

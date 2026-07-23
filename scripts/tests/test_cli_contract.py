@@ -54,6 +54,14 @@ class PublicCliContractTest(unittest.TestCase):
         ):
             self.assertIn(command, result.stdout)
 
+    def test_page_command_contract_is_unchanged(self) -> None:
+        result = self.run_cli("task.py", "page", "--help")
+
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("usage: task.py page [-h] [--woff2] [--sync]", result.stdout)
+        self.assertIn("--woff2", result.stdout)
+        self.assertIn("--sync", result.stdout)
+
     def test_invalid_build_argument_returns_argparse_error(self) -> None:
         result = self.run_cli("build.py", "--unknown-option")
 
@@ -100,11 +108,13 @@ class PublicCliContractTest(unittest.TestCase):
         resolver.resolve.return_value = font_config
         resolver_factory = MagicMock(return_value=resolver)
         with (
-            patch("scripts.pipeline.configure_logging"),
+            patch("scripts.pipeline.orchestrator.configure_logging"),
             patch("builtins.print"),
-            patch("scripts.pipeline.BuildConfigResolver", resolver_factory),
             patch(
-                "scripts.pipeline.BuildRuntimeContext.from_config",
+                "scripts.pipeline.orchestrator.BuildConfigResolver", resolver_factory
+            ),
+            patch(
+                "scripts.pipeline.orchestrator.BuildRuntimeContext.from_config",
                 return_value=runtime_context,
             ),
         ):
@@ -129,14 +139,14 @@ class PublicCliContractTest(unittest.TestCase):
         resolver_factory = MagicMock(return_value=resolver)
         with (
             patch.dict(os.environ, {}, clear=True),
-            patch("scripts.pipeline.configure_logging"),
+            patch("scripts.pipeline.orchestrator.configure_logging"),
             patch("builtins.print"),
             patch(
-                "scripts.pipeline.BuildConfigResolver",
+                "scripts.pipeline.orchestrator.BuildConfigResolver",
                 resolver_factory,
             ),
             patch(
-                "scripts.pipeline.BuildRuntimeContext.from_config",
+                "scripts.pipeline.orchestrator.BuildRuntimeContext.from_config",
                 return_value=runtime_context,
             ),
         ):
@@ -158,14 +168,14 @@ class PublicCliContractTest(unittest.TestCase):
         resolver_factory = MagicMock(return_value=resolver)
         with (
             patch.dict(os.environ, {"MAPLE_LOG_LEVEL": "ERROR"}, clear=True),
-            patch("scripts.pipeline.configure_logging"),
+            patch("scripts.pipeline.orchestrator.configure_logging"),
             patch("builtins.print"),
             patch(
-                "scripts.pipeline.BuildConfigResolver",
+                "scripts.pipeline.orchestrator.BuildConfigResolver",
                 resolver_factory,
             ),
             patch(
-                "scripts.pipeline.BuildRuntimeContext.from_config",
+                "scripts.pipeline.orchestrator.BuildRuntimeContext.from_config",
                 return_value=runtime_context,
             ),
         ):

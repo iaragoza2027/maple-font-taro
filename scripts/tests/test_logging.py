@@ -11,6 +11,7 @@ from scripts.utils.logging import (
     configure_logging,
     log_progress,
     log_task,
+    log_task_complete,
     logger,
     set_log_task,
 )
@@ -40,7 +41,7 @@ class LoggingConfigurationTest(unittest.TestCase):
         formatter = handlers[0].formatter
         self.assertIsNotNone(formatter)
         assert formatter is not None
-        self.assertEqual(formatter._fmt, "[%(levelname)s] [%(task)s] %(message)s")
+        self.assertEqual(formatter._fmt, "%(message)s")
         self.assertEqual(self.package_logger.level, logging.INFO)
         self.assertFalse(self.package_logger.propagate)
 
@@ -75,8 +76,8 @@ class LoggingConfigurationTest(unittest.TestCase):
 
         self.assertEqual(
             stderr.getvalue(),
-            "[INFO] [woff2] Converting static fonts to WOFF2\n"
-            "[INFO] [woff2] Saved WOFF2 font to "
+            "[woff2] Converting static fonts to WOFF2\n"
+            "[woff2] Saved WOFF2 font to "
             "fonts/Woff2/MapleMono-Regular.ttf.woff2\n",
         )
 
@@ -89,7 +90,40 @@ class LoggingConfigurationTest(unittest.TestCase):
 
         self.assertEqual(
             stderr.getvalue(),
-            "[INFO] [prepare] Preparing sources\n\n[INFO] [ttf] Building TTF fonts\n",
+            "[prepare] Preparing sources\n\n[ttf] Building TTF fonts\n",
+        )
+
+    def test_task_completion_includes_duration_and_summary(self) -> None:
+        stderr = StringIO()
+        with (
+            redirect_stderr(stderr),
+            patch(
+                "scripts.utils.logging.time.monotonic",
+                side_effect=(10.0, 12.5),
+            ),
+        ):
+            configure_logging()
+            started_at = log_task("prepare", "Prepare font sources")
+            log_task_complete(started_at, "2 sources")
+
+        self.assertEqual(
+            stderr.getvalue(),
+            "[prepare] Prepare font sources\n[prepare] Done in 2.50s (2 sources)\n",
+        )
+
+    def test_debug_keeps_the_severity_prefix(self) -> None:
+        stderr = StringIO()
+        with (
+            patch.dict(os.environ, {"MAPLE_LOG_LEVEL": "DEBUG"}, clear=True),
+            redirect_stderr(stderr),
+        ):
+            configure_logging()
+            set_log_task("fontmake")
+            logger.debug("Saved font to output.ttf")
+
+        self.assertEqual(
+            stderr.getvalue(),
+            "[DEBUG] [fontmake] Saved font to output.ttf\n",
         )
 
     def test_progress_refreshes_the_same_log_line(self) -> None:
@@ -102,8 +136,8 @@ class LoggingConfigurationTest(unittest.TestCase):
 
         self.assertEqual(
             stderr.getvalue(),
-            "\r[INFO] [download] Downloading archive.zip: 25%"
-            "\r[INFO] [download] Downloading archive.zip: 100%\n",
+            "\r[download] Downloading archive.zip: 25%"
+            "\r[download] Downloading archive.zip: 100%\n",
         )
 
 

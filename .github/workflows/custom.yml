@@ -91,7 +91,8 @@ jobs:
             fontforge --version
           fi
 
-      - name: Run custom script
+      - id: build
+        name: Run custom script
         run: |
           build_args="--archive"
           if [ "${{ github.event.inputs.cn }}" == "true" ]; then
@@ -129,9 +130,9 @@ jobs:
 
           echo "BUILD_ARGS=$build_args" >> $GITHUB_ENV
           python build.py $build_args
-        continue-on-error: true
       - id: check_issue
         name: Check issue feature file
+        if: ${{ always() }}
         run: |
           if [ -f fonts/issue.fea ]
           then
@@ -140,12 +141,13 @@ jobs:
             echo 'exists=false' >> $GITHUB_OUTPUT
           fi
       - name: Upload issue artifact
-        if: ${{ steps.check_issue.outputs.exists == 'true' }}
+        if: ${{ always() && steps.check_issue.outputs.exists == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: issue-fea-file
           path: fonts/issue.fea
       - name: Create release
+        if: ${{ success() }}
         run: |
           if [ ! -d "fonts/archive" ]; then
             echo "Error: Failed to build font, please check [Run custom script] step."

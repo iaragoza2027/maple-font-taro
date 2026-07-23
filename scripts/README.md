@@ -5,21 +5,25 @@ and task-runner implementation.
 
 ## Architecture
 
-- `MapleBuildPipeline` in `pipeline.py` owns the top-level build flow, output
-  lifecycle, cache behavior, archive behavior, and variant sequencing.
+- `MapleBuildPipeline` in `pipeline/orchestrator.py` owns the top-level build flow.
+  `BuildPlan` resolves stage selection once. `base_fonts.py`, `nerd_fonts.py`,
+  and `cjk_outputs.py` own their build stages, while `artifacts.py` owns cache
+  identity, artifact validation, cleanup, and output selection.
 - Process-pool tasks run through top-level `*_job` functions with explicit job
   dataclasses so spawn/pickle behavior stays stable across platforms.
 - `font_ops/` contains reusable font naming, metrics, OpenType, merge, and glyph transform operations.
-- `resolver.py` converts config file and CLI inputs into a resolved build config,
+- `config/resolver.py` converts config file and CLI inputs into a resolved build config,
   runtime output paths, and CJK static base resolution decisions.
 
 ## Logging
 
-CLI entrypoints configure one `scripts` logger to write `[LEVEL] [task] message`
-records to stderr. Top-level task groups are separated by one blank line. Set
-`MAPLE_LOG_LEVEL` to `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL` to control
-verbosity; the default is `INFO`. `build.py --debug` uses `DEBUG` as the default
-for that CLI invocation, while an explicit `MAPLE_LOG_LEVEL` still takes priority.
+CLI entrypoints configure one `scripts` logger to write compact `[task] message`
+records for routine INFO output and `[LEVEL] [task] message` for diagnostics.
+Top-level build stages are separated by one blank line and end with duration and
+artifact-count summaries. Set `MAPLE_LOG_LEVEL` to `DEBUG`, `INFO`, `WARNING`,
+`ERROR`, or `CRITICAL` to control verbosity; the default is `INFO`.
+`build.py --debug` uses `DEBUG` as the default for that CLI invocation, while an
+explicit `MAPLE_LOG_LEVEL` still takes priority.
 
 Machine-readable dry-run output remains on stdout. In particular, CI keeps
 `build.py --dry` as JSON-only stdout so it can be piped to tools such as `jq`.
@@ -32,11 +36,11 @@ size on one stderr line instead of emitting one record per chunk.
 | File | Purpose |
 | ---- | ------- |
 | `config/` | CLI parsing, resolved configuration models, and output path helpers. |
-| `pipeline.py` | Public build entrypoint and build orchestration. |
-| `resolver.py` | Build configuration and runtime planning. |
+| `pipeline/` | Stable public build entrypoint, orchestration, and output/cache helpers. |
+| `config/resolver.py` | Build configuration and runtime planning. |
 | `utils/` | Filesystem, process, download, archive, errors, and version helpers. |
 | `font_ops/` | Shared font and glyph operations, transforms, and typed FontTools table boundaries. |
-| `cjk/` | CJK data models, JSON/CLI configuration, presets, variable-font operations, and pipeline. |
+| `cjk/` | CJK data models, JSON/CLI configuration, presets, outline conversion, variable-font operations, and builder. |
 | `feature/` | Ordered feature catalog, compiler, freeze implementation, and font application. |
 | `task/` | Thin task parser and workflow adapters. |
 
@@ -48,7 +52,7 @@ flowchart TD
     PIPE_MAIN --> PARSE["scripts.config.cli.parse_args"]
     PARSE --> RUN["pipeline.run(parsed_args, version)"]
     RUN --> RESOLVE["BuildConfigResolver.resolve"]
-    RESOLVE --> PLAN["BuildRuntimeContext.from_config"]
+    RESOLVE --> PLAN["BuildPlan.from_config + BuildRuntimeContext.from_config"]
 
     PLAN --> DRY{"dry run?"}
     DRY -->|"yes, CI"| DRY_CI["print config JSON"]
@@ -64,7 +68,7 @@ flowchart TD
     CLEAN --> DIRS["ensure base output dirs"]
     DIRS --> START_TIMER["start_build_timer"]
 
-    START_TIMER --> BASE_DECISION{"should_build_base_outputs?"}
+    START_TIMER --> BASE_DECISION{"BuildPlan base formats missing?"}
     BASE_DECISION -->|"yes"| VARIABLE["build_variable_outputs"]
     VARIABLE --> BASE_TTF["build_static_base_outputs"]
     BASE_DECISION -->|"no"| SKIP_BASE["reuse_base_output_cache"]
@@ -279,7 +283,7 @@ flowchart TD
 | Keep process-pool workers at module top level | Avoid pickling bound methods, closures, or partials. |
 | Use explicit job dataclasses | Make each parallel task's inputs visible and serializable. |
 | Reuse one executor across the build lifecycle | Avoid repeatedly starting workers between base, web, Nerd Font, and CJK stages; CFF glyph chunks retain a specialized pool for their custom initializer. |
-| Keep build configuration and resolution outside `pipeline.py` | Keep the execution pipeline focused on build orchestration. |
+| Keep build configuration and resolution outside `pipeline/orchestrator.py` | Keep the execution pipeline focused on build orchestration. |
 | Resolve CJK static bases in `BuildRuntimeContext` | Keep cache, download, hash, and variable fallback decisions outside the execution pipeline. |
 
 ## Main Phases

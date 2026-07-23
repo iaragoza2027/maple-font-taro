@@ -30,6 +30,32 @@ T = TypeVar("T")
 R = TypeVar("R")
 
 
+class SynchronousExecutor(Executor):
+    """Executor-compatible inline execution for explicitly sequential builds."""
+
+    def submit(
+        self,
+        fn: Callable[..., R],
+        /,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Future[R]:
+        future: Future[R] = Future()
+        try:
+            future.set_result(fn(*args, **kwargs))
+        except BaseException as error:
+            future.set_exception(error)
+        return future
+
+    def shutdown(
+        self,
+        wait: bool = True,
+        *,
+        cancel_futures: bool = False,
+    ) -> None:
+        return None
+
+
 def is_ci() -> bool:
     return any(os.environ.get(name) for name in CI_ENVIRONMENTS)
 

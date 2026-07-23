@@ -10,7 +10,7 @@ from scripts.config.base import (
     ResolvedCJKBuildEntry,
     ResolvedConfig,
 )
-from scripts.config.resolver import BuildRuntimeContext
+from scripts.config.runtime import BuildRuntimeContext
 from scripts.feature.apply import patch_font_feature
 from scripts.font_ops.fonttools import MetaTable, TTFont
 from scripts.font_ops.glyph_transform import (
@@ -120,7 +120,7 @@ def apply_cjk_width_transform(
             target_width = match_width
 
         if scale_factor:
-            logger.info(
+            logger.debug(
                 "Scale CJK glyphs: width_factor=%s, height_factor=%s",
                 scale_factor[0],
                 scale_factor[1],
@@ -182,7 +182,7 @@ def postprocess_cjk_extended_static_font(
     style_compact: str,
     locale_suffix: str | None = None,
 ) -> str:
-    logger.info(
+    logger.debug(
         "Postprocess CJK static font: locale=%s, style=%s",
         entry.display_name,
         style_compact,

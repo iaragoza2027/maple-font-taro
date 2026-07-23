@@ -13,9 +13,14 @@ from scripts.cjk.config import (
     CJKOutputConfig,
     CJKSourceConfig,
 )
-from scripts.cjk.pipeline import CJKBuilder, detect_outline_format
+from scripts.cjk.outlines import (
+    convert_cff_master_files_to_glyf_tables_parallel,
+    detect_outline_format,
+)
+from scripts.cjk.builder import CJKBuilder, create_font_executor
 from scripts.config.resolver import BuildConfigResolver
 from scripts.font_ops.fonttools import TTFont
+from scripts.utils.errors import CJKSourceUnavailable
 
 
 def make_config(output_dir: Path) -> CJKBuildConfig:
@@ -35,6 +40,14 @@ def make_config(output_dir: Path) -> CJKBuildConfig:
 
 
 class CJKExecutorOwnershipTest(unittest.TestCase):
+    def test_pool_size_one_uses_inline_execution(self) -> None:
+        with patch("scripts.cjk.builder.create_process_executor") as create_process:
+            executor = create_font_executor(1)
+            future = executor.submit(lambda: "done")
+
+        self.assertEqual(future.result(), "done")
+        create_process.assert_not_called()
+
     def test_builder_resolves_source_before_creating_executor(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             builder = CJKBuilder(
@@ -45,11 +58,11 @@ class CJKExecutorOwnershipTest(unittest.TestCase):
 
             with (
                 patch(
-                    "scripts.cjk.pipeline.resolve_cached_download",
+                    "scripts.cjk.builder.resolve_cached_download",
                     side_effect=FileNotFoundError("download failed"),
                 ) as resolve_source,
-                patch("scripts.cjk.pipeline.create_font_executor") as create_executor,
-                self.assertRaisesRegex(FileNotFoundError, "download failed"),
+                patch("scripts.cjk.builder.create_font_executor") as create_executor,
+                self.assertRaisesRegex(CJKSourceUnavailable, "download failed"),
             ):
                 builder.build()
 
@@ -92,7 +105,7 @@ class CJKExecutorOwnershipTest(unittest.TestCase):
 
             with (
                 patch(
-                    "scripts.cjk.pipeline.create_font_executor", return_value=executor
+                    "scripts.cjk.builder.create_font_executor", return_value=executor
                 ),
                 patch.object(
                     builder,
@@ -107,6 +120,25 @@ class CJKExecutorOwnershipTest(unittest.TestCase):
                 wait=True,
                 cancel_futures=True,
             )
+
+    def test_cff_chunks_reuse_the_caller_owned_executor(self) -> None:
+        executor = cast(Executor, MagicMock())
+        future = MagicMock()
+        future.result.return_value = {}
+        cast(MagicMock, executor).submit.return_value = future
+
+        with patch(
+            "scripts.cjk.outlines.build_glyf_table",
+            side_effect=(MagicMock(), MagicMock(), MagicMock()),
+        ):
+            tables = convert_cff_master_files_to_glyf_tables_parallel(
+                ("thin.otf", "regular.otf", "bold.otf"),
+                [".notdef"],
+                executor,
+            )
+
+        self.assertEqual(len(tables), 3)
+        cast(MagicMock, executor).submit.assert_called_once()
 
 
 class CJKOutlineDetectionTest(unittest.TestCase):

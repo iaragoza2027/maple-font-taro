@@ -13,6 +13,8 @@ def merge_ttfonts(
     if use_pyftmerge:
         return adapt_ttfont(Merger().merge([base_font_path, extra_font_path]))
 
+    base_font: TTFont | None = None
+    extra_font: TTFont | None = None
     try:
         base_font = TTFont(base_font_path)
         extra_font = TTFont(extra_font_path)
@@ -52,7 +54,12 @@ def merge_ttfonts(
             base_font.table("hhea").recalc(base_font)
         return base_font
     except Exception:
+        if base_font is not None:
+            base_font.close()
         raise
+    finally:
+        if extra_font is not None:
+            extra_font.close()
 
 
 def _merge_cmap(base_font: TTFont, extra_font: TTFont, glyphs_to_add: set[str]) -> None:

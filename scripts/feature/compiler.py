@@ -53,7 +53,7 @@ def generate_fea_string(
             be enabled in variable format
         infinite (bool): Whether to add infinite arrow ligatures
     """
-    logger.info(
+    logger.debug(
         "Generate feature string: italic=%s, cn=%s, normal=%s, calt=%s, variable_freeze=%s, infinite=%s, tag=%s, remove_italic_calt=%s",
         is_italic,
         is_cn,
@@ -129,7 +129,7 @@ def generate_fea_string(
 
 
 def generate_fea_string_cn_only():
-    logger.info("Generate feature string: cn_only=True")
+    logger.debug("Generate feature string: cn_only=True")
     return ast.create(
         [
             get_base_feature_cn_only(),

@@ -18,11 +18,14 @@ Maple Mono is an open-source monospace font project. Keep changes small, determi
 - `task.py`: Public task-runner CLI.
 - `scripts/`: Python implementation package. Use `scripts.*` imports for cross-module imports.
   - `scripts/config/`: Build configuration, CLI parsing, and output paths.
-  - `scripts/pipeline.py`: Public build entrypoint and build orchestration.
-  - `scripts/resolver.py`: Build configuration and runtime resolution.
+  - `scripts/pipeline/`: Public build entrypoint, `BuildPlan`, stage orchestration,
+    and output/cache lifecycle.
+  - `scripts/config/resolver.py`: Build configuration and runtime resolution.
+  - `scripts/cjk/cache.py`: CJK variable cache identity and manifest validation.
   - `scripts/utils/`: Filesystem, process, archive, download, errors, and version helpers.
   - `scripts/font_ops/`: Shared font and glyph operations, transforms, and protocols.
-  - `scripts/cjk/`: CJK models, configuration, variable-font operations, presets, and pipeline.
+  - `scripts/cjk/`: CJK models, configuration, outline conversion,
+    variable-font operations, presets, and builder.
   - `scripts/feature/`: Typed feature catalog, compiler, freeze logic, and feature application.
   - `scripts/task/`: Task-runner commands.
   - `scripts/tests/`: Python unit tests.

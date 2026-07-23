@@ -7,11 +7,13 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from zipfile import ZipFile
 
 import py7zr
 
 from scripts.utils.downloads import (
     download_file,
+    download_zip_and_extract,
     github_mirror_from_config,
     resolve_cached_download,
     resolve_download_url,
@@ -343,6 +345,67 @@ class CachedDownloadTest(unittest.TestCase):
 
             self.assertFalse(target.exists())
             self.assertEqual(list(root.glob(".font.otf.*")), [])
+
+
+class ZipDownloadTest(unittest.TestCase):
+    def test_replaces_corrupt_cached_archive_before_extracting(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            archive_path = root / "cache.zip"
+            archive_path.write_bytes(b"partial")
+            output_dir = root / "output"
+
+            def fake_download(
+                _url: str,
+                temporary_path: str | Path,
+                _github_mirror: str,
+            ) -> None:
+                with ZipFile(temporary_path, "w") as archive:
+                    archive.writestr("font.ttf", b"font")
+
+            with patch(
+                "scripts.utils.downloads.download_file",
+                side_effect=fake_download,
+            ) as download:
+                result = download_zip_and_extract(
+                    "font cache",
+                    "https://example.com/cache.zip",
+                    archive_path,
+                    output_dir,
+                )
+
+            self.assertTrue(result)
+            download.assert_called_once()
+            self.assertEqual((output_dir / "font.ttf").read_bytes(), b"font")
+
+    def test_failed_download_does_not_leave_archive_or_output(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            archive_path = root / "cache.zip"
+            output_dir = root / "output"
+
+            def fail_download(
+                _url: str,
+                temporary_path: str | Path,
+                _github_mirror: str,
+            ) -> None:
+                Path(temporary_path).write_bytes(b"partial")
+                raise OSError("network unavailable")
+
+            with patch(
+                "scripts.utils.downloads.download_file",
+                side_effect=fail_download,
+            ):
+                result = download_zip_and_extract(
+                    "font cache",
+                    "https://example.com/cache.zip",
+                    archive_path,
+                    output_dir,
+                )
+
+            self.assertFalse(result)
+            self.assertFalse(archive_path.exists())
+            self.assertFalse(output_dir.exists())
 
     def test_rejects_duplicate_archive_members(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

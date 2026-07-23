@@ -104,7 +104,7 @@ def _fontmake_options(job: FontmakeBranchJob) -> dict[str, Any]:
 
 def _compile_fontmake_branch(job: FontmakeBranchJob) -> None:
     set_log_task(job.output)
-    logger.info(
+    logger.debug(
         "Compiling %s source: %s",
         job.output,
         job.source_label or job.designspace_path.parent.name,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
 import os
 import re
 import shutil
@@ -18,6 +19,26 @@ from scripts.utils.process import run as run_command
 from scripts.font_ops.constant import INSTANCE_WEIGHT_MAPPING
 from scripts.utils.version import project_version
 from scripts.utils.logging import logger
+
+
+@dataclass(frozen=True)
+class ReleasePlan:
+    tag: str
+    build_args: tuple[str, ...]
+    fontsource_dir: str = "cdn/fontsource"
+    requirements_file: str = "requirements.txt"
+    variable_woff2_dir: str = "woff2/var"
+
+    def describe(self) -> str:
+        return "\n".join(
+            (
+                f"Tag: {self.tag}",
+                f"Build: build.py {' '.join(self.build_args)}",
+                f"Fontsource output: {self.fontsource_dir}",
+                f"Variable WOFF2 output: {self.variable_woff2_dir}",
+                f"Requirements output: {self.requirements_file}",
+            )
+        )
 
 
 def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):
@@ -97,43 +118,65 @@ def write_unicode_map_json(font_path: str, output: str):
     font.close()
 
 
-def release(type: str, dry: bool):
-    tag = f"v{next_version(project_version(), type)}"
-    choose = input(f"{'[DRY] ' if dry else ''}Tag {tag}? (Y or n) ")
-    if choose != "" and choose.lower() != "y":
-        logger.info("Release aborted")
-        return
+def create_release_plan(bump: str) -> ReleasePlan:
+    return ReleasePlan(
+        tag=f"v{next_version(project_version(), bump)}",
+        build_args=("--ttf-only", "--no-nerd-font", "--cn", "--no-hinted"),
+    )
 
-    if not dry:
-        run_command(["uv", "version", "--bump", type])
 
-    target_fontsource_dir = "cdn/fontsource"
-    build_main(["--ttf-only", "--no-nerd-font", "--cn", "--no-hinted"], tag)
+def generate_release_assets(plan: ReleasePlan) -> None:
+    build_main(list(plan.build_args), plan.tag)
 
     shutil.rmtree("./cdn", ignore_errors=True)
-    convert_to_web("./fonts/TTF", target_fontsource_dir, flavor="woff2")
-    convert_to_web("./fonts/TTF", target_fontsource_dir, flavor="woff")
-    rename_woff_files(target_fontsource_dir, format_fontsource_name)
+    convert_to_web("./fonts/TTF", plan.fontsource_dir, flavor="woff2")
+    convert_to_web("./fonts/TTF", plan.fontsource_dir, flavor="woff")
+    rename_woff_files(plan.fontsource_dir, format_fontsource_name)
     logger.info("Generated Fontsource files")
 
-    dep_file = "requirements.txt"
     run_command(
-        f"uv export --format requirements-txt --no-hashes --output-file {dep_file} --quiet"
+        [
+            "uv",
+            "export",
+            "--locked",
+            "--no-dev",
+            "--no-hashes",
+            "--output-file",
+            plan.requirements_file,
+            "--quiet",
+        ]
     )
 
     shutil.copytree("./fonts/CN", "./cdn/cn")
     logger.info("Generated CN files")
 
-    woff2_dir = "woff2/var"
-    if os.path.exists(target_fontsource_dir):
-        shutil.rmtree(woff2_dir)
-    convert_to_web("./fonts/Variable", woff2_dir, flavor="woff2")
-    rename_woff_files(woff2_dir, format_woff2_name)
+    if os.path.exists(plan.fontsource_dir):
+        shutil.rmtree(plan.variable_woff2_dir)
+    convert_to_web("./fonts/Variable", plan.variable_woff2_dir, flavor="woff2")
+    rename_woff_files(plan.variable_woff2_dir, format_woff2_name)
 
+
+def publish_release(plan: ReleasePlan) -> None:
+    git_release_commit(
+        plan.tag,
+        ["woff2", plan.requirements_file, "pyproject.toml"],
+    )
+
+
+def release(bump: str, dry: bool) -> None:
+    plan = create_release_plan(bump)
     if dry:
-        logger.info("Release dry run complete")
-    else:
-        git_release_commit(tag, ["woff2", dep_file, "pyproject.toml"])
+        print(plan.describe())
+        return
+
+    choose = input(f"Tag {plan.tag}? (Y or n) ")
+    if choose != "" and choose.lower() != "y":
+        logger.info("Release aborted")
+        return
+
+    run_command(["uv", "version", "--bump", bump])
+    generate_release_assets(plan)
+    publish_release(plan)
 
 
 def run(args: argparse.Namespace) -> None:

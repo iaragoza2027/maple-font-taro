@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "config": {
+    "locale_name": "CN",
+    "source": {
+      "path": "source/cjk/WenYuanRoundedSCVF.ttf",
+      "masters": {
+        "100": {
+          "ital": 0.0,
+          "wght": 220.0
+        },
+        "400": {
+          "ital": 0.0,
+          "wght": 470.0
+        },
+        "800": {
+          "ital": 0.0,
+          "wght": 900.0
+        }
+      },
+      "drop_tables": [
+        "BASE",
+        "VVAR",
+        "vhea",
+        "vmtx"
+      ],
+      "download": {
+        "url": "https://github.com/takushun-wu/WenYuanFonts/releases/download/v1.000/WenYuanRoundedSCVF.ttf"
+      }
+    },
+    "unicode": {
+      "ranges": [
+        [
+          9312,
+          9471
+        ],
+        [
+          11904,
+          12031
+        ],
+        [
+          12032,
+          12255
+        ],
+        [
+          12272,
+          12287
+        ],
+        [
+          12288,
+          12351
+        ],
+        [
+          12352,
+          12543
+        ],
+        [
+          12544,
+          12591
+        ],
+        [
+          12704,
+          12783
+        ],
+        [
+          12800,
+          13311
+        ],
+        [
+          19968,
+          40959
+        ],
+        [
+          63744,
+          64255
+        ],
+        [
+          65072,
+          65135
+        ],
+        [
+          65280,
+          65519
+        ]
+      ],
+      "filter_encoding": null,
+      "exclude_feature_codepoints": true
+    },
+    "transform": {
+      "target_advance_width": 1200,
+      "x_scale": 1.02,
+      "y_scale": 1.05,
+      "x_shift": 100,
+      "y_shift": -25,
+      "italic_angle": 10.0
+    }
+  },
+  "source": "faab0b0f3fe3126b1a0d7b5d7688409caaeb61ee0f3760b1b84d48805f97cabb",
+  "feature_font": "ff37dd3eec151167591ea876b65b82cca3d58a817f0e97b0c0035466fa6b06ed",
+  "font": {
+    "version": "Version 7.900",
+    "beta": null,
+    "feature_freeze": "+calt;"
+  }
+}

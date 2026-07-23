@@ -225,14 +225,6 @@ def normalize_cjk_locale_list(value: Any) -> list[BuiltinCJKLocaleId]:
 
 
 @dataclass(slots=True)
-class BuildCliOptions:
-    dry: bool = False
-    debug: bool = False
-    cjk: list[BuiltinCJKLocaleId] = field(default_factory=list)
-    formats: list[BuildFormatId] = field(default_factory=lambda: list(BUILD_FORMATS))
-
-
-@dataclass(slots=True)
 class BuildBehaviorConfig:
     archive: bool = False
     debug: bool = False
@@ -699,7 +691,6 @@ __all__ = [
     "BUILTIN_CJK_LOCALES",
     "WIDTH_MAP",
     "BuildBehaviorConfig",
-    "BuildCliOptions",
     "BuildFormatId",
     "BuildIdentityConfig",
     "BuildMetricsConfig",

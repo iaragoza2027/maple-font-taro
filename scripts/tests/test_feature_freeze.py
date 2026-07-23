@@ -32,9 +32,7 @@ class FeatureFreezeConfigTest(unittest.TestCase):
             normalize_feature_freeze({"cv01": "unexpected"}, calt=False)
 
     def test_resolved_config_uses_normalized_freeze_values(self) -> None:
-        config = ResolvedConfig(
-            feature_freeze={"cv01": "enable", "cv02": "disable"}
-        )
+        config = ResolvedConfig(feature_freeze={"cv01": "enable", "cv02": "disable"})
         config.feature.liga = False
 
         self.assertEqual(config.freeze_config_str, "-calt;+cv01;-cv02;")
@@ -92,7 +90,7 @@ class FeatureApplicationTest(unittest.TestCase):
 
 class FeatureGenerationLoggingTest(unittest.TestCase):
     def test_feature_generation_logs_all_output_affecting_options(self) -> None:
-        with self.assertLogs("scripts", level="INFO") as logs:
+        with self.assertLogs("scripts", level="DEBUG") as logs:
             generate_fea_string(
                 is_italic=False,
                 is_cn=False,

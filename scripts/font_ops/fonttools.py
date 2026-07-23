@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Literal, Protocol, overload
 
 from fontTools.ttLib import TTFont as FontToolsTTFont
@@ -193,6 +194,20 @@ def instantiate_variable_font(
     return adapt_ttfont(instance)
 
 
+def save_font_atomic(font: TTFont, target_path: str | Path) -> Path:
+    """Save a font through a sibling temporary file and atomically publish it."""
+    target = Path(target_path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temporary = target.with_name(f".{target.name}.tmp")
+    temporary.unlink(missing_ok=True)
+    try:
+        font.save(temporary)
+        temporary.replace(target)
+    finally:
+        temporary.unlink(missing_ok=True)
+    return target
+
+
 __all__ = [
     "CFFTable",
     "GaspTable",
@@ -210,4 +225,5 @@ __all__ = [
     "adapt_ttfont",
     "instantiate_variable_font",
     "newTable",
+    "save_font_atomic",
 ]

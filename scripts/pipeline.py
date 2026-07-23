@@ -81,6 +81,7 @@ from scripts.font_ops.names import (
 )
 from scripts.font_ops.opentype import (
     add_ital_axis_to_stat,
+    add_weight_axis_values_to_stat,
     alias_codepoints,
 )
 
@@ -671,6 +672,7 @@ def postprocess_variable_font_job(
             is_skip_subfamily=True,
             variable=True,
         )
+        add_weight_axis_values_to_stat(font, italic=is_italic)
 
         if is_italic:
             add_ital_axis_to_stat(font)

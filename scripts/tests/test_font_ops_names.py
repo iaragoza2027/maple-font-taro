@@ -3,6 +3,8 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+from fontTools.ttLib.tables._f_v_a_r import NamedInstance
+
 from scripts.cjk.config import CJKBuildConfig, CJKSourceConfig
 from scripts.cjk.pipeline import update_variable_font_names
 from scripts.cjk.static import apply_cjk_names
@@ -25,6 +27,45 @@ def make_font_config():
 
 
 class FontNameTest(unittest.TestCase):
+    def test_variable_instances_have_unique_names(self) -> None:
+        font = make_font()
+        font["fvar"] = newTable("fvar")
+        font["fvar"].axes = []
+        font["fvar"].instances = []
+        for weight in (100, 400, 700):
+            instance = NamedInstance()
+            instance.subfamilyNameID = 2
+            instance.postscriptNameID = 0xFFFF
+            instance.coordinates = {"wght": weight}
+            font["fvar"].instances.append(instance)
+
+        config = make_font_config()
+        update_font_names(
+            font=font,
+            font_config=config,
+            family_name="Maple Mono",
+            style_name="Regular",
+            full_name="Maple Mono Regular",
+            postscript_name="MapleMono-Regular",
+            is_skip_subfamily=True,
+            variable=True,
+        )
+
+        self.assertEqual(
+            [
+                font["name"].getDebugName(instance.subfamilyNameID)
+                for instance in font["fvar"].instances
+            ],
+            ["Thin", "Regular", "Bold"],
+        )
+        self.assertEqual(
+            [
+                font["name"].getDebugName(instance.postscriptNameID)
+                for instance in font["fvar"].instances
+            ],
+            ["MapleMono-Thin", "MapleMono-Regular", "MapleMono-Bold"],
+        )
+
     def test_update_font_names_builds_identifier_from_config(self) -> None:
         font = make_font()
         config = make_font_config()
@@ -45,7 +86,7 @@ class FontNameTest(unittest.TestCase):
         self.assertEqual(
             get_font_name(font, 3),
             "Version 7.900-beta.1;SUBF;MapleMono-NF-CN-Regular;"
-            f"2024;FL830;Variable;NF{config.nerd_font.version};Narrow;+calt;",
+            f"2026;FL830;Variable;NF{config.nerd_font.version};Narrow;+calt;",
         )
 
     def test_cjk_variable_names_use_project_identifier(self) -> None:
@@ -63,7 +104,7 @@ class FontNameTest(unittest.TestCase):
         self.assertEqual(get_font_name(font, 5), "Version 7.900")
         self.assertEqual(
             get_font_name(font, 3),
-            "Version 7.900-beta.1;SUBF;MapleMonoCJK-Regular;2024;FL830;+calt;",
+            "Version 7.900-beta.1;SUBF;MapleMonoCJK-Regular;2026;FL830;+calt;",
         )
 
     def test_cjk_static_names_use_project_identifier(self) -> None:
@@ -75,7 +116,7 @@ class FontNameTest(unittest.TestCase):
         self.assertEqual(get_font_name(font, 5), "Version 7.900")
         self.assertEqual(
             get_font_name(font, 3),
-            "Version 7.900-beta.1;SUBF;MapleMono-CN-Regular;2024;FL830;Narrow;+calt;",
+            "Version 7.900-beta.1;SUBF;MapleMono-CN-Regular;2026;FL830;Narrow;+calt;",
         )
 
 

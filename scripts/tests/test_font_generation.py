@@ -34,7 +34,12 @@ from scripts.font_ops.glyphs import (
 )
 from scripts.font_ops.glyph_transform import SmartWidthThickenFilter
 from scripts.font_ops.constant import INSTANCE_WEIGHT_MAPPING
-from scripts.font_ops.opentype import add_ital_axis_to_stat, alias_codepoints
+from scripts.font_ops.names import ensure_variable_instance_names
+from scripts.font_ops.opentype import (
+    add_ital_axis_to_stat,
+    add_weight_axis_values_to_stat,
+    alias_codepoints,
+)
 from scripts.task.designspace import (
     SourceCompatibilityError,
     convert_glyphs_source,
@@ -717,6 +722,25 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
             variable_font = TTFont(output_path)
             try:
                 self.assertEqual(len(variable_font["fvar"].instances), 8)
+                add_weight_axis_values_to_stat(variable_font)
+                stat_values = variable_font["STAT"].table.AxisValueArray.AxisValue
+                self.assertEqual(len(stat_values), 8)
+                self.assertEqual(
+                    {
+                        variable_font["name"].getDebugName(value.ValueNameID)
+                        for value in stat_values
+                    },
+                    {
+                        "Thin",
+                        "ExtraLight",
+                        "Light",
+                        "Regular",
+                        "Medium",
+                        "SemiBold",
+                        "Bold",
+                        "ExtraBold",
+                    },
+                )
                 for coordinate in (100, 400, 800):
                     instance = instantiate_variable_font(
                         variable_font,
@@ -745,12 +769,30 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
             generated = TTFont(output_path)
 
             self.assertIsNone(generated["STAT"].table.AxisValueArray)
-            add_ital_axis_to_stat(generated)
+            ensure_variable_instance_names(generated, italic=True)
+            add_weight_axis_values_to_stat(generated, italic=True)
 
             stat = generated["STAT"].table
+            self.assertEqual(stat.AxisValueCount, 1)
+            self.assertEqual(
+                generated["name"].getDebugName(
+                    generated["fvar"].instances[0].subfamilyNameID
+                ),
+                "Italic",
+            )
+            self.assertEqual(
+                [
+                    generated["name"].getDebugName(value.ValueNameID)
+                    for value in stat.AxisValueArray.AxisValue
+                ],
+                ["Regular"],
+            )
+
+            add_ital_axis_to_stat(generated)
+
             self.assertEqual(
                 [axis.AxisTag for axis in stat.DesignAxisRecord.Axis],
                 ["wght", "ital"],
             )
-            self.assertEqual(stat.AxisValueCount, 1)
-            self.assertEqual(stat.AxisValueArray.AxisValue[0].Value, 1.0)
+            self.assertEqual(stat.AxisValueCount, 2)
+            self.assertEqual(stat.AxisValueArray.AxisValue[-1].Value, 1.0)

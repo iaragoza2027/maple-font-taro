@@ -46,6 +46,70 @@ def add_ital_axis_to_stat(font: TTFont):
     stat_table.AxisValueCount += 1
 
 
+def add_weight_axis_values_to_stat(font: TTFont, italic: bool = False) -> None:
+    """Expose each named weight instance through the STAT table."""
+    if "fvar" not in font or "STAT" not in font or "name" not in font:
+        return
+
+    stat_table = font["STAT"].table
+    axes = stat_table.DesignAxisRecord.Axis
+    weight_axis_index = next(
+        (index for index, axis in enumerate(axes) if axis.AxisTag == "wght"), None
+    )
+    if weight_axis_index is None:
+        return
+
+    from fontTools.ttLib.tables import otTables as ot
+
+    if stat_table.AxisValueArray is None:
+        axis_value_array_factory = cast(
+            Callable[[], Any], getattr(ot, "AxisValueArray")
+        )
+        stat_table.AxisValueArray = axis_value_array_factory()
+        stat_table.AxisValueArray.AxisValue = []
+
+    values = stat_table.AxisValueArray.AxisValue
+    existing_weights = {
+        float(value.Value)
+        for value in values
+        if value.AxisIndex == weight_axis_index and value.Format in (1, 3)
+    }
+    default_weight = next(
+        axis.defaultValue for axis in font["fvar"].axes if axis.axisTag == "wght"
+    )
+    for instance in font["fvar"].instances:
+        weight = float(instance.coordinates.get("wght", default_weight))
+        if weight in existing_weights:
+            continue
+        value_name_id = instance.subfamilyNameID
+        if italic:
+            instance_name = font["name"].getDebugName(value_name_id) or "Regular"
+            weight_name = instance_name.removesuffix("Italic").rstrip() or "Regular"
+            value_name_id = _find_or_add_name_id(font, weight_name)
+        axis_value_factory = cast(Callable[[], Any], getattr(ot, "AxisValue"))
+        value = axis_value_factory()
+        value.Format = 1
+        value.AxisIndex = weight_axis_index
+        value.Flags = 2 if weight == default_weight else 0
+        value.ValueNameID = value_name_id
+        value.Value = weight
+        values.append(value)
+        existing_weights.add(weight)
+    stat_table.AxisValueCount = len(values)
+
+
+def _find_or_add_name_id(font: TTFont, value: str) -> int:
+    for record in font["name"].names:
+        try:
+            if record.toUnicode() == value:
+                return int(record.nameID)
+        except UnicodeDecodeError:
+            continue
+    name_id = font["name"]._findUnusedNameID()
+    set_font_name(font, value, name_id)
+    return name_id
+
+
 def patch_instance(font: TTFont, all_weight_map: dict[str, int]):
     if all_weight_map == INSTANCE_WEIGHT_MAPPING:
         logger.debug("Skip weight remapping because the mapping is unchanged")

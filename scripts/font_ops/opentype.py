@@ -1,11 +1,12 @@
 from __future__ import annotations
+from scripts.font_ops.constant import INSTANCE_WEIGHT_MAPPING
 
 from collections.abc import Callable
 from typing import Any, cast
 
 from scripts.font_ops.fonttools import SubsetOptions, TTFont, newTable
 
-from scripts.font_ops.names import default_weight_map, set_font_name
+from scripts.font_ops.names import set_font_name
 from scripts.utils.logging import logger
 
 
@@ -46,7 +47,7 @@ def add_ital_axis_to_stat(font: TTFont):
 
 
 def patch_instance(font: TTFont, all_weight_map: dict[str, int]):
-    if all_weight_map == default_weight_map:
+    if all_weight_map == INSTANCE_WEIGHT_MAPPING:
         logger.debug("Skip weight remapping because the mapping is unchanged")
         return
     if "fvar" not in font or "STAT" not in font:
@@ -56,7 +57,7 @@ def patch_instance(font: TTFont, all_weight_map: dict[str, int]):
     if all_weight_map["extrabold"] != 800:
         raise Exception("Font weight of `extrabold` must be 800")
 
-    value_to_name = {value: name for name, value in default_weight_map.items()}
+    value_to_name = {value: name for name, value in INSTANCE_WEIGHT_MAPPING.items()}
     for instance in font["fvar"].instances:
         current_weight = int(instance.coordinates["wght"])
         weight_name = value_to_name.get(current_weight)

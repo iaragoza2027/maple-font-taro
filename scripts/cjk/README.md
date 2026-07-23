@@ -1,55 +1,72 @@
 # Maple Mono CJK Build Pipeline
 
-This package contains the shared CJK build pipeline and the built-in
+This package builds reusable CJK base fonts and provides the built-in
 CN/JP/TC/KR presets. All built-in CJK assets and preset JSON files live under
-`source/cjk`.
+`source/cjk`. The base build writes regular and italic variable fonts plus a
+checked static-font cache; the main `build.py` pipeline consumes that cache to
+produce release fonts with the selected Maple options.
 
 ## Architecture
 
-- `CJKBuilder` in `builder.py` owns the top-level build flow, path planning, and
-  executor lifecycle.
-- `presets.py` only maps preset metadata to `source/cjk/config-{locale}.json`.
+- `CJKBuilder` in `pipeline.py` owns source download, VF generation, static
+  base-cache generation, and executor lifecycle.
+- `resolver.py` parses JSON and CLI input, then derives output paths and font
+  names from `locale_name`.
+- `presets.py` maps preset metadata to `source/cjk/config-{locale}.json`.
 - Built-in preset behavior is data-driven through JSON configs, not Python
   hard-coded build configs.
 - `locale_name` is the only source of truth for generated CJK output layout,
   family names, PostScript prefixes, and temporary paths.
 - Process-pool tasks run through top-level worker functions so spawn/pickle
   behavior stays stable across platforms.
-- Worker-local state is explicitly grouped as cache containers instead of loose
-  module globals.
+- `variable.py` owns shared variable-font and glyph operations; `static.py`
+  post-processes CJK static fonts in the main build pipeline.
 
 ## Files
 
-| File | Purpose |
-| ---- | ------- |
-| `config.py` | Shared dataclasses, Unicode presets, JSON loading, and CLI argument parsing. |
-| `builder.py` | Shared configurable CJK build pipeline and build entrypoints. |
-| `presets.py` | Built-in CN/JP/TC/KR preset metadata and JSON config loading. |
-| `cn.py`, `jp.py`, `tc.py`, `kr.py` | Compatibility wrappers that call the JSON-backed preset pipeline. |
-| `verify_cff_to_glyf.py` | Fast verifier that contrasts independent cu2qu against joint multi-master conversion on a temporary tiny subset. |
-| `vf.py` | Shared variable-font, master-merge, and italic helper logic. |
+| File                  | Purpose                                                                                                                    |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `config.py`           | CJK dataclasses, Unicode presets, and transform defaults.                                                                  |
+| `resolver.py`         | JSON loading and validation, CLI parsing, direct CLI configuration, and locale-derived paths and names.                    |
+| `pipeline.py`         | Source download, subsetting, master preparation, CFF2-to-glyf conversion, VF generation, and static base-cache generation. |
+| `presets.py`          | Built-in CN/JP/TC/KR preset metadata and JSON config loading.                                                              |
+| `static.py`           | Main-build CJK static-font naming, metrics, metadata, feature, and width post-processing.                                  |
+| `variable.py`         | Shared variable-font loading, glyph merging, `gvar` construction, italic transforms, and table cleanup.                    |
+| `scripts/task/cjk.py` | `task.py cjk` parser registration and preset/custom build dispatch.                                                        |
+
+The related main-build integration lives in `scripts/config/base.py` and
+`scripts/config/resolver.py`. It selects CJK locales, validates the static
+cache, downloads a built-in cache when available, or falls back to building the
+base fonts from the configured variable source.
 
 ## Asset Layout
 
-| Path | Purpose |
-| ---- | ------- |
-| `source/cjk/config-cn.json` | Built-in CN build config. |
-| `source/cjk/config-jp.json` | Built-in JP build config. |
-| `source/cjk/config-tc.json` | Built-in TC build config. |
-| `source/cjk/config-kr.json` | Built-in KR build config. |
-| `source/cjk/WenYuanRoundedSCVF.ttf` | CN source variable font. |
-| `source/cjk/ResourceHanRoundedJP-VF.otf` | JP source variable font. |
-| `source/cjk/ChironGoRoundTCVF.ttf` | TC/KR source variable font. |
-| `source/cjk/{locale}/MapleMono-{Locale}-VF.ttf` | Generated regular CJK variable base. |
-| `source/cjk/{locale}/MapleMono-{Locale}-Italic-VF.ttf` | Generated italic CJK variable base. |
-| `source/cjk/{locale}/static/MapleMono{Locale}-{Style}.ttf` | Generated static CJK bases. |
-| `source/cjk/{locale}/static-{locale}.sha256` | Static CJK base hash. |
+| Path                                                       | Purpose                              |
+| ---------------------------------------------------------- | ------------------------------------ |
+| `source/cjk/config-cn.json`                                | Built-in CN build config.            |
+| `source/cjk/config-jp.json`                                | Built-in JP build config.            |
+| `source/cjk/config-tc.json`                                | Built-in TC build config.            |
+| `source/cjk/config-kr.json`                                | Built-in KR build config.            |
+| `source/cjk/WenYuanRoundedSCVF.ttf`                        | CN source variable font.             |
+| `source/cjk/ResourceHanRoundedJP-VF.otf`                   | JP source variable font.             |
+| `source/cjk/ChironGoRoundTCVF.ttf`                         | TC/KR source variable font.          |
+| `source/cjk/{locale}/MapleMono-{Locale}-VF.ttf`            | Generated regular CJK variable base. |
+| `source/cjk/{locale}/MapleMono-{Locale}-Italic-VF.ttf`     | Generated italic CJK variable base.  |
+| `source/cjk/{locale}/static/MapleMono{Locale}-{Style}.ttf` | Generated static CJK bases.          |
+| `source/cjk/{locale}/static-{locale}.sha256`               | Static CJK base hash.                |
 
 `locale_name` is a compact ASCII suffix such as `CN`, `JP`, `TC`, or `KR`.
 For example, `locale_name: "CN"` derives `source/cjk/cn`,
-`MapleMono-CN-VF.ttf`, `Maple Mono CN`, `MapleMonoCN`, and
+`MapleMono-CN-VF.ttf`, `MapleMono-CN-Italic-VF.ttf`, `Maple Mono CN`,
+`MapleMonoCN`, `static-cn.sha256`, `cn-base-static.zip`, and
 `source/cjk/cn/temp`. These derived values are not configurable from JSON or
 CLI flags.
+
+The only JSON-configurable top-level fields are `locale_name`, `source`,
+`unicode`, and `transform`. `feature_font`, `output`, `naming`, `temp_dir`,
+and `outline_mode` are intentionally unsupported. The builder always uses the
+project feature font and detects the source outline format; the source must be
+a variable font with exactly one of `glyf` or `CFF2` outlines.
 
 Each `source` may define an optional `download` object. A build reuses
 `source.path` when it already exists; otherwise it downloads `download.url` to
@@ -98,124 +115,133 @@ The builder detects `glyf` or `CFF2` outlines automatically. It also derives
 the family name, PostScript name, output file names, and cache directories from
 `locale_name`; users and agents should not invent professional font names.
 
-| Term | Configuration meaning |
-| ---- | --------------------- |
-| master | One source variable-font position used for Maple's 100, 400, or 800 weight. |
-| axis tag | A source-font control such as `wght` (weight) or `ROND` (roundness). Read these from the source font's `fvar` table. |
-| `drop_tables` | Advanced OpenType cleanup. Omit it unless a source table conflicts with merging. |
-| Unicode range | Characters to import, for example `0x4E00-0x9FFF`. Omit ranges to use the CJK defaults. |
-| transform | Optional scale and movement corrections. Omit it when the source already aligns correctly. |
+| Term          | Configuration meaning                                                                                                |
+| ------------- | -------------------------------------------------------------------------------------------------------------------- |
+| master        | One source variable-font position used for Maple's 100, 400, or 800 weight.                                          |
+| axis tag      | A source-font control such as `wght` (weight) or `ROND` (roundness). Read these from the source font's `fvar` table. |
+| `drop_tables` | Advanced OpenType cleanup. Omit it unless a source table conflicts with merging.                                     |
+| Unicode range | Characters to import, for example `0x4E00-0x9FFF`. Omit ranges to use the CJK defaults.                              |
+| transform     | Optional scale and movement corrections. Omit it when the source already aligns correctly.                           |
+
+## Commands
+
+Build a built-in CJK base cache:
+
+```sh
+uv run task.py cjk --preset cn
+uv run task.py cjk --preset jp
+```
+
+Build from a JSON config or rebuild only the regular and italic variable bases:
+
+```sh
+uv run task.py cjk --config source/cjk/config-tc.json
+uv run task.py cjk --preset kr --vf-only
+```
+
+Build a custom source directly. Repeat `--axis` for fixed source-axis
+coordinates; use `--wght-min`, `--wght-regular`, and `--wght-max` to override
+the source weight coordinates when necessary:
+
+```sh
+uv run task.py cjk --source MyCJK-VF.ttf --locale-name HK --axis ROND=100
+```
+
+`--unicodes` accepts a built-in Unicode preset (`cn`, `jp`, `tc`, or `kr`) or a
+pyftsubset-style range expression. The command also supports source table,
+encoding, width, scale, translation, and italic-angle overrides. Run the
+following command to inspect the current complete argument list:
+
+```sh
+uv run task.py cjk --help
+```
 
 ## Data Flow
 
 ```mermaid
 flowchart TD
-    CLI["task.py cjk --preset locale<br/>or compatibility wrapper"] --> P["build_preset_config(locale)"]
-    P --> JSON["source/cjk/config-{locale}.json"]
-    JSON --> CFG["CJKBuildConfig<br/>locale_name derives outputs and names"]
-    CACHE{"source.path exists?"} -->|"yes"| SRC["cached source variable font<br/>glyf or CFF2"]
-    CACHE -->|"no"| DL["download source.download.url<br/>to temporary file"]
-    DL --> ARC{"7z content?"}
-    ARC -->|"yes"| PICK["extract download.path_in_archive"]
-    ARC -->|"no"| SRC
-    PICK --> SRC
-    SRC --> SUB["Select Unicode ranges<br/>from JSON"]
-    BASE["source/MapleMono-CN-feature-VF.ttf<br/>weight metadata and feature glyphs"]
-    CFG --> SUB
-    SUB --> SS["Subset source font<br/>drop configured tables"]
+  CLI["task.py cjk --preset, --config, or direct flags"] --> CFG["resolver.py validates config<br/>and derives names and paths"]
+  CFG --> CACHE{"source.path exists?"}
+  CACHE -->|"yes"| SRC["cached source variable font"]
+  CACHE -->|"no"| DL["download source and, for 7z,<br/>extract path_in_archive"]
+  DL --> SRC
+  SRC --> DETECT{"glyf or CFF2?"}
+  DETECT --> SUB["Select Unicode values and subset source"]
+  SUB --> GLYF["glyf: instantiate, scale, and transform<br/>100 / 400 / 800 masters"]
+  SUB --> CFF2["CFF2: instantiate masters and jointly<br/>convert glyph chunks to compatible glyf"]
+  GLYF --> REG["Merge masters into Maple feature VF<br/>and build gvar deltas"]
+  CFF2 --> REG
+  REG --> IT["Create italic feature/source masters,<br/>merge, and finalize italic VF"]
+  REG --> OUTR["MapleMono-{Locale}-VF.ttf"]
+  IT --> OUTI["MapleMono-{Locale}-Italic-VF.ttf"]
+  OUTR --> VFONLY{"--vf-only?"}
+  OUTI --> VFONLY
+  VFONLY -->|"no"| STATIC["process_pool: instantiate named static TTFs"]
+  STATIC --> ARTIFACTS["write static hash and archive"]
 
-    subgraph SP["process_pool: instantiate source masters"]
-        S100["100 source master"]
-        S400["400 source master"]
-        S800["800 source master"]
-    end
-
-    SS --> S100
-    SS --> S400
-    SS --> S800
-
-    S100 --> F{"Outline format"}
-    S400 --> F
-    S800 --> F
-    F -->|"glyf"| G0["Scale, transform, normalize<br/>each TTF master"]
-    F -->|"CFF2"| C0["Raw CFF source masters"]
-
-    subgraph CFF["process_pool: joint cu2qu by glyph chunks"]
-        C1["Load 100 / 400 / 800 CFF masters"]
-        C2["Convert one glyph chunk<br/>with Cu2QuMultiPen"]
-        C3["Return compatible glyf glyphs<br/>for all three masters"]
-        C1 --> C2 --> C3
-    end
-
-    C0 --> C1
-    C3 --> G1["Install glyf tables into masters"]
-    G1 --> G2["Apply transform and save TTF masters"]
-    G0 --> M["Transformed TTF source masters"]
-    G2 --> M
-
-    subgraph REG["Regular variable base"]
-        R0["Merge transformed masters<br/>into Maple feature VF"]
-        R1["Build gvar deltas<br/>from 100 / 400 / 800 geometry"]
-        R2["Finalize regular variable<br/>metrics, names, STAT, instances"]
-        R0 --> R1 --> R2
-    end
-
-    subgraph IT["Italic variable base"]
-        IS["process_pool: skew transformed source masters"]
-        IF["process_pool: instantiate and skew feature masters"]
-        I1["Rebuild italic feature VF"]
-        I2["Merge slanted glyf masters"]
-        I3["Build italic gvar deltas"]
-        I4["Finalize italic variable"]
-        IS --> I2
-        IF --> I1 --> I2 --> I3 --> I4
-    end
-
-    M --> R0
-    BASE --> R0
-    M --> IS
-    BASE --> IF
-    R2 --> OUTR["write source/cjk/{locale}/MapleMono-{Locale}-VF.ttf"]
-    I4 --> OUTI["write source/cjk/{locale}/MapleMono-{Locale}-Italic-VF.ttf"]
-    OUTR --> STATIC["process_pool: instantiate named static TTF weights"]
-    OUTI --> STATIC
-    STATIC --> DONE["write source/cjk/{locale}/static<br/>static hash and archive"]
+  MAIN["build.py CJK selection"] --> CHECK{"valid static cache?"}
+  CHECK -->|"yes"| POST["static.py post-processes CJK release fonts"]
+  CHECK -->|"no"| FALLBACK["download built-in cache or rebuild base cache"]
+  FALLBACK --> POST
 ```
 
 ## Built-in Presets
 
-| Preset | Config | Source | Auto-detected result | Output |
-| ------ | ------ | ------ | ------- | ------ |
-| CN | `source/cjk/config-cn.json` | `source/cjk/WenYuanRoundedSCVF.ttf` | glyf | `source/cjk/cn` |
-| JP | `source/cjk/config-jp.json` | `source/cjk/ResourceHanRoundedJP-VF.otf` | CFF2 | `source/cjk/jp` |
-| TC | `source/cjk/config-tc.json` | `source/cjk/ChironGoRoundTCVF.ttf` | glyf | `source/cjk/tc` |
-| KR | `source/cjk/config-kr.json` | `source/cjk/ChironGoRoundTCVF.ttf` | glyf | `source/cjk/kr` |
+| Preset | Config                      | Source                                   | Auto-detected result | Output          |
+| ------ | --------------------------- | ---------------------------------------- | -------------------- | --------------- |
+| CN     | `source/cjk/config-cn.json` | `source/cjk/WenYuanRoundedSCVF.ttf`      | glyf                 | `source/cjk/cn` |
+| JP     | `source/cjk/config-jp.json` | `source/cjk/ResourceHanRoundedJP-VF.otf` | CFF2                 | `source/cjk/jp` |
+| TC     | `source/cjk/config-tc.json` | `source/cjk/ChironGoRoundTCVF.ttf`       | glyf                 | `source/cjk/tc` |
+| KR     | `source/cjk/config-kr.json` | `source/cjk/ChironGoRoundTCVF.ttf`       | glyf                 | `source/cjk/kr` |
+
+Each output directory contains regular and italic variable bases, `static/`
+named TTF instances, `static-{locale}.sha256`, and a
+`{locale}-base-static.zip` archive. They are generated artifacts; do not edit
+them manually.
 
 ## Design Decisions
 
-| Decision | Rationale |
-| -------- | --------- |
-| Keep all built-in CJK assets under `source/cjk` | Avoid locale-specific source roots and make preset configs portable. |
-| Store built-in presets as JSON | Keep source paths, ranges, masters, Unicode filters, and transforms visible without changing Python code. |
-| Cache downloaded source fonts at `source.path` | Make repeated builds deterministic and avoid downloading large CJK assets when already available. |
-| Derive naming and outputs from `locale_name` | Prevent drift between JSON config, generated paths, and font names. |
-| Never allow incompatible glyphs | Fail early when source and feature glyph geometry cannot be merged safely. |
-| Keep `MapleMono-CN-feature-VF.ttf` as the metadata source | Reuse weight axis names, static instance names, and feature glyphs consistently. |
-| Subset before instantiating masters | Avoid expensive work for glyphs that will be discarded. |
-| Convert CFF2 sources to TTF masters early | Keep the regular/italic merge path shared. |
-| Convert CFF masters by glyph chunks | Joint `cu2qu` keeps masters compatible while process-pool chunks keep large subsets fast. |
-| Always emit variable and static fonts as TTF | CFF2 source outlines are converted to compatible `glyf` masters during source master preparation. |
+| Decision                                                  | Rationale                                                                                                 |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Keep all built-in CJK assets under `source/cjk`           | Avoid locale-specific source roots and make preset configs portable.                                      |
+| Store built-in presets as JSON                            | Keep source paths, ranges, masters, Unicode filters, and transforms visible without changing Python code. |
+| Cache downloaded source fonts at `source.path`            | Make repeated builds deterministic and avoid downloading large CJK assets when already available.         |
+| Derive naming and outputs from `locale_name`              | Prevent drift between JSON config, generated paths, and font names.                                       |
+| Never allow incompatible glyphs                           | Fail early when source and feature glyph geometry cannot be merged safely.                                |
+| Keep `MapleMono-CN-feature-VF.ttf` as the metadata source | Reuse weight axis names, static instance names, and feature glyphs consistently.                          |
+| Subset before instantiating masters                       | Avoid expensive work for glyphs that will be discarded.                                                   |
+| Convert CFF2 sources to TTF masters early                 | Keep the regular/italic merge path shared.                                                                |
+| Convert CFF masters by glyph chunks                       | Joint `cu2qu` keeps masters compatible while process-pool chunks keep large subsets fast.                 |
+| Resolve static bases before the main build                | Reuse a valid local cache, then a release download for built-in locales, before rebuilding source fonts.  |
+| Always emit variable and static fonts as TTF              | CFF2 source outlines are converted to compatible `glyf` masters during source master preparation.         |
 
 ## Main Phases
 
-| Phase | Main functions |
-| ----- | -------------- |
-| Config and CLI | `config_from_json`, `config_from_cli`, `add_cjk_arguments`, `build_preset_config` |
-| Unicode selection | `unicode_config_from_spec`, `get_allowed_codepoints` |
-| Subsetting | `prepare_source_subset`, `subset_font` |
-| Master instantiation | `prepare_source_masters`, `instantiate_masters_from_vf` |
-| glyf merge | `merge_cjk_masters_into_vf`, `merge_masters_into_vf` |
-| CFF2 conversion | `convert_cff_static_to_glyf`, `update_maxp_for_glyf` |
-| Italic build | `make_italic_variable_font`, `make_italic_master_file` |
-| Static output | `instantiate_static_fonts`, `instantiate_static_font_file` |
-| Final cleanup | `finalize_variable_font`, `write_static_hash`, `archive_static_fonts` |
+| Phase                        | Main functions                                                                                           |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Config and CLI               | `config_from_json`, `config_from_cli`, `apply_cli_overrides`, `add_cjk_arguments`, `build_preset_config` |
+| Unicode selection            | `unicode_config_from_spec`, `get_allowed_codepoints`                                                     |
+| Subsetting                   | `prepare_source_subset`                                                                                  |
+| Master instantiation         | `prepare_source_masters`, `instantiate_masters_from_vf`                                                  |
+| glyf merge                   | `merge_masters_into_vf`                                                                                  |
+| CFF2 conversion              | `convert_cff_static_to_glyf`, `update_maxp_for_glyf`                                                     |
+| Italic build                 | `make_italic_variable_font`, `make_italic_master_file`                                                   |
+| Static output                | `CJKBuilder._build_static_fonts`, `instantiate_static_font_file`                                         |
+| Main-build static processing | `postprocess_cjk_extended_static_font`                                                                   |
+| Final cleanup                | `finalize_variable_font`, `finalize_static_font_instance`, `build_cjk_fonts`                             |
+
+## Validation
+
+Start with the smallest relevant checks for CJK configuration or pipeline
+changes:
+
+```sh
+uv run task.py cjk --help
+uv run build.py --dry
+uv run python -m unittest scripts.tests.test_cjk_config
+uv run python -m unittest scripts.tests.test_cjk_executor
+```
+
+Avoid a full CJK build unless required: it may download large source assets and
+take substantial time. The generated CJK cache and `fonts/` outputs are build
+artifacts, not hand-edited sources.

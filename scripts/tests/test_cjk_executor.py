@@ -7,13 +7,14 @@ from pathlib import Path
 from typing import cast
 from unittest.mock import MagicMock, patch
 
-from scripts.cjk.models import (
+from scripts.cjk.config import (
     CJKBuildConfig,
     CJKDownloadConfig,
     CJKOutputConfig,
     CJKSourceConfig,
 )
 from scripts.cjk.pipeline import CJKBuilder, detect_outline_format
+from scripts.config.resolver import BuildConfigResolver
 from scripts.font_ops.fonttools import TTFont
 
 
@@ -36,7 +37,9 @@ def make_config(output_dir: Path) -> CJKBuildConfig:
 class CJKExecutorOwnershipTest(unittest.TestCase):
     def test_builder_resolves_source_before_creating_executor(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            builder = CJKBuilder(make_config(Path(tmp)))
+            builder = CJKBuilder(
+                make_config(Path(tmp)), BuildConfigResolver().load_defaults()
+            )
             download = builder.config.source.download
             assert download is not None
 
@@ -62,7 +65,11 @@ class CJKExecutorOwnershipTest(unittest.TestCase):
     def test_builder_does_not_close_a_caller_owned_executor(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             executor = cast(Executor, MagicMock())
-            builder = CJKBuilder(make_config(Path(tmp)), executor)
+            builder = CJKBuilder(
+                make_config(Path(tmp)),
+                BuildConfigResolver().load_defaults(),
+                executor,
+            )
 
             with (
                 patch.object(
@@ -79,7 +86,9 @@ class CJKExecutorOwnershipTest(unittest.TestCase):
     def test_builder_closes_an_executor_it_creates(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             executor = MagicMock()
-            builder = CJKBuilder(make_config(Path(tmp)))
+            builder = CJKBuilder(
+                make_config(Path(tmp)), BuildConfigResolver().load_defaults()
+            )
 
             with (
                 patch(

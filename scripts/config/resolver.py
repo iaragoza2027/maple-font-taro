@@ -1,17 +1,20 @@
 from __future__ import annotations
 
 import json
+import shutil
 from dataclasses import asdict, dataclass, replace
 from os import environ, listdir, path
 from pathlib import Path
-import shutil
 from typing import Any, Literal
 
+from scripts.cjk.config import CJKBuildConfig
+from scripts.cjk.presets import build_preset_config, get_preset
+from scripts.cjk.resolver import config_from_data
 from scripts.config.base import (
+    BUILTIN_CJK_LOCALES,
     BuildBehaviorConfig,
     BuildIdentityConfig,
     BuildMetricsConfig,
-    BUILTIN_CJK_LOCALES,
     BuiltinCJKLocaleId,
     CJKBuildSelection,
     CJKCommonBuildOptions,
@@ -20,7 +23,7 @@ from scripts.config.base import (
     FeatureBuildConfig,
     NerdFontBuildConfig,
     ResolvedCJKBuildEntry,
-    ResolvedBuildConfig,
+    ResolvedConfig,
     default_feature_freeze,
     default_weight_mapping,
     normalize_build_formats,
@@ -28,17 +31,13 @@ from scripts.config.base import (
     parse_codepoint_alias,
     parse_scale_factor,
 )
-from scripts.utils.errors import BuildDependencyError
-from scripts.cjk.config import config_from_data
-from scripts.cjk.models import CJKBuildConfig
-from scripts.cjk.presets import build_preset_config, get_preset
-from scripts.utils.downloads import check_font_patcher, download_zip_and_extract
-from scripts.utils.files import join_path
-from scripts.utils.process import get_font_forge_bin
 from scripts.feature.compiler import normal_enabled_features
 from scripts.font_ops.opentype import DEFAULT_COMPAT_ALIASES
-from scripts.utils.files import get_directory_hash
+from scripts.utils.downloads import check_font_patcher, download_zip_and_extract
+from scripts.utils.errors import BuildDependencyError
+from scripts.utils.files import get_directory_hash, join_path
 from scripts.utils.logging import logger
+from scripts.utils.process import get_font_forge_bin
 
 
 def check_file_count(
@@ -82,7 +81,7 @@ class BuildRuntimeContext:
     resolved_vertical_metric: tuple[int, int]
 
     @classmethod
-    def from_config(cls, config: ResolvedBuildConfig) -> BuildRuntimeContext:
+    def from_config(cls, config: ResolvedConfig) -> BuildRuntimeContext:
         output_root = "fonts"
         output_ttf = join_path(output_root, "TTF")
         output_ttf_hinted = join_path(output_root, "TTF-AutoHint")
@@ -231,11 +230,13 @@ class BuildRuntimeContext:
     def build_cjk_static_base_from_variable(
         self,
         preset_config: CJKBuildConfig,
+        build_config: ResolvedConfig,
     ) -> None:
         from scripts.cjk.pipeline import build_cjk_fonts
 
         build_cjk_fonts(
             preset_config,
+            build_config,
             github_mirror=self.effective_github_mirror,
         )
 
@@ -328,8 +329,9 @@ class BuildRuntimeContext:
         static_dir: Path,
         static_file_prefix: str,
         required_styles: list[str],
+        build_config: ResolvedConfig,
     ) -> CJKStaticBaseResolution:
-        self.build_cjk_static_base_from_variable(preset_config)
+        self.build_cjk_static_base_from_variable(preset_config, build_config)
         missing_styles = self.missing_cjk_static_styles(
             static_dir,
             static_file_prefix,
@@ -351,6 +353,7 @@ class BuildRuntimeContext:
         self,
         entry: ResolvedCJKBuildEntry,
         required_styles: list[str],
+        font_config: ResolvedConfig,
     ) -> CJKStaticBaseResolution:
         preset_config = entry.build_config
         static_dir = self.cjk_static_dir(preset_config)
@@ -384,9 +387,10 @@ class BuildRuntimeContext:
             static_dir,
             static_file_prefix,
             required_styles,
+            font_config,
         )
 
-    def should_use_font_patcher(self, config: ResolvedBuildConfig) -> bool:
+    def should_use_font_patcher(self, config: ResolvedConfig) -> bool:
         if not (
             config.nerd_font.extra_args
             or config.nerd_font.use_font_patcher
@@ -395,7 +399,7 @@ class BuildRuntimeContext:
             return False
         return True
 
-    def ensure_font_patcher_available(self, config: ResolvedBuildConfig) -> None:
+    def ensure_font_patcher_available(self, config: ResolvedConfig) -> None:
         if not self.should_use_font_patcher(config):
             return
         if not self.font_forge_bin or not path.exists(self.font_forge_bin):
@@ -410,7 +414,7 @@ class BuildRuntimeContext:
                 "Nerd Font Patcher assets are unavailable for the requested version"
             )
 
-    def to_dict(self, config: ResolvedBuildConfig | None = None) -> dict[str, Any]:
+    def to_dict(self, config: ResolvedConfig | None = None) -> dict[str, Any]:
         data = asdict(self)
         if config is not None:
             data["use_font_patcher"] = self.should_use_font_patcher(config)
@@ -422,8 +426,8 @@ class BuildConfigResolver:
         self.project_root = Path(project_root)
         self.version_tag = version_tag
 
-    def load_defaults(self) -> ResolvedBuildConfig:
-        config = ResolvedBuildConfig(
+    def load_defaults(self) -> ResolvedConfig:
+        config = ResolvedConfig(
             behavior=BuildBehaviorConfig(),
             feature=FeatureBuildConfig(),
             nerd_font=NerdFontBuildConfig(),
@@ -437,7 +441,7 @@ class BuildConfigResolver:
         self._apply_identity(config)
         return config
 
-    def resolve(self, args) -> ResolvedBuildConfig:
+    def resolve(self, args) -> ResolvedConfig:
         config = self.load_defaults()
         self._apply_json_config(config)
         self._apply_cli_overrides(config, args)
@@ -447,37 +451,50 @@ class BuildConfigResolver:
     def _config_path(self) -> Path:
         return self.project_root / "config.json"
 
-    def _apply_json_config(self, config: ResolvedBuildConfig) -> None:
+    def _apply_json_config(self, config: ResolvedConfig) -> None:
+        data = self._read_json_config()
+        if data is None:
+            return
+
+        self._apply_identity_json_config(config, data)
+        self._apply_metrics_json_config(config, data)
+        self._apply_feature_json_config(config, data)
+        self._apply_behavior_json_config(config, data)
+        self._apply_nerd_font_json_config(config, data)
+        config.cjk = self._resolve_cjk_selection(data.get("cjk"), data.get("cn"))
+
+    def _read_json_config(self) -> dict[str, Any] | None:
         config_path = self._config_path()
         if not config_path.exists():
             logger.warning(
                 "Config file not found; using defaults: path=%s", config_path
             )
-            return
+            return None
         try:
             data = json.loads(config_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as error:
             raise ValueError(f"Invalid JSON in config file: {config_path}") from error
+        if not isinstance(data, dict):
+            raise ValueError(f"Config file must contain a JSON object: {config_path}")
+        return data
 
+    def _apply_identity_json_config(
+        self,
+        config: ResolvedConfig,
+        data: dict[str, Any],
+    ) -> None:
         if "family_name" in data:
             config.identity.base_family_name = str(data["family_name"])
 
+    def _apply_metrics_json_config(
+        self,
+        config: ResolvedConfig,
+        data: dict[str, Any],
+    ) -> None:
         if "pool_size" in data:
             config.metrics.pool_size = int(data["pool_size"])
-        if "use_hinted" in data:
-            config.feature.hinted = bool(data["use_hinted"])
-        if "enable_ligature" in data:
-            config.feature.liga = bool(data["enable_ligature"])
-        if "ligature" in data and data["ligature"] is not None:
-            config.feature.liga = bool(data["ligature"])
         if "ttfautohint_param" in data:
             config.metrics.ttfautohint_param = dict(data["ttfautohint_param"])
-        if "infinite_arrow" in data:
-            config.feature.infinite_arrow = data["infinite_arrow"]
-        if "line_height" in data:
-            config.feature.line_height = float(data["line_height"])
-        if "width" in data:
-            config.feature.width = str(data["width"])
         if "github_mirror" in data:
             config.metrics.github_mirror = str(data["github_mirror"])
         if "weight_mapping" in data:
@@ -496,12 +513,42 @@ class BuildConfigResolver:
                     f"Codepoint aliases are built in and cannot be changed: {aliases}"
                 )
             config.metrics.codepoint_alias = codepoint_alias
+
+    def _apply_feature_json_config(
+        self,
+        config: ResolvedConfig,
+        data: dict[str, Any],
+    ) -> None:
+        if "use_hinted" in data:
+            config.feature.hinted = bool(data["use_hinted"])
+        if "enable_ligature" in data:
+            config.feature.liga = bool(data["enable_ligature"])
+        if "ligature" in data and data["ligature"] is not None:
+            config.feature.liga = bool(data["ligature"])
+        if "infinite_arrow" in data:
+            config.feature.infinite_arrow = data["infinite_arrow"]
+        if "line_height" in data:
+            config.feature.line_height = float(data["line_height"])
+        if "width" in data:
+            config.feature.width = str(data["width"])
         if "remove_tag_liga" in data:
             config.feature.remove_tag_liga = bool(data["remove_tag_liga"])
         if "feature_freeze" in data:
             config.feature_freeze.update(dict(data["feature_freeze"]))
+
+    def _apply_behavior_json_config(
+        self,
+        config: ResolvedConfig,
+        data: dict[str, Any],
+    ) -> None:
         if "formats" in data:
             config.behavior.formats = normalize_build_formats(data["formats"])
+
+    def _apply_nerd_font_json_config(
+        self,
+        config: ResolvedConfig,
+        data: dict[str, Any],
+    ) -> None:
         if "nerd_font" in data:
             nerd_font = dict(data["nerd_font"])
             if "enable" in nerd_font:
@@ -518,8 +565,6 @@ class BuildConfigResolver:
                 config.nerd_font.glyphs = list(nerd_font["glyphs"])
             if "extra_args" in nerd_font:
                 config.nerd_font.extra_args = list(nerd_font["extra_args"])
-
-        config.cjk = self._resolve_cjk_selection(data.get("cjk"), data.get("cn"))
 
     def _resolve_cjk_selection(
         self,
@@ -664,7 +709,8 @@ class BuildConfigResolver:
 
         return entries
 
-    def _apply_cli_overrides(self, config: ResolvedBuildConfig, args) -> None:
+    def _apply_cli_overrides(self, config: ResolvedConfig, args) -> None:
+        # ========== Build behavior overrides ============
         config.behavior.archive = bool(args.archive)
         config.behavior.debug = bool(args.debug)
         config.behavior.cache = bool(args.cache)
@@ -683,6 +729,7 @@ class BuildConfigResolver:
             logger.warning("--ttf-only is deprecated; use --format ttf instead")
             config.behavior.formats = ["ttf"]
 
+        # ============== Feature overrides ============
         if args.normal:
             config.feature.normal = True
             for feature in normal_enabled_features:
@@ -707,6 +754,7 @@ class BuildConfigResolver:
         if args.line_height is not None:
             config.feature.line_height = float(args.line_height)
 
+        # ============== Nerd Font overrides ============
         if config.debug:
             config.nerd_font.enable = False
         if args.nf_mono:
@@ -720,9 +768,7 @@ class BuildConfigResolver:
         if args.font_patcher:
             config.nerd_font.use_font_patcher = True
 
-        self._apply_cjk_cli_overrides(config, args)
-
-    def _apply_cjk_cli_overrides(self, config: ResolvedBuildConfig, args) -> None:
+        # ============== CJK overrides ============
         enabled_locales = set(config.cjk.locales.builtin_enabled_locales())
         enabled_locales.update(normalize_cjk_locale_list(getattr(args, "cjk", None)))
 
@@ -759,7 +805,7 @@ class BuildConfigResolver:
             config.cjk.common_options,
         )
 
-    def _apply_identity(self, config: ResolvedBuildConfig) -> None:
+    def _apply_identity(self, config: ResolvedConfig) -> None:
         version_tag = self.version_tag
         base_name = config.identity.base_family_name
         name_parts = [word.capitalize() for word in base_name.split(" ")]
@@ -791,8 +837,16 @@ class BuildConfigResolver:
         config.identity.beta = beta
 
 
+def resolve_default_build_config() -> ResolvedConfig:
+    """Resolve the project build configuration for standalone CJK builds."""
+    from scripts.utils.version import version_tag
+
+    return BuildConfigResolver(version_tag=version_tag()).resolve({})
+
+
 __all__ = [
     "BuildConfigResolver",
     "BuildRuntimeContext",
-    "ResolvedBuildConfig",
+    "ResolvedConfig",
+    "resolve_default_build_config",
 ]

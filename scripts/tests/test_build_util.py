@@ -15,7 +15,7 @@ from scripts.cjk.static import (
     apply_cjk_width_transform,
     postprocess_cjk_extended_static_font,
 )
-from scripts.cjk.models import CJKBuildConfig, CJKSourceConfig
+from scripts.cjk.config import CJKBuildConfig, CJKSourceConfig
 from scripts.cjk.presets import build_preset_config, get_preset
 
 

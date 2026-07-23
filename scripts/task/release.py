@@ -15,7 +15,7 @@ from scripts.utils.files import (
     write_json,
 )
 from scripts.utils.process import run as run_command
-from scripts.font_ops.names import default_weight_map
+from scripts.font_ops.constant import INSTANCE_WEIGHT_MAPPING
 from scripts.utils.version import project_version
 from scripts.utils.logging import logger
 
@@ -38,8 +38,8 @@ def format_fontsource_name(filename: str):
     else:
         base_style = style
 
-    weight = default_weight_map.get(
-        base_style.lower(), default_weight_map.get("regular", 400)
+    weight = INSTANCE_WEIGHT_MAPPING.get(
+        base_style.lower(), INSTANCE_WEIGHT_MAPPING.get("regular", 400)
     )
     suffix = "italic" if "italic" in style.lower() else "normal"
     return f"maple-mono-latin-{weight}-{suffix}.{match.group(2)}"

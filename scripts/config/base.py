@@ -4,23 +4,20 @@ import argparse
 from dataclasses import asdict, dataclass, field
 from os import getenv
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, Literal
 
-from scripts.cjk.config import (
+from scripts.cjk.config import CJKBuildConfig
+from scripts.cjk.presets import CJKPresetSpec
+from scripts.cjk.resolver import (
     config_from_data,
     serialize_cjk_build_config,
 )
-from scripts.cjk.models import CJKBuildConfig
 from scripts.feature.compiler import (
     normal_enabled_features,
 )
-from scripts.in_browser import get_freeze_config_str as get_browser_freeze_config_str
+from scripts.font_ops.constant import INSTANCE_WEIGHT_MAPPING
 from scripts.font_ops.nerd_font import NerdFontVariant
-from scripts.font_ops.names import default_weight_map
-
-if TYPE_CHECKING:
-    from scripts.cjk.presets import CJKPresetSpec
-
+from scripts.in_browser import get_freeze_config_str as get_browser_freeze_config_str
 
 BuiltinCJKLocaleId = Literal["cn", "jp", "tc", "kr"]
 BUILTIN_CJK_LOCALES: tuple[BuiltinCJKLocaleId, ...] = ("cn", "jp", "tc", "kr")
@@ -148,7 +145,7 @@ def normalize_feature_freeze(config: dict[str, str], calt: bool) -> dict[str, st
 
 
 def default_weight_mapping() -> dict[str, int]:
-    return dict(default_weight_map)
+    return dict(INSTANCE_WEIGHT_MAPPING)
 
 
 def parse_scale_factor(value: Any) -> tuple[float, float]:
@@ -385,7 +382,7 @@ class BuildMetricsConfig:
 
 
 @dataclass(slots=True)
-class ResolvedBuildConfig:
+class ResolvedConfig:
     behavior: BuildBehaviorConfig = field(default_factory=BuildBehaviorConfig)
     feature: FeatureBuildConfig = field(default_factory=FeatureBuildConfig)
     nerd_font: NerdFontBuildConfig = field(default_factory=NerdFontBuildConfig)
@@ -713,7 +710,7 @@ __all__ = [
     "CustomCJKEntryConfig",
     "FeatureBuildConfig",
     "NerdFontBuildConfig",
-    "ResolvedBuildConfig",
+    "ResolvedConfig",
     "ResolvedCJKBuildEntry",
     "default_cjk_config",
     "default_feature_freeze",

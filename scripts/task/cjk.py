@@ -3,12 +3,13 @@ from __future__ import annotations
 import argparse
 
 from scripts.cjk.pipeline import build_cjk_fonts
-from scripts.cjk.config import (
+from scripts.cjk.presets import build_preset_config, list_presets
+from scripts.cjk.resolver import (
     add_cjk_arguments,
     apply_cli_overrides,
     apply_unicode_override,
 )
-from scripts.cjk.presets import build_preset_config, list_presets
+from scripts.config.resolver import resolve_default_build_config
 from scripts.utils.downloads import github_mirror_from_config
 
 
@@ -29,7 +30,12 @@ def run(args: argparse.Namespace) -> None:
         config = build_preset_config(args.preset)
         config = apply_cli_overrides(config, args)
         config = apply_unicode_override(config, args.unicodes)
-        build_cjk_fonts(config, args.vf_only, github_mirror=github_mirror)
+        build_cjk_fonts(
+            config,
+            resolve_default_build_config(),
+            args.vf_only,
+            github_mirror=github_mirror,
+        )
         return
 
     from scripts.cjk.pipeline import build_cjk_from_args

@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from scripts.config.base import ResolvedBuildConfig, normalize_feature_freeze
+from scripts.config.base import ResolvedConfig, normalize_feature_freeze
 from scripts.feature.apply import patch_font_feature
 from scripts.feature.compiler import generate_fea_string, generate_fea_string_cn_only
 
@@ -32,7 +32,7 @@ class FeatureFreezeConfigTest(unittest.TestCase):
             normalize_feature_freeze({"cv01": "unexpected"}, calt=False)
 
     def test_resolved_config_uses_normalized_freeze_values(self) -> None:
-        config = ResolvedBuildConfig(
+        config = ResolvedConfig(
             feature_freeze={"cv01": "enable", "cv02": "disable"}
         )
         config.feature.liga = False
@@ -55,7 +55,7 @@ class FeatureApplicationTest(unittest.TestCase):
         moving_rules: MagicMock,
         freeze_feature: MagicMock,
     ) -> None:
-        config = ResolvedBuildConfig()
+        config = ResolvedConfig()
         font = MagicMock()
 
         with tempfile.TemporaryDirectory() as tmp:

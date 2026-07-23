@@ -6,11 +6,7 @@
   "definitions": {
     "freeze_options": {
       "type": "string",
-      "enum": [
-        "ignore",
-        "disable",
-        "enable"
-      ],
+      "enum": ["ignore", "disable", "enable"],
       "enumDescriptions": [
         "Do nothing",
         "Remove the features from font file",
@@ -19,11 +15,7 @@
     },
     "stem_width_mode": {
       "type": "string",
-      "enum": [
-        "strong",
-        "quantized",
-        "natural"
-      ],
+      "enum": ["strong", "quantized", "natural"],
       "enumDescriptions": [
         "If active, stem widths and blue zones are snapped and positioned to integer pixel values as much as possible. This gives high contrast, but glyph shape distortion can be significant.",
         "Both stem widths and blue zone positions are slightly quantized to take discrete values. For example, stem values 50, 51, 72, 76, and 100 would become 50, 74, and 100 (or something similar). More glyph shape distortion but increased contrast.",
@@ -59,10 +51,7 @@
           "default": false
         },
         "scale_factor": {
-          "type": [
-            "number",
-            "array"
-          ],
+          "type": ["number", "array"],
           "description": "Scale factor for CJK glyphs with <factor> or [<width_factor>,<height_factor>]",
           "default": 1.0
         }
@@ -72,17 +61,9 @@
       "type": "array",
       "items": {
         "type": "string",
-        "enum": [
-          "ttf",
-          "otf",
-          "woff2"
-        ]
+        "enum": ["ttf", "otf", "woff2"]
       },
-      "default": [
-        "ttf",
-        "otf",
-        "woff2"
-      ]
+      "default": ["ttf", "otf", "woff2"]
     }
   },
   "properties": {
@@ -169,17 +150,9 @@
       "default": true
     },
     "infinite_arrow": {
-      "type": [
-        "boolean",
-        "null"
-      ],
+      "type": ["boolean", "null"],
       "description": "Enable infinite arrow ligatures\n- null: disabled in hinted font, enabled in unhinted font\n- true: enabled\n- false: disabled",
       "default": null
-    },
-    "keep_infinite_arrow": {
-      "type": "boolean",
-      "description": "(Deprecated) Use \"infinite_arrow\" instead",
-      "default": false
     },
     "remove_tag_liga": {
       "type": "boolean",
@@ -193,11 +166,7 @@
     },
     "width": {
       "type": "string",
-      "enum": [
-        "default",
-        "narrow",
-        "slim"
-      ],
+      "enum": ["default", "narrow", "slim"],
       "description": "Set glyph width: default (600), narrow (550), slim (500)",
       "default": "default"
     },
@@ -503,9 +472,7 @@
           "items": {
             "type": "string"
           },
-          "default": [
-            "--complete"
-          ],
+          "default": ["--complete"],
           "description": "Symbol Fonts settings. if is not [\"--complete\"], will use font-patcher to generate fonts. Full args: https://github.com/ryanoasis/nerd-fonts?tab=readme-ov-file#font-patcher"
         },
         "extra_args": {
@@ -517,14 +484,7 @@
           "description": "Extra arguments for font-patcher, default args: [\"-l\", \"--careful\", \"--outputdir\", output_nf], if \"mono\" is set to true, \"--mono\" will be added, full args: https://github.com/ryanoasis/nerd-fonts?tab=readme-ov-file#font-patcher"
         }
       },
-      "required": [
-        "enable",
-        "version",
-        "mono",
-        "use_font_patcher",
-        "glyphs",
-        "extra_args"
-      ]
+      "required": ["enable", "version", "mono", "use_font_patcher", "glyphs", "extra_args"]
     },
     "formats": {
       "$ref": "#/definitions/formats"
@@ -574,13 +534,7 @@
               }
             }
           },
-          "required": [
-            "cn",
-            "jp",
-            "tc",
-            "kr",
-            "custom"
-          ]
+          "required": ["cn", "jp", "tc", "kr", "custom"]
         }
       },
       "allOf": [
@@ -588,9 +542,7 @@
           "$ref": "#/definitions/cjk_common_config"
         }
       ],
-      "required": [
-        "locales"
-      ]
+      "required": ["locales"]
     },
     "cn": {
       "type": "object",
@@ -632,10 +584,7 @@
           "default": true
         },
         "scale_factor": {
-          "type": [
-            "number",
-            "array"
-          ],
+          "type": ["number", "array"],
           "description": "Scale factor for CN / JP glyphs with <factor> or [<width_factor>,<height_factor>](e.g. 1.1 or [1.2, 1.1])",
           "default": 1.0
         }
@@ -653,19 +602,11 @@
   },
   "anyOf": [
     {
-      "required": [
-        "cjk"
-      ]
+      "required": ["cjk"]
     },
     {
-      "required": [
-        "cn"
-      ]
+      "required": ["cn"]
     }
   ],
-  "required": [
-    "family_name",
-    "use_hinted",
-    "nerd_font"
-  ]
+  "required": ["family_name", "use_hinted", "nerd_font"]
 }

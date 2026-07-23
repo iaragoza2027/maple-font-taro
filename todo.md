@@ -45,7 +45,6 @@
 - [x] stablize cjk sha
 - [x] support object-based CJK source downloads, including direct files and a selected file inside 7z archives
 - [ ] generate build summary and basic usage and description in fonts/ , and for custom build, use it as release notes
-- [ ] support custom build that just merge custom cjk static font into generated maple mono, get rid of cjk variable font. via config, or cli flags, weight name as config key, only generate the static font with these configured weight name
 
 ### Web
 

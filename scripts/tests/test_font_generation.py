@@ -22,7 +22,7 @@ from glyphsLib.classes import (
 )
 from scripts.font_ops.fonttools import TTFont, instantiate_variable_font
 
-from scripts.config.base import ResolvedBuildConfig
+from scripts.config.base import ResolvedConfig
 from scripts.feature.apply import patch_font_feature
 from scripts.font_ops.glyphs import (
     FontmakeBranchJob,
@@ -33,7 +33,7 @@ from scripts.font_ops.glyphs import (
     prepare_designspace_source,
 )
 from scripts.font_ops.glyph_transform import SmartWidthThickenFilter
-from scripts.font_ops.names import default_weight_map
+from scripts.font_ops.constant import INSTANCE_WEIGHT_MAPPING
 from scripts.font_ops.opentype import add_ital_axis_to_stat, alias_codepoints
 from scripts.task.designspace import (
     SourceCompatibilityError,
@@ -188,7 +188,7 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
             prepared = prepare_glyphs_fixture(
                 source_path,
                 "regular",
-                weight_mapping={**default_weight_map, "extralight": 275},
+                weight_mapping={**INSTANCE_WEIGHT_MAPPING, "extralight": 275},
                 line_height=1.2,
             )
             designspace_path = materialize_prepared_source(
@@ -496,7 +496,7 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
                 "feature liga { sub A.alt by A.alt; } liga;",
                 encoding="utf-8",
             )
-            config = ResolvedBuildConfig()
+            config = ResolvedConfig()
             config.behavior.apply_fea_file = True
             patch_font_feature(
                 config=config,

@@ -2,45 +2,46 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
-from io import BytesIO
-from multiprocessing import current_process
 import sys
 import threading
 from array import array
 from concurrent.futures import Executor
+from dataclasses import dataclass
+from io import BytesIO
+from multiprocessing import current_process
 from os import cpu_count, makedirs
 from pathlib import Path
 from typing import Any, Iterable, Literal, Sequence, TypeVar, cast
 
-from fontTools.subset import Options
 from fontTools.misc.transform import Transform
 from fontTools.pens.cu2quPen import Cu2QuMultiPen
 from fontTools.pens.recordingPen import RecordingPen
 from fontTools.pens.t2CharStringPen import T2CharStringPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
-from scripts.font_ops.fonttools import TTFont, instantiate_variable_font, newTable
-from fontTools.ttLib.tables.DefaultTable import DefaultTable
+from fontTools.subset import Options
 from fontTools.ttLib.scaleUpem import scale_upem
+from fontTools.ttLib.tables.DefaultTable import DefaultTable
 from ttfautohint import StemWidthMode, ttfautohint
+
+from scripts.font_ops.fonttools import TTFont, instantiate_variable_font, newTable
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from scripts.cjk.config import (
+    CJKBuildConfig,
+    CJKMasterLocations,
+    CJKTransformConfig,
+    CJKWeightInstance,
+)
+from scripts.cjk.resolver import (
     add_cjk_arguments,
     apply_cli_overrides,
     apply_unicode_override,
     config_from_cli,
     config_from_json,
     ordered_master_locations,
-)
-from scripts.cjk.models import (
-    CJKBuildConfig,
-    CJKMasterLocations,
-    CJKTransformConfig,
-    CJKWeightInstance,
 )
 from scripts.cjk.variable import (
     drop_font_tables,
@@ -55,17 +56,16 @@ from scripts.cjk.variable import (
     update_italic_metadata,
     weight_axis,
 )
-from scripts.utils.files import archive, get_directory_hash
-from scripts.utils.downloads import resolve_cached_download
-from scripts.utils.logging import configure_logging, log_task, logger, set_log_task
-from scripts.utils.process import create_process_executor
 from scripts.font_ops.fonttools import (
     GlyfTable,
     SubsetOptions,
 )
-from scripts.font_ops.names import set_font_name, update_font_names
+from scripts.font_ops.names import FontNameConfig, set_font_name, update_font_names
 from scripts.font_ops.subset import subset_to_codepoints
-
+from scripts.utils.downloads import resolve_cached_download
+from scripts.utils.files import archive, get_directory_hash
+from scripts.utils.logging import configure_logging, log_task, logger, set_log_task
+from scripts.utils.process import create_process_executor
 
 RESERVED_NAME_IDS = {1, 2, 4, 6, 16, 17, 25}
 CFF_GLYPH_CHUNK_SIZE = 256
@@ -102,6 +102,7 @@ class StaticInstanceJob:
     name: str
     is_italic: bool
     config: CJKBuildConfig
+    font_config: FontNameConfig
 
 
 @dataclass(frozen=True)
@@ -1060,14 +1061,15 @@ def load_feature_variable_font(input_path: Path) -> TTFont:
 
 
 def update_variable_font_names(
-    font: TTFont, subfamily: str, config: CJKBuildConfig
+    font: TTFont,
+    subfamily: str,
+    config: CJKBuildConfig,
+    font_config: FontNameConfig,
 ) -> None:
     """Update variable font naming after merging CJK glyphs into the feature base."""
     family_name = config.naming.family_name
     full_name = f"{family_name} {subfamily}"
     postscript_name = f"{config.naming.postscript_prefix}-{subfamily.replace(' ', '')}"
-    version_str = get_version_name(font)
-
     name_table = font["name"]
     move_fvar_instances_from_reserved_name_ids(font)
     for name_id in RESERVED_NAME_IDS:
@@ -1075,27 +1077,16 @@ def update_variable_font_names(
 
     update_font_names(
         font=font,
+        font_config=font_config,
         family_name=family_name,
         style_name=subfamily,
-        unique_identifier=get_unique_identifier(version_str, postscript_name),
         full_name=full_name,
-        version_str=version_str,
         postscript_name=postscript_name,
         is_skip_subfamily=False,
         preferred_family_name=family_name,
         preferred_style_name=subfamily,
     )
     set_font_name(font, config.naming.postscript_prefix, 25)
-
-
-def get_version_name(font: TTFont) -> str:
-    """Read the existing version name, falling back to a valid name ID 5 value."""
-    return font["name"].getDebugName(5) or "Version 1.000"
-
-
-def get_unique_identifier(version_str: str, postscript_name: str) -> str:
-    """Build a stable unique identifier from the updated PostScript name."""
-    return f"{version_str};SUBF;{postscript_name};"
 
 
 def move_fvar_instances_from_reserved_name_ids(font: TTFont) -> None:
@@ -1198,6 +1189,7 @@ def finalize_variable_font(
     protected_glyphs: set[str],
     subfamily: str,
     config: CJKBuildConfig,
+    font_config: FontNameConfig,
     is_italic: bool = False,
 ) -> None:
     """Apply final metrics, naming, axis, and table cleanup."""
@@ -1209,7 +1201,7 @@ def finalize_variable_font(
     )
     prune_stat(font)
     recalculate_font(font, config)
-    update_variable_font_names(font, subfamily, config)
+    update_variable_font_names(font, subfamily, config, font_config)
 
 
 def map_weight_coordinate(
@@ -1256,10 +1248,12 @@ class CJKBuilder:
     def __init__(
         self,
         config: CJKBuildConfig,
+        font_config: FontNameConfig,
         executor: Executor | None = None,
         github_mirror: str = "github.com",
     ) -> None:
         self.config = config
+        self.font_config = font_config
         self.process_pool = executor
         self._owns_process_pool = executor is None
         self.github_mirror = github_mirror
@@ -1400,6 +1394,7 @@ class CJKBuilder:
                 protected_glyphs,
                 "Regular",
                 self.config,
+                self.font_config,
             )
             logger.debug(
                 "Regular CJK base font: glyphs=%s, unicodes=%s",
@@ -1459,6 +1454,7 @@ class CJKBuilder:
                 protected_glyphs,
                 "Italic",
                 self.config,
+                self.font_config,
                 is_italic=True,
             )
             logger.debug(
@@ -1599,6 +1595,7 @@ class CJKBuilder:
                         name=instance.name,
                         is_italic=is_italic,
                         config=self.config,
+                        font_config=self.font_config,
                     )
                     futures.append(
                         self._require_process_pool().submit(
@@ -1637,6 +1634,7 @@ def finalize_static_font_instance(
     name: str,
     is_italic: bool,
     config: CJKBuildConfig,
+    font_config: FontNameConfig,
 ) -> None:
     """Apply static font cleanup and save one instantiated font."""
     subfamily = (f"{name} Italic" if is_italic else name).replace(
@@ -1648,15 +1646,13 @@ def finalize_static_font_instance(
         convert_cff_static_to_glyf(instance)
         recalculate_font(instance, config)
 
-    version_str = get_version_name(instance)
     postscript_name = f"{config.naming.postscript_prefix}-{subfamily.replace(' ', '')}"
     update_font_names(
         font=instance,
+        font_config=font_config,
         family_name=config.naming.family_name,
         style_name=subfamily,
-        unique_identifier=get_unique_identifier(version_str, postscript_name),
         full_name=f"{config.naming.family_name} {subfamily}",
-        version_str=version_str,
         postscript_name=postscript_name,
         is_skip_subfamily=True,
     )
@@ -1677,6 +1673,7 @@ def instantiate_static_font_file(
     name: str,
     is_italic: bool,
     config: CJKBuildConfig,
+    font_config: FontNameConfig,
 ) -> None:
     """Instantiate one static CJK font and apply final naming cleanup."""
     set_log_task(config.locale_name.lower())
@@ -1693,7 +1690,14 @@ def instantiate_static_font_file(
         downgrade_cff2="CFF2" in var_font,
     )
     try:
-        finalize_static_font_instance(instance, output_path, name, is_italic, config)
+        finalize_static_font_instance(
+            instance,
+            output_path,
+            name,
+            is_italic,
+            config,
+            font_config,
+        )
     finally:
         instance.close()
 
@@ -1707,17 +1711,21 @@ def instantiate_static_font_job(job: StaticInstanceJob) -> None:
         job.name,
         job.is_italic,
         job.config,
+        job.font_config,
     )
 
 
 def build_cjk_fonts(
-    config: CJKBuildConfig,
+    build_config: CJKBuildConfig,
+    name_config: FontNameConfig,
     vf_only: bool = False,
     executor: Executor | None = None,
     github_mirror: str = "github.com",
 ) -> None:
     """Build regular, italic, and optionally static CJK fonts."""
-    CJKBuilder(config, executor, github_mirror).build(vf_only=vf_only)
+    CJKBuilder(build_config, name_config, executor, github_mirror).build(
+        vf_only=vf_only
+    )
 
 
 def build_cjk_from_config_file(
@@ -1726,8 +1734,11 @@ def build_cjk_from_config_file(
     unicode_spec: str | None = None,
 ) -> None:
     """Build CJK fonts from a JSON config file."""
+    from scripts.config.resolver import resolve_default_build_config
+
     build_cjk_fonts(
         apply_unicode_override(config_from_json(config_path), unicode_spec),
+        resolve_default_build_config(),
         vf_only,
     )
 
@@ -1737,12 +1748,15 @@ def build_cjk_from_args(
     github_mirror: str = "github.com",
 ) -> None:
     """Build CJK fonts from JSON config plus CLI overrides or direct CLI flags."""
+    from scripts.config.resolver import resolve_default_build_config
+
     if args.config:
         config = apply_cli_overrides(config_from_json(args.config), args)
     else:
         config = config_from_cli(args)
     build_cjk_fonts(
         apply_unicode_override(config, args.unicodes),
+        resolve_default_build_config(),
         args.vf_only,
         github_mirror=github_mirror,
     )

@@ -10,7 +10,7 @@ from fontTools.designspaceLib import AxisDescriptor, DesignSpaceDocument
 from scripts.font_ops.glyphs import (
     prepare_designspace_source,
 )
-from scripts.font_ops.names import default_weight_map
+from scripts.font_ops.constant import INSTANCE_WEIGHT_MAPPING
 from scripts.task.designspace import (
     SourceCompatibilityError,
     convert_glyphs_source,
@@ -80,7 +80,7 @@ class DesignspaceTaskTest(unittest.TestCase):
             prepared = prepare_designspace_source(
                 output_dir / "Fixture-Italic.designspace",
                 "italic",
-                weight_mapping=default_weight_map,
+                weight_mapping=INSTANCE_WEIGHT_MAPPING,
             )
             default_source = prepared.designspace.findDefault()
             self.assertIsNotNone(default_source)
@@ -106,7 +106,7 @@ class DesignspaceTaskTest(unittest.TestCase):
             prepared = prepare_designspace_source(
                 designspace_path,
                 "regular",
-                weight_mapping={**default_weight_map, "regular": 400},
+                weight_mapping={**INSTANCE_WEIGHT_MAPPING, "regular": 400},
                 line_height=1.2,
             )
 

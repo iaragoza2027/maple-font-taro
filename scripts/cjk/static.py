@@ -7,10 +7,11 @@ from fontTools.ttLib.tables._m_e_t_a import table__m_e_t_a
 
 from scripts.config.base import (
     CJKCommonBuildOptions,
-    ResolvedBuildConfig,
     ResolvedCJKBuildEntry,
+    ResolvedConfig,
 )
 from scripts.config.resolver import BuildRuntimeContext
+from scripts.feature.apply import patch_font_feature
 from scripts.font_ops.fonttools import MetaTable, TTFont
 from scripts.font_ops.glyph_transform import (
     change_glyph_width_or_scale,
@@ -18,22 +19,18 @@ from scripts.font_ops.glyph_transform import (
 )
 from scripts.font_ops.metrics import adjust_line_height, verify_glyph_width
 from scripts.font_ops.names import (
-    get_unique_identifier,
     parse_style_name,
     update_font_names,
 )
 from scripts.font_ops.opentype import remove_target_glyph
-from scripts.feature.apply import patch_font_feature
 from scripts.utils.logging import logger
 
 
-def build_cjk_family_name(font_config: ResolvedBuildConfig, locale_suffix: str) -> str:
+def build_cjk_family_name(font_config: ResolvedConfig, locale_suffix: str) -> str:
     return f"{font_config.family_name} {locale_suffix}"
 
 
-def build_cjk_postscript_prefix(
-    font_config: ResolvedBuildConfig, locale_suffix: str
-) -> str:
+def build_cjk_postscript_prefix(font_config: ResolvedConfig, locale_suffix: str) -> str:
     return f"{font_config.family_name_compact}-{locale_suffix}"
 
 
@@ -51,7 +48,7 @@ def apply_cjk_meta_table(
 
 def apply_cjk_names(
     font: TTFont,
-    font_config: ResolvedBuildConfig,
+    font_config: ResolvedConfig,
     locale_suffix: str,
     style_compact: str,
     narrow: bool,
@@ -64,26 +61,22 @@ def apply_cjk_names(
     postscript_name = f"{postscript_prefix}-{style_compact}"
     update_font_names(
         font=font,
+        font_config=font_config,
         family_name=f"{family_name}{style_with_prefix_space}",
         style_name=style_in_2,
         full_name=f"{family_name} {style_in_17}",
-        version_str=font_config.version_str,
         postscript_name=postscript_name,
-        unique_identifier=get_unique_identifier(
-            font_config=font_config,
-            postscript_name=postscript_name,
-            narrow=narrow,
-        ),
         is_skip_subfamily=is_skip_subfamily,
         preferred_family_name=family_name,
         preferred_style_name=style_in_17,
+        narrow=narrow,
     )
     return postscript_name
 
 
 def apply_cjk_metrics(
     font: TTFont,
-    font_config: ResolvedBuildConfig,
+    font_config: ResolvedConfig,
     runtime_context: BuildRuntimeContext,
 ) -> None:
     font.table("OS/2").xAvgCharWidth = font_config.get_target_width()
@@ -94,7 +87,7 @@ def apply_cjk_metrics(
 
 def apply_cjk_width_transform(
     font: TTFont,
-    font_config: ResolvedBuildConfig,
+    font_config: ResolvedConfig,
     common_options: CJKCommonBuildOptions,
 ) -> bool:
     target_width = font_config.glyph_width_cn_narrow if common_options.narrow else None
@@ -167,7 +160,7 @@ def apply_cjk_width_transform(
 
 def verify_cjk_widths(
     font: TTFont,
-    font_config: ResolvedBuildConfig,
+    font_config: ResolvedConfig,
     file_name: str,
     skip_verify: bool,
     cjk_narrow: bool,
@@ -184,7 +177,7 @@ def verify_cjk_widths(
 def postprocess_cjk_extended_static_font(
     font: TTFont,
     entry: ResolvedCJKBuildEntry,
-    font_config: ResolvedBuildConfig,
+    font_config: ResolvedConfig,
     runtime_context: BuildRuntimeContext,
     style_compact: str,
     locale_suffix: str | None = None,

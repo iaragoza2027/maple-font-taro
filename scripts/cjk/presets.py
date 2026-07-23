@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from scripts.cjk.config import config_from_json
-from scripts.cjk.models import CJKBuildConfig
+from scripts.cjk.resolver import config_from_json
+from scripts.cjk.config import CJKBuildConfig
 
 
 CJKPresetId = Literal["cn", "jp", "tc", "kr"]

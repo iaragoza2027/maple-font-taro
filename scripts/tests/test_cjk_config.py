@@ -7,14 +7,14 @@ import unittest
 from dataclasses import fields
 from pathlib import Path
 
-from scripts.cjk.config import (
+from scripts.cjk.resolver import (
     add_cjk_arguments,
     apply_cli_overrides,
     config_from_data,
     config_from_json,
     serialize_cjk_build_config,
 )
-from scripts.cjk.models import CJKSourceConfig
+from scripts.cjk.config import CJKSourceConfig
 from scripts.cjk.presets import build_preset_config
 
 

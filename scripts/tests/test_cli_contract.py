@@ -6,7 +6,7 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from scripts.config import cli
 from scripts.pipeline import main as run_build_cli
@@ -92,26 +92,52 @@ class PublicCliContractTest(unittest.TestCase):
     def test_pipeline_owns_cli_execution(self) -> None:
         self.assertFalse(hasattr(cli, "main"))
 
+        resolver = MagicMock()
+        font_config = MagicMock()
+        font_config.to_dict.return_value = {}
+        runtime_context = MagicMock()
+        runtime_context.to_dict.return_value = {}
+        resolver.resolve.return_value = font_config
+        resolver_factory = MagicMock(return_value=resolver)
         with (
             patch("scripts.pipeline.configure_logging"),
-            patch("scripts.pipeline.run") as run_pipeline,
+            patch("builtins.print"),
+            patch("scripts.pipeline.BuildConfigResolver", resolver_factory),
+            patch(
+                "scripts.pipeline.BuildRuntimeContext.from_config",
+                return_value=runtime_context,
+            ),
         ):
             run_build_cli(["--dry"], version="v7.9")
 
-        parsed_args = run_pipeline.call_args.args[0]
-        self.assertTrue(parsed_args.dry)
-        self.assertEqual(run_pipeline.call_args.kwargs["version"], "v7.9")
+        self.assertTrue(resolver.resolve.call_args.args[0].dry)
+        self.assertEqual(
+            resolver_factory.call_args.kwargs,
+            {"version_tag": "v7.9"},
+        )
 
     def test_debug_build_enables_debug_logging_for_the_cli_lifetime(self) -> None:
         observed_levels: list[str | None] = []
+        resolver = MagicMock()
+        font_config = MagicMock()
+        font_config.to_dict.return_value = {}
+        runtime_context = MagicMock()
+        runtime_context.to_dict.return_value = {}
+        resolver.resolve.side_effect = lambda _args: (
+            observed_levels.append(os.environ.get("MAPLE_LOG_LEVEL")) or font_config
+        )
+        resolver_factory = MagicMock(return_value=resolver)
         with (
             patch.dict(os.environ, {}, clear=True),
             patch("scripts.pipeline.configure_logging"),
+            patch("builtins.print"),
             patch(
-                "scripts.pipeline.run",
-                side_effect=lambda *_args, **_kwargs: observed_levels.append(
-                    os.environ.get("MAPLE_LOG_LEVEL")
-                ),
+                "scripts.pipeline.BuildConfigResolver",
+                resolver_factory,
+            ),
+            patch(
+                "scripts.pipeline.BuildRuntimeContext.from_config",
+                return_value=runtime_context,
             ),
         ):
             run_build_cli(["--debug", "--dry"], version="v7.9")
@@ -121,14 +147,26 @@ class PublicCliContractTest(unittest.TestCase):
 
     def test_explicit_log_level_overrides_debug_default(self) -> None:
         observed_levels: list[str | None] = []
+        resolver = MagicMock()
+        font_config = MagicMock()
+        font_config.to_dict.return_value = {}
+        runtime_context = MagicMock()
+        runtime_context.to_dict.return_value = {}
+        resolver.resolve.side_effect = lambda _args: (
+            observed_levels.append(os.environ.get("MAPLE_LOG_LEVEL")) or font_config
+        )
+        resolver_factory = MagicMock(return_value=resolver)
         with (
             patch.dict(os.environ, {"MAPLE_LOG_LEVEL": "ERROR"}, clear=True),
             patch("scripts.pipeline.configure_logging"),
+            patch("builtins.print"),
             patch(
-                "scripts.pipeline.run",
-                side_effect=lambda *_args, **_kwargs: observed_levels.append(
-                    os.environ.get("MAPLE_LOG_LEVEL")
-                ),
+                "scripts.pipeline.BuildConfigResolver",
+                resolver_factory,
+            ),
+            patch(
+                "scripts.pipeline.BuildRuntimeContext.from_config",
+                return_value=runtime_context,
             ),
         ):
             run_build_cli(["--debug", "--dry"], version="v7.9")

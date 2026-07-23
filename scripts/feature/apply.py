@@ -8,14 +8,14 @@ from fontTools.feaLib.builder import (
 )
 from scripts.font_ops.fonttools import TTFont
 
-from scripts.config.base import ResolvedBuildConfig, normalize_feature_freeze
+from scripts.config.base import ResolvedConfig, normalize_feature_freeze
 from scripts.feature.compiler import generate_fea_string, get_freeze_moving_rules
 from scripts.in_browser import freeze_feature
 from scripts.utils.logging import logger
 
 
 def patch_font_feature(
-    config: ResolvedBuildConfig,
+    config: ResolvedConfig,
     font: TTFont,
     issue_fea_dir: str | Path,
     is_italic: bool,

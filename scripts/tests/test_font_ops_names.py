@@ -1,0 +1,83 @@
+from __future__ import annotations
+
+import unittest
+from pathlib import Path
+
+from scripts.cjk.config import CJKBuildConfig, CJKSourceConfig
+from scripts.cjk.pipeline import update_variable_font_names
+from scripts.cjk.static import apply_cjk_names
+from scripts.config.resolver import BuildConfigResolver
+from scripts.font_ops.fonttools import TTFont, newTable
+from scripts.font_ops.names import get_font_name, update_font_names
+
+
+def make_font() -> TTFont:
+    font = TTFont()
+    font["name"] = newTable("name")
+    font["name"].names = []
+    return font
+
+
+def make_font_config():
+    config = BuildConfigResolver().load_defaults()
+    config.identity.beta = "beta.1"
+    return config
+
+
+class FontNameTest(unittest.TestCase):
+    def test_update_font_names_builds_identifier_from_config(self) -> None:
+        font = make_font()
+        config = make_font_config()
+
+        update_font_names(
+            font=font,
+            font_config=config,
+            family_name="Maple Mono NF CN",
+            style_name="Regular",
+            full_name="Maple Mono NF CN Regular",
+            postscript_name="MapleMono-NF-CN-Regular",
+            is_skip_subfamily=True,
+            narrow=True,
+            variable=True,
+        )
+
+        self.assertEqual(get_font_name(font, 5), "Version 7.900")
+        self.assertEqual(
+            get_font_name(font, 3),
+            "Version 7.900-beta.1;SUBF;MapleMono-NF-CN-Regular;"
+            f"2024;FL830;Variable;NF{config.nerd_font.version};Narrow;+calt;",
+        )
+
+    def test_cjk_variable_names_use_project_identifier(self) -> None:
+        font = make_font()
+        config = make_font_config()
+        cjk_config = CJKBuildConfig(
+            source=CJKSourceConfig(
+                path=Path("source.ttf"),
+                masters={100: {"wght": 100}, 400: {"wght": 400}, 800: {"wght": 800}},
+            ),
+        )
+
+        update_variable_font_names(font, "Regular", cjk_config, config)
+
+        self.assertEqual(get_font_name(font, 5), "Version 7.900")
+        self.assertEqual(
+            get_font_name(font, 3),
+            "Version 7.900-beta.1;SUBF;MapleMonoCJK-Regular;2024;FL830;+calt;",
+        )
+
+    def test_cjk_static_names_use_project_identifier(self) -> None:
+        font = make_font()
+        config = make_font_config()
+
+        apply_cjk_names(font, config, "CN", "Regular", narrow=True)
+
+        self.assertEqual(get_font_name(font, 5), "Version 7.900")
+        self.assertEqual(
+            get_font_name(font, 3),
+            "Version 7.900-beta.1;SUBF;MapleMono-CN-Regular;2024;FL830;Narrow;+calt;",
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()

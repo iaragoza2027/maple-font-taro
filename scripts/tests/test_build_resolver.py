@@ -12,7 +12,7 @@ from scripts.config.cli import parse_args
 from scripts.config.base import CJKCommonBuildOptions, ResolvedCJKBuildEntry
 from scripts.utils.errors import BuildDependencyError
 from scripts.config.resolver import BuildConfigResolver, BuildRuntimeContext
-from scripts.cjk.models import (
+from scripts.cjk.config import (
     CJKBuildConfig,
     CJKNamingConfig,
     CJKOutputConfig,
@@ -106,7 +106,11 @@ def resolve_quietly(
     required_styles: list[str],
 ):
     with redirect_stdout(StringIO()):
-        return runtime_context.resolve_cjk_static_base(entry, required_styles)
+        return runtime_context.resolve_cjk_static_base(
+            entry,
+            required_styles,
+            make_font_config(),
+        )
 
 
 class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
@@ -143,10 +147,14 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
             config = make_preset(Path(tmp))
 
             with patch("scripts.cjk.pipeline.build_cjk_fonts") as build:
-                runtime_context.build_cjk_static_base_from_variable(config)
+                runtime_context.build_cjk_static_base_from_variable(
+                    config,
+                    make_font_config(),
+                )
 
             build.assert_called_once_with(
                 config,
+                make_font_config(),
                 github_mirror="mirror.example.com",
             )
 
@@ -223,7 +231,11 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
             runtime_context = make_runtime_context(tmp_path)
             entry = make_entry(tmp_path, locale_name="HK", preset_id=None)
 
-            def fake_build(self: BuildRuntimeContext, config: CJKBuildConfig) -> None:
+            def fake_build(
+                self: BuildRuntimeContext,
+                config: CJKBuildConfig,
+                *_args,
+            ) -> None:
                 write_static_fonts(
                     self.cjk_static_dir(config),
                     config.naming.static_file_prefix,
@@ -251,7 +263,11 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
             runtime_context = make_runtime_context(tmp_path)
             entry = make_entry(tmp_path)
 
-            def fake_build(self: BuildRuntimeContext, config: CJKBuildConfig) -> None:
+            def fake_build(
+                self: BuildRuntimeContext,
+                config: CJKBuildConfig,
+                *_args,
+            ) -> None:
                 write_static_fonts(
                     self.cjk_static_dir(config),
                     config.naming.static_file_prefix,
@@ -293,6 +309,16 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
                 ):
                     with self.assertRaisesRegex(FileNotFoundError, "missing style"):
                         resolve_quietly(runtime_context, entry, ["Regular"])
+
+
+class BuildConfigResolverJsonTest(unittest.TestCase):
+    def test_rejects_non_object_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config_path = Path(tmp) / "config.json"
+            config_path.write_text("[]", encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "JSON object"):
+                BuildConfigResolver(project_root=Path(tmp)).resolve(parse_args([]))
 
 
 class BuildConfigResolverCJKEntryTest(unittest.TestCase):

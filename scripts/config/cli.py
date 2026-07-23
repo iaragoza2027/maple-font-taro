@@ -85,12 +85,6 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
         help="Remove all the ligatures",
     )
     feature_group.add_argument(
-        "--keep-infinite-arrow",
-        default=None,
-        action="store_true",
-        help="(Deprecated) Keep infinite arrow ligatures in hinted font (Removed by default)",
-    )
-    feature_group.add_argument(
         "--infinite-arrow",
         default=None,
         action="store_true",

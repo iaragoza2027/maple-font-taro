@@ -25,7 +25,7 @@ from scripts.pipeline import (
     prune_build_files,
 )
 from scripts.config.resolver import BuildConfigResolver, BuildRuntimeContext
-from scripts.cjk.models import CJKBuildConfig, CJKOutputConfig, CJKSourceConfig
+from scripts.cjk.config import CJKBuildConfig, CJKOutputConfig, CJKSourceConfig
 from scripts.cjk.presets import CJKPresetId, build_preset_config, get_preset
 from scripts.cjk.variable import _cmap_supports_codepoint
 
@@ -95,12 +95,14 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             with patch("scripts.pipeline.build_cjk_fonts") as build:
                 result = ensure_cjk_variable_fonts(
                     entry,
+                    make_font_config(),
                     "mirror.example.com/github.com",
                 )
 
             self.assertIsNone(result)
             build.assert_called_once_with(
                 entry.build_config,
+                make_font_config(),
                 vf_only=True,
                 executor=None,
                 github_mirror="mirror.example.com/github.com",

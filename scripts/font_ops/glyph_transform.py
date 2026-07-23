@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING, Any, List, Tuple
+from typing import Any, List, Tuple
 
 from fontTools.misc.transform import Transform
-from scripts.font_ops.fonttools import TTFont
-from fontTools.ttLib.tables._g_l_y_f import GlyphCoordinates, Glyph
+from fontTools.ttLib.tables._g_l_y_f import Glyph, GlyphCoordinates
 from ufo2ft.filters import BaseFilter
+from ufoLib2 import Font as UFOFont
 
-if TYPE_CHECKING:
-    from ufoLib2 import Font as UFOFont
+from scripts.font_ops.fonttools import TTFont
 
 # Type aliases
 Coordinate = Tuple[float, float]

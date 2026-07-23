@@ -922,6 +922,7 @@ def build_cjk_extended_variable_fonts(
                     narrow=entry.common_options.narrow,
                     variable=True,
                 )
+                add_weight_axis_values_to_stat(merged_font, italic=is_italic)
                 if (
                     entry.is_builtin
                     and entry.common_options.fix_meta_table

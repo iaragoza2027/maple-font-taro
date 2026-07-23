@@ -770,6 +770,16 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
 
             self.assertIsNone(generated["STAT"].table.AxisValueArray)
             ensure_variable_instance_names(generated, italic=True)
+            add_weight_axis_values_to_stat(generated)
+            axis_value_array = generated["STAT"].table.AxisValueArray
+            if axis_value_array is None:
+                self.fail("Weight STAT values were not created")
+            self.assertEqual(
+                generated["name"].getDebugName(
+                    axis_value_array.AxisValue[0].ValueNameID
+                ),
+                "Italic",
+            )
             add_weight_axis_values_to_stat(generated, italic=True)
 
             stat = generated["STAT"].table

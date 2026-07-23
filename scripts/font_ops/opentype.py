@@ -69,8 +69,8 @@ def add_weight_axis_values_to_stat(font: TTFont, italic: bool = False) -> None:
         stat_table.AxisValueArray.AxisValue = []
 
     values = stat_table.AxisValueArray.AxisValue
-    existing_weights = {
-        float(value.Value)
+    existing_values = {
+        float(value.Value): value
         for value in values
         if value.AxisIndex == weight_axis_index and value.Format in (1, 3)
     }
@@ -79,13 +79,18 @@ def add_weight_axis_values_to_stat(font: TTFont, italic: bool = False) -> None:
     )
     for instance in font["fvar"].instances:
         weight = float(instance.coordinates.get("wght", default_weight))
-        if weight in existing_weights:
-            continue
         value_name_id = instance.subfamilyNameID
         if italic:
             instance_name = font["name"].getDebugName(value_name_id) or "Regular"
             weight_name = instance_name.removesuffix("Italic").rstrip() or "Regular"
             value_name_id = _find_or_add_name_id(font, weight_name)
+        existing_value = existing_values.get(weight)
+        if existing_value is not None:
+            existing_value.ValueNameID = value_name_id
+            existing_value.Flags = (existing_value.Flags & ~2) | (
+                2 if weight == default_weight else 0
+            )
+            continue
         axis_value_factory = cast(Callable[[], Any], getattr(ot, "AxisValue"))
         value = axis_value_factory()
         value.Format = 1
@@ -94,7 +99,7 @@ def add_weight_axis_values_to_stat(font: TTFont, italic: bool = False) -> None:
         value.ValueNameID = value_name_id
         value.Value = weight
         values.append(value)
-        existing_weights.add(weight)
+        existing_values[weight] = value
     stat_table.AxisValueCount = len(values)
 
 

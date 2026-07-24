@@ -23,6 +23,7 @@ from scripts.config.base import (
     default_feature_freeze,
     default_weight_mapping,
     normalize_build_formats,
+    normalize_cjk_output_format,
     normalize_cjk_locale_list,
     parse_codepoint_alias,
     parse_scale_factor,
@@ -163,6 +164,11 @@ class BuildConfigResolver:
     ) -> None:
         if "formats" in data:
             config.behavior.formats = normalize_build_formats(data["formats"])
+        raw_cjk = data.get("cjk")
+        if isinstance(raw_cjk, dict) and "format" in raw_cjk:
+            config.behavior.cjk_output_format = normalize_cjk_output_format(
+                raw_cjk["format"]
+            )
 
     def _apply_nerd_font_json_config(
         self,
@@ -336,7 +342,8 @@ class BuildConfigResolver:
         config.behavior.cache = bool(args.cache)
         config.behavior.least_styles = bool(args.least_styles)
         config.behavior.apply_fea_file = bool(args.apply_fea_file)
-        config.behavior.cjk_output_format = args.cjk_format
+        if args.cjk_format is not None:
+            config.behavior.cjk_output_format = args.cjk_format
         config.behavior.use_cjk_both = bool(args.cjk_both or args.cn_both)
 
         if args.cn_both:

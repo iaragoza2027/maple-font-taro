@@ -181,7 +181,7 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
     cjk_group.add_argument(
         "--cjk-format",
         choices=("static", "variable"),
-        default="static",
+        default=None,
         help="Persist CJK-extended output as static fonts (default) or merged variable fonts.",
     )
     cjk_group.add_argument(

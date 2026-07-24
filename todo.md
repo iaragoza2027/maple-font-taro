@@ -44,6 +44,7 @@
   - [x] stabilize directory hash with config-derived static hash files
 - [x] stablize cjk sha
 - [x] support object-based CJK source downloads, including direct files and a selected file inside 7z archives
+- [ ] review cjk base font cache invalidation and download logic, and add more tests
 - [ ] generate build summary and basic usage and description in fonts/ , and for custom build, use it as release notes
 
 ### Web

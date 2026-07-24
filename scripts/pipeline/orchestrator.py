@@ -9,7 +9,7 @@ import re
 import shutil
 import time
 from os import environ, listdir, makedirs
-from typing import Literal
+from typing import Any, Literal
 from scripts.font_ops.fonttools import (
     TTFont,
 )
@@ -57,11 +57,19 @@ from scripts.pipeline.artifacts import (
     base_cache_identity,
     cleanup_unselected_base_formats,
     ensure_base_output_dirs,
-    has_cached_style_outputs,
+    expected_static_styles,
     is_target_style_file,
-    is_valid_font_file,
     read_font_vertical_metric,
     summarize_output_artifacts,
+)
+from scripts.pipeline.cache import (
+    CACHE_SCHEMA,
+    output_snapshot,
+    read_cache_record,
+    relative_cache_path,
+    stage_identity,
+    validate_stage,
+    write_cache_record as persist_cache_record,
 )
 from scripts.pipeline.base_fonts import build_base_fonts, build_woff2_fonts
 from scripts.pipeline.cjk_outputs import (
@@ -516,10 +524,13 @@ class MapleBuildPipeline:
         self._cache_identity_checked = False
         self._cache_identity_valid = True
         self._cache_reuse_logged: set[str] = set()
+        self._cache_record: dict[str, Any] | None = None
+        self._build_identity: dict[str, object] | None = None
 
     def build(self) -> None:
         self.start_build_timer()
         self.prepare_output_root()
+        self.write_build_config()
 
         process_executor = (
             SynchronousExecutor()
@@ -621,18 +632,27 @@ class MapleBuildPipeline:
             logger.debug("Skip WOFF2 conversion for a debug build")
 
         if self.plan.build_nerd_font:
-            build_nerd_fonts(
-                self.font_config,
-                self.runtime_context,
-                self.target_styles,
-                process_executor,
-            )
+            if self._validate_recorded_stage("nf"):
+                logger.info("Reuse cached NF outputs")
+                self.runtime_context.is_nf_built = True
+            else:
+                build_nerd_fonts(
+                    self.font_config,
+                    self.runtime_context,
+                    self.target_styles,
+                    process_executor,
+                )
         else:
             set_log_task("nerd-font")
             logger.debug("Skip Nerd Font outputs because the stage is disabled")
 
     def _build_cjk_outputs(self, process_executor: Executor) -> None:
         if self.plan.cjk_mode:
+            stage = f"cjk-{self.plan.cjk_mode}"
+            if self._validate_recorded_stage(stage):
+                logger.info("Reuse cached CJK %s outputs", self.plan.cjk_mode)
+                self.runtime_context.is_cjk_built = True
+                return
             if self.plan.cjk_mode == "variable":
                 build_cjk_extended_variable_outputs(
                     self.font_config,
@@ -658,10 +678,11 @@ class MapleBuildPipeline:
 
     def prepare_output_root(self) -> None:
         if not self.should_use_cache:
-            logger.debug("Clean build cache")
+            logger.info("Cache disabled: rebuild requested")
             shutil.rmtree(self.runtime_context.output_dir, ignore_errors=True)
             shutil.rmtree(self.runtime_context.output_woff2, ignore_errors=True)
         elif not self._cache_matches_build():
+            logger.info("Cache invalidation: stage=all, reason=identity-changed")
             logger.debug("Clean invalidated build cache")
             shutil.rmtree(self.runtime_context.output_dir, ignore_errors=True)
             shutil.rmtree(self.runtime_context.output_woff2, ignore_errors=True)
@@ -733,40 +754,29 @@ class MapleBuildPipeline:
             return self._cache_identity_valid
 
         self._cache_identity_checked = True
-        record_path = Path(self.runtime_context.output_root) / "build-config.json"
-        if not record_path.is_file():
+        self._cache_record = read_cache_record(Path(self.runtime_context.output_root))
+        build_identity = self._current_build_identity()
+        if (
+            not self._cache_record
+            or self._cache_record.get("identity") != build_identity
+        ):
             self._cache_identity_valid = False
             logger.info(
-                "Invalidate font cache: build record is missing path=%s", record_path
+                "Cache invalidation: stage=all, reason=identity-changed",
             )
-            return False
-
-        try:
-            data = json.loads(record_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            self._cache_identity_valid = False
-            logger.info(
-                "Invalidate font cache: unreadable build record path=%s", record_path
-            )
-            return False
-        if not isinstance(data, dict):
-            self._cache_identity_valid = False
-            logger.info(
-                "Invalidate font cache: invalid build record path=%s", record_path
-            )
-            return False
-
-        expected_identity = base_cache_identity(
-            self.font_config,
-            self.runtime_context,
-        )
-        if data.get("cache_identity") != expected_identity:
-            self._cache_identity_valid = False
             logger.info(
                 "Invalidate font cache: build identity changed path=%s",
-                record_path,
+                "build-cache.json",
             )
         return self._cache_identity_valid
+
+    def _current_build_identity(self) -> dict[str, object]:
+        if self._build_identity is None:
+            self._build_identity = base_cache_identity(
+                self.font_config,
+                self.runtime_context,
+            )
+        return self._build_identity
 
     def _log_cache_reuse(
         self,
@@ -789,13 +799,12 @@ class MapleBuildPipeline:
     ) -> bool:
         if build_format == "variable":
             output_dir = Path(self.runtime_context.output_variable)
-            expected_files = (
+            expected_files = [
                 f"{self.font_config.family_name_compact}[wght].ttf",
                 f"{self.font_config.family_name_compact}-Italic[wght].ttf",
-            )
-            return all(
-                is_valid_font_file(output_dir / file_name)
-                for file_name in expected_files
+            ]
+            return self._validate_cached_stage(
+                "variable", [output_dir / name for name in expected_files]
             )
 
         output_dir = Path(
@@ -803,12 +812,70 @@ class MapleBuildPipeline:
             if build_format == "ttf"
             else self.runtime_context.output_otf
         )
-        return has_cached_style_outputs(
-            output_dir,
-            f".{build_format}",
-            self.target_styles,
-            self.font_config.family_name_compact,
+        expected = [
+            output_dir
+            / (f"{self.font_config.family_name_compact}-{style}.{build_format}")
+            for style in expected_static_styles(self.target_styles)
+        ]
+        return self._validate_cached_stage(build_format, expected)
+
+    def _validate_cached_stage(self, stage: str, paths: list[Path]) -> bool:
+        if not self.should_use_cache:
+            return False
+        return validate_stage(
+            Path(self.runtime_context.output_root),
+            self._cache_record,
+            stage,
+            self._stage_cache_identity(stage),
+            paths,
         )
+
+    def _validate_recorded_stage(self, stage: str) -> bool:
+        if not self.should_use_cache or not self._cache_matches_build():
+            return False
+        stages = (self._cache_record or {}).get("stages")
+        stage_record = stages.get(stage) if isinstance(stages, dict) else None
+        if not isinstance(stage_record, dict):
+            logger.info("Cache validation: stage=%s, status=miss", stage)
+            logger.info("Cache invalidation: stage=%s, reason=missing-record", stage)
+            return False
+        files = stage_record.get("files")
+        if not isinstance(files, dict) or not files:
+            logger.info("Cache validation: stage=%s, status=miss", stage)
+            logger.info("Cache invalidation: stage=%s, reason=missing-output", stage)
+            return False
+        root = Path(self.runtime_context.output_root)
+        try:
+            paths = [root / Path(relative) for relative in sorted(files)]
+            if any(
+                relative_cache_path(root, path) != relative
+                for relative, path in zip(sorted(files), paths)
+            ):
+                raise ValueError("cache path is outside the output root")
+        except ValueError:
+            logger.info("Cache validation: stage=%s, status=miss", stage)
+            logger.info("Cache invalidation: stage=%s, reason=invalid-record", stage)
+            return False
+        return validate_stage(
+            root,
+            self._cache_record,
+            stage,
+            self._stage_cache_identity(stage),
+            paths,
+        )
+
+    def _stage_cache_identity(self, stage: str) -> str:
+        identity = dict(self._current_build_identity())
+        record = self.font_config.to_build_record()
+        if stage == "nf":
+            identity["stage_config"] = record.get("nerd_font")
+        elif stage.startswith("cjk-"):
+            identity["stage_config"] = {
+                "cjk": record.get("cjk"),
+                "cjk_format": record.get("cjk_format"),
+                "nerd_font": record.get("nerd_font"),
+            }
+        return stage_identity(identity, stage)
 
     def should_build_hinted_ttf(
         self,
@@ -830,12 +897,12 @@ class MapleBuildPipeline:
         return True
 
     def _has_cached_hinted_ttf(self) -> bool:
-        return has_cached_style_outputs(
-            self.runtime_context.output_ttf_hinted,
-            ".ttf",
-            self.target_styles,
-            self.font_config.family_name_compact,
-        )
+        output_dir = Path(self.runtime_context.output_ttf_hinted)
+        expected = [
+            output_dir / f"{self.font_config.family_name_compact}-{style}.ttf"
+            for style in expected_static_styles(self.target_styles)
+        ]
+        return self._validate_cached_stage("ttf-autohint", expected)
 
     def reuse_base_output_cache(self) -> None:
         regular_variable_path = Path(self.runtime_context.output_variable) / (
@@ -858,30 +925,81 @@ class MapleBuildPipeline:
             return False
         if "ttf" in base_formats or not self.should_use_cache:
             return True
-        if not has_cached_style_outputs(
-            self.runtime_context.output_woff2,
-            ".woff2",
-            self.target_styles,
-            self.font_config.family_name_compact,
-        ):
+        output_dir = Path(self.runtime_context.output_woff2)
+        expected = [
+            output_dir / f"{self.font_config.family_name_compact}-{style}.ttf.woff2"
+            for style in expected_static_styles(self.target_styles)
+        ]
+        if not self._validate_cached_stage("woff2", expected):
             return True
         logger.info("Reuse cached WOFF2 outputs")
         logger.debug("Cached WOFF2 output path: %s", self.runtime_context.output_woff2)
         return False
 
-    def write_build_record(self) -> None:
+    def write_build_config(self) -> None:
         record = self.font_config.to_build_record()
-        record["cache_identity"] = base_cache_identity(
-            self.font_config,
-            self.runtime_context,
-        )
         record_path = Path(self.runtime_context.output_dir) / "build-config.json"
+        record_path.parent.mkdir(parents=True, exist_ok=True)
         temporary_path = record_path.with_name(f".{record_path.name}.tmp")
         temporary_path.write_text(
             json.dumps(record, indent=4),
             encoding="utf-8",
         )
         temporary_path.replace(record_path)
+
+    def write_build_record(self) -> None:
+        """Write the public config and the completed cache record."""
+        self.write_build_config()
+        self.write_cache_record()
+
+    def write_cache_record(self) -> None:
+        root = Path(self.runtime_context.output_root)
+        stage_dirs = {
+            "variable": Path(self.runtime_context.output_variable),
+            "ttf": Path(self.runtime_context.output_ttf),
+            "otf": Path(self.runtime_context.output_otf),
+            "ttf-autohint": Path(self.runtime_context.output_ttf_hinted),
+            "woff2": Path(self.runtime_context.output_woff2),
+            "nf": Path(self.runtime_context.output_nf),
+        }
+        known_dirs = {directory.resolve() for directory in stage_dirs.values()}
+        cjk_dirs = [
+            directory
+            for directory in root.iterdir()
+            if directory.is_dir()
+            and directory.resolve() not in known_dirs
+            and directory.name not in {"archive", "temp", ".cjk-temp"}
+        ]
+        stages: dict[str, dict[str, object]] = {}
+        for stage, directory in stage_dirs.items():
+            files = sorted(path for path in directory.rglob("*") if path.is_file())
+            if files:
+                stages[stage] = {
+                    "identity": self._stage_cache_identity(stage),
+                    "files": output_snapshot(root, stage, files),
+                }
+        if self.plan.cjk_mode:
+            stage = f"cjk-{self.plan.cjk_mode}"
+            files = sorted(
+                path
+                for directory in cjk_dirs
+                for path in directory.rglob("*")
+                if path.is_file()
+            )
+            if files:
+                stages[stage] = {
+                    "identity": self._stage_cache_identity(stage),
+                    "files": output_snapshot(root, stage, files),
+                }
+        record: dict[str, Any] = {
+            "schema": CACHE_SCHEMA,
+            "identity": self._current_build_identity(),
+            "stages": stages,
+        }
+        persist_cache_record(root, record)
+        self._cache_record = record
+        self._cache_identity_checked = True
+        self._cache_identity_valid = True
 
     def archive_outputs(self) -> None:
         started_at = log_task("archive", "Archive build outputs")

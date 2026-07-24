@@ -24,6 +24,7 @@ BUILTIN_CJK_LOCALES: tuple[BuiltinCJKLocaleId, ...] = ("cn", "jp", "tc", "kr")
 BuildFormatId = Literal["ttf", "otf", "woff2"]
 BUILD_FORMATS: tuple[BuildFormatId, ...] = ("ttf", "otf", "woff2")
 CJKOutputFormat = Literal["static", "variable"]
+CJK_OUTPUT_FORMATS: tuple[CJKOutputFormat, ...] = ("static", "variable")
 
 WIDTH_MAP = {
     "default": 600,
@@ -199,6 +200,13 @@ def normalize_build_formats(value: Any) -> list[BuildFormatId]:
         if build_format not in normalized:
             normalized.append(build_format)
     return normalized or list(BUILD_FORMATS)
+
+
+def normalize_cjk_output_format(value: Any) -> CJKOutputFormat:
+    normalized = str(value).strip().lower()
+    if normalized not in CJK_OUTPUT_FORMATS:
+        raise ValueError(f"Unsupported CJK output format: {value}")
+    return normalized
 
 
 def normalize_cjk_locale_list(value: Any) -> list[BuiltinCJKLocaleId]:
@@ -707,6 +715,7 @@ __all__ = [
     "default_feature_freeze",
     "default_weight_mapping",
     "normalize_build_formats",
+    "normalize_cjk_output_format",
     "normalize_cjk_config",
     "normalize_cjk_locale_list",
     "normalize_feature_freeze",

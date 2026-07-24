@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from concurrent.futures import Executor
@@ -278,6 +279,11 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 ),
                 patch.object(
                     MapleBuildPipeline,
+                    "write_build_config",
+                    side_effect=lambda: events.append("config"),
+                ),
+                patch.object(
+                    MapleBuildPipeline,
                     "write_build_record",
                     side_effect=lambda: events.append("record"),
                 ),
@@ -335,6 +341,7 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 [
                     "start",
                     "output-root",
+                    "config",
                     "prepare",
                     "compile",
                     "variable",
@@ -381,6 +388,12 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 pipeline.build()
 
             rmtree.assert_called_once_with(temp_path, ignore_errors=True)
+            self.assertTrue(
+                (Path(runtime_context.output_root) / "build-config.json").is_file()
+            )
+            self.assertFalse(
+                (Path(runtime_context.output_root) / "build-cache.json").exists()
+            )
 
     def test_hinted_ttf_demand_matrix(self) -> None:
         font_config = make_font_config()
@@ -571,6 +584,7 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 write_test_font(
                     Path(runtime_context.output_otf) / f"MapleMono-{style}.otf"
                 )
+            pipeline.write_build_record()
             self.assertEqual(pipeline.base_formats_to_build(), ())
 
             logging_pipeline = MapleBuildPipeline(font_config, runtime_context)
@@ -636,6 +650,12 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             Path(runtime_context.output_root).mkdir(parents=True)
             pipeline = MapleBuildPipeline(font_config, runtime_context)
             pipeline.write_build_record()
+            build_config = json.loads(
+                (Path(runtime_context.output_root) / "build-config.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertNotIn("cache_identity", build_config)
 
             font_config.behavior.archive = not font_config.behavior.archive
             font_config.metrics.pool_size += 1

@@ -382,6 +382,42 @@ class BuildConfigResolverCJKEntryTest(unittest.TestCase):
             ["cn", "tc"],
         )
 
+    def test_cjk_format_resolves_from_project_config(self) -> None:
+        font_config = self._resolve_with_config(
+            {
+                "cjk": {
+                    "format": "variable",
+                    "locales": {},
+                }
+            }
+        )
+
+        self.assertEqual(font_config.cjk_output_format, "variable")
+
+    def test_cjk_format_cli_override_takes_precedence(self) -> None:
+        font_config = self._resolve_with_config(
+            {
+                "cjk": {
+                    "format": "variable",
+                    "locales": {},
+                }
+            },
+            ["--cjk-format", "static"],
+        )
+
+        self.assertEqual(font_config.cjk_output_format, "static")
+
+    def test_rejects_unsupported_cjk_format(self) -> None:
+        with self.assertRaisesRegex(ValueError, "Unsupported CJK output format"):
+            self._resolve_with_config(
+                {
+                    "cjk": {
+                        "format": "woff2",
+                        "locales": {},
+                    }
+                }
+            )
+
     def test_custom_enable_controls_resolved_entries(self) -> None:
         font_config = self._resolve_with_config(
             {

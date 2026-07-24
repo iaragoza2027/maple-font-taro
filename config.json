@@ -92,6 +92,7 @@
     "woff2"
   ],
   "cjk": {
+    "format": "static",
     "locales": {
       "cn": false,
       "jp": false,

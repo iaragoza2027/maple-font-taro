@@ -24,7 +24,8 @@ def summarize_output_artifacts(output_root: str | Path) -> list[tuple[str, int]]
         return []
 
     summary: list[tuple[str, int]] = []
-    for directory in sorted(path for path in root.iterdir() if path.is_dir()):
+    directories = (path for path in root.iterdir() if path.is_dir())
+    for directory in sorted(directories, key=lambda path: path.name):
         if directory.name in IGNORED_OUTPUT_DIRS:
             continue
         count = sum(

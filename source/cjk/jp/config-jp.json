@@ -1,8 +1,8 @@
 {
-  "$schema": "./cjk_schema.json",
+  "$schema": "../cjk_schema.json",
   "locale_name": "JP",
   "source": {
-    "path": "ResourceHanRoundedJP-VF.otf",
+    "path": "../variable-source/ResourceHanRoundedJP-VF.otf",
     "download": {
       "url": "https://github.com/CyanoHao/Resource-Han-Rounded/releases/download/v1.910/RHR-CFF2-JP-1.910.7z",
       "path_in_archive": "ResourceHanRoundedJP-VF.otf"

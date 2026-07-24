@@ -98,7 +98,6 @@ def ensure_cjk_variable_fonts(
 
     if not entry.common_options.clean_cache and has_valid_cjk_variable_cache(
         preset_config,
-        font_config,
     ):
         logger.info("Reuse cached CJK variable fonts: %s", entry.display_name)
         logger.debug(

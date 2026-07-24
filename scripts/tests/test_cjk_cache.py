@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -8,13 +7,8 @@ import unittest
 from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 
-from scripts.cjk.cache import (
-    cjk_variable_manifest_path,
-    has_valid_cjk_variable_cache,
-    write_cjk_variable_manifest,
-)
+from scripts.cjk.cache import has_valid_cjk_variable_cache
 from scripts.cjk.config import CJKBuildConfig, CJKOutputConfig, CJKSourceConfig
-from scripts.config.resolver import BuildConfigResolver
 
 
 def write_test_font(path: Path) -> None:
@@ -60,39 +54,35 @@ class CJKVariableCacheTest(unittest.TestCase):
         write_test_font(config.output.dir / config.output.regular_variable)
         write_test_font(config.output.dir / config.output.italic_variable)
 
-    def test_manifest_accepts_only_matching_readable_outputs(self) -> None:
+    def test_cache_accepts_readable_outputs_after_source_changes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             config = self.make_config(Path(tmp))
-            font_config = BuildConfigResolver().load_defaults()
             self.write_outputs(config)
-            write_cjk_variable_manifest(config, font_config)
 
-            self.assertTrue(has_valid_cjk_variable_cache(config, font_config))
+            self.assertTrue(has_valid_cjk_variable_cache(config))
 
             config.source.path.write_bytes(b"changed")
-            self.assertFalse(has_valid_cjk_variable_cache(config, font_config))
+            self.assertTrue(has_valid_cjk_variable_cache(config))
 
-    def test_missing_corrupt_and_zero_byte_artifacts_are_rejected(self) -> None:
+    def test_missing_corrupt_and_zero_byte_outputs_are_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             config = self.make_config(Path(tmp))
-            font_config = BuildConfigResolver().load_defaults()
-            self.write_outputs(config)
 
-            self.assertFalse(has_valid_cjk_variable_cache(config, font_config))
-            cjk_variable_manifest_path(config).write_text("{", encoding="utf-8")
-            self.assertFalse(has_valid_cjk_variable_cache(config, font_config))
+            self.assertFalse(has_valid_cjk_variable_cache(config))
 
-            write_cjk_variable_manifest(config, font_config)
             regular_path = config.output.dir / config.output.regular_variable
-            regular_path.write_bytes(b"")
-            self.assertFalse(has_valid_cjk_variable_cache(config, font_config))
+            italic_path = config.output.dir / config.output.italic_variable
+            self.write_outputs(config)
+            italic_path.unlink()
+            self.assertFalse(has_valid_cjk_variable_cache(config))
 
             self.write_outputs(config)
-            manifest_path = cjk_variable_manifest_path(config)
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            manifest["schema"] = 0
-            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
-            self.assertFalse(has_valid_cjk_variable_cache(config, font_config))
+            regular_path.write_bytes(b"{")
+            self.assertFalse(has_valid_cjk_variable_cache(config))
+
+            self.write_outputs(config)
+            regular_path.write_bytes(b"")
+            self.assertFalse(has_valid_cjk_variable_cache(config))
 
 
 if __name__ == "__main__":

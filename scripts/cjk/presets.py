@@ -25,28 +25,28 @@ _PRESETS: dict[CJKPresetId, CJKPresetSpec] = {
     "cn": CJKPresetSpec(
         "cn",
         "Simplified Chinese",
-        DEFAULT_PRESET_ROOT / "config-cn.json",
+        DEFAULT_PRESET_ROOT / "cn" / "config-cn.json",
         "Latn, Hans, Hant, Jpan",
         1 << 0 | 1 << 17 | 1 << 18 | 1 << 20,
     ),
     "jp": CJKPresetSpec(
         "jp",
         "Japanese",
-        DEFAULT_PRESET_ROOT / "config-jp.json",
+        DEFAULT_PRESET_ROOT / "jp" / "config-jp.json",
         "Latn, Jpan",
         1 << 0 | 1 << 17,
     ),
     "tc": CJKPresetSpec(
         "tc",
         "Traditional Chinese",
-        DEFAULT_PRESET_ROOT / "config-tc.json",
+        DEFAULT_PRESET_ROOT / "tc" / "config-tc.json",
         "Latn, Hant",
         1 << 0 | 1 << 20,
     ),
     "kr": CJKPresetSpec(
         "kr",
         "Korean",
-        DEFAULT_PRESET_ROOT / "config-kr.json",
+        DEFAULT_PRESET_ROOT / "kr" / "config-kr.json",
         "Latn, Hang",
         1 << 0 | 1 << 19,
     ),
@@ -65,5 +65,9 @@ def build_preset_config(
     preset_id: CJKPresetId, root: str | None = None
 ) -> CJKBuildConfig:
     preset = get_preset(preset_id)
-    config_path = Path(root) / preset.config_path.name if root else preset.config_path
+    config_path = (
+        Path(root) / preset.config_path.relative_to(DEFAULT_PRESET_ROOT)
+        if root
+        else preset.config_path
+    )
     return config_from_json(config_path)

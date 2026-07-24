@@ -1,8 +1,8 @@
 {
-  "$schema": "./cjk_schema.json",
+  "$schema": "../cjk_schema.json",
   "locale_name": "CN",
   "source": {
-    "path": "WenYuanRoundedSCVF.ttf",
+    "path": "../variable-source/WenYuanRoundedSCVF.ttf",
     "download": {
       "url": "https://github.com/takushun-wu/WenYuanFonts/releases/download/v1.000/WenYuanRoundedSCVF.ttf"
     },

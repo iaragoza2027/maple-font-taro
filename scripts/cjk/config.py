@@ -93,7 +93,7 @@ DEFAULT_KR_RANGES: tuple[tuple[int, int], ...] = (
     (0xFE30, 0xFE6F),
     (0xFF00, 0xFFEF),
 )
-DEFAULT_FEATURE_FONT_PATH = Path("source/MapleMono-CN-feature-VF.ttf")
+DEFAULT_FEATURE_FONT_PATH = Path("source/cjk/variable-source/MapleMono-CJK-Base-VF.ttf")
 
 
 @dataclass(frozen=True)

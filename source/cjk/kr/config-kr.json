@@ -1,8 +1,8 @@
 {
-  "$schema": "./cjk_schema.json",
+  "$schema": "../cjk_schema.json",
   "locale_name": "KR",
   "source": {
-    "path": "ChironGoRoundTCVF.ttf",
+    "path": "../variable-source/ChironGoRoundTCVF.ttf",
     "download": {
       "url": "https://github.com/chiron-fonts/chiron-go-round-tc/raw/v1.011/VAR_TTF/ChironGoRoundTCVF.ttf"
     },

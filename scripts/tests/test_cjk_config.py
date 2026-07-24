@@ -15,7 +15,7 @@ from scripts.cjk.resolver import (
     serialize_cjk_build_config,
 )
 from scripts.cjk.config import CJKSourceConfig
-from scripts.cjk.presets import build_preset_config
+from scripts.cjk.presets import build_preset_config, get_preset
 
 
 class CJKConfigSurfaceTest(unittest.TestCase):
@@ -272,8 +272,16 @@ class CJKConfigSurfaceTest(unittest.TestCase):
         self.assertNotIn("download_url", source_schema["properties"])
 
     def test_builtin_jp_download_selects_fixed_archive_member(self) -> None:
-        config = config_from_json("source/cjk/config-jp.json")
+        config = config_from_json("source/cjk/jp/config-jp.json")
 
+        self.assertEqual(
+            get_preset("jp").config_path,
+            Path("source/cjk/jp/config-jp.json"),
+        )
+        self.assertEqual(
+            config.source.path.resolve(),
+            Path("source/cjk/variable-source/ResourceHanRoundedJP-VF.otf").resolve(),
+        )
         self.assertIsNotNone(config.source.download)
         assert config.source.download is not None
         self.assertEqual(

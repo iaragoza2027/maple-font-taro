@@ -23,7 +23,6 @@ from scripts.font_ops.fonttools import (
     instantiate_variable_font,
     save_font_atomic,
 )
-from scripts.cjk.cache import write_cjk_variable_manifest
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -1158,7 +1157,6 @@ class CJKBuilder:
         logger.info("Saved CJK variable font to %s", self.regular_output)
         save_font_atomic(italic_font, self.italic_output)
         logger.info("Saved CJK variable font to %s", self.italic_output)
-        write_cjk_variable_manifest(self.config, self.font_config)
 
     def _build_static_fonts(self, var_font_names: Iterable[str]) -> Path:
         static_dir = self.static_dir

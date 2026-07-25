@@ -3,7 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 from scripts.config.base import ResolvedConfig, normalize_feature_freeze
 from scripts.feature.apply import patch_font_feature
@@ -39,6 +39,57 @@ class FeatureFreezeConfigTest(unittest.TestCase):
 
 
 class FeatureApplicationTest(unittest.TestCase):
+    def test_variable_enabled_feature_is_moved_into_calt(self) -> None:
+        generated = generate_fea_string(
+            is_italic=False,
+            is_cn=False,
+            variable_enabled_feature_list=[],
+        )
+        enabled = generate_fea_string(
+            is_italic=False,
+            is_cn=False,
+            variable_enabled_feature_list=["cv01"],
+        )
+
+        self.assertNotEqual(generated, enabled)
+        calt_start = enabled.index("feature calt {")
+        calt_end = enabled.index("} calt;", calt_start)
+        calt_source = enabled[calt_start:calt_end]
+        self.assertIn("lookup move_cv01", calt_source)
+
+    def test_file_based_features_apply_to_static_and_variable_fonts(self) -> None:
+        config = ResolvedConfig()
+        config.behavior.apply_fea_file = True
+        font = MagicMock()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with (
+                patch("scripts.feature.apply.addOpenTypeFeatures") as add_features,
+                patch("scripts.feature.apply.generate_fea_string") as generate,
+                patch("scripts.feature.apply.freeze_feature") as freeze_feature,
+            ):
+                for is_variable in (False, True):
+                    patch_font_feature(
+                        config,
+                        font,
+                        Path(tmp),
+                        is_italic=False,
+                        is_cn=False,
+                        is_variable=is_variable,
+                        is_hinted=False,
+                        fea_path="source/features/regular.fea",
+                    )
+
+                self.assertEqual(
+                    add_features.call_args_list,
+                    [
+                        call(font, "source/features/regular.fea"),
+                        call(font, "source/features/regular.fea"),
+                    ],
+                )
+                generate.assert_not_called()
+                freeze_feature.assert_called_once()
+
     @patch("scripts.feature.apply.freeze_feature")
     @patch("scripts.feature.apply.get_freeze_moving_rules", return_value=["cv01"])
     @patch("scripts.feature.apply.addOpenTypeFeaturesFromString")

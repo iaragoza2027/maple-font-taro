@@ -604,9 +604,9 @@ cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
 
 There are three kinds of options for feature freeze ([Why](https://github.com/subframe7536/maple-font/issues/233#issuecomment-2410170270)):
 
-1. `enable`: Forcely enable the features without setting up `cvXX` / `ssXX` / `zero` in font features config, just as default glyphs/ligatures
-2. `disable`: Remove the features in `cvXX` / `ssXX` / `zero`, which will no longer have an effect, even if you enable them manually
-3. `ignore`: Do nothing
+1. `enable`: Static fonts bake applicable substitutions or move contextual rules into `calt`; variable fonts move applicable generated rules into `calt`.
+2. `disable`: Static fonts remove the feature lookup. Variable fonts do not bake a static substitution, so this setting does not freeze their glyphs.
+3. `ignore`: Leave the feature available as an OpenType feature.
 
 #### Custom OpenType Feature
 
@@ -614,7 +614,7 @@ OpenType Feature is used to control the font's built-in variants and ligatures. 
 
 By default, the Python module in [`scripts/feature/`](./scripts/feature) will generate a feature rule string and load it at build time. You can modify the features or customize tags there.
 
-If you would like to modify the feature file instead, run `build.py` with `--apply-fea-file` flag, the feature file from [`source/features/{regular,italic}{_cn,}.fea`](./source/features) will be loaded.
+If you would like to modify the feature file instead, run `build.py` with `--apply-fea-file`; the matching [`source/features/{regular,italic}{_cn,}.fea`](./source/features) file is applied to static and variable font paths.
 
 ### Infinite Arrow Ligatures
 
@@ -681,62 +681,91 @@ By enabling `cv99`, all Chinese punctuation marks will be centred. See more deta
 
 ```
 usage: build.py [-h] [-v] [-d] [--debug] [-n] [--feat FEAT] [--apply-fea-file]
-                [--hinted | --no-hinted] [--liga | --no-liga] [--keep-infinite-arrow]
-                [--infinite-arrow] [--remove-tag-liga] [--line-height LINE_HEIGHT]
-                [--width {default,narrow,slim}] [--nf-mono] [--nf-propo]
-                [--cn-narrow] [--cn-scale-factor CN_SCALE_FACTOR] [--nf | --no-nf]
-                [--cn | --no-cn] [--cn-both] [--ttf-only] [--least-styles]
-                [--font-patcher] [--cache] [--cn-rebuild] [--archive]
+                [--hinted | --no-hinted] [--liga | --no-liga]
+                [--infinite-arrow] [--remove-tag-liga]
+                [--line-height LINE_HEIGHT] [--width {default,narrow,slim}]
+                [--format FORMATS] [--least-styles] [--cache] [--archive]
+                [--nf | --no-nf] [--nf-mono] [--nf-propo] [--font-patcher]
+                [--cjk CJK] [--cjk-format {static,variable}] [--cjk-narrow]
+                [--cjk-scale-factor CJK_SCALE_FACTOR] [--cjk-both]
+                [--cn | --no-cn] [--cn-narrow]
+                [--cn-scale-factor CN_SCALE_FACTOR] [--cn-both]
 
-✨ Builder and optimizer for Maple Mono
+Builder and optimizer for Maple Mono
 
 options:
   -h, --help            show this help message and exit
   -v, --version         show program's version number and exit
   -d, --dry             Output config and exit
-  --debug               Add `Debug` suffix, enable debug logging, and use a faster build
+  --debug               Use a fast debug build: add `Debug`, enable debug
+                        logging, build Regular/Italic only, and skip
+                        OTF/WOFF2/Nerd Font outputs
 
 Feature Options:
-  -n, --normal          Use normal preset, just like `JetBrains Mono` with slashed
-                        zero
-  --feat FEAT           Freeze font features, split by `,` (e.g. `--feat
-                        zero,cv01,ss07,ss08`). No effect on variable format
-  --apply-fea-file      Load feature file from `source/features/{regular,italic}.fea`
-                        to variable font
-  --hinted              Use hinted font as base font in NF / CN / NF-CN (default)
-  --no-hinted           Use unhinted font as base font in NF / CN / NF-CN
+  -n, --normal          Use normal preset, just like `JetBrains Mono` with
+                        slashed zero
+  --feat FEAT           Enable and freeze the listed features, split by `,`
+                        (e.g. `--feat zero,cv01,ss07,ss08`); variable fonts
+                        move applicable rules into `calt`
+  --apply-fea-file      Apply matching
+                        `source/features/{regular,italic}{_cn,}.fea` to static
+                        and variable fonts
+  --hinted              Use hinted font as base font in NF / CJK / NF-CJK
+                        (default)
+  --no-hinted           Use unhinted font as base font in NF / CJK / NF-CJK
   --liga                Preserve all the ligatures (default)
   --no-liga             Remove all the ligatures
-  --infinite-arrow      Enable infinite arrow ligatures (Disabled in hinted font by
-                        default)
+  --infinite-arrow      Enable infinite arrow ligatures (Disabled in hinted
+                        font by default)
   --remove-tag-liga     Remove plain text tag ligatures like `[TODO]`
   --line-height LINE_HEIGHT
                         Scale factor for line height (e.g., 1.1)
-  --width {default, narrow, slim}
-                        Set glyph width: default (600), narrow (550), slim (500)
-  --nf-mono             Make Nerd Font icons' width fixed
-  --nf-propo            Make Nerd Font icons' width variable, override `--nf-mono`
-  --cn-narrow           Make CN / JP characters narrow (And the font cannot be
-                        recognized as a monospaced font)
-  --cn-scale-factor CN_SCALE_FACTOR
-                        Scale factor for CN / JP glyphs. Format: <factor> or
-                        <width_factor>,<height_factor> (e.g. 1.1 or 1.2,1.1)
+  --width {default,narrow,slim}
+                        Set glyph width: default (600), narrow (550), slim
+                        (500)
 
 Build Options:
+  --format FORMATS      Select requested base output formats as a comma-
+                        separated list: ttf,otf,woff2; the variable base is
+                        always built
+  --least-styles        Only build Regular / Bold / Italic / BoldItalic style
+  --cache               Reuse valid cached pipeline stages under `fonts/` and
+                        preserve existing unrelated outputs
+  --archive             Archive each existing non-JSON output directory with
+                        config and license
+
+Nerd Font Options:
   --nf, --nerd-font     Build Nerd-Font version (default)
   --no-nf, --no-nerd-font
                         Do not build the Nerd-Font version
-  --cn                  Build Chinese version
-  --no-cn               Do not build Chinese version (default)
-  --cn-both             Build both `Maple Mono CN` and `Maple Mono NF CN`. Nerd-Font
-                        version must be enabled
-  --ttf-only            Only build TTF format
-  --least-styles        Only build Regular / Bold / Italic / BoldItalic style
+  --nf-mono             Make Nerd Font icons' width fixed
+  --nf-propo            Make Nerd Font icons' width variable, override `--nf-
+                        mono`
   --font-patcher        Force the use of Nerd Font Patcher to build NF format
-  --cache               Reuse font cache of TTF, OTF, and Woff2 formats
-  --cn-rebuild          Reinstantiate variable CN base font
-  --archive             Build font archives with config and license. If it has the `--cache`
-                        flag, only archive NF and CN formats
+
+CJK Options:
+  --cjk CJK             Build Maple Mono + CJK extended fonts for locales: cn,
+                        jp, tc, kr. Repeat or use comma-separated values.
+  --cjk-format {static,variable}
+                        Persist CJK-extended output as static fonts (default)
+                        or merged variable fonts.
+  --cjk-narrow          Apply narrow CJK spacing to the selected locales.
+  --cjk-scale-factor CJK_SCALE_FACTOR
+                        Scale factor for selected CJK locales. Format:
+                        <factor> or <width_factor>,<height_factor>.
+  --cjk-both            When Nerd Font is enabled, build both NF CJK and non-
+                        NF CJK outputs.
+
+Deprecated CN Options:
+  --cn                  Deprecated alias for `--cjk cn`.
+  --no-cn               Deprecated alias for removing `cn` from the selected
+                        CJK locales.
+  --cn-narrow           Deprecated alias for `--cjk-narrow` when targeting
+                        `cn`.
+  --cn-scale-factor CN_SCALE_FACTOR
+                        Deprecated alias for `--cjk-scale-factor` when
+                        targeting `cn`.
+  --cn-both             Deprecated alias for `--cjk-both`.
 ```
 
 ## Development
@@ -757,7 +786,7 @@ The exported `.glyphs` files are local intermediates and are not tracked.
 # Init project
 uv sync
 # Dev
-uv run build.py --ttf-only --cn --debug
+uv run build.py --format ttf --cjk cn --debug
 # Update nerd font
 uv run task.py nf
 # Update fea file

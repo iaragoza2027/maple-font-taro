@@ -32,7 +32,7 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
     parser.add_argument(
         "--debug",
         action="store_true",
-        help="Add `Debug` suffix, enable debug logging, and use a faster build",
+        help="Use a fast debug build: add `Debug`, enable debug logging, build Regular/Italic only, and skip OTF/WOFF2/Nerd Font outputs",
     )
 
     feature_group = parser.add_argument_group("Feature Options")
@@ -46,13 +46,13 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
     feature_group.add_argument(
         "--feat",
         type=lambda x: x.strip().split(","),
-        help="Freeze font features, split by `,` (e.g. `--feat zero,cv01,ss07,ss08`). No effect on variable format",
+        help="Enable and freeze the listed features, split by `,` (e.g. `--feat zero,cv01,ss07,ss08`); variable fonts move applicable rules into `calt`",
     )
     feature_group.add_argument(
         "--apply-fea-file",
         default=None,
         action="store_true",
-        help="Load feature file from `source/features/{regular,italic}.fea` to variable font",
+        help="Apply matching `source/features/{regular,italic}{_cn,}.fea` to static and variable fonts",
     )
     hint_group = feature_group.add_mutually_exclusive_group()
     hint_group.add_argument(
@@ -115,7 +115,7 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
         "--format",
         dest="formats",
         type=normalize_build_formats,
-        help="Build base formats as a comma-separated list: ttf,otf,woff2",
+        help="Select requested base output formats as a comma-separated list: ttf,otf,woff2; the variable base is always built",
     )
     build_group.add_argument(
         "--ttf-only",
@@ -130,12 +130,12 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
     build_group.add_argument(
         "--cache",
         action="store_true",
-        help="Reuse font cache of TTF, OTF, and Woff2 formats",
+        help="Reuse valid cached pipeline stages under `fonts/` and preserve existing unrelated outputs",
     )
     build_group.add_argument(
         "--archive",
         action="store_true",
-        help="Build font archives with config and license. If it has the `--cache` flag, only archive NF and CJK formats",
+        help="Archive each existing non-JSON output directory with config and license",
     )
 
     nerd_font_group = parser.add_argument_group("Nerd Font Options")

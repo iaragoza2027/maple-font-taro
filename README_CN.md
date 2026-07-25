@@ -611,9 +611,9 @@ cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
 
 有三种选项（[为什么](https://github.com/subframe7536/maple-font/issues/233#issuecomment-2410170270)）：
 
-1. `enable`: 强制启用这些特性，而无需在字体特性配置中设置 `cvXX` / `ssXX` / `zero`，就像默认连字一样
-2. `disable`: 删除 `cvXX` / `ssXX` / `zero` 中的特性，即使您手动启用它，也不在生效
-3. `ignore`: 什么也不做
+1. `enable`: 静态字体会固化适用的替换或将上下文规则移入 `calt`；可变字体会将生成的适用规则移入 `calt`。
+2. `disable`: 静态字体会删除该特性 lookup；可变字体不会固化静态替换，因此不会冻结字形。
+3. `ignore`: 保留该 OpenType 特性供字体使用。
 
 #### 自定义 OpenType 特性
 
@@ -621,7 +621,7 @@ OpenType 特性可以控制字体的内置变体和连字。您可以通过修�
 
 默认情况下，[`scripts/feature/`](./scripts/feature) 中的 Python 模块会生成 OpenType 特性字符串并在构建时加载。您可以在此处修改功能或自定义标签。
 
-如果你想通过修改 OpenType 特性文件实现，运行 `build.py` 时添加 `--apply-fea-file` 参数，会读取 [`source/features/{regular,italic}{_cn,}.fea`](./source/features) 的特性文件并加载。
+如果你想直接修改 OpenType 特性文件，请在运行 `build.py` 时添加 `--apply-fea-file`；匹配的 [`source/features/{regular,italic}{_cn,}.fea`](./source/features) 会应用到静态和可变字体路径。
 
 ### 无限箭头连字
 
@@ -676,59 +676,71 @@ OpenType 特性可以控制字体的内置变体和连字。您可以通过修�
 
 ```
 usage: build.py [-h] [-v] [-d] [--debug] [-n] [--feat FEAT] [--apply-fea-file]
-                [--hinted | --no-hinted] [--liga | --no-liga] [--keep-infinite-arrow]
-                [--infinite-arrow] [--remove-tag-liga] [--line-height LINE_HEIGHT]
-                [--width {default,narrow,slim}] [--nf-mono] [--nf-propo]
-                [--cn-narrow] [--cn-scale-factor CN_SCALE_FACTOR] [--nf | --no-nf]
-                [--cn | --no-cn] [--cn-both] [--ttf-only] [--least-styles]
-                [--font-patcher] [--cache] [--cn-rebuild] [--archive]
+                [--hinted | --no-hinted] [--liga | --no-liga]
+                [--infinite-arrow] [--remove-tag-liga]
+                [--line-height LINE_HEIGHT] [--width {default,narrow,slim}]
+                [--format FORMATS] [--least-styles] [--cache] [--archive]
+                [--nf | --no-nf] [--nf-mono] [--nf-propo] [--font-patcher]
+                [--cjk CJK] [--cjk-format {static,variable}] [--cjk-narrow]
+                [--cjk-scale-factor CJK_SCALE_FACTOR] [--cjk-both]
+                [--cn | --no-cn] [--cn-narrow]
+                [--cn-scale-factor CN_SCALE_FACTOR] [--cn-both]
 
-✨ Builder and optimizer for Maple Mono
+Builder and optimizer for Maple Mono
 
 options:
   -h, --help            显示此帮助信息并退出
   -v, --version         显示程序版本号并退出
   -d, --dry             输出配置并退出
-  --debug               在字体名称中添加 `Debug` 后缀并加快构建速度
+  --debug               使用快速调试构建：添加 `Debug`，启用调试日志，仅构建常规/斜体，
+                        并跳过 OTF/WOFF2/Nerd Font 输出
 
 Feature Options:
   -n, --normal          使用 normal 预设，就像带斜杠零的 `JetBrains Mono`
-  --feat FEAT           强制启用字体特性，用 `,` 分隔（例如 `--feat
-                        zero,cv01,ss07,ss08`）。 对可变字体无效
-  --apply-fea-file      从 `source/features/{regular,italic}.fea` 加载特性文件到
-                        可变字体
-  --hinted              在 NF / CN / NF-CN 中使用 hinted 字体作为基础字体（默认）
-  --no-hinted           在 NF / CN / NF-CN 中使用 unhinted 字体作为基础字体
+  --feat FEAT           启用并冻结列出的字体特性，用 `,` 分隔（例如 `--feat
+                        zero,cv01,ss07,ss08`）；可变字体会将适用规则移入 `calt`
+  --apply-fea-file      应用匹配的 `source/features/{regular,italic}{_cn,}.fea` 到静态和可变字体
+  --hinted              在 NF / CJK / NF-CJK 中使用 hinted 字体作为基础字体（默认）
+  --no-hinted           在 NF / CJK / NF-CJK 中使用 unhinted 字体作为基础字体
   --liga                保留所有连字（默认）
   --no-liga             删除所有连字
-  --infinite-arrow      开启无限箭头连字 (默认在 hinted 格式中禁用)
+  --infinite-arrow      开启无限箭头连字（默认在 hinted 字体中禁用）
   --remove-tag-liga     移除纯文本标签连字，例如 `[TODO]`
   --line-height LINE_HEIGHT
                         行高的缩放因子 (例如 1.1)
   --width {default,narrow,slim}
                         设置字形宽度: default (600), narrow (550), slim (500)
-  --nf-mono             使 Nerd Font 图标的宽度固定
-  --nf-propo            使 Nerd Font 图标的宽度不固定，覆盖 `--nf-mono`
-  --cn-narrow           减小中文/日文字形间距（同时会让系统无法识别为等宽字体）
-  --cn-scale-factor CN_SCALE_FACTOR
-                        中文/日文字形的缩放因子。格式：<因子> 或
-                        <宽度因子>,<高度因子> (例如 1.1 或 1.2,1.1)
 
 Build Options:
+  --format FORMATS      选择请求的基础输出格式，用逗号分隔：ttf,otf,woff2；可变基础字体始终构建
+  --least-styles        仅构建 常规 / 粗体 / 斜体 / 粗斜体 样式
+  --cache               重用 `fonts/` 下有效的 pipeline 阶段，并保留无关的现有输出
+  --archive             将当时存在的每个非 JSON 输出目录连同配置和许可打包
+
+Nerd Font Options:
   --nf, --nerd-font     构建 Nerd-Font 版本（默认）
   --no-nf, --no-nerd-font
                         不构建 Nerd-Font 版本
-  --cn                  构建中文版本
-  --no-cn               不构建中文版本（默认）
-  --cn-both             同时构建 `Maple Mono CN` 和 `Maple Mono NF CN`。必须启用
-                        Nerd-Font 版本
-  --ttf-only            仅构建 TTF 格式
-  --least-styles        仅构建 常规 / 粗体 / 斜体 / 粗斜体 样式
+  --nf-mono             使 Nerd Font 图标的宽度固定
+  --nf-propo            使 Nerd Font 图标的宽度可变，覆盖 `--nf-mono`
   --font-patcher        强制使用 Nerd Font Patcher 构建 NF 格式
-  --cache               重用 TTF、OTF 和 Woff2 格式的字体缓存
-  --cn-rebuild          重新静态化可变的中文基字
-  --archive             构建带有配置和许可的字体压缩包。如果带有 `--cache`
-                        标志，则仅打包 NF 和 CN 格式
+
+CJK Options:
+  --cjk CJK             为 cn、jp、tc、kr locale 构建 Maple Mono + CJK 扩展字体；可重复或用逗号分隔
+  --cjk-format {static,variable}
+                        将 CJK 扩展输出保存为静态字体（默认）或合并的可变字体
+  --cjk-narrow          对选定 locale 应用窄 CJK 间距
+  --cjk-scale-factor CJK_SCALE_FACTOR
+                        选定 locale 的缩放因子。格式：<因子> 或 <宽度因子>,<高度因子>
+  --cjk-both            Nerd Font 启用时，同时构建 NF CJK 和普通 CJK 输出
+
+Deprecated CN Options:
+  --cn                  `--cjk cn` 的弃用别名
+  --no-cn               从选定 CJK locale 中移除 `cn` 的弃用别名
+  --cn-narrow           面向 `cn` 的 `--cjk-narrow` 弃用别名
+  --cn-scale-factor CN_SCALE_FACTOR
+                        面向 `cn` 的 `--cjk-scale-factor` 弃用别名
+  --cn-both             `--cjk-both` 的弃用别名
 ```
 
 ## 我个人在用的其他中文字体资源

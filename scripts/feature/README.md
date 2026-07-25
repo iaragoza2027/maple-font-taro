@@ -1,89 +1,51 @@
 # Maple Mono Feature Module
 
-A utility module for managing OpenType font features like stylistic sets, character variants, and ligatures.
+The `scripts/feature/` package defines Maple Mono's OpenType feature rules as
+Python objects and compiles them into feature source. The compiler is the source
+of truth for generated feature behavior; `source/features/` contains the checked-in
+feature files used by the file-based build path.
 
-## Why
+## Module layout
 
-Most open-source font projects manage OpenType feature files manually. While fonttools' `ast` module enables feature file automation, the lack of documentation made implementation challenging. This module reimplements the `ast` functionality to generate `.fea` files and integrate them during builds.
+- `ast.py` provides the small AST used to emit classes, substitutions, lookups,
+  and features.
+- `regular.py` and `italic.py` expose the Latin feature definitions for each
+  style.
+- `base/` contains shared features such as `ccmp`, `locl`, case, and numbers.
+- `calt/` contains contextual ligatures and tags.
+- `cv/` and `ss/` contain character variants and stylistic sets.
+- `compiler.py` assembles the selected feature source and exposes the public
+  generation helpers.
+- `apply.py` chooses generated-source or file-based application during a build.
 
-## Overview
+## Feature application paths
 
-The `feature/` module uses an AST approach to programmatically define OpenType features.
+The normal build path calls `generate_fea_string()` for every static and
+variable font. A static font is then passed through the freeze step. An enabled
+feature becomes a default substitution in a static font, a disabled feature has
+its lookup removed, and an ignored feature remains available as an OpenType
+feature. The static freeze step also moves the configured contextual rules into
+`calt` when the feature is one of the moving rules.
 
-### Key Components
+Variable fonts use the same generated source, but cannot bake a glyph
+substitution into one fixed instance. For an enabled feature, the compiler
+removes that rule from its original `cvXX` or `ssXX` feature and places the
+applicable rule in `calt`, so the variable font changes with the feature
+configuration instead of treating the feature as ineffective. `disable` and
+`ignore` do not freeze variable-font glyphs; they leave the generated feature
+available according to the normal feature configuration.
 
-- **`ast.py`**: Core utilities for defining OpenType features.
-- **`regular.py`**: Entry file for regular features.
-- **`italic.py`**: Entry file for italic features.
-- **`base/`**: Foundational classes and features (e.g., numbers, cases, localized forms).
-- **`calt/`**: Default ligatures.
-- **`cv/`**: Character variants.
-- **`ss/`**: Stylistic sets.
+`--apply-fea-file` selects the second path. It applies the matching checked-in
+file, `source/features/regular.fea` or `source/features/italic.fea`, directly to
+base static and variable fonts. CJK static fonts select the corresponding
+`regular_cn.fea` or `italic_cn.fea` file. This path bypasses dynamic generation.
+Static fonts still run the static freeze step after the file is loaded, while
+variable fonts do not bake a static freeze; changes to generated feature options
+do not rewrite the loaded source file.
 
-## Usage
+## AST examples
 
-### Custom Tags
-
-Create custom tags using utilities in `calt/tag.py`.
-
-The font includes built-in tags with full-round borders. Use `subst_liga` to customize trigger text:
-
-```py
-subst_liga(
-    source="TODO:",
-    target="tag_todo.liga",
-    lookup_name="todo_colon"
-)
-```
-
-For additional tags, use `tag_custom`:
-
-```py
-tag_custom(
-    [
-      (":attention:", "[attention]"),
-      ("_noqa_", "(noqa)"),
-      # ("_alter_", "<alter>"),
-    ],
-    bg_cls_dict,
-)
-```
-This converts:
-```
-:attention: _noqa_
-```
-
-into a styled tag:
-
-![Image](https://github.com/user-attachments/assets/e67f282c-e961-4e55-9169-2f20d7ccfbc6)
-
-#### Limitations
-
-1. Custom tags lack spacing optimization.
-2. Tags may break with letter spacing > 0. See [#381](https://github.com/subframe7536/maple-font/issues/381#issuecomment-2808022878).
-3. Tags inherit text color. See [#381](https://github.com/subframe7536/maple-font/issues/381#issuecomment-2809622541).
-
-### Remove Infinite Ligatures
-
-To disable infinite ligatures for `=`, `-`, `~`, and `#`, set `__USE_INFINITE = False` in `calt/_infinite_utils.py`.
-
-## Variable Font Features
-
-Two strategies exist for feature freezing:
-1. Move ligature rules to `calt` (e.g., `ss08`)
-2. Direct glyph substitution (e.g., `cv01`)
-
-Currently, method 2 isn't supported in variable format. In V7.0, all variable format variants are identical except for family name. Use `--apply-fea-file` flag as needed.
-
-Features now load dynamically via Python. The logic in `common.py` implements method 1. **Enable font ligatures** to use all features in variable fonts (not recommended).
-
-## AST Utilities
-
-Core utilities for defining OpenType features:
-
-### `Clazz`
-
-Represents a class of glyphs.
+`Clazz` declares a reusable glyph class:
 
 ```py
 from scripts.feature.ast import Clazz, subst
@@ -93,16 +55,14 @@ cls_digit.state()
 subst(cls_digit.use(), "a", "b", "c")
 ```
 
-Generated fea string:
+The two lines produce:
 
 ```fea
-@Digit = [zero, one, two, three];
+@Digit = [zero one two three];
 sub @Digit a' b by c;
 ```
 
-### `Lookup`
-
-Defines a lookup block for substitutions.
+`Lookup` groups substitutions into a named lookup block:
 
 ```py
 from scripts.feature.ast import Lookup, subst
@@ -110,13 +70,11 @@ from scripts.feature.ast import Lookup, subst
 lookup_example = Lookup(
     name="example_lookup",
     desc="Example substitution",
-    content=[
-        subst("a", "b", None, "c"),
-    ],
+    content=[subst("a", "b", None, "c")],
 )
 ```
 
-Generated fea string:
+Its output is:
 
 ```fea
 # Example substitution
@@ -125,22 +83,21 @@ lookup example_lookup {
 } example_lookup;
 ```
 
-### `Feature`
-
-Represents an OpenType feature.
+`Feature` requires the version argument used by the feature catalog:
 
 ```py
-from scripts.feature.ast import Feature
+from scripts.feature.ast import Feature, create
 
 feature_example = Feature(
     tag="calt",
-    content=[
-        lookup_example,
-    ],
+    content=[lookup_example],
+    version="1.0",
 )
+fea_content = create([feature_example])
+print(fea_content)
 ```
 
-Generated fea string:
+The generated feature ends with the matching close tag:
 
 ```fea
 feature calt {
@@ -150,33 +107,59 @@ feature calt {
     sub a b' by c;
   } example_lookup;
 
-}
+} calt;
 ```
 
-### Create
-
-Generates the final OpenType feature file content.
+For a complete generated source, use the compiler's actual parameter names:
 
 ```py
-from scripts.feature.ast import create
+from scripts.feature.compiler import generate_fea_string
 
-fea_content = create([feature_example])
-print(fea_content)
+fea_string = generate_fea_string(is_italic=False, is_cn=True)
+print(fea_string)
 ```
 
-## Generating Features
+The source ends in the final feature block, such as `} ss13;`, and each lookup
+ends with its own `} lookup_name;` line. `uv run task.py fea` is the supported
+way to refresh committed generated files.
 
-Features apply automatically during build. To update fea files manually:
+## Custom tags
+
+Tag helpers live in `calt/tag.py`. `subst_liga` creates one ligature lookup:
+
+```py
+from scripts.feature.ast import subst_liga
+
+todo = subst_liga(
+    source="TODO:",
+    target="tag_todo.liga",
+    lookup_name="todo_colon",
+)
+```
+
+Use `tag_custom` in the same module for multiple trigger/replacement pairs. A
+custom tag inherits text color, does not optimize spacing, and may break when
+letter spacing is greater than zero; see [#381](https://github.com/subframe7536/maple-font/issues/381#issuecomment-2808022878).
+
+## Generated files and synchronization
+
+Run:
 
 ```sh
 uv run task.py fea
 ```
 
-Example feature generation:
+The task writes these five feature files:
 
-```py
-from scripts.feature import generate_fea_string
+- `source/features/regular.fea`
+- `source/features/italic.fea`
+- `source/features/cn.fea`
+- `source/features/regular_cn.fea`
+- `source/features/italic_cn.fea`
 
-fea_string = generate_fea_string(italic=False, cn=True)
-print(fea_string)
-```
+It also refreshes `source/features/README.md`, `source/schema.json`, the feature
+freeze section in `config.json`, the generated feature sections in
+`README.md`, `README_CN.md`, and `README_JA.md`, and `scripts/in_browser.py`'s
+moving-rule list. Before and after running the task, inspect the complete diff
+of every listed output; generated changes outside the intended feature update
+must not be kept.

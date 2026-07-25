@@ -605,9 +605,9 @@ cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
 
 以下の3つのオプションがあります（[理由はこちら](https://github.com/subframe7536/maple-font/issues/233#issuecomment-2410170270)）：
 
-1. `enable`: 字体のテクニカル設定で `cvXX` / `ssXX` / `zero` を指定する必要なく、これらのテクニカルを強制的に有効化します。デフォルトの連結文字と同様の動作になります。
-2. `disable`: `cvXX` / `ssXX` / `zero` 内のテクニカルを削除します。たとえ手動で有効にしたとしても、実際には機能しません。
-3. `ignore`: 何も行いません。
+1. `enable`: 静的フォントでは適用可能な置換を固定するかコンテキスト規則を `calt` に移し、可変フォントでは適用可能な生成規則を `calt` に移します。
+2. `disable`: 静的フォントでは feature lookup を削除します。可変フォントでは静的置換を固定しないため、字形を凍結しません。
+3. `ignore`: OpenType feature をそのまま利用できるようにします。
 
 #### カスタム OpenType テクニカル
 
@@ -615,7 +615,7 @@ OpenType テクニカルを使用すると、フォントの内蔵されたバ�
 
 デフォルトでは、`[scripts/feature/`](./scripts/feature) 内のPythonモジュールがOpenTypeテクニカルの文字列を生成し、ビルド時に読み込まれます。ここで機能を変更したり、カスタムのラベルを定義することができます。
 
-OpenTypeテクニカルファイルを直接変更して実装したい場合は、`build.py` を実行する際に `--apply-fea-file` パラメータを指定してください。これにより、`[source/features/{regular,italic}{_cn,}.fea`](./source/features) 内のテクニカルファイルが読み込まれます。
+OpenType feature ファイルを直接変更する場合は、`build.py` に `--apply-fea-file` を指定してください。対応する [`source/features/{regular,italic}{_cn,}.fea`](./source/features) が静的・可変フォントの各パスに適用されます。
 
 ### 無限矢印リガチャ
 
@@ -670,62 +670,72 @@ CJK 拡張ビルドはデフォルトで無効です。`python build.py --cjk cn
 
 ```
 usage: build.py [-h] [-v] [-d] [--debug] [-n] [--feat FEAT] [--apply-fea-file]
-                [--hinted | --no-hinted] [--liga | --no-liga] [--keep-infinite-arrow]
-                [--infinite-arrow] [--remove-tag-liga] [--line-height LINE_HEIGHT]
-                [--width {default,narrow,slim}] [--nf-mono] [--nf-propo]
-                [--cn-narrow] [--cn-scale-factor CN_SCALE_FACTOR] [--nf | --no-nf]
-                [--cn | --no-cn] [--cn-both] [--ttf-only] [--least-styles]
-                [--font-patcher] [--cache] [--cn-rebuild] [--archive]
+                [--hinted | --no-hinted] [--liga | --no-liga]
+                [--infinite-arrow] [--remove-tag-liga]
+                [--line-height LINE_HEIGHT] [--width {default,narrow,slim}]
+                [--format FORMATS] [--least-styles] [--cache] [--archive]
+                [--nf | --no-nf] [--nf-mono] [--nf-propo] [--font-patcher]
+                [--cjk CJK] [--cjk-format {static,variable}] [--cjk-narrow]
+                [--cjk-scale-factor CJK_SCALE_FACTOR] [--cjk-both]
+                [--cn | --no-cn] [--cn-narrow]
+                [--cn-scale-factor CN_SCALE_FACTOR] [--cn-both]
 
-✨ Builder and optimizer for Maple Mono
+Builder and optimizer for Maple Mono
 
 options:
   -h, --help            このヘルプメッセージを表示して終了
   -v, --version         プログラムのバージョン番号を表示して終了
   -d, --dry             設定を出力して終了
-  --debug               ファミリ名に `Debug` サフィックスを追加し、ビルドを高速化
+  --debug               高速デバッグビルドを使用：`Debug` を追加し、デバッグログを有効化し、
+                        Regular/Italic のみをビルドして OTF/WOFF2/Nerd Font をスキップ
 
 Feature Options:
   -n, --normal          `JetBrains Mono` のように斜線付きゼロを持つ通常のプリセットを使用
-  --feat FEAT           フォント機能をフリーズし、`,` で区切る（例： `--feat
-                        zero,cv01,ss07,ss08`）。可変フォーマットには効果がありません
-  --apply-fea-file      `source/features/{regular,italic}.fea` から機能ファイルを読み込み、
-                        可変フォントに適用
-  --hinted              NF / CN / NF-CNでヒント付きフォントをベースフォントとして使用
+  --feat FEAT           フォント機能を有効化・フリーズし、`,` で区切る（例：`--feat
+                        zero,cv01,ss07,ss08`）。可変フォントでは適用可能な規則を `calt` に移動
+  --apply-fea-file      対応する `source/features/{regular,italic}{_cn,}.fea` を静的・可変フォントに適用
+  --hinted              NF / CJK / NF-CJKでヒント付きフォントをベースフォントとして使用
                         （デフォルト）
-  --no-hinted           NF / CN / NF-CNでヒントなしフォントをベースフォントとして使用
+  --no-hinted           NF / CJK / NF-CJKでヒントなしフォントをベースフォントとして使用
   --liga                すべてのリガチャを保持（デフォルト）
   --no-liga             すべてのリガチャを削除
-  --infinite-arrow      無限アローリガチャを有効にする（hinted フォントではデフォルト
-                        で無効）
+  --infinite-arrow      無限アローリガチャを有効にする（hinted フォントではデフォルトで無効）
   --remove-tag-liga     純テキストタグのリガチャ、例えば `[TODO]` を削除する。
   --line-height LINE_HEIGHT
                         行の高さのスケールファクター（例：1.1）
   --width {default,narrow,slim}
                         字形の幅を設定: default (600), narrow (550), slim (500)
-  --nf-mono             Nerd Font アイコンの幅を固定します
-  --nf-propo            Nerd Font アイコンの幅を可変にし、--nf-mono を上書きします
-  --cn-narrow           中国語/日本語の文字間隔を縮小する（同時にシステムが等幅フォントと
-                        して認識できなくなる）
-  --cn-scale-factor CN_SCALE_FACTOR
-                        中国語/日本語グリフのスケール係数。形式：<係数> または
-                        <幅の係数>,<高さの係数> (例：1.1 または 1.2,1.1)
 
 Build Options:
+  --format FORMATS      要求する基本出力形式をカンマ区切りで選択：ttf,otf,woff2。可変ベースは常にビルド
+  --least-styles        通常の / 太字 / 斜体 / 太字斜体スタイルのみを構築する
+  --cache               `fonts/` 下の有効なパイプライン段階を再利用し、無関係な既存出力を保持
+  --archive             その時点で存在する各非 JSON 出力ディレクトリを設定・ライセンスと共にアーカイブ
+
+Nerd Font Options:
   --nf, --nerd-font     Nerd-Fontバージョンをビルド（デフォルト）
   --no-nf, --no-nerd-font
                         Nerd-Fontバージョンをビルドしない
-  --cn                  中国語バージョンをビルド
-  --no-cn               中国語バージョンをビルドしない（デフォルト）
-  --cn-both             `Maple Mono CN` と `Maple Mono NF CN` の両方をビルド。
-                        Nerd-Fontバージョンが有効である必要があります
-  --ttf-only            TTF形式のみをビルド
-  --least-styles        通常の / 太字 / 斜体 / 太字斜体スタイルのみを構築する
-  --font-patcher        NF形式を構築するためにNerd Font Patcherの使用を強制する
-  --cache               TTF、OTF、Woff2形式のフォントキャッシュを再利用
-  --cn-rebuild          CNベースフォントを再インスタンス化
-  --archive             設定とライセンスを含むフォントアーカイブをビルド。
-                        `--cache` フラグがある場合、NFとCN形式のみをアーカイブ
+  --nf-mono             Nerd Font アイコンの幅を固定
+  --nf-propo            Nerd Font アイコンの幅を可変にし、`--nf-mono` を上書き
+  --font-patcher        NF形式に Nerd Font Patcher の使用を強制
+
+CJK Options:
+  --cjk CJK             cn、jp、tc、kr locale の Maple Mono + CJK 拡張をビルド。繰り返しまたはカンマ区切り
+  --cjk-format {static,variable}
+                        CJK 拡張を静的（デフォルト）または結合した可変フォントとして保存
+  --cjk-narrow          選択した locale に狭い CJK 間隔を適用
+  --cjk-scale-factor CJK_SCALE_FACTOR
+                        選択した locale のスケール係数。形式：<係数> または <幅係数>,<高さ係数>
+  --cjk-both            Nerd Font が有効な場合、NF CJK と通常 CJK の両方をビルド
+
+Deprecated CN Options:
+  --cn                  `--cjk cn` の非推奨エイリアス
+  --no-cn               選択された CJK locale から `cn` を削除する非推奨エイリアス
+  --cn-narrow           `cn` を対象とする `--cjk-narrow` の非推奨エイリアス
+  --cn-scale-factor CN_SCALE_FACTOR
+                        `cn` を対象とする `--cjk-scale-factor` の非推奨エイリアス
+  --cn-both             `--cjk-both` の非推奨エイリアス
 ```
 
 ## クレジット

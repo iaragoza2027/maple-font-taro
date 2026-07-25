@@ -1,302 +1,126 @@
-# Maple Mono Build Pipeline
+# Maple Mono Build System
 
-This package contains the Maple Mono build, CJK, OpenType feature, shared font,
-and task-runner implementation.
+This directory implements `build.py` and `task.py`. The build pipeline is
+deterministic only when its source inputs, generated feature files, and resolved
+configuration are kept in sync, so use the ownership map below before changing
+an input or a stage.
 
-## Architecture
+## Start here
 
-- `MapleBuildPipeline` in `pipeline/orchestrator.py` owns the top-level build flow.
-  `BuildPlan` resolves stage selection once. `base_fonts.py`, `nerd_fonts.py`,
-  and `cjk_outputs.py` own their build stages, while `artifacts.py` owns cache
-  identity, artifact validation, cleanup, and output selection.
-- Process-pool tasks run through top-level `*_job` functions with explicit job
-  dataclasses so spawn/pickle behavior stays stable across platforms.
-- `font_ops/` contains reusable font naming, metrics, OpenType, merge, and glyph transform operations.
-- `config/resolver.py` converts config file and CLI inputs into a resolved build config,
-  runtime output paths, and CJK static base resolution decisions.
+| Need | Entry point | What it does |
+| --- | --- | --- |
+| Inspect the resolved build | `uv run build.py --dry` | Resolves configuration and prints the local config plus runtime context, without constructing a `BuildPlan` or building fonts. |
+| Build release outputs | `uv run build.py` | Runs the complete pipeline selected by the resolved configuration. |
+| Build a focused format | `uv run build.py --format ttf --debug` | Selects a requested base format and the debug style/output policy. |
+| Build CJK base assets | `uv run task.py cjk --preset cn` | Rebuilds the standalone CJK variable bases, then static bases unless `--vf-only` is set. |
+| Run a repository task | `uv run task.py <name>` | Dispatches feature, designspace, Nerd Font, page, release, and publish workflows. |
+| Trace pipeline state | [`pipeline/README.md`](pipeline/README.md) | Documents stage selection, cache transitions, failure state, and executor ownership. |
 
-## Logging
+`build.py` owns final outputs under `fonts/`. `task.py cjk` owns reusable CJK
+inputs under `source/cjk/`; its cache is independent of
+`fonts/build-cache.json`.
 
-CLI entrypoints configure one `scripts` logger to write compact `[task] message`
-records for routine INFO output and `[LEVEL] [task] message` for diagnostics.
-Top-level build stages are separated by one blank line and end with duration and
-artifact-count summaries. Set `MAPLE_LOG_LEVEL` to `DEBUG`, `INFO`, `WARNING`,
-`ERROR`, or `CRITICAL` to control verbosity; the default is `INFO`.
-`build.py --debug` uses `DEBUG` as the default for that CLI invocation, while an
-explicit `MAPLE_LOG_LEVEL` still takes priority.
+## Ownership map
 
-Machine-readable dry-run output remains on stdout. In particular, CI keeps
-`build.py --dry` as JSON-only stdout so it can be piped to tools such as `jq`.
-Worker processes configure the same logger before running font jobs.
-Downloads with a known content length refresh their percentage and transferred
-size on one stderr line instead of emitting one record per chunk.
+| Area | Source of truth | Responsibility |
+| --- | --- | --- |
+| Configuration | `config/base.py`, `config/resolver.py`, `config/cli.py` | Parse JSON and CLI values, normalize defaults, validate selections, and derive the resolved build model. |
+| Runtime decisions | `config/runtime.py`, `config/paths.py` | Resolve output paths, CJK base fallback, downloads, and runtime flags. |
+| Orchestration and base build | [`pipeline/orchestrator.py`](pipeline/orchestrator.py) | Prepare Designspace/UFO sources, compile Fontmake branches, post-process base Variable/TTF/OTF fonts, select stages, manage cache state, and archive outputs. |
+| Derived base outputs | `pipeline/base_fonts.py` | Apply AutoHint to static TTFs and convert static TTFs to WOFF2. It does not compile or post-process Fontmake base fonts. |
+| Nerd Font | `pipeline/nerd_fonts.py`, `font_ops/nerd_font.py` | Build from prebuilt Nerd Font assets or Font Patcher, then apply Maple naming and metrics. |
+| CJK integration | `pipeline/cjk_outputs.py`, `cjk/` | Resolve CJK bases, merge them with Maple or NF fonts, and publish static or variable profiles. |
+| Shared font operations | `font_ops/` | Keep naming, metrics, glyph transforms, OpenType edits, merging, subsetting, and FontTools boundaries reusable. |
+| OpenType features | `feature/` | Generate and apply rules; checked-in `.fea` files live under `source/features/`. |
+| Task adapters | `task/` | Keep repository maintenance workflows thin and separate from the release pipeline. |
+| Infrastructure | `utils/` | Provide filesystem, process, archive, download, logging, error, and version helpers. |
 
-## Files
+## Build lifecycle
 
-| File | Purpose |
-| ---- | ------- |
-| `config/` | CLI parsing, resolved configuration models, and output path helpers. |
-| `pipeline/` | Stable public build entrypoint, orchestration, and output/cache helpers. |
-| `config/resolver.py` | Build configuration and runtime planning. |
-| `utils/` | Filesystem, process, download, archive, errors, and version helpers. |
-| `font_ops/` | Shared font and glyph operations, transforms, and typed FontTools table boundaries. |
-| `cjk/` | CJK data models, JSON/CLI configuration, presets, outline conversion, variable-font operations, and builder. |
-| `feature/` | Ordered feature catalog, compiler, freeze implementation, and font application. |
-| `task/` | Thin task parser and workflow adapters. |
+1. **Resolve inputs.** `config.json` and CLI flags become `ResolvedConfig`, and
+   normalization happens here rather than inside stages.
+2. **Handle dry-run early.** `main()` resolves `ResolvedConfig` and
+   `BuildRuntimeContext`, then prints and exits for `--dry`; it does not create
+   `BuildPlan`. Local stdout contains labeled `resolved_config` and
+   `runtime_context` JSON, while CI stdout contains only the resolved config JSON
+   so it can be parsed directly. Warnings remain on stderr.
+3. **Create the plan.** A normal build constructs `BuildPlan`, which selects
+   target styles, required base formats, WOFF2, Nerd Font, CJK profiles, cleanup,
+   and archive policy once.
+4. **Prepare and compile base fonts.** `orchestrator.py` prepares the committed
+   Designspace/UFO sources, compiles Fontmake Variable/TTF/OTF branches, and
+   applies the base-font post-processing before publishing outputs.
+5. **Build derived outputs.** `base_fonts.py` consumes static TTF outputs for
+   AutoHint and WOFF2. Nerd Font and CJK stages consume only the outputs selected
+   by their dependency policy.
+6. **Finalize.** If TTF was not requested, the pipeline removes `fonts/TTF/` and
+   `fonts/TTF-AutoHint/` after all consumers finish. It writes
+   `build-config.json` before work starts and rewrites it on successful
+   completion; it refreshes `build-cache.json` only after the complete pipeline
+   succeeds. A failed build can therefore leave a new config beside an old or
+   missing cache. If `--archive` is enabled, every non-JSON output directory that
+   exists at archive time is processed; `--cache` does not limit this to NF/CJK.
 
-## Pipeline Flow
+## Output layout
 
-```mermaid
-flowchart TD
-    START["build.py"] --> PIPE_MAIN["scripts.pipeline.main(args, version)"]
-    PIPE_MAIN --> PARSE["scripts.config.cli.parse_args"]
-    PARSE --> RUN["pipeline.run(parsed_args, version)"]
-    RUN --> RESOLVE["BuildConfigResolver.resolve"]
-    RESOLVE --> PLAN["BuildPlan.from_config + BuildRuntimeContext.from_config"]
+| Output | Produced by | Reused by |
+| --- | --- | --- |
+| `fonts/Variable/` | Base Variable stage | Variable consumers and CJK variable merges. |
+| `fonts/TTF/`, `fonts/OTF/` | Base static stages | AutoHint, WOFF2, Nerd Font, CJK static merges, and archives. |
+| `fonts/TTF-AutoHint/` | AutoHint stage | Nerd Font and hinted CJK static merges. |
+| `fonts/Woff2/` | WOFF2 conversion stage | Web distribution and archives. |
+| `fonts/NF/` | Nerd Font stage | NF-CJK static or variable merges. |
+| `fonts/<LOCALE>/` | Plain CJK integration stage | Release archives and downstream consumers. |
+| `fonts/NF-<LOCALE>/` | NF-CJK integration stage | Release archives and downstream consumers. |
+| `fonts/Variable-<LOCALE>/` | Plain CJK variable stage | Release archives and downstream consumers. |
+| `fonts/Variable-NF-<LOCALE>/` | NF-CJK variable stage | Release archives and downstream consumers. |
+| `fonts/build-config.json` | Build start and successful finalization | Reproducing the resolved build inputs. |
+| `fonts/build-cache.json` | Successful finalization only | Independent stage reuse on the next cached build. |
 
-    PLAN --> DRY{"dry run?"}
-    DRY -->|"yes, CI"| DRY_CI["print config JSON"]
-    DRY -->|"yes, local"| DRY_LOCAL["print resolved_config and runtime_plan"]
-    DRY_CI --> END["return"]
-    DRY_LOCAL --> END
+Everything under `fonts/` is generated output. Change sources, configuration, or
+generators instead of editing generated files by hand.
 
-    DRY -->|"no"| PIPE["MapleBuildPipeline(config, plan).build"]
-    PIPE --> PREP["prepare_output_root"]
-    PREP --> CACHE_CLEAN{"cache disabled?"}
-    CACHE_CLEAN -->|"yes"| CLEAN["remove fonts and fonts/Woff2"]
-    CACHE_CLEAN -->|"no"| DIRS
-    CLEAN --> DIRS["ensure base output dirs"]
-    DIRS --> START_TIMER["start_build_timer"]
+## Cache contract
 
-    START_TIMER --> BASE_DECISION{"BuildPlan base formats missing?"}
-    BASE_DECISION -->|"yes"| VARIABLE["build_variable_outputs"]
-    VARIABLE --> BASE_TTF["build_static_base_outputs"]
-    BASE_DECISION -->|"no"| SKIP_BASE["reuse_base_output_cache"]
-    BASE_TTF --> NF_DECISION{"should_build_nerd_fonts?"}
-    SKIP_BASE --> NF_DECISION
+The main cache is opt-in and lives at `fonts/build-cache.json`. A cache hit
+requires the recorded stage identity, exact expected output paths, file
+existence, and file digest to match. A miss preserves existing and unrelated
+files; it does not clear the stage directory. For a CJK miss, the pipeline first
+removes only that CJK stage's cache record so other locale/profile records remain
+usable.
 
-    NF_DECISION -->|"yes"| NF["build_nerd_font_outputs"]
-    NF_DECISION -->|"no"| SKIP_NF["skip_nerd_font_outputs"]
-    NF --> CJK_DECISION{"should_build_cjk_outputs?"}
-    SKIP_NF --> CJK_DECISION
+Stage identities contain only the related resolved configuration, target styles,
+the regular and italic Designspace dimension dictionaries, the generated feature
+file fingerprint, and upstream stage identities. They do not include generator
+source code, dependency versions, UFO outline contents, or CJK base contents.
+After changing any of those untracked identity inputs, run without `--cache` so
+the result cannot be mistaken for a valid cached build.
 
-    CJK_DECISION -->|"no"| SKIP_CJK["skip_cjk_outputs"]
-    CJK_DECISION -->|"yes"| CJK_MODE{"should_persist_cjk_variable_outputs?"}
-    CJK_MODE -->|"yes"| CJK_VAR["build_cjk_variable_outputs"]
-    CJK_MODE -->|"no"| CJK_STATIC["build_cjk_static_outputs"]
-    SKIP_CJK --> CLEAN_DECISION{"should_cleanup_base_static_formats?"}
-    CJK_VAR --> CLEAN_DECISION
-    CJK_STATIC --> CLEAN_DECISION
+The CJK base cache under `source/cjk/` is separate. `build.py --cache` controls
+final outputs under `fonts/`; `cjk.clean_cache` controls reuse of CJK variable or
+source fallback work, but it does not delete files and does not bypass a valid
+static directory digest.
 
-    CLEAN_DECISION -->|"yes"| CLEAN_FORMATS["cleanup_base_static_formats"]
-    CLEAN_DECISION -->|"no"| RECORD
-    CLEAN_FORMATS --> RECORD["write_build_record"]
-    RECORD --> ARCHIVE_DECISION{"should_archive_outputs?"}
-    ARCHIVE_DECISION -->|"yes"| ARCHIVE["archive_outputs"]
-    ARCHIVE_DECISION -->|"no"| FINISH
-    ARCHIVE --> FINISH["finish_build"]
-    FINISH --> END
+## Maintenance recipes
+
+| Change | Edit | Validate |
+| --- | --- | --- |
+| Build flags or defaults | `config/cli.py`, `config/base.py`, `config/resolver.py` | `uv run build.py --dry`, then CLI contract tests. |
+| Stage order or cache behavior | `pipeline/orchestrator.py`, `pipeline/cache.py`, `pipeline/artifacts.py` | `uv run build.py --dry`, pipeline/cache tests, and the focused build tests. |
+| FontTools operation | Relevant module in `font_ops/` | `uv run pyrefly check` plus focused unit tests. |
+| OpenType feature rule | `feature/` or generated `source/features/` | Run `uv run task.py fea`, inspect every generated diff, then feature tests. |
+| CJK source or merge behavior | `cjk/`, `config/runtime.py`, or `pipeline/cjk_outputs.py` | Follow [`cjk/README.md`](cjk/README.md), then CJK config/cache tests. |
+| Designspace/UFO source | FontLab `.vfc` plus local `.glyphs` export | `uv run task.py designspace`, inspect `fonts/source-issues.json`. |
+
+## Validation baseline
+
+```sh
+uv run ruff format --check .
+uv run ruff check .
+uv run pyrefly check
+uv run python -m unittest discover -s scripts/tests
 ```
 
-## Base Font Flow
-
-```mermaid
-flowchart TD
-    A["prepare_fontmake_sources"] --> TEMP["Create fonts/temp"]
-    TEMP --> SRC["Load committed regular and italic<br/>Designspace/UFO sources"]
-    SRC --> PREP["Apply weight, line-height,<br/>and width configuration"]
-    PREP --> CHECK["Materialize one temporary<br/>Designspace/UFO tree per source"]
-    CHECK --> BATCH["Submit all requested formats<br/>to the shared process pool"]
-    BATCH --> VF["fontmake Variable TTF<br/>keep overlaps"]
-    BATCH --> TTF["fontmake Static TTF<br/>pathops + transformed components"]
-    BATCH --> OTF_DECISION{"OTF requested?"}
-    OTF_DECISION -->|"yes"| OTF["fontmake Static OTF<br/>CFF optimize + subroutinize"]
-    OTF_DECISION -->|"no"| SKIP_OTF["skip OTF"]
-
-    VF --> H["patch variable features"]
-    H --> I["update variable names"]
-    I --> J{"italic source?"}
-    J -->|"yes"| K["add_ital_axis_to_stat"]
-    J -->|"no"| L["skip ital STAT"]
-    K --> M["patch_instance weight mapping"]
-    L --> M
-    M --> N{"line_height != 1?"}
-    N -->|"yes"| O["adjust_line_height"]
-    N -->|"no"| P["keep source metrics"]
-    O --> Q["verify_glyph_width"]
-    P --> Q
-    Q --> R["add_gasp"]
-    R --> S["set_monospace_metadata and publish<br/>fonts/Variable"]
-
-    TTF --> AG["dehint and apply shared<br/>static metadata"]
-    OTF --> AG
-    AG --> AH["update static names and features"]
-    AH --> AI["verify glyph width"]
-    AI --> AJ["publish fonts/TTF and fonts/OTF"]
-    AJ --> HINT_DECISION{"Hinted TTF exposed<br/>or consumed?"}
-    HINT_DECISION -->|"yes"| AQ["select_build_files fonts/TTF"]
-    HINT_DECISION -->|"no"| AK
-    AQ --> AR["Create MonoAutohintJob list"]
-    AR --> AS["run_process_jobs build_mono_autohint_job"]
-    AS --> AT["patch hinted feature set"]
-    AT --> AU["ttfautohint with Regular reference"]
-    AU --> AV["save fonts/TTF-AutoHint file"]
-    AV --> AK{"woff2 wanted and not debug?"}
-    AK -->|"yes"| AL["WOFF2 task: convert_to_web<br/>with shared executor"]
-    AK -->|"no"| AM["skip WOFF2"]
-```
-
-The tracked `.vfc` files are the editable FontLab sources. Export matching local
-`.glyphs` files and run `uv run task.py designspace` to normalize master layers,
-validate compatibility, and refresh the committed Designspace/UFO sources. The
-task writes failures to `fonts/source-issues.json` without replacing valid
-generated sources. Builds apply weight, width, line-height, and codepoint-alias
-configuration in a temporary tree and never fall back to the reference variable
-TTF binaries.
-
-## Nerd Font Flow
-
-```mermaid
-flowchart TD
-    A["build_nerd_fonts"] --> B{"nerd_font.enable?"}
-    B -->|"no"| Z["return"]
-    B -->|"yes"| C["create fonts/NF"]
-    C --> D["resolve_font_patcher_usage"]
-    D --> E["select_build_files ttf_base_dir"]
-    E --> F["Create NerdFontBuildJob list"]
-    F --> G["run_process_jobs build_nf_job"]
-
-    G --> H{"use Font Patcher?"}
-    H -->|"no"| I["build_nf_by_prebuild_nerd_font"]
-    H -->|"yes"| J["build_nf_by_font_patcher"]
-
-    I --> K["Select source/MapleMono-NF-Base suffix"]
-    K --> L{"width option set?"}
-    L -->|"yes"| M["smart_change_width on NF base<br/>save temporary base"]
-    L -->|"no"| N["use NF base directly"]
-    M --> O["merge_ttfonts with ttf_base_dir font"]
-    N --> O
-    O --> P["remove temporary base if needed"]
-
-    J --> Q["run FontPatcher with glyph args<br/>mono/propo and extra args"]
-    Q --> R["open generated patcher output"]
-    R --> S["remove intermediate output"]
-    S --> T["patch nonmarkingreturn width if present"]
-
-    P --> U["build_nf common naming"]
-    T --> U
-    U --> V["update NF family, style, full,<br/>PostScript, unique id"]
-    V --> W{"line_height != 1?"}
-    W -->|"yes"| X["adjust_line_height"]
-    W -->|"no"| Y["keep metrics"]
-    X --> AA["verify width unless Font Patcher or Propo"]
-    Y --> AA
-    AA --> AB["save fonts/NF output"]
-    AB --> AC["set plan.is_nf_built"]
-```
-
-## CJK Flow
-
-```mermaid
-flowchart TD
-    A["MapleBuildPipeline CJK decision"] --> B["resolved CJK build entries"]
-    B --> C{"no entries?"}
-    C -->|"yes"| Z["skip_cjk_outputs"]
-    C -->|"no"| D{"cjk_output_format == variable?"}
-
-    D -->|"yes"| VAR["build_cjk_extended_variable_outputs"]
-    VAR --> V0["For each resolved entry"]
-    V0 --> V1["entry.build_config<br/>locale_name derives output names"]
-    V1 --> V2["ensure_cjk_variable_fonts"]
-    V2 --> V3{"preset CJK VFs exist<br/>and clean_cache is false?"}
-    V3 -->|"yes"| V4["reuse preset regular and italic CJK VFs"]
-    V3 -->|"no"| V5["build_cjk_fonts(vf_only=True)"]
-    V4 --> V6["merge_vf core Maple VF + CJK VF"]
-    V5 --> V6
-    V6 --> V7["name merged VF with locale_name"]
-    V7 --> V8["save fonts/Variable-LOCALE"]
-    V8 --> V0
-
-    D -->|"no"| STAT["build_cjk_extended_static_outputs"]
-    STAT --> S0["For each selected locale"]
-    S0 --> S1["Resolve static base profiles<br/>NF-CJK and/or plain CJK"]
-    S1 --> S2["Collect required styles from core static fonts"]
-    S2 --> S3["BuildRuntimeContext.resolve_cjk_static_base"]
-    S3 --> S4{"valid local cache?"}
-    S4 -->|"yes"| S8["load static CJK base fonts"]
-    S4 -->|"no"| S5{"download supported locale?"}
-    S5 -->|"yes"| S6["download cjk-base/{locale}-static.zip<br/>then verify config-derived hash"]
-    S5 -->|"no"| S7["skip download"]
-    S6 --> S8
-    S7 --> S9["build_cjk_fonts from variable source<br/>skip hash validation"]
-    S6 -->|"invalid or incomplete"| S9
-    S9 --> S8
-    S8 --> S10{"required styles present?"}
-    S10 -->|"no"| SERR["raise FileNotFoundError"]
-    S10 -->|"yes"| S11["Create CJKStaticMergeJob list"]
-    S11 --> S12["process_pool: merge core static + CJK static"]
-    S12 --> S13["postprocess names with locale_name"]
-    S13 --> S14["save fonts/LOCALE or fonts/NF-LOCALE"]
-    S14 --> S15{"use_hinted?"}
-    S15 -->|"yes"| S16["autohint_static_fonts output dirs"]
-    S15 -->|"no"| S17["skip CJK autohint"]
-    S16 --> S0
-    S17 --> S0
-
-    VAR --> DONE["plan.is_cjk_built = built_any"]
-    STAT --> CLEAN["remove fonts/.cjk-temp"]
-    CLEAN --> DONE
-```
-
-## Finish and Archive Flow
-
-```mermaid
-flowchart TD
-    A["After NF and CJK decisions"] --> B{"should_cleanup_base_static_formats?"}
-    B -->|"no"| D["keep TTF and TTF-AutoHint"]
-    B -->|"yes"| E["cleanup_base_static_formats"]
-    D --> F["write_build_record"]
-    E --> F
-    F --> G["write fonts/build-config.json"]
-    G --> I{"should_archive_outputs?"}
-    I -->|"no"| Q["finish_build"]
-    I -->|"yes"| J["archive_outputs<br/>create fonts/archive"]
-    J --> K["iterate fonts output entries"]
-    K --> L{"archive dir or json?"}
-    L -->|"yes"| K
-    L -->|"no"| M{"cache mode and base output?"}
-    M -->|"yes"| K
-    M -->|"no"| N["archive_fonts entry with build config"]
-    N --> O["write archive sha256"]
-    O --> K
-    K --> Q
-    Q --> R{"is_ci?"}
-    R -->|"yes"| S["return"]
-    R -->|"no"| T["print finish time, duration,<br/>family name, freeze config,<br/>absolute fonts path"]
-```
-
-## Design Decisions
-
-| Decision | Rationale |
-| -------- | --------- |
-| Keep `config.cli` pure and use `pipeline.main(args, version)` as the public entrypoint | Allow CLI parsing to be reused without importing or executing the build pipeline. |
-| Keep process-pool workers at module top level | Avoid pickling bound methods, closures, or partials. |
-| Use explicit job dataclasses | Make each parallel task's inputs visible and serializable. |
-| Reuse one executor across the build lifecycle | Avoid repeatedly starting workers between base, web, Nerd Font, and CJK stages; CFF glyph chunks retain a specialized pool for their custom initializer. |
-| Keep build configuration and resolution outside `pipeline/orchestrator.py` | Keep the execution pipeline focused on build orchestration. |
-| Resolve CJK static bases in `BuildRuntimeContext` | Keep cache, download, hash, and variable fallback decisions outside the execution pipeline. |
-
-## Main Phases
-
-| Phase | Main owner |
-| ----- | ---------- |
-| Config and CLI | `cli.py`, `BuildConfigResolver` |
-| Runtime orchestration | `MapleBuildPipeline` |
-| CJK static base resolution | `BuildRuntimeContext.resolve_cjk_static_base` |
-| Fontmake source build | `prepare_fontmake_sources`, `compile_fontmake_formats` |
-| Base static postprocess | `StaticPostprocessJob`, `postprocess_static_font_job` |
-| Autohint output | `MonoAutohintJob`, `build_mono_autohint_job` |
-| Web font conversion | `convert_to_web` |
-| Nerd Font output | `NerdFontBuildJob`, `build_nf_job` |
-| CJK extended output | `build_cjk_extended_outputs` and CJK utilities |
-| Build record and archive | `MapleBuildPipeline` |
+For landing-page work, validate from `maple-font-page/` with its Bun commands;
+that submodule is outside the root Python checks. Avoid full font or CJK builds
+unless generated output behavior is part of the change.

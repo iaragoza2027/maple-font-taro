@@ -29,6 +29,10 @@ Maple Mono is an open-source monospace font project. Keep changes small, determi
   - `scripts/feature/`: Typed feature catalog, compiler, freeze logic, and feature application.
   - `scripts/task/`: Task-runner commands.
   - `scripts/tests/`: Python unit tests.
+- `scripts/pipeline/README.md`: Orchestrator data flow, stage dependencies, cache transitions, and executor lifecycle.
+- `scripts/README.md`: Global build-system architecture and maintenance map.
+- `scripts/cjk/README.md`: CJK source, configuration, generation, and cache guide.
+- `scripts/feature/README.md`: OpenType feature AST and generation guide.
 - `source/`: Font sources, CJK assets, schema, and generated `.fea` output in `source/features/`.
 - `config.json`: Default build configuration, validated by `source/schema.json`.
 - `fonts/`: Generated build artifacts; never edit manually.

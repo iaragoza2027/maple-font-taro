@@ -6,7 +6,11 @@
   "definitions": {
     "freeze_options": {
       "type": "string",
-      "enum": ["ignore", "disable", "enable"],
+      "enum": [
+        "ignore",
+        "disable",
+        "enable"
+      ],
       "enumDescriptions": [
         "Do nothing",
         "Remove the features from font file",
@@ -15,7 +19,11 @@
     },
     "stem_width_mode": {
       "type": "string",
-      "enum": ["strong", "quantized", "natural"],
+      "enum": [
+        "strong",
+        "quantized",
+        "natural"
+      ],
       "enumDescriptions": [
         "If active, stem widths and blue zones are snapped and positioned to integer pixel values as much as possible. This gives high contrast, but glyph shape distortion can be significant.",
         "Both stem widths and blue zone positions are slightly quantized to take discrete values. For example, stem values 50, 51, 72, 76, and 100 would become 50, 74, and 100 (or something similar). More glyph shape distortion but increased contrast.",
@@ -37,7 +45,7 @@
         },
         "clean_cache": {
           "type": "boolean",
-          "description": "Whether to clean CJK cache before rebuild",
+          "description": "Force CJK variable/source fallback regeneration when required; preserves files and does not bypass a valid static directory digest",
           "default": false
         },
         "narrow": {
@@ -47,11 +55,14 @@
         },
         "use_hinted": {
           "type": "boolean",
-          "description": "Whether to hint CJK fonts",
+          "description": "Whether to run AutoHint on final merged CJK static fonts after instantiation or merge",
           "default": false
         },
         "scale_factor": {
-          "type": ["number", "array"],
+          "type": [
+            "number",
+            "array"
+          ],
           "description": "Scale factor for CJK glyphs with <factor> or [<width_factor>,<height_factor>]",
           "default": 1.0
         }
@@ -61,9 +72,17 @@
       "type": "array",
       "items": {
         "type": "string",
-        "enum": ["ttf", "otf", "woff2"]
+        "enum": [
+          "ttf",
+          "otf",
+          "woff2"
+        ]
       },
-      "default": ["ttf", "otf", "woff2"]
+      "default": [
+        "ttf",
+        "otf",
+        "woff2"
+      ]
     }
   },
   "properties": {
@@ -136,7 +155,7 @@
     },
     "use_hinted": {
       "type": "boolean",
-      "description": "Whether to use hinted TTF as base font",
+      "description": "Whether to use hinted Latin TTF and Nerd Font static outputs as the base for static NF/CJK merges",
       "default": true
     },
     "ligature": {
@@ -150,7 +169,10 @@
       "default": true
     },
     "infinite_arrow": {
-      "type": ["boolean", "null"],
+      "type": [
+        "boolean",
+        "null"
+      ],
       "description": "Enable infinite arrow ligatures\n- null: disabled in hinted font, enabled in unhinted font\n- true: enabled\n- false: disabled",
       "default": null
     },
@@ -166,7 +188,11 @@
     },
     "width": {
       "type": "string",
-      "enum": ["default", "narrow", "slim"],
+      "enum": [
+        "default",
+        "narrow",
+        "slim"
+      ],
       "description": "Set glyph width: default (600), narrow (550), slim (500)",
       "default": "default"
     },
@@ -217,7 +243,7 @@
     },
     "feature_freeze": {
       "type": "object",
-      "description": "Freeze some font features (No effect on Variable font) \n enable: Move ligature rules to `calt`, which will enable the ligatures without setting up `cvXX` / `ssXX` / `zero` in font features config, just as default ligatures \n disable: Remove the ligature rules in `cvXX` / `ssXX` / `zero`, which will no longer effect, even if you enable it manually \n ignore: Do nothing",
+      "description": "Freeze selected font features. For static fonts, `enable` bakes applicable substitutions into glyph data or moves configured contextual rules into `calt`, `disable` removes the feature lookup, and `ignore` leaves the feature available. For variable fonts, `enable` moves applicable rules from `cvXX` / `ssXX` / `zero` into `calt` during generation; `disable` and `ignore` do not bake static substitutions.",
       "properties": {
         "cv01": {
           "description": "[v7.0] Normalize special symbols ('@ $ & % Q => ->')",
@@ -472,7 +498,9 @@
           "items": {
             "type": "string"
           },
-          "default": ["--complete"],
+          "default": [
+            "--complete"
+          ],
           "description": "Symbol Fonts settings. if is not [\"--complete\"], will use font-patcher to generate fonts. Full args: https://github.com/ryanoasis/nerd-fonts?tab=readme-ov-file#font-patcher"
         },
         "extra_args": {
@@ -484,7 +512,14 @@
           "description": "Extra arguments for font-patcher, default args: [\"-l\", \"--careful\", \"--outputdir\", output_nf], if \"mono\" is set to true, \"--mono\" will be added, full args: https://github.com/ryanoasis/nerd-fonts?tab=readme-ov-file#font-patcher"
         }
       },
-      "required": ["enable", "version", "mono", "use_font_patcher", "glyphs", "extra_args"]
+      "required": [
+        "enable",
+        "version",
+        "mono",
+        "use_font_patcher",
+        "glyphs",
+        "extra_args"
+      ]
     },
     "formats": {
       "$ref": "#/definitions/formats"
@@ -495,7 +530,10 @@
       "properties": {
         "format": {
           "type": "string",
-          "enum": ["static", "variable"],
+          "enum": [
+            "static",
+            "variable"
+          ],
           "default": "static",
           "description": "Persist CJK-extended output as static or variable fonts"
         },
@@ -540,7 +578,13 @@
               }
             }
           },
-          "required": ["cn", "jp", "tc", "kr", "custom"]
+          "required": [
+            "cn",
+            "jp",
+            "tc",
+            "kr",
+            "custom"
+          ]
         }
       },
       "allOf": [
@@ -548,7 +592,10 @@
           "$ref": "#/definitions/cjk_common_config"
         }
       ],
-      "required": ["format", "locales"]
+      "required": [
+        "format",
+        "locales"
+      ]
     },
     "cn": {
       "type": "object",
@@ -571,7 +618,7 @@
         },
         "clean_cache": {
           "type": "boolean",
-          "description": "Whether to clean instantiated base CN fonts",
+          "description": "Force CJK variable/source fallback regeneration when required; preserves files and does not bypass a valid static directory digest",
           "default": false
         },
         "narrow": {
@@ -581,7 +628,7 @@
         },
         "use_hinted": {
           "type": "boolean",
-          "description": "whether to hint CN font (will increase about 33% size)",
+          "description": "Whether to run AutoHint on final merged Chinese static fonts after instantiation or merge",
           "default": false
         },
         "use_static_base_font": {
@@ -590,7 +637,10 @@
           "default": true
         },
         "scale_factor": {
-          "type": ["number", "array"],
+          "type": [
+            "number",
+            "array"
+          ],
           "description": "Scale factor for CN / JP glyphs with <factor> or [<width_factor>,<height_factor>](e.g. 1.1 or [1.2, 1.1])",
           "default": 1.0
         }
@@ -608,11 +658,19 @@
   },
   "anyOf": [
     {
-      "required": ["cjk"]
+      "required": [
+        "cjk"
+      ]
     },
     {
-      "required": ["cn"]
+      "required": [
+        "cn"
+      ]
     }
   ],
-  "required": ["family_name", "use_hinted", "nerd_font"]
+  "required": [
+    "family_name",
+    "use_hinted",
+    "nerd_font"
+  ]
 }

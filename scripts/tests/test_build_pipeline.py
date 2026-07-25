@@ -154,8 +154,18 @@ def make_custom_entry(locale_name: str = "HK") -> ResolvedCJKBuildEntry:
     )
 
 
+def write_cjk_profile_outputs(
+    pipeline: MapleBuildPipeline,
+    output_locales: set[str],
+) -> None:
+    for output_locale in output_locales:
+        for path in pipeline._cjk_stage_expected_paths(output_locale):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"font")
+
+
 class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
-    def test_cjk_stage_logs_task_before_cache_miss(self) -> None:
+    def test_cjk_stage_logs_grouped_task_after_cache_miss(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             font_config = make_font_config()
             font_config.behavior.cache = True
@@ -179,12 +189,145 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             self.assertEqual(
                 messages[:2],
                 [
-                    "Build CJK static outputs (%s)",
                     "Cache miss: stage=%s, reason=missing-record",
+                    "Build CJK static outputs (%s)",
                 ],
             )
             build_cjk.assert_called_once()
             self.assertIsNotNone(build_cjk.call_args.kwargs["started_at"])
+
+    def test_cjk_compatible_profile_misses_build_once(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            font_config = make_font_config()
+            font_config.behavior.use_cjk_both = True
+            font_config.cjk.entries = [make_custom_entry("CN")]
+            runtime_context = make_runtime_context(Path(tmp))
+            runtime_context.is_nf_built = True
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+
+            with (
+                patch(
+                    "scripts.pipeline.orchestrator.build_cjk_extended_static_outputs",
+                    side_effect=lambda *_args, **_kwargs: write_cjk_profile_outputs(
+                        pipeline,
+                        _args[4],
+                    ),
+                ) as build_cjk,
+                patch(
+                    "scripts.pipeline.orchestrator.log_task",
+                    return_value=1.0,
+                ) as task,
+            ):
+                pipeline._build_cjk_outputs(cast(Executor, MagicMock()))
+
+            build_cjk.assert_called_once()
+            self.assertEqual(build_cjk.call_args.args[4], {"NF-CN", "CN"})
+            task.assert_called_once()
+            self.assertEqual(task.call_args.args[2], "NF-CN, CN")
+            self.assertEqual(
+                set(pipeline._rebuilt_stage_paths),
+                {"nf-cn-static", "cn-static"},
+            )
+            self.assertNotEqual(
+                pipeline._stage_cache_identity("nf-cn-static"),
+                pipeline._stage_cache_identity("cn-static"),
+            )
+
+    def test_cjk_cache_hit_is_excluded_from_grouped_build(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            font_config = make_font_config()
+            font_config.behavior.cache = True
+            font_config.behavior.use_cjk_both = True
+            font_config.cjk.entries = [make_custom_entry("CN")]
+            runtime_context = make_runtime_context(Path(tmp))
+            runtime_context.is_nf_built = True
+            seeded = MapleBuildPipeline(font_config, runtime_context)
+            cn_paths = seeded._cjk_stage_expected_paths("CN")
+            write_cjk_profile_outputs(seeded, {"CN"})
+
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+            pipeline._cache_record = {
+                "schema": CACHE_SCHEMA,
+                "stages": {
+                    "cn-static": make_stage_record(seeded, "cn-static", cn_paths),
+                },
+            }
+            pipeline._cache_identity_checked = True
+            pipeline._cache_identity_valid = True
+
+            with patch(
+                "scripts.pipeline.orchestrator.build_cjk_extended_static_outputs",
+                side_effect=lambda *_args, **_kwargs: write_cjk_profile_outputs(
+                    pipeline,
+                    _args[4],
+                ),
+            ) as build_cjk:
+                pipeline._build_cjk_outputs(cast(Executor, MagicMock()))
+
+            build_cjk.assert_called_once()
+            self.assertEqual(build_cjk.call_args.args[4], {"NF-CN"})
+            self.assertIn("cn-static", pipeline._validated_stage_records)
+            self.assertEqual(set(pipeline._rebuilt_stage_paths), {"nf-cn-static"})
+
+    def test_cjk_different_entries_build_separately(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            font_config = make_font_config()
+            font_config.cjk.entries = [
+                make_custom_entry("HK"),
+                make_custom_entry("JP"),
+            ]
+            runtime_context = make_runtime_context(Path(tmp))
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+
+            with patch(
+                "scripts.pipeline.orchestrator.build_cjk_extended_static_outputs",
+                side_effect=lambda *_args, **_kwargs: write_cjk_profile_outputs(
+                    pipeline,
+                    _args[4],
+                ),
+            ) as build_cjk:
+                pipeline._build_cjk_outputs(cast(Executor, MagicMock()))
+
+            self.assertEqual(
+                [call.args[4] for call in build_cjk.call_args_list],
+                [{"HK"}, {"JP"}],
+            )
+            self.assertEqual(
+                [
+                    call.args[0].cjk.entries[0].entry_id
+                    for call in build_cjk.call_args_list
+                ],
+                ["custom:hk", "custom:jp"],
+            )
+
+    def test_cjk_group_missing_output_does_not_record_failed_profile(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            font_config = make_font_config()
+            font_config.behavior.use_cjk_both = True
+            font_config.cjk.entries = [make_custom_entry("CN")]
+            runtime_context = make_runtime_context(Path(tmp))
+            runtime_context.is_nf_built = True
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+
+            with (
+                patch(
+                    "scripts.pipeline.orchestrator.build_cjk_extended_static_outputs",
+                    side_effect=lambda *_args, **_kwargs: write_cjk_profile_outputs(
+                        pipeline,
+                        {"CN"},
+                    ),
+                ) as build_cjk,
+                self.assertRaisesRegex(
+                    FileNotFoundError,
+                    "Stage nf-cn-static did not produce all expected output files",
+                ),
+            ):
+                pipeline._build_cjk_outputs(cast(Executor, MagicMock()))
+
+            build_cjk.assert_called_once()
+            self.assertEqual(build_cjk.call_args.args[4], {"NF-CN", "CN"})
+            self.assertNotIn("nf-cn-static", pipeline._rebuilt_stage_paths)
+            self.assertIn("cn-static", pipeline._rebuilt_stage_paths)
 
     def test_cjk_stage_invalidation_preserves_other_records(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

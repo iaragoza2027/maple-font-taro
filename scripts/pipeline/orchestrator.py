@@ -752,19 +752,18 @@ class MapleBuildPipeline:
     def _build_cjk_outputs(self, process_executor: Executor) -> None:
         if self.plan.cjk_mode:
             built_any = False
+            missing_groups: list[
+                tuple[ResolvedCJKBuildEntry, list[tuple[str, str]]]
+            ] = []
             for stage, entry, output_locale in self._cjk_stage_targets():
-                task_message = (
-                    "Build CJK variable outputs (%s)"
-                    if self.plan.cjk_mode == "variable"
-                    else "Build CJK static outputs (%s)"
-                )
-                started_at = log_task(
-                    TaskName.CJK,
-                    task_message,
-                    entry.display_name,
-                    task_label=entry.locale_name.lower(),
-                )
                 if self._validate_recorded_stage(stage):
+                    started_at = log_task(
+                        TaskName.CJK,
+                        "Reuse cached CJK %s outputs (%s)",
+                        self.plan.cjk_mode,
+                        output_locale,
+                        task_label=entry.locale_name.lower(),
+                    )
                     log_task_complete(
                         started_at,
                         f"{len(self._cjk_stage_paths(output_locale))} fonts",
@@ -773,15 +772,35 @@ class MapleBuildPipeline:
                     continue
 
                 self._invalidate_recorded_stage(stage)
+                for grouped_entry, profiles in missing_groups:
+                    if grouped_entry is entry:
+                        profiles.append((stage, output_locale))
+                        break
+                else:
+                    missing_groups.append((entry, [(stage, output_locale)]))
+
+            for entry, profiles in missing_groups:
+                output_locales = [output_locale for _stage, output_locale in profiles]
+                task_message = (
+                    "Build CJK variable outputs (%s)"
+                    if self.plan.cjk_mode == "variable"
+                    else "Build CJK static outputs (%s)"
+                )
+                started_at = log_task(
+                    TaskName.CJK,
+                    task_message,
+                    ", ".join(output_locales),
+                    task_label=entry.locale_name.lower(),
+                )
                 scoped_config = deepcopy(self.font_config)
                 scoped_config.cjk.entries = [entry]
-                output_locales = {output_locale}
+                output_locale_set = set(output_locales)
                 if self.plan.cjk_mode == "variable":
                     build_cjk_extended_variable_outputs(
                         scoped_config,
                         self.runtime_context,
                         process_executor,
-                        output_locales,
+                        output_locale_set,
                         started_at=started_at,
                     )
                 else:
@@ -790,13 +809,22 @@ class MapleBuildPipeline:
                         self.runtime_context,
                         self.target_styles,
                         process_executor,
-                        output_locales,
+                        output_locale_set,
                         started_at=started_at,
                     )
-                self._mark_stage_rebuilt(
-                    stage,
-                    self._cjk_stage_expected_paths(output_locale),
-                )
+
+                output_error: FileNotFoundError | None = None
+                for stage, output_locale in profiles:
+                    try:
+                        self._mark_stage_rebuilt(
+                            stage,
+                            self._cjk_stage_expected_paths(output_locale),
+                        )
+                    except FileNotFoundError as error:
+                        if output_error is None:
+                            output_error = error
+                if output_error is not None:
+                    raise output_error
                 built_any = True
             self.runtime_context.is_cjk_built = built_any
         else:

@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from dataclasses import fields
 from pathlib import Path
+from typing import Any, cast
 
 from scripts.cjk.resolver import (
     add_cjk_arguments,
@@ -18,7 +19,90 @@ from scripts.cjk.config import CJKSourceConfig
 from scripts.cjk.presets import build_preset_config, get_preset
 
 
+def custom_config_data() -> dict[str, Any]:
+    return {
+        "locale_name": "HK",
+        "source": {
+            "path": "source.ttf",
+            "masters": {
+                "100": {"wght": 100},
+                "400": {"wght": 400},
+                "800": {"wght": 800},
+            },
+        },
+    }
+
+
 class CJKConfigSurfaceTest(unittest.TestCase):
+    def test_rejects_non_object_config_sections(self) -> None:
+        for field in (None, "source", "unicode", "transform"):
+            data: Any = [] if field is None else custom_config_data()
+            if field is not None:
+                data[field] = []
+            message = "CJK config" if field is None else field
+            with (
+                self.subTest(field=field),
+                self.assertRaisesRegex(ValueError, rf"{message} must be an object"),
+            ):
+                config_from_data(cast(Any, data))
+
+    def test_rejects_invalid_master_axes_and_coordinates(self) -> None:
+        for axis, coordinate, message in (
+            ("", 100, "axis tags"),
+            ("ROUND", 100, "axis tags"),
+            ("圆", 100, "axis tags"),
+            ("wght", "100", "finite number"),
+            ("wght", float("nan"), "finite number"),
+            ("wght", float("inf"), "finite number"),
+        ):
+            data = custom_config_data()
+            data["source"]["masters"]["100"] = {axis: coordinate}
+            with (
+                self.subTest(axis=axis, coordinate=coordinate),
+                self.assertRaisesRegex(ValueError, message),
+            ):
+                config_from_data(data)
+
+    def test_rejects_invalid_transform_numbers(self) -> None:
+        for field, value, message in (
+            ("target_advance_width", 0, "greater than zero"),
+            ("target_advance_width", 1.5, "must be an integer"),
+            ("x_scale", "1", "finite number"),
+            ("x_scale", 0, "scale factors"),
+            ("y_scale", -1, "scale factors"),
+            ("x_scale", float("nan"), "finite number"),
+            ("italic_angle", float("inf"), "finite number"),
+            ("x_shift", 1.5, "must be an integer"),
+        ):
+            data = custom_config_data()
+            data["transform"] = {field: value}
+            with (
+                self.subTest(field=field, value=value),
+                self.assertRaisesRegex(ValueError, message),
+            ):
+                config_from_data(data)
+
+    def test_rejects_invalid_collection_and_boolean_fields(self) -> None:
+        cases = (
+            ("source", "drop_tables", "GPOS", "drop_tables"),
+            ("source", "drop_tables", ["GPOS", "GPOS"], "duplicates"),
+            ("unicode", "ranges", "0x3000", "ranges must be a list"),
+            (
+                "unicode",
+                "exclude_feature_codepoints",
+                1,
+                "must be a boolean",
+            ),
+        )
+        for section, field, value, message in cases:
+            data = custom_config_data()
+            data.setdefault(section, {})[field] = value
+            with (
+                self.subTest(section=section, field=field),
+                self.assertRaisesRegex(ValueError, message),
+            ):
+                config_from_data(data)
+
     def test_outline_mode_is_removed_from_public_config(self) -> None:
         parser = argparse.ArgumentParser()
         add_cjk_arguments(parser)

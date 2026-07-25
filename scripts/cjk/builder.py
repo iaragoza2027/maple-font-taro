@@ -125,7 +125,6 @@ class SourceBuildState:
 class BuildStats:
     added_glyphs: tuple[str, ...]
     added_codepoints: int
-    incompatible_glyphs: int = 0
 
 
 class StaticFontCache:
@@ -1144,12 +1143,6 @@ class CJKBuilder:
             len(stats.added_glyphs),
             stats.added_codepoints,
         )
-        if stats.incompatible_glyphs:
-            logger.warning(
-                "%s CJK merge retained fixed-weight glyphs: glyphs=%s",
-                label,
-                stats.incompatible_glyphs,
-            )
 
     def _write_variable_outputs(
         self, regular_font: TTFont, italic_font: TTFont
@@ -1364,21 +1357,6 @@ def build_cjk_fonts(
     """Build regular, italic, and optionally static CJK fonts."""
     CJKBuilder(build_config, name_config, executor, github_mirror).build(
         vf_only=vf_only
-    )
-
-
-def build_cjk_from_config_file(
-    config_path: str | Path,
-    vf_only: bool = False,
-    unicode_spec: str | None = None,
-) -> None:
-    """Build CJK fonts from a JSON config file."""
-    from scripts.config.resolver import resolve_default_build_config
-
-    build_cjk_fonts(
-        apply_unicode_override(config_from_json(config_path), unicode_spec),
-        resolve_default_build_config(),
-        vf_only,
     )
 
 

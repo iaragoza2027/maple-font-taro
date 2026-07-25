@@ -8,6 +8,7 @@ import math
 from pathlib import Path
 from typing import Any, Iterable, cast
 
+from scripts.font_ops.cmap import merge_cmap_entries
 from scripts.font_ops.fonttools import TTFont
 from fontTools.ttLib.tables._g_l_y_f import GlyphCoordinates
 from fontTools.ttLib.tables.TupleVariation import TupleVariation
@@ -65,7 +66,7 @@ def merge_vf(
     try:
         _validate_merge_inputs(base, extra)
         added_glyphs = _merge_glyph_tables(base, extra)
-        added_codepoints = _merge_cmap(base, extra, set(added_glyphs))
+        added_codepoints = len(merge_cmap_entries(base, extra, added_glyphs))
         recalculate_font_metrics(base)
         # Glyph-order dependent variation maps become stale after merge.
         drop_font_tables(base, ("HVAR", "VVAR"))
@@ -188,77 +189,9 @@ def merge_masters_into_vf(
 
     _append_glyph_order(base, base_glyph_order, glyphs_to_add)
 
-    added_codepoints = _merge_cmap(base, regular_master, set(glyphs_to_add))
+    added_codepoints = len(merge_cmap_entries(base, regular_master, glyphs_to_add))
 
     return glyphs_to_add, added_codepoints
-
-
-def normalize_weight_axis(
-    font: TTFont,
-    axis_name_id: int,
-    axis_name: str,
-    instance_weights: list[float],
-    instances: list[tuple[int, str]],
-    default_value: float = 400,
-) -> None:
-    if len(instance_weights) != len(instances):
-        raise ValueError(
-            f"Instance weights and instance names must have the same length: "
-            f"{len(instance_weights)} != {len(instances)}"
-        )
-
-    if "fvar" not in font or "name" not in font:
-        raise ValueError("Font is missing required table")
-
-    axis = weight_axis(font)
-    if axis is None:
-        raise ValueError("Font is missing required wght axis")
-
-    font["fvar"].axes = [axis]
-    axis.minValue = 100.0
-    axis.defaultValue = default_value
-    axis.maxValue = 800.0
-    axis.flags = 0
-    axis.axisNameID = axis_name_id
-
-    font["name"].names = [r for r in font["name"].names if r.nameID != axis_name_id]
-    font["name"].setName(axis_name, axis_name_id, 3, 1, 0x409)
-
-    remap_named_instances(font, instance_weights, instances)
-
-    if "avar" in font:
-        del font["avar"]
-
-
-def remap_named_instances(
-    font: TTFont,
-    instance_weights: list[float],
-    instances: list[tuple[int, str]],
-) -> None:
-    """Rewrite named instances to match the requested weight mapping."""
-
-    original_instances = [
-        i for i in font["fvar"].instances if i.coordinates.get("ital", 0) == 0
-    ]
-    original_names = {
-        id(i): font["name"].getDebugName(i.subfamilyNameID) for i in original_instances
-    }
-    new_instances = []
-
-    for instance_weight, (name_id, name) in zip(instance_weights, instances):
-        instance = next(
-            (c for c in original_instances if original_names[id(c)] == name), None
-        )
-        if instance is None:
-            raise ValueError(f"Missing wght instance: {name}")
-        instance.coordinates = {"wght": instance_weight}
-        instance.subfamilyNameID = name_id
-        instance.postscriptNameID = 0xFFFF
-        font["name"].names = [r for r in font["name"].names if r.nameID != name_id]
-        font["name"].setName(name, name_id, 3, 1, 0x409)
-        new_instances.append(instance)
-
-    font["fvar"].instances = new_instances
 
 
 def update_italic_metadata(font: TTFont, italic_angle_deg: float) -> None:
@@ -569,40 +502,6 @@ def _validate_merge_inputs(base: TTFont, extra: TTFont) -> None:
             "Cannot merge fonts with different variable axes: "
             f"{base_axes} != {extra_axes}"
         )
-
-
-def _merge_cmap(base: TTFont, extra: TTFont, added_glyphs: set[str]) -> int:
-    base_codepoints = set(get_unicode_cmap(base))
-    extra_cmap = get_unicode_cmap(extra)
-    extra_entries = {
-        codepoint: glyph_name
-        for codepoint, glyph_name in extra_cmap.items()
-        if glyph_name in added_glyphs and codepoint not in base_codepoints
-    }
-
-    merged_codepoints: set[int] = set()
-    for table in base["cmap"].tables:
-        if table.isUnicode():
-            supported_entries = {
-                codepoint: glyph_name
-                for codepoint, glyph_name in extra_entries.items()
-                if _cmap_supports_codepoint(table.format, codepoint)
-            }
-            table.cmap.update(supported_entries)
-            merged_codepoints.update(supported_entries)
-
-    return len(merged_codepoints)
-
-
-def _cmap_supports_codepoint(table_format: int, codepoint: int) -> bool:
-    """Return whether a cmap subtable format can encode a codepoint."""
-    if table_format == 0:
-        return codepoint <= 0xFF
-    if table_format in (2, 4, 6):
-        return codepoint <= 0xFFFF
-    if table_format in (10, 12, 13):
-        return codepoint <= 0x10FFFF
-    return codepoint <= 0xFFFF
 
 
 def _merge_glyph_tables(base: TTFont, extra: TTFont) -> list[str]:

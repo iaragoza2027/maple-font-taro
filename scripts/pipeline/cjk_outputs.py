@@ -429,14 +429,6 @@ def merge_cached_cjk_static_font_job(job: CJKStaticMergeJob) -> None:
         static_font.close()
 
 
-def cached_cjk_variable_paths(entry: ResolvedCJKBuildEntry) -> tuple[Path, Path]:
-    preset_config = entry.build_config
-    return (
-        preset_config.output.dir / preset_config.output.regular_variable,
-        preset_config.output.dir / preset_config.output.italic_variable,
-    )
-
-
 def load_cached_cjk_static_fonts(
     cache_dir: Path,
     static_file_prefix: str,
@@ -558,20 +550,6 @@ def build_cjk_extended_static_fonts_from_cache(
             )
 
     return True
-
-
-def build_cjk_extended_outputs(
-    font_config: ResolvedConfig,
-    runtime_context: BuildRuntimeContext,
-    target_styles: list[str] | None,
-    executor: Executor | None = None,
-) -> None:
-    if font_config.cjk_output_format == "variable":
-        build_cjk_extended_variable_outputs(font_config, runtime_context, executor)
-    else:
-        build_cjk_extended_static_outputs(
-            font_config, runtime_context, target_styles, executor
-        )
 
 
 def build_cjk_extended_variable_outputs(

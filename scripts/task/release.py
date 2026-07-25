@@ -7,14 +7,9 @@ import re
 import shutil
 from typing import Callable
 
-from scripts.font_ops.fonttools import TTFont
-
 from scripts.pipeline import main as build_main
 from scripts.font_ops.conversion import convert_to_web
-from scripts.utils.files import (
-    join_path,
-    write_json,
-)
+from scripts.utils.files import join_path
 from scripts.utils.process import run as run_command
 from scripts.font_ops.constant import INSTANCE_WEIGHT_MAPPING
 from scripts.utils.version import project_version
@@ -103,19 +98,6 @@ def git_release_commit(tag, files):
     run_command("git push origin")
     run_command(f"git push origin {tag}")
     logger.info("Pushed release to origin")
-
-
-def write_unicode_map_json(font_path: str, output: str):
-    font = TTFont(font_path)
-    cmap = font.getBestCmap() or {}
-    font_map = {
-        f"{codepoint:04X}" if codepoint < 0x10000 else f"{codepoint:05X}": glyph
-        for codepoint, glyph in cmap.items()
-        if codepoint is not None
-    }
-    write_json(output, font_map)
-    logger.info("Wrote font map: path=%s", output)
-    font.close()
 
 
 def create_release_plan(bump: str) -> ReleasePlan:

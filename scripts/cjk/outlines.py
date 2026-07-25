@@ -135,11 +135,6 @@ def glyph_labels(font: TTFont, glyph_names: Sequence[str]) -> dict[str, str]:
     return labels
 
 
-def format_glyph_label(font: TTFont, glyph_name: str) -> str:
-    """Format a glyph name with Unicode context when available."""
-    return glyph_labels(font, (glyph_name,))[glyph_name]
-
-
 def reverse_ttglyph_contours(glyph_name: str, glyph):
     """Reverse a quadratic glyph's contour direction without changing point count."""
     if getattr(glyph, "numberOfContours", 0) == 0:

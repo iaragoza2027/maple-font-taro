@@ -100,13 +100,3 @@ def get_directory_hash(dir_path: str) -> str:
             except (IOError, OSError) as error:
                 raise Exception(f"Error reading file: {file_path} - {error}") from error
     return hasher.hexdigest()
-
-
-def check_directory_hash(dir_path: str) -> bool:
-    if not path.exists(dir_path):
-        logger.warning(
-            "Skip directory hash because path does not exist: path=%s", dir_path
-        )
-        return False
-    with open(f"{dir_path}.sha256", encoding="utf-8") as hash_file:
-        return hash_file.readline() == get_directory_hash(dir_path)

@@ -621,10 +621,6 @@ class ResolvedConfig:
         }
 
 
-def default_cjk_config() -> dict[str, Any]:
-    return CJKBuildSelection().to_dict()
-
-
 def normalize_cjk_config(
     raw_cjk: dict[str, Any] | None,
     legacy_cn: dict[str, Any] | None = None,
@@ -686,14 +682,6 @@ def normalize_cjk_config(
     return selection.to_dict()
 
 
-def serialize_cjk_config(
-    cjk_config: CJKBuildSelection | dict[str, Any],
-) -> dict[str, Any]:
-    if isinstance(cjk_config, CJKBuildSelection):
-        return cjk_config.to_dict()
-    return normalize_cjk_config(cjk_config)
-
-
 __all__ = [
     "BUILD_FORMATS",
     "BUILTIN_CJK_LOCALES",
@@ -711,7 +699,6 @@ __all__ = [
     "NerdFontBuildConfig",
     "ResolvedConfig",
     "ResolvedCJKBuildEntry",
-    "default_cjk_config",
     "default_feature_freeze",
     "default_weight_mapping",
     "normalize_build_formats",
@@ -721,7 +708,6 @@ __all__ = [
     "normalize_feature_freeze",
     "parse_codepoint_alias",
     "parse_scale_factor",
-    "serialize_cjk_config",
     "serialize_codepoint_alias",
     "normal_enabled_features",
 ]

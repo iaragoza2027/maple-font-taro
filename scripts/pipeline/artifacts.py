@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from os import listdir, makedirs, remove
+from os import makedirs
 from pathlib import Path
 import shutil
 from typing import Any
@@ -11,7 +11,6 @@ from scripts.config.runtime import BuildRuntimeContext
 from fontTools.designspaceLib import DesignSpaceDocument
 from scripts.font_ops.constant import DEFAULT_NAMING_MAPPING
 from scripts.font_ops.fonttools import TTFont
-from scripts.utils.files import join_path
 
 
 FONT_ARTIFACT_SUFFIXES = {".otf", ".ttf", ".woff", ".woff2", ".zip"}
@@ -74,35 +73,6 @@ def require_unique_targets(paths: list[Path], stage: str) -> None:
         raise ValueError(f"Duplicate {stage} output paths: {formatted}")
 
 
-def is_valid_font_file(font_path: Path) -> bool:
-    if not font_path.is_file() or font_path.stat().st_size == 0:
-        return False
-    try:
-        font = TTFont(font_path, lazy=True)
-        font.close()
-    except Exception:
-        return False
-    return True
-
-
-def has_cached_style_outputs(
-    output_dir: str | Path,
-    extension: str,
-    target_styles: list[str] | None,
-    family_name_compact: str,
-) -> bool:
-    directory = Path(output_dir)
-    if not directory.is_dir():
-        return False
-    expected_files = expected_static_font_paths(
-        directory,
-        family_name_compact,
-        target_styles,
-        extension,
-    )
-    return all(is_valid_font_file(font_path) for font_path in expected_files)
-
-
 def _hash_file(hasher: Any, path: Path, relative_to: Path) -> None:
     hasher.update(path.relative_to(relative_to).as_posix().encode("utf-8"))
     with path.open("rb") as source:
@@ -163,33 +133,6 @@ def base_cache_identity(
         "sources": _dimensions_identity(Path(runtime_context.src_dir)),
         "features": _feature_fingerprint(Path(runtime_context.src_dir)),
     }
-
-
-def collect_build_files(
-    directory: str,
-    target_styles: list[str] | None = None,
-) -> list[str]:
-    return [
-        file_name
-        for file_name in sorted(listdir(directory))
-        if is_target_style_file(file_name, target_styles)
-    ]
-
-
-def prune_build_files(
-    directory: str,
-    target_styles: list[str] | None = None,
-    preserve_nf: bool = False,
-) -> None:
-    if target_styles is None:
-        return
-
-    for file_name in listdir(directory):
-        if is_target_style_file(file_name, target_styles):
-            continue
-        if preserve_nf and "NF" in file_name:
-            continue
-        remove(join_path(directory, file_name))
 
 
 def cleanup_unselected_base_formats(

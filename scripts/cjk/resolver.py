@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 from dataclasses import replace
 from pathlib import Path
@@ -27,6 +28,60 @@ from scripts.utils.downloads import validate_archive_path
 
 
 LOCALE_NAME_PATTERN = re.compile(r"^[A-Za-z0-9]+$")
+AXIS_TAG_PATTERN = re.compile(r"^[ -~]{1,4}$")
+TABLE_TAG_PATTERN = re.compile(r"^[A-Za-z0-9/ ]{1,32}$")
+
+
+def _require_object(value: Any, field: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ValueError(f"{field} must be an object")
+    return value
+
+
+def _finite_number(value: Any, field: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{field} must be a finite number")
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError(f"{field} must be a finite number")
+    return number
+
+
+def _integer(value: Any, field: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{field} must be an integer")
+    number = float(value)
+    if not math.isfinite(number) or not number.is_integer():
+        raise ValueError(f"{field} must be an integer")
+    return int(number)
+
+
+def _validate_transform(
+    target_advance_width: Any,
+    x_scale: Any,
+    y_scale: Any,
+    x_shift: Any,
+    y_shift: Any,
+    italic_angle: Any,
+) -> CJKTransformConfig:
+    target_width = _integer(target_advance_width, "transform.target_advance_width")
+    scale_x = _finite_number(x_scale, "transform.x_scale")
+    scale_y = _finite_number(y_scale, "transform.y_scale")
+    shift_x = _integer(x_shift, "transform.x_shift")
+    shift_y = _integer(y_shift, "transform.y_shift")
+    angle = _finite_number(italic_angle, "transform.italic_angle")
+    if target_width <= 0:
+        raise ValueError("target advance width must be greater than zero")
+    if scale_x <= 0 or scale_y <= 0:
+        raise ValueError("CJK scale factors must be greater than zero")
+    return CJKTransformConfig(
+        target_advance_width=target_width,
+        x_scale=scale_x,
+        y_scale=scale_y,
+        x_shift=shift_x,
+        y_shift=shift_y,
+        italic_angle=angle,
+    )
 
 
 def ordered_master_locations(
@@ -126,7 +181,19 @@ def parse_master_locations(value: Any) -> CJKMasterLocations:
             )
         if not isinstance(raw_axes, dict):
             raise ValueError(f"source.masters.{output_weight} must be an object")
-        axes = {str(axis): float(coordinate) for axis, coordinate in raw_axes.items()}
+        axes: dict[str, float] = {}
+        for raw_axis, coordinate in raw_axes.items():
+            if not isinstance(raw_axis, str) or not AXIS_TAG_PATTERN.fullmatch(
+                raw_axis
+            ):
+                raise ValueError(
+                    f"source.masters.{output_weight} axis tags must be 1-4 "
+                    "printable ASCII characters"
+                )
+            axes[raw_axis] = _finite_number(
+                coordinate,
+                f"source.masters.{output_weight}.{raw_axis}",
+            )
         if "wght" not in axes:
             raise ValueError(f"source.masters.{output_weight} must include wght")
         masters[output_weight] = axes
@@ -174,9 +241,13 @@ def parse_axis_assignment(value: str) -> tuple[str, float]:
         raise ValueError(f"Axis assignment must use TAG=VALUE syntax: {value}")
     axis, raw_value = value.split("=", 1)
     axis = axis.strip()
-    if not axis:
-        raise ValueError(f"Axis tag is empty: {value}")
-    return axis, float(raw_value)
+    if not AXIS_TAG_PATTERN.fullmatch(axis):
+        raise ValueError(f"Axis tag must be 1-4 printable ASCII characters: {value}")
+    try:
+        coordinate = float(raw_value)
+    except ValueError as error:
+        raise ValueError(f"axis {axis} must be a finite number") from error
+    return axis, _finite_number(coordinate, f"axis {axis}")
 
 
 def parse_axis_assignments(values: Iterable[str] | None) -> dict[str, float]:
@@ -338,20 +409,13 @@ def apply_cli_overrides(
     )
     resolved_x_scale = config.transform.x_scale if x_scale is None else x_scale
     resolved_y_scale = config.transform.y_scale if y_scale is None else y_scale
-    if resolved_target_width <= 0:
-        raise ValueError("target advance width must be greater than zero")
-    if resolved_x_scale <= 0 or resolved_y_scale <= 0:
-        raise ValueError("CJK scale factors must be greater than zero")
-
-    transform = CJKTransformConfig(
-        target_advance_width=resolved_target_width,
-        x_scale=resolved_x_scale,
-        y_scale=resolved_y_scale,
-        x_shift=int(x_shift) if x_shift is not None else config.transform.x_shift,
-        y_shift=int(y_shift) if y_shift is not None else config.transform.y_shift,
-        italic_angle=(
-            config.transform.italic_angle if italic_angle is None else italic_angle
-        ),
+    transform = _validate_transform(
+        resolved_target_width,
+        resolved_x_scale,
+        resolved_y_scale,
+        config.transform.x_shift if x_shift is None else x_shift,
+        config.transform.y_shift if y_shift is None else y_shift,
+        config.transform.italic_angle if italic_angle is None else italic_angle,
     )
 
     return replace(
@@ -392,6 +456,7 @@ def config_from_data(
     data: dict[str, Any], base_dir: str | Path = "."
 ) -> CJKBuildConfig:
     """Load a CJK build config from a parsed JSON object."""
+    data = _require_object(data, "CJK config")
     config_base_dir = Path(base_dir)
     allowed_keys = {
         "$schema",
@@ -409,8 +474,9 @@ def config_from_data(
             "from locale_name and are not customizable."
         )
 
-    source_data = data.get("source", {})
-    if not source_data.get("path"):
+    source_data = _require_object(data.get("source", {}), "source")
+    source_path = source_data.get("path")
+    if not isinstance(source_path, str) or not source_path:
         raise ValueError("source.path is required")
     if "outline_mode" in source_data:
         raise ValueError(
@@ -457,36 +523,75 @@ def config_from_data(
             path_in_archive=path_in_archive,
         )
 
-    unicode_data = data.get("unicode", {})
-    transform_data = data.get("transform", {})
+    drop_tables = source_data.get("drop_tables", [])
+    if not isinstance(drop_tables, list) or not all(
+        isinstance(tag, str) and TABLE_TAG_PATTERN.fullmatch(tag) for tag in drop_tables
+    ):
+        raise ValueError("source.drop_tables must be a list of valid table tags")
+    if len(drop_tables) != len(set(drop_tables)):
+        raise ValueError("source.drop_tables must not contain duplicates")
+
+    unicode_data = _require_object(data.get("unicode", {}), "unicode")
+    allowed_unicode_keys = {
+        "ranges",
+        "filter_encoding",
+        "exclude_feature_codepoints",
+    }
+    unknown_unicode_keys = sorted(set(unicode_data) - allowed_unicode_keys)
+    if unknown_unicode_keys:
+        raise ValueError(
+            "Unsupported unicode field(s): " + ", ".join(unknown_unicode_keys)
+        )
+    ranges_data = unicode_data.get("ranges", [])
+    if not isinstance(ranges_data, list):
+        raise ValueError("unicode.ranges must be a list")
+    filter_encoding = unicode_data.get("filter_encoding")
+    if filter_encoding is not None and (
+        not isinstance(filter_encoding, str) or not filter_encoding
+    ):
+        raise ValueError("unicode.filter_encoding must be a non-empty string or null")
+    exclude_feature_codepoints = unicode_data.get("exclude_feature_codepoints", True)
+    if not isinstance(exclude_feature_codepoints, bool):
+        raise ValueError("unicode.exclude_feature_codepoints must be a boolean")
+
+    transform_data = _require_object(data.get("transform", {}), "transform")
+    allowed_transform_keys = {
+        "target_advance_width",
+        "x_scale",
+        "y_scale",
+        "x_shift",
+        "y_shift",
+        "italic_angle",
+    }
+    unknown_transform_keys = sorted(set(transform_data) - allowed_transform_keys)
+    if unknown_transform_keys:
+        raise ValueError(
+            "Unsupported transform field(s): " + ", ".join(unknown_transform_keys)
+        )
 
     return CJKBuildConfig(
         source=CJKSourceConfig(
-            path=resolve_config_path(config_base_dir, source_data.get("path"), ""),
+            path=resolve_config_path(config_base_dir, source_path, ""),
             masters=parse_master_locations(source_data.get("masters")),
             download=download,
-            drop_tables=tuple(source_data.get("drop_tables", ())),
+            drop_tables=tuple(drop_tables),
         ),
         locale_name=locale_name,
         output=output_config_from_locale(locale_name),
         naming=naming_config_from_locale(locale_name),
         unicode=CJKUnicodeConfig(
-            ranges=validate_ranges(
-                parse_range(item) for item in unicode_data.get("ranges", [])
-            )
+            ranges=validate_ranges(parse_range(item) for item in ranges_data)
             or DEFAULT_CJK_RANGES,
-            filter_encoding=unicode_data.get("filter_encoding"),
-            exclude_feature_codepoints=unicode_data.get(
-                "exclude_feature_codepoints", True
-            ),
+            filter_encoding=filter_encoding,
+            exclude_feature_codepoints=exclude_feature_codepoints,
         ),
-        transform=CJKTransformConfig(
-            target_advance_width=int(transform_data.get("target_advance_width", 1200)),
-            x_scale=float(transform_data.get("x_scale", 1)),
-            y_scale=float(transform_data.get("y_scale", 1)),
-            x_shift=int(transform_data.get("x_shift", 0)),
-            y_shift=int(transform_data.get("y_shift", 0)),
-            italic_angle=float(transform_data.get("italic_angle", 10)),
+        transform=_validate_transform(
+            transform_data.get("target_advance_width", 1200),
+            transform_data.get("x_scale", 1),
+            transform_data.get("y_scale", 1),
+            transform_data.get("x_shift", 0),
+            transform_data.get("y_shift", 0),
+            transform_data.get("italic_angle", 10),
         ),
         temp_dir=temp_dir_from_locale(locale_name),
     )

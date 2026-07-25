@@ -1,10 +1,8 @@
 from __future__ import annotations
-from scripts.font_ops.constant import INSTANCE_WEIGHT_MAPPING
-
 from collections.abc import Callable
 from typing import Any, cast
 
-from scripts.font_ops.fonttools import SubsetOptions, TTFont, newTable
+from scripts.font_ops.fonttools import SubsetOptions, TTFont
 
 from scripts.font_ops.names import set_font_name
 from scripts.utils.logging import logger
@@ -113,71 +111,6 @@ def _find_or_add_name_id(font: TTFont, value: str) -> int:
     name_id = font["name"]._findUnusedNameID()
     set_font_name(font, value, name_id)
     return name_id
-
-
-def patch_instance(font: TTFont, all_weight_map: dict[str, int]):
-    if all_weight_map == INSTANCE_WEIGHT_MAPPING:
-        logger.debug("Skip weight remapping because the mapping is unchanged")
-        return
-    if "fvar" not in font or "STAT" not in font:
-        return
-    if all_weight_map["thin"] != 100:
-        raise Exception("Font weight of `thin` must be 100")
-    if all_weight_map["extrabold"] != 800:
-        raise Exception("Font weight of `extrabold` must be 800")
-
-    value_to_name = {value: name for name, value in INSTANCE_WEIGHT_MAPPING.items()}
-    for instance in font["fvar"].instances:
-        current_weight = int(instance.coordinates["wght"])
-        weight_name = value_to_name.get(current_weight)
-        if weight_name and weight_name in all_weight_map:
-            instance.coordinates["wght"] = all_weight_map[weight_name]
-
-    axes = font["fvar"].axes
-    wght_index = next(
-        (index for index, axis in enumerate(axes) if axis.axisTag == "wght"), None
-    )
-    if wght_index is None:
-        return
-    stat = font["STAT"].table
-    if not stat.AxisValueArray:
-        return
-
-    def patch_single_value(obj: Any, attr: str) -> None:
-        weight_name = value_to_name.get(int(getattr(obj, attr)))
-        if weight_name and weight_name in all_weight_map:
-            setattr(obj, attr, all_weight_map[weight_name])
-
-    def patch_range_value(axis_value: Any) -> None:
-        weight_name = value_to_name.get(int(axis_value.NominalValue))
-        if weight_name and weight_name in all_weight_map:
-            new_value = all_weight_map[weight_name]
-            delta = new_value - axis_value.NominalValue
-            axis_value.RangeMinValue += delta
-            axis_value.RangeMaxValue += delta
-            axis_value.NominalValue = new_value
-
-    for axis_value in stat.AxisValueArray.AxisValue:
-        if axis_value.Format != 4 and axis_value.AxisIndex != wght_index:
-            continue
-        if axis_value.Format == 1:
-            patch_single_value(axis_value, "Value")
-        elif axis_value.Format == 2:
-            patch_range_value(axis_value)
-        elif axis_value.Format == 3:
-            patch_single_value(axis_value, "Value")
-            patch_single_value(axis_value, "LinkedValue")
-        elif axis_value.Format == 4:
-            for record in axis_value.AxisValueRecord:
-                if record.AxisIndex == wght_index:
-                    patch_single_value(record, "Value")
-
-
-def add_gasp(font: TTFont):
-    logger.debug("Update GASP table")
-    font["gasp"] = newTable("gasp")
-    gasp = font.table("gasp")
-    gasp.gaspRange = {65535: 15}
 
 
 def remove_target_glyph(font: TTFont, glyph_name_suffix: str):

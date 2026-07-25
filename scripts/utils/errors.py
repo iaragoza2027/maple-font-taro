@@ -7,3 +7,7 @@ class BuildDependencyError(RuntimeError):
 
 class CJKSourceUnavailable(BuildDependencyError):
     """Raised when an explicitly requested CJK source cannot be resolved."""
+
+
+class CJKBaseUnavailable(BuildDependencyError):
+    """Raised when no valid CJK static or variable base can be resolved."""

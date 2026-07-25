@@ -17,7 +17,11 @@ from scripts.cjk.outlines import (
     convert_cff_master_files_to_glyf_tables_parallel,
     detect_outline_format,
 )
-from scripts.cjk.builder import CJKBuilder, create_font_executor
+from scripts.cjk.builder import (
+    CJKBuilder,
+    create_font_executor,
+    instantiate_cjk_static_from_variable,
+)
 from scripts.config.resolver import BuildConfigResolver
 from scripts.font_ops.fonttools import TTFont
 from scripts.utils.errors import CJKSourceUnavailable
@@ -40,6 +44,31 @@ def make_config(output_dir: Path) -> CJKBuildConfig:
 
 
 class CJKExecutorOwnershipTest(unittest.TestCase):
+    def test_static_instantiation_preserves_existing_cache_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config = make_config(Path(tmp))
+            static_dir = config.output.dir / config.output.static_dir
+            sentinel = static_dir / "existing-cache-marker"
+            sentinel.parent.mkdir(parents=True)
+            sentinel.write_text("preserve", encoding="utf-8")
+
+            with (
+                patch.object(
+                    CJKBuilder,
+                    "_build_static_fonts",
+                    return_value=static_dir,
+                ),
+                patch("scripts.cjk.builder.write_static_hash"),
+            ):
+                result = instantiate_cjk_static_from_variable(
+                    config,
+                    BuildConfigResolver().load_defaults(),
+                    cast(Executor, MagicMock()),
+                )
+
+            self.assertEqual(result, static_dir)
+            self.assertEqual(sentinel.read_text(encoding="utf-8"), "preserve")
+
     def test_pool_size_one_uses_inline_execution(self) -> None:
         with patch("scripts.cjk.builder.create_process_executor") as create_process:
             executor = create_font_executor(1)

@@ -16,6 +16,7 @@ from scripts.font_ops.fonttools import TTFont
 from scripts.pipeline.artifacts import collect_build_files
 from scripts.utils.files import join_path
 from scripts.utils.logging import (
+    TaskName,
     log_task,
     logger,
     log_task_complete,
@@ -93,7 +94,7 @@ def build_base_fonts(
     executor: Executor | None = None,
 ) -> list[Path]:
     """Generate hinted TTF derivatives from production static TTF fonts."""
-    started_at = log_task("ttf-autohint", "Hint static TTF")
+    started_at = log_task(TaskName.TTF_AUTOHINT, "Hint static TTF")
     jobs = [
         MonoAutohintJob(
             font_basename=file_name,
@@ -121,7 +122,7 @@ def build_woff2_fonts(
     executor: Executor | None = None,
 ) -> list[Path]:
     """Convert generated static TTF fonts to WOFF2."""
-    started_at = log_task("woff2", "Convert static TTF to WOFF2")
+    started_at = log_task(TaskName.WOFF2, "Convert static TTF to WOFF2")
     output_paths = convert_to_web(
         runtime_context.output_ttf,
         output_dir=runtime_context.output_woff2,

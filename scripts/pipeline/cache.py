@@ -8,7 +8,7 @@ from typing import Any
 from scripts.utils.logging import logger
 
 
-CACHE_SCHEMA = 1
+CACHE_SCHEMA = 3
 CACHE_FILE_NAME = "build-cache.json"
 
 
@@ -21,48 +21,53 @@ def _digest(value: Any) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def stage_identity(build_identity: dict[str, Any], stage: str) -> str:
-    return _digest({"build": build_identity, "stage": stage})
-
-
-def file_hash(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with path.open("rb") as source:
-        while chunk := source.read(1024 * 1024):
-            hasher.update(chunk)
-    return hasher.hexdigest()
+def stage_identity(
+    build_identity: dict[str, Any],
+    stage: str,
+    dependencies: dict[str, str] | None = None,
+) -> str:
+    """Return a stable key for one stage and its upstream keys."""
+    return _digest(
+        {
+            "stage": stage,
+            "inputs": build_identity,
+            "dependencies": dependencies or {},
+        }
+    )
 
 
 def relative_cache_path(root: Path, path: Path) -> str:
     return path.resolve().relative_to(root.resolve()).as_posix()
 
 
+def stage_digest(root: Path, paths: list[Path]) -> str:
+    """Hash one stage, including relative names and file contents."""
+    hasher = hashlib.sha256()
+    for path in sorted(paths):
+        if not path.is_file():
+            continue
+        relative = relative_cache_path(root, path).encode("utf-8")
+        hasher.update(len(relative).to_bytes(4, "big"))
+        hasher.update(relative)
+        hasher.update(path.stat().st_size.to_bytes(8, "big"))
+        with path.open("rb") as source:
+            while chunk := source.read(1024 * 1024):
+                hasher.update(chunk)
+    return hasher.hexdigest()
+
+
 def output_snapshot(
     root: Path,
     stage: str,
     paths: list[Path],
-) -> dict[str, dict[str, Any]]:
-    snapshot: dict[str, dict[str, Any]] = {}
-    for path in sorted(paths):
-        if not path.is_file():
-            continue
-        stat = path.stat()
-        relative = relative_cache_path(root, path)
-        digest = file_hash(path)
-        snapshot[relative] = {
-            "sha256": digest,
-            "size": stat.st_size,
-            "mtime_ns": stat.st_mtime_ns,
-        }
-        logger.debug(
-            "Cache file: stage=%s, path=%s, size=%s, mtime_ns=%s, sha256=%s",
-            stage,
-            relative,
-            stat.st_size,
-            stat.st_mtime_ns,
-            digest,
-        )
-    return snapshot
+) -> dict[str, object]:
+    """Create one stage digest and its exact relative output path list."""
+    files = sorted(relative_cache_path(root, path) for path in paths if path.is_file())
+    digest = stage_digest(root, [root / relative for relative in files])
+    logger.debug(
+        "Cache stage: stage=%s, files=%s, digest=%s", stage, len(files), digest
+    )
+    return {"files": files, "digest": digest}
 
 
 def read_cache_record(root: Path) -> dict[str, Any] | None:
@@ -78,7 +83,6 @@ def read_cache_record(root: Path) -> dict[str, Any] | None:
     if (
         not isinstance(data, dict)
         or data.get("schema") != CACHE_SCHEMA
-        or not isinstance(data.get("identity"), dict)
         or not isinstance(data.get("stages"), dict)
     ):
         logger.info("Cache record: path=%s, status=invalid", CACHE_FILE_NAME)
@@ -107,49 +111,30 @@ def validate_stage(
     stages = (record or {}).get("stages")
     stage_record = stages.get(stage) if isinstance(stages, dict) else None
     if not isinstance(stage_record, dict):
-        logger.info("Cache validation: stage=%s, status=miss", stage)
-        logger.info("Cache invalidation: stage=%s, reason=missing-record", stage)
+        logger.info("Cache miss: stage=%s, reason=missing-record", stage)
         return False
-    if stage_record.get("identity") != identity:
-        logger.info("Cache validation: stage=%s, status=miss", stage)
-        logger.info("Cache invalidation: stage=%s, reason=identity-changed", stage)
+    if stage_record.get("key") != identity:
+        logger.info("Cache miss: stage=%s, reason=identity-changed", stage)
         return False
-    files = stage_record.get("files")
-    if not isinstance(files, dict):
-        logger.info("Cache validation: stage=%s, status=miss", stage)
-        logger.info("Cache invalidation: stage=%s, reason=invalid-record", stage)
+
+    snapshot = stage_record.get("snapshot")
+    if not isinstance(snapshot, dict):
+        logger.info("Cache miss: stage=%s, reason=invalid-record", stage)
+        return False
+    files = snapshot.get("files")
+    digest = snapshot.get("digest")
+    if not isinstance(files, list) or not all(isinstance(item, str) for item in files):
+        logger.info("Cache miss: stage=%s, reason=invalid-record", stage)
         return False
     expected = {relative_cache_path(root, path) for path in expected_paths}
-    if not expected.issubset(files):
-        logger.info("Cache validation: stage=%s, status=miss", stage)
-        logger.info("Cache invalidation: stage=%s, reason=missing-output", stage)
+    if expected != set(files):
+        logger.info("Cache miss: stage=%s, reason=missing-output", stage)
         return False
-    for path in expected_paths:
-        metadata = files[relative_cache_path(root, path)]
-        if not isinstance(metadata, dict):
-            logger.info("Cache validation: stage=%s, status=miss", stage)
-            logger.info("Cache invalidation: stage=%s, reason=invalid-record", stage)
-            return False
-        if not path.is_file() or path.stat().st_size == 0:
-            logger.info("Cache validation: stage=%s, status=miss", stage)
-            logger.info("Cache invalidation: stage=%s, reason=missing-output", stage)
-            return False
-        stat = path.stat()
-        logger.debug(
-            "Cache file: stage=%s, path=%s, size=%s, mtime_ns=%s, sha256=%s",
-            stage,
-            relative_cache_path(root, path),
-            stat.st_size,
-            stat.st_mtime_ns,
-            metadata.get("sha256"),
-        )
-        if (
-            metadata.get("size") != stat.st_size
-            or metadata.get("mtime_ns") != stat.st_mtime_ns
-        ):
-            if metadata.get("sha256") != file_hash(path):
-                logger.info("Cache validation: stage=%s, status=miss", stage)
-                logger.info("Cache invalidation: stage=%s, reason=hash-mismatch", stage)
-                return False
-    logger.info("Cache validation: stage=%s, status=hit", stage)
+    if any(not path.is_file() or path.stat().st_size == 0 for path in expected_paths):
+        logger.info("Cache miss: stage=%s, reason=missing-output", stage)
+        return False
+    if not isinstance(digest, str) or digest != stage_digest(root, expected_paths):
+        logger.info("Cache miss: stage=%s, reason=stage-digest-mismatch", stage)
+        return False
+    logger.info("Cache hit: stage=%s", stage)
     return True

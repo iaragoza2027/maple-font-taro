@@ -18,6 +18,7 @@ from scripts.utils.downloads import check_font_patcher
 from scripts.utils.errors import BuildDependencyError
 from scripts.utils.files import join_path
 from scripts.utils.logging import (
+    TaskName,
     log_task,
     logger,
     log_task_complete,
@@ -215,7 +216,7 @@ def build_nerd_fonts(
     if not font_config.nerd_font.enable:
         return []
 
-    started_at = log_task("nerd-font", "Build Nerd Font outputs")
+    started_at = log_task(TaskName.NERD_FONT, "Build Nerd Font outputs")
     makedirs(runtime_context.output_nf, exist_ok=True)
     use_font_patcher = should_use_font_patcher(font_config)
     ensure_font_patcher_available(font_config, runtime_context)

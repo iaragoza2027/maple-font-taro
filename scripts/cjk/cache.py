@@ -3,24 +3,48 @@ from __future__ import annotations
 from pathlib import Path
 
 from scripts.cjk.config import CJKBuildConfig
-from scripts.font_ops.fonttools import TTFont
+from scripts.utils.files import get_directory_hash
 
 
-def _is_readable_font(path: Path) -> bool:
-    if not path.is_file() or path.stat().st_size == 0:
+def static_hash_path(config: CJKBuildConfig) -> Path:
+    """Return the sidecar hash path for a generated static base."""
+    return config.output.dir / config.output.static_hash
+
+
+def write_static_hash(config: CJKBuildConfig, static_dir: Path) -> None:
+    """Write one directory digest for the complete static CJK stage."""
+    digest = get_directory_hash(str(static_dir))
+    hash_path = static_hash_path(config)
+    hash_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = hash_path.with_name(f".{hash_path.name}.tmp")
+    temporary.write_text(f"{digest}\n", encoding="utf-8")
+    temporary.replace(hash_path)
+
+
+def has_valid_cjk_static_cache(
+    config: CJKBuildConfig,
+    static_dir: Path,
+    required_styles: set[str],
+) -> bool:
+    """Validate required static styles and the stage-level directory digest."""
+    if not static_dir.is_dir():
+        return False
+
+    prefix = f"{config.naming.static_file_prefix}-"
+    available_styles = {
+        path.stem.removeprefix(prefix)
+        for path in static_dir.glob("*.ttf")
+        if path.name.startswith(prefix)
+    }
+    if not required_styles.issubset(available_styles):
+        return False
+
+    hash_path = static_hash_path(config)
+    if not hash_path.is_file():
         return False
     try:
-        with path.open("rb") as source:
-            font = TTFont(source, lazy=True)
-            font.close()
+        expected = hash_path.read_text(encoding="utf-8").strip()
+        actual = get_directory_hash(str(static_dir))
     except Exception:
         return False
-    return True
-
-
-def has_valid_cjk_variable_cache(
-    config: CJKBuildConfig,
-) -> bool:
-    regular_path = config.output.dir / config.output.regular_variable
-    italic_path = config.output.dir / config.output.italic_variable
-    return _is_readable_font(regular_path) and _is_readable_font(italic_path)
+    return bool(expected) and expected == actual

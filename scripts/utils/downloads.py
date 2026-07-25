@@ -6,6 +6,7 @@ import shutil
 import tempfile
 from pathlib import Path
 from pathlib import PureWindowsPath
+from pathlib import PurePosixPath
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 from urllib.request import Request, urlopen
@@ -291,6 +292,12 @@ def download_zip_and_extract(
         ) as temporary_dir:
             temporary_output = Path(temporary_dir)
             with ZipFile(archive_path, "r") as zip_file:
+                for member in zip_file.infolist():
+                    member_path = PurePosixPath(member.filename)
+                    if member_path.is_absolute() or ".." in member_path.parts:
+                        raise ValueError(
+                            f"archive member escapes extraction root: {member.filename}"
+                        )
                 zip_file.extractall(temporary_output)
             if output_path.exists():
                 shutil.rmtree(output_path)

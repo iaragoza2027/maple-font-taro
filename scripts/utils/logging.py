@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextvars import ContextVar
+from enum import Enum
 import logging
 import os
 import time
@@ -12,6 +13,32 @@ from typing import Any
 ENVIRONMENT_VARIABLE = "MAPLE_LOG_LEVEL"
 DEFAULT_LEVEL_NAME = "INFO"
 _HANDLER_NAME = "maple-font-stderr"
+
+
+class TaskName(str, Enum):
+    """Known task categories used by the project logger."""
+
+    SYSTEM = "system"
+    BUILD = "build"
+    PREPARE = "prepare"
+    FONTMAKE = "fontmake"
+    VARIABLE = "variable"
+    TTF = "ttf"
+    OTF = "otf"
+    TTF_AUTOHINT = "ttf-autohint"
+    WOFF = "woff"
+    WOFF2 = "woff2"
+    NERD_FONT = "nerd-font"
+    CJK = "cjk"
+    ARCHIVE = "archive"
+    DESIGNSPACE = "designspace"
+    FEA = "fea"
+    NF = "nf"
+    RELEASE = "release"
+    PAGE = "page"
+    PUBLISH = "publish"
+
+
 _VALID_LEVELS = {
     "DEBUG": logging.DEBUG,
     "INFO": logging.INFO,
@@ -47,6 +74,8 @@ class TaskFormatter(logging.Formatter):
         task = getattr(record, "task", "system")
         if record.levelno == logging.INFO:
             return f"[{task}] {message}"
+        if record.levelno == logging.DEBUG:
+            return f"> {message}"
         return f"[{record.levelname}] [{task}] {message}"
 
 
@@ -133,17 +162,19 @@ def log_progress(message: str, *args: Any, complete: bool = False) -> None:
 
 
 def log_task(
-    task: str,
+    task: TaskName,
     message: str,
     *args: Any,
+    task_label: str | None = None,
     force_separator: bool = False,
 ) -> float:
     """Start a named task and retain its label for subsequent log records."""
+    label = task_label or task.value
     previous_task = _last_started_task.get()
-    if previous_task is not None and (previous_task != task or force_separator):
+    if previous_task is not None and (previous_task != label or force_separator):
         _write_blank_line()
-    set_log_task(task)
-    _last_started_task.set(task)
+    set_log_task(label)
+    _last_started_task.set(label)
     logger.info(message, *args)
     return time.monotonic()
 

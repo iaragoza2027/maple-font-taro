@@ -12,7 +12,7 @@ from fontTools.designspaceLib import AxisDescriptor, DesignSpaceDocument
 from glyphsLib import load, to_designspace
 
 from scripts.utils.files import write_json
-from scripts.utils.logging import log_task, logger
+from scripts.utils.logging import TaskName, log_task, logger
 
 
 SourceStyle = Literal["regular", "italic"]
@@ -383,7 +383,7 @@ def generate_designspaces(source_dir: Path, output_dir: Path) -> list[Path]:
     existing_paths = _existing_generated_paths(glyphs_paths, output_dir)
     prepared_list: list[PreparedGlyphsSource] = []
     for glyphs_path in glyphs_paths:
-        log_task("designspace", "Converting %s", glyphs_path.name)
+        log_task(TaskName.DESIGNSPACE, "Converting %s", glyphs_path.name)
         prepared_list.append(prepare_static_source(convert_glyphs_source(glyphs_path)))
     prepared_sources = tuple(prepared_list)
     validate_source_reports(prepared_sources)

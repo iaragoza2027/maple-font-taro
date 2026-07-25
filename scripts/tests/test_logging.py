@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from scripts.utils.logging import (
+    TaskName,
     configure_logging,
     log_progress,
     log_task,
@@ -71,7 +72,7 @@ class LoggingConfigurationTest(unittest.TestCase):
         stderr = StringIO()
         with redirect_stderr(stderr):
             configure_logging()
-            log_task("woff2", "Converting static fonts to WOFF2")
+            log_task(TaskName.WOFF2, "Converting static fonts to WOFF2")
             logger.info("Saved WOFF2 font to fonts/Woff2/MapleMono-Regular.ttf.woff2")
 
         self.assertEqual(
@@ -85,8 +86,8 @@ class LoggingConfigurationTest(unittest.TestCase):
         stderr = StringIO()
         with redirect_stderr(stderr):
             configure_logging()
-            log_task("prepare", "Preparing sources")
-            log_task("ttf", "Building TTF fonts")
+            log_task(TaskName.PREPARE, "Preparing sources")
+            log_task(TaskName.TTF, "Building TTF fonts")
 
         self.assertEqual(
             stderr.getvalue(),
@@ -103,7 +104,7 @@ class LoggingConfigurationTest(unittest.TestCase):
             ),
         ):
             configure_logging()
-            started_at = log_task("prepare", "Prepare font sources")
+            started_at = log_task(TaskName.PREPARE, "Prepare font sources")
             log_task_complete(started_at, "2 sources")
 
         self.assertEqual(
@@ -111,19 +112,19 @@ class LoggingConfigurationTest(unittest.TestCase):
             "[prepare] Prepare font sources\n[prepare] Done in 2.50s (2 sources)\n",
         )
 
-    def test_debug_keeps_the_severity_prefix(self) -> None:
+    def test_debug_uses_the_compact_prefix(self) -> None:
         stderr = StringIO()
         with (
             patch.dict(os.environ, {"MAPLE_LOG_LEVEL": "DEBUG"}, clear=True),
             redirect_stderr(stderr),
         ):
             configure_logging()
-            set_log_task("fontmake")
+            set_log_task(TaskName.FONTMAKE)
             logger.debug("Saved font to output.ttf")
 
         self.assertEqual(
             stderr.getvalue(),
-            "[DEBUG] [fontmake] Saved font to output.ttf\n",
+            "> Saved font to output.ttf\n",
         )
 
     def test_progress_refreshes_the_same_log_line(self) -> None:

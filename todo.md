@@ -42,9 +42,9 @@
 - [x] customizable locale name
 - [x] fix cjk base font load priority regression: local cache > download from github release > instantiate from variable font > error
   - [x] stabilize directory hash with config-derived static hash files
-- [x] stablize cjk sha
+- [x] stabilize cjk sha
 - [x] support object-based CJK source downloads, including direct files and a selected file inside 7z archives
-- [ ] review cjk base font cache invalidation and download logic, and add more tests
+- [x] review cjk base font cache invalidation and download logic, and add more tests
 - [ ] generate build summary and basic usage and description in fonts/ , and for custom build, use it as release notes
 
 ### Web

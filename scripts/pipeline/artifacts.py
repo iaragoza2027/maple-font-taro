@@ -8,6 +8,7 @@ from typing import Any
 
 from scripts.config.base import ResolvedConfig
 from scripts.config.runtime import BuildRuntimeContext
+from fontTools.designspaceLib import DesignSpaceDocument
 from scripts.font_ops.constant import DEFAULT_NAMING_MAPPING
 from scripts.font_ops.fonttools import TTFont
 from scripts.utils.files import join_path
@@ -15,27 +16,6 @@ from scripts.utils.files import join_path
 
 FONT_ARTIFACT_SUFFIXES = {".otf", ".ttf", ".woff", ".woff2", ".zip"}
 IGNORED_OUTPUT_DIRS = {".cjk-temp", "temp"}
-
-
-def summarize_output_artifacts(output_root: str | Path) -> list[tuple[str, int]]:
-    """Count published font and archive artifacts by top-level output directory."""
-    root = Path(output_root)
-    if not root.is_dir():
-        return []
-
-    summary: list[tuple[str, int]] = []
-    directories = (path for path in root.iterdir() if path.is_dir())
-    for directory in sorted(directories, key=lambda path: path.name):
-        if directory.name in IGNORED_OUTPUT_DIRS:
-            continue
-        count = sum(
-            1
-            for artifact in directory.rglob("*")
-            if artifact.is_file() and artifact.suffix.lower() in FONT_ARTIFACT_SUFFIXES
-        )
-        if count:
-            summary.append((directory.name, count))
-    return summary
 
 
 def is_target_style_file(file_name: str, target_styles: list[str] | None) -> bool:
@@ -93,12 +73,31 @@ def _hash_file(hasher: Any, path: Path, relative_to: Path) -> None:
             hasher.update(chunk)
 
 
-def base_source_fingerprint(source_dir: str | Path) -> str:
+def _dimensions_identity(source_dir: Path) -> dict[str, object]:
+    identity: dict[str, object] = {}
+    for path in sorted(source_dir.glob("*.designspace")):
+        document = DesignSpaceDocument.fromfile(path)
+        dimensions = document.lib.get("GSDimensionPlugin.Dimensions")
+        if not isinstance(dimensions, dict) or not dimensions:
+            raise ValueError(
+                "Designspace is missing GSDimensionPlugin.Dimensions: "
+                f"{path}. Run `uv run task.py designspace`."
+            )
+        identity[path.name] = dimensions
+    if set(identity) != {
+        "MapleMono[wght].designspace",
+        "MapleMono-Italic[wght].designspace",
+    }:
+        raise ValueError(
+            "Expected regular and italic Maple Mono designspaces with "
+            "GSDimensionPlugin.Dimensions"
+        )
+    return identity
+
+
+def _feature_fingerprint(source_dir: Path) -> str:
     root = Path(source_dir)
-    paths = sorted(root.glob("*.designspace"))
-    for ufo_dir in sorted(root.glob("*.ufo")):
-        paths.extend(sorted(path for path in ufo_dir.rglob("*") if path.is_file()))
-    paths.extend(sorted((root / "features").glob("*.fea")))
+    paths = sorted((root / "features").glob("*.fea"))
 
     hasher = hashlib.sha256()
     for path in paths:
@@ -110,13 +109,22 @@ def base_cache_identity(
     font_config: ResolvedConfig,
     runtime_context: BuildRuntimeContext,
 ) -> dict[str, Any]:
-    record = font_config.to_build_record()
-    for key in ("formats", "nerd_font", "cjk_format", "cjk"):
-        record.pop(key, None)
+    record = font_config.to_dict()
+    record.pop("nerd_font", None)
+    record.pop("cjk", None)
+    behavior = record.get("behavior")
+    if isinstance(behavior, dict):
+        for key in ("formats", "archive", "cache", "cjk_output_format", "use_cjk_both"):
+            behavior.pop(key, None)
+    metrics = record.get("metrics")
+    if isinstance(metrics, dict):
+        for key in ("pool_size", "github_mirror"):
+            metrics.pop(key, None)
     return {
-        "schema": 1,
+        "schema": 3,
         "config": record,
-        "sources": base_source_fingerprint(runtime_context.src_dir),
+        "sources": _dimensions_identity(Path(runtime_context.src_dir)),
+        "features": _feature_fingerprint(Path(runtime_context.src_dir)),
     }
 
 

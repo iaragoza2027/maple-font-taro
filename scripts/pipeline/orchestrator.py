@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from concurrent.futures import Executor
+from copy import deepcopy
 from dataclasses import dataclass
 import json
 from pathlib import Path
@@ -13,13 +14,21 @@ from typing import Any, Literal
 from scripts.font_ops.fonttools import (
     TTFont,
 )
-from scripts.config.base import ResolvedConfig
+from scripts.config.base import ResolvedCJKBuildEntry, ResolvedConfig
+from scripts.cjk.resolver import serialize_cjk_build_config
+from scripts.config.paths import (
+    merged_variable_name,
+    static_output_dir,
+    variable_output_dir,
+)
 from scripts.utils.errors import BuildDependencyError
 from scripts.config.resolver import BuildConfigResolver
 from scripts.config.runtime import BuildRuntimeContext
+from scripts.pipeline.cache import relative_cache_path
 from scripts.utils.files import archive_fonts, join_path
 from scripts.utils.logging import (
     ENVIRONMENT_VARIABLE,
+    TaskName,
     configure_logging,
     log_task,
     log_task_complete,
@@ -60,13 +69,11 @@ from scripts.pipeline.artifacts import (
     expected_static_styles,
     is_target_style_file,
     read_font_vertical_metric,
-    summarize_output_artifacts,
 )
 from scripts.pipeline.cache import (
     CACHE_SCHEMA,
     output_snapshot,
     read_cache_record,
-    relative_cache_path,
     stage_identity,
     validate_stage,
     write_cache_record as persist_cache_record,
@@ -285,7 +292,7 @@ def prepare_fontmake_sources(
     executor: Executor | None = None,
 ) -> FontmakeBuildContext:
     """Prepare committed Designspace/UFO sources for later format tasks."""
-    started_at = log_task("prepare", "Prepare font sources")
+    started_at = log_task(TaskName.PREPARE, "Prepare font sources")
     source_dir = Path(runtime_context.src_dir)
     temp_path = Path(runtime_context.output_dir) / "temp"
     raw_variable_dir = temp_path / "variable"
@@ -575,7 +582,7 @@ class MapleBuildPipeline:
                 "Variable" if item == "variable" else item.upper()
                 for item in base_formats
             )
-            started_at = log_task("fontmake", "Build %s", format_labels)
+            started_at = log_task(TaskName.FONTMAKE, "Build %s", format_labels)
             compile_fontmake_formats(
                 fontmake_context,
                 base_formats,
@@ -646,33 +653,137 @@ class MapleBuildPipeline:
             set_log_task("nerd-font")
             logger.debug("Skip Nerd Font outputs because the stage is disabled")
 
-    def _build_cjk_outputs(self, process_executor: Executor) -> None:
-        if self.plan.cjk_mode:
-            stage = f"cjk-{self.plan.cjk_mode}"
-            if self._validate_recorded_stage(stage):
-                logger.info("Reuse cached CJK %s outputs", self.plan.cjk_mode)
-                self.runtime_context.is_cjk_built = True
-                return
+    def _cjk_stage_targets(
+        self,
+    ) -> list[tuple[str, ResolvedCJKBuildEntry, str]]:
+        if not self.plan.cjk_mode:
+            return []
+
+        targets: list[tuple[str, ResolvedCJKBuildEntry, str]] = []
+        for entry in self.font_config.get_selected_cjk_entries():
             if self.plan.cjk_mode == "variable":
-                build_cjk_extended_variable_outputs(
-                    self.font_config,
-                    self.runtime_context,
-                    process_executor,
+                include_nf = (
+                    self.font_config.nerd_font.enable
+                    and entry.common_options.with_nerd_font
                 )
             else:
-                build_cjk_extended_static_outputs(
-                    self.font_config,
-                    self.runtime_context,
-                    self.target_styles,
-                    process_executor,
+                include_nf = (
+                    self.runtime_context.is_nf_built
+                    and entry.common_options.with_nerd_font
                 )
+            output_locales: list[str] = []
+            if include_nf:
+                output_locales.append(f"NF-{entry.locale_name}")
+            if not include_nf or self.font_config.use_cjk_both:
+                output_locales.append(entry.locale_name)
+            for output_locale in output_locales:
+                stage = f"{output_locale.lower()}-{self.plan.cjk_mode}"
+                targets.append((stage, entry, output_locale))
+        return targets
+
+    def _cjk_stage_target(
+        self,
+        stage: str,
+    ) -> tuple[ResolvedCJKBuildEntry, str]:
+        for target_stage, entry, output_locale in self._cjk_stage_targets():
+            if target_stage == stage:
+                return entry, output_locale
+        raise ValueError(f"Unknown CJK stage: {stage}")
+
+    def _cjk_stage_expected_paths(self, output_locale: str) -> list[Path]:
+        if self.plan.cjk_mode == "variable":
+            directory = variable_output_dir(
+                self.runtime_context.output_dir,
+                output_locale,
+            )
+            locale_name = (
+                output_locale[3:] if output_locale.startswith("NF-") else output_locale
+            )
+            prefix = f"{self.font_config.family_name_compact}-{locale_name}"
+            if output_locale.startswith("NF-"):
+                prefix = (
+                    f"{self.font_config.family_name_compact}-"
+                    f"{self.font_config.get_nf_variant().symbol}-{locale_name}"
+                )
+            return [
+                directory / merged_variable_name(prefix, italic)
+                for italic in (False, True)
+            ]
+        directory = static_output_dir(self.runtime_context.output_dir, output_locale)
+        locale_name = (
+            output_locale[3:] if output_locale.startswith("NF-") else output_locale
+        )
+        prefix = f"{self.font_config.family_name_compact}-{locale_name}"
+        if output_locale.startswith("NF-"):
+            prefix = (
+                f"{self.font_config.family_name_compact}-"
+                f"{self.font_config.get_nf_variant().symbol}-{locale_name}"
+            )
+        return [
+            directory / f"{prefix}-{style}.ttf"
+            for style in expected_static_styles(self.target_styles)
+        ]
+
+    def _cjk_stage_paths(self, output_locale: str) -> list[Path]:
+        return [
+            path
+            for path in self._cjk_stage_expected_paths(output_locale)
+            if path.is_file()
+        ]
+
+    def _build_cjk_outputs(self, process_executor: Executor) -> None:
+        if self.plan.cjk_mode:
+            built_any = False
+            for stage, entry, output_locale in self._cjk_stage_targets():
+                task_message = (
+                    "Build CJK variable outputs (%s)"
+                    if self.plan.cjk_mode == "variable"
+                    else "Build CJK static outputs (%s)"
+                )
+                started_at = log_task(
+                    TaskName.CJK,
+                    task_message,
+                    entry.display_name,
+                    task_label=entry.locale_name.lower(),
+                )
+                if self._validate_recorded_stage(stage):
+                    log_task_complete(
+                        started_at,
+                        f"{len(self._cjk_stage_paths(output_locale))} fonts",
+                    )
+                    built_any = True
+                    continue
+
+                self._invalidate_recorded_stage(stage)
+                scoped_config = deepcopy(self.font_config)
+                scoped_config.cjk.entries = [entry]
+                output_locales = {output_locale}
+                if self.plan.cjk_mode == "variable":
+                    build_cjk_extended_variable_outputs(
+                        scoped_config,
+                        self.runtime_context,
+                        process_executor,
+                        output_locales,
+                        started_at=started_at,
+                    )
+                else:
+                    build_cjk_extended_static_outputs(
+                        scoped_config,
+                        self.runtime_context,
+                        self.target_styles,
+                        process_executor,
+                        output_locales,
+                        started_at=started_at,
+                    )
+                built_any = True
+            self.runtime_context.is_cjk_built = built_any
         else:
             if is_ci():
                 set_log_task("cjk")
                 logger.debug("Skip CJK outputs because no locale is selected")
             else:
                 log_task(
-                    "cjk",
+                    TaskName.CJK,
                     "Skip CJK outputs: reason=no CJK locale selected",
                 )
 
@@ -681,11 +792,8 @@ class MapleBuildPipeline:
             logger.info("Cache disabled: rebuild requested")
             shutil.rmtree(self.runtime_context.output_dir, ignore_errors=True)
             shutil.rmtree(self.runtime_context.output_woff2, ignore_errors=True)
-        elif not self._cache_matches_build():
-            logger.info("Cache invalidation: stage=all, reason=identity-changed")
-            logger.debug("Clean invalidated build cache")
-            shutil.rmtree(self.runtime_context.output_dir, ignore_errors=True)
-            shutil.rmtree(self.runtime_context.output_woff2, ignore_errors=True)
+        else:
+            self._cache_matches_build()
         ensure_base_output_dirs(self.runtime_context)
 
     def start_build_timer(self) -> None:
@@ -725,7 +833,7 @@ class MapleBuildPipeline:
             details.append(f"  Line height: {self.font_config.line_height:g}")
         version = self.font_config.version_str.removeprefix("Version ")
         log_task(
-            "build",
+            TaskName.BUILD,
             "%s %s\n%s",
             self.font_config.family_name,
             version,
@@ -737,8 +845,6 @@ class MapleBuildPipeline:
     ) -> tuple[Literal["variable", "ttf", "otf"], ...]:
         """Return only the base formats that are missing from the cache."""
         if not self.should_use_cache:
-            return self.plan.required_base_formats
-        if not self._cache_matches_build():
             return self.plan.required_base_formats
 
         missing_formats: list[Literal["variable", "ttf", "otf"]] = []
@@ -755,17 +861,10 @@ class MapleBuildPipeline:
 
         self._cache_identity_checked = True
         self._cache_record = read_cache_record(Path(self.runtime_context.output_root))
-        build_identity = self._current_build_identity()
-        if (
-            not self._cache_record
-            or self._cache_record.get("identity") != build_identity
-        ):
+        if not self._cache_record:
             self._cache_identity_valid = False
             logger.info(
-                "Cache invalidation: stage=all, reason=identity-changed",
-            )
-            logger.info(
-                "Invalidate font cache: build identity changed path=%s",
+                "Cache miss: stage=all, reason=missing-cache-record path=%s",
                 "build-cache.json",
             )
         return self._cache_identity_valid
@@ -797,30 +896,50 @@ class MapleBuildPipeline:
         self,
         build_format: Literal["variable", "ttf", "otf"],
     ) -> bool:
-        if build_format == "variable":
-            output_dir = Path(self.runtime_context.output_variable)
-            expected_files = [
-                f"{self.font_config.family_name_compact}[wght].ttf",
-                f"{self.font_config.family_name_compact}-Italic[wght].ttf",
-            ]
-            return self._validate_cached_stage(
-                "variable", [output_dir / name for name in expected_files]
-            )
-
-        output_dir = Path(
-            self.runtime_context.output_ttf
-            if build_format == "ttf"
-            else self.runtime_context.output_otf
+        return self._validate_cached_stage(
+            build_format,
+            self._base_stage_expected_paths(build_format),
         )
-        expected = [
-            output_dir
-            / (f"{self.font_config.family_name_compact}-{style}.{build_format}")
-            for style in expected_static_styles(self.target_styles)
-        ]
-        return self._validate_cached_stage(build_format, expected)
+
+    def _base_stage_expected_paths(self, stage: str) -> list[Path]:
+        if stage == "variable":
+            output_dir = Path(self.runtime_context.output_variable)
+            return [
+                output_dir / f"{self.font_config.family_name_compact}[wght].ttf",
+                output_dir / f"{self.font_config.family_name_compact}-Italic[wght].ttf",
+            ]
+
+        if stage in {"ttf", "otf"}:
+            output_dir = Path(
+                self.runtime_context.output_ttf
+                if stage == "ttf"
+                else self.runtime_context.output_otf
+            )
+            return [
+                output_dir / f"{self.font_config.family_name_compact}-{style}.{stage}"
+                for style in expected_static_styles(self.target_styles)
+            ]
+
+        if stage == "ttf-autohint":
+            output_dir = Path(self.runtime_context.output_ttf_hinted)
+            return [
+                output_dir / f"{self.font_config.family_name_compact}-{style}.ttf"
+                for style in expected_static_styles(self.target_styles)
+            ]
+
+        if stage == "woff2":
+            output_dir = Path(self.runtime_context.output_woff2)
+            return [
+                output_dir / f"{self.font_config.family_name_compact}-{style}.ttf.woff2"
+                for style in expected_static_styles(self.target_styles)
+            ]
+
+        raise ValueError(f"Unknown base stage: {stage}")
 
     def _validate_cached_stage(self, stage: str, paths: list[Path]) -> bool:
         if not self.should_use_cache:
+            return False
+        if not self._cache_matches_build():
             return False
         return validate_stage(
             Path(self.runtime_context.output_root),
@@ -836,25 +955,49 @@ class MapleBuildPipeline:
         stages = (self._cache_record or {}).get("stages")
         stage_record = stages.get(stage) if isinstance(stages, dict) else None
         if not isinstance(stage_record, dict):
-            logger.info("Cache validation: stage=%s, status=miss", stage)
-            logger.info("Cache invalidation: stage=%s, reason=missing-record", stage)
+            logger.info("Cache miss: stage=%s, reason=missing-record", stage)
             return False
-        files = stage_record.get("files")
-        if not isinstance(files, dict) or not files:
-            logger.info("Cache validation: stage=%s, status=miss", stage)
-            logger.info("Cache invalidation: stage=%s, reason=missing-output", stage)
+        snapshot = stage_record.get("snapshot")
+        files = snapshot.get("files") if isinstance(snapshot, dict) else None
+        if not isinstance(files, list) or not files:
+            logger.info("Cache miss: stage=%s, reason=missing-output", stage)
             return False
         root = Path(self.runtime_context.output_root)
-        try:
-            paths = [root / Path(relative) for relative in sorted(files)]
-            if any(
-                relative_cache_path(root, path) != relative
-                for relative, path in zip(sorted(files), paths)
-            ):
-                raise ValueError("cache path is outside the output root")
-        except ValueError:
-            logger.info("Cache validation: stage=%s, status=miss", stage)
-            logger.info("Cache invalidation: stage=%s, reason=invalid-record", stage)
+        cjk_stages = {
+            target_stage
+            for target_stage, _entry, _output_locale in self._cjk_stage_targets()
+        }
+        if stage not in cjk_stages:
+            try:
+                if not all(isinstance(relative, str) for relative in files):
+                    raise ValueError("cache file list is invalid")
+                paths = [root / Path(relative) for relative in sorted(files)]
+                if any(
+                    relative_cache_path(root, path) != relative
+                    for relative, path in zip(sorted(files), paths)
+                ):
+                    raise ValueError("cache path is outside the output root")
+            except ValueError:
+                logger.info("Cache miss: stage=%s, reason=invalid-record", stage)
+                return False
+            return validate_stage(
+                root,
+                self._cache_record,
+                stage,
+                self._stage_cache_identity(stage),
+                paths,
+            )
+
+        _entry, output_locale = self._cjk_stage_target(stage)
+        paths = self._cjk_stage_expected_paths(output_locale)
+        expected_files = {
+            path.resolve().relative_to(root.resolve()).as_posix() for path in paths
+        }
+        if (
+            not all(isinstance(relative, str) for relative in files)
+            or set(files) != expected_files
+        ):
+            logger.info("Cache miss: stage=%s, reason=missing-output", stage)
             return False
         return validate_stage(
             root,
@@ -864,18 +1007,67 @@ class MapleBuildPipeline:
             paths,
         )
 
+    def _invalidate_recorded_stage(self, stage: str) -> None:
+        if not self.should_use_cache or self._cache_record is None:
+            return
+        stages = self._cache_record.get("stages")
+        if not isinstance(stages, dict) or stage not in stages:
+            return
+        del stages[stage]
+        persist_cache_record(
+            Path(self.runtime_context.output_root),
+            self._cache_record,
+        )
+
     def _stage_cache_identity(self, stage: str) -> str:
-        identity = dict(self._current_build_identity())
-        record = self.font_config.to_build_record()
-        if stage == "nf":
-            identity["stage_config"] = record.get("nerd_font")
-        elif stage.startswith("cjk-"):
-            identity["stage_config"] = {
-                "cjk": record.get("cjk"),
-                "cjk_format": record.get("cjk_format"),
-                "nerd_font": record.get("nerd_font"),
+        record = self.font_config.to_dict()
+        dependencies: dict[str, str] = {}
+        if stage in {"variable", "ttf", "otf"}:
+            inputs: dict[str, object] = {
+                "base": self._current_build_identity(),
+                "target_styles": (
+                    list(self.target_styles) if self.target_styles is not None else None
+                ),
             }
-        return stage_identity(identity, stage)
+            if stage == "variable":
+                inputs["target_styles"] = None
+        elif stage == "ttf-autohint":
+            dependencies["ttf"] = self._stage_cache_identity("ttf")
+            inputs = {
+                "ttfautohint_param": self.font_config.ttfautohint_param,
+                "use_hinted": self.font_config.use_hinted,
+            }
+        elif stage == "woff2":
+            dependencies["ttf"] = self._stage_cache_identity("ttf")
+            inputs = {"format": "woff2"}
+        elif stage == "nf":
+            upstream = "ttf-autohint" if self.font_config.use_hinted else "ttf"
+            dependencies[upstream] = self._stage_cache_identity(upstream)
+            inputs = {
+                "nerd_font": record.get("nerd_font"),
+                "width": self.font_config.width,
+                "line_height": self.font_config.line_height,
+            }
+        elif self.plan.cjk_mode and stage in {
+            target_stage for target_stage, _entry, _locale in self._cjk_stage_targets()
+        }:
+            entry, output_locale = self._cjk_stage_target(stage)
+            upstream = "ttf-autohint" if self.font_config.use_hinted else "ttf"
+            if self.plan.cjk_mode == "variable":
+                upstream = "variable"
+            dependencies[upstream] = self._stage_cache_identity(upstream)
+            if output_locale.startswith("NF-"):
+                dependencies["nf"] = self._stage_cache_identity("nf")
+            inputs = {
+                "entry": serialize_cjk_build_config(entry.build_config),
+                "common_options": entry.common_options.to_dict(),
+                "output_locale": output_locale,
+                "cjk_format": self.plan.cjk_mode,
+                "ttfautohint_param": self.font_config.ttfautohint_param,
+            }
+        else:
+            inputs = {"record": record}
+        return stage_identity(inputs, stage, dependencies)
 
     def should_build_hinted_ttf(
         self,
@@ -897,12 +1089,10 @@ class MapleBuildPipeline:
         return True
 
     def _has_cached_hinted_ttf(self) -> bool:
-        output_dir = Path(self.runtime_context.output_ttf_hinted)
-        expected = [
-            output_dir / f"{self.font_config.family_name_compact}-{style}.ttf"
-            for style in expected_static_styles(self.target_styles)
-        ]
-        return self._validate_cached_stage("ttf-autohint", expected)
+        return self._validate_cached_stage(
+            "ttf-autohint",
+            self._base_stage_expected_paths("ttf-autohint"),
+        )
 
     def reuse_base_output_cache(self) -> None:
         regular_variable_path = Path(self.runtime_context.output_variable) / (
@@ -925,11 +1115,7 @@ class MapleBuildPipeline:
             return False
         if "ttf" in base_formats or not self.should_use_cache:
             return True
-        output_dir = Path(self.runtime_context.output_woff2)
-        expected = [
-            output_dir / f"{self.font_config.family_name_compact}-{style}.ttf.woff2"
-            for style in expected_static_styles(self.target_styles)
-        ]
+        expected = self._base_stage_expected_paths("woff2")
         if not self._validate_cached_stage("woff2", expected):
             return True
         logger.info("Reuse cached WOFF2 outputs")
@@ -953,47 +1139,50 @@ class MapleBuildPipeline:
         self.write_cache_record()
 
     def write_cache_record(self) -> None:
+        log_task(TaskName.BUILD, "Write cache record", force_separator=True)
         root = Path(self.runtime_context.output_root)
-        stage_dirs = {
-            "variable": Path(self.runtime_context.output_variable),
-            "ttf": Path(self.runtime_context.output_ttf),
-            "otf": Path(self.runtime_context.output_otf),
-            "ttf-autohint": Path(self.runtime_context.output_ttf_hinted),
-            "woff2": Path(self.runtime_context.output_woff2),
-            "nf": Path(self.runtime_context.output_nf),
-        }
-        known_dirs = {directory.resolve() for directory in stage_dirs.values()}
-        cjk_dirs = [
-            directory
-            for directory in root.iterdir()
-            if directory.is_dir()
-            and directory.resolve() not in known_dirs
-            and directory.name not in {"archive", "temp", ".cjk-temp"}
-        ]
         stages: dict[str, dict[str, object]] = {}
-        for stage, directory in stage_dirs.items():
-            files = sorted(path for path in directory.rglob("*") if path.is_file())
-            if files:
-                stages[stage] = {
-                    "identity": self._stage_cache_identity(stage),
-                    "files": output_snapshot(root, stage, files),
-                }
-        if self.plan.cjk_mode:
-            stage = f"cjk-{self.plan.cjk_mode}"
-            files = sorted(
+        for stage in ("variable", "ttf", "otf", "ttf-autohint", "woff2"):
+            files = [
                 path
-                for directory in cjk_dirs
-                for path in directory.rglob("*")
+                for path in self._base_stage_expected_paths(stage)
                 if path.is_file()
-            )
+            ]
             if files:
                 stages[stage] = {
-                    "identity": self._stage_cache_identity(stage),
-                    "files": output_snapshot(root, stage, files),
+                    "key": self._stage_cache_identity(stage),
+                    "snapshot": output_snapshot(
+                        root,
+                        stage,
+                        files,
+                    ),
+                }
+        nf_dir = Path(self.runtime_context.output_nf)
+        nf_files = sorted(path for path in nf_dir.rglob("*") if path.is_file())
+        if nf_files:
+            stages["nf"] = {
+                "key": self._stage_cache_identity("nf"),
+                "snapshot": output_snapshot(
+                    root,
+                    "nf",
+                    nf_files,
+                ),
+            }
+        if self.plan.cjk_mode:
+            for stage, _entry, output_locale in self._cjk_stage_targets():
+                files = self._cjk_stage_paths(output_locale)
+                if not files:
+                    continue
+                stages[stage] = {
+                    "key": self._stage_cache_identity(stage),
+                    "snapshot": output_snapshot(
+                        root,
+                        stage,
+                        files,
+                    ),
                 }
         record: dict[str, Any] = {
             "schema": CACHE_SCHEMA,
-            "identity": self._current_build_identity(),
             "stages": stages,
         }
         persist_cache_record(root, record)
@@ -1002,7 +1191,7 @@ class MapleBuildPipeline:
         self._cache_identity_valid = True
 
     def archive_outputs(self) -> None:
-        started_at = log_task("archive", "Archive build outputs")
+        started_at = log_task(TaskName.ARCHIVE, "Archive build outputs")
         archive_dir_name = "archive"
         archive_dir = join_path(self.runtime_context.output_dir, archive_dir_name)
         makedirs(archive_dir, exist_ok=True)
@@ -1024,8 +1213,6 @@ class MapleBuildPipeline:
             if file_name in {"NF", *cjk_archive_dirs, *nf_cjk_archive_dirs}:
                 if not self.font_config.use_hinted:
                     suffix = "-unhinted"
-            elif self.should_use_cache:
-                continue
 
             sha256, zip_file_name_without_ext = archive_fonts(
                 family_name_compact=self.font_config.family_name_compact,
@@ -1062,34 +1249,30 @@ class MapleBuildPipeline:
         )
         time_diff = time.time() - self.start_time
         output_root = Path(self.runtime_context.output_dir).resolve()
-        output_summary = summarize_output_artifacts(output_root)
         cjk_locales = (
-            ",".join(
+            ", ".join(
                 entry.locale_name
                 for entry in self.font_config.get_selected_cjk_entries()
             )
             or "none"
         )
-        logger.debug(
-            "Build details: family=%s, resolved_width=%s, fea=%s, "
-            "nerd_font_built=%s, cjk_locales=%s, cjk_built=%s",
+        log_task(
+            TaskName.BUILD,
+            "Build completed, took %.2fs:\n"
+            "  Directory: %s\n"
+            "  Family: %s\n"
+            "  Width: %s units\n"
+            "  Feature configuration: %s\n"
+            "  Nerd Font: %s\n"
+            "  CJK: %s (%s)",
+            time_diff,
+            output_root,
             self.font_config.family_name,
             self.font_config.get_target_width(),
             freeze_str,
-            self.runtime_context.is_nf_built,
+            "built" if self.runtime_context.is_nf_built else "not built",
             cjk_locales,
-            self.runtime_context.is_cjk_built,
-        )
-        outputs = (
-            ", ".join(f"{name}: {count}" for name, count in output_summary) or "none"
-        )
-        log_task(
-            "build",
-            "Complete in %.2fs\n  Outputs: %s\n  Directory: %s",
-            time_diff,
-            outputs,
-            output_root,
-            force_separator=True,
+            "built" if self.runtime_context.is_cjk_built else "not built",
         )
 
 

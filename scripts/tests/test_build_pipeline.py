@@ -6,7 +6,7 @@ import unittest
 from concurrent.futures import Executor
 from pathlib import Path
 from typing import cast
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock, patch
 
 from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.ttGlyphPen import TTGlyphPen
@@ -29,6 +29,7 @@ from scripts.pipeline.cjk_outputs import (
     ensure_cjk_variable_fonts,
 )
 from scripts.pipeline.artifacts import collect_build_files, prune_build_files
+from scripts.pipeline.cache import CACHE_SCHEMA, output_snapshot
 from scripts.config.resolver import BuildConfigResolver
 from scripts.config.runtime import BuildRuntimeContext
 from scripts.cjk.config import CJKBuildConfig, CJKOutputConfig, CJKSourceConfig
@@ -133,6 +134,117 @@ def make_custom_entry(locale_name: str = "HK") -> ResolvedCJKBuildEntry:
 
 
 class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
+    def test_cjk_stage_logs_task_before_cache_miss(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            font_config = make_font_config()
+            font_config.behavior.cache = True
+            font_config.cjk.entries = [make_custom_entry("JP")]
+            runtime_context = make_runtime_context(Path(tmp))
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+            pipeline._cache_record = {"schema": CACHE_SCHEMA, "stages": {}}
+            pipeline._cache_identity_checked = True
+            pipeline._cache_identity_valid = True
+
+            with (
+                patch(
+                    "scripts.pipeline.orchestrator.build_cjk_extended_static_outputs"
+                ) as build_cjk,
+                patch("scripts.pipeline.orchestrator.logger.info") as log_info,
+            ):
+                pipeline._build_cjk_outputs(cast(Executor, MagicMock()))
+
+            messages = [call.args[0] for call in log_info.call_args_list]
+            self.assertEqual(
+                messages[:2],
+                [
+                    "Build CJK static outputs (%s)",
+                    "Cache miss: stage=%s, reason=missing-record",
+                ],
+            )
+            build_cjk.assert_called_once()
+            self.assertIsNotNone(build_cjk.call_args.kwargs["started_at"])
+
+    def test_cjk_stage_invalidation_preserves_other_records(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "fonts"
+            root.mkdir()
+            font_config = make_font_config()
+            font_config.behavior.cache = True
+            pipeline = MapleBuildPipeline(font_config, make_runtime_context(Path(tmp)))
+            pipeline._cache_record = {
+                "schema": CACHE_SCHEMA,
+                "stages": {
+                    "jp-static": {"key": "old-jp"},
+                    "cn-static": {"key": "keep-cn"},
+                },
+            }
+            pipeline._invalidate_recorded_stage("jp-static")
+
+            record = json.loads((root / "build-cache.json").read_text())
+            self.assertEqual(record["stages"], {"cn-static": {"key": "keep-cn"}})
+
+    def test_cjk_stage_paths_only_include_target_styles(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            font_config = make_font_config()
+            font_config.behavior.debug = True
+            font_config.cjk.entries = [make_custom_entry("JP")]
+            runtime_context = make_runtime_context(Path(tmp))
+            output_dir = Path(runtime_context.output_root) / "JP"
+            write_test_font(output_dir / "MapleMono-JP-Regular.ttf")
+            write_test_font(output_dir / "MapleMono-JP-Italic.ttf")
+            write_test_font(output_dir / "MapleMono-JP-Bold.ttf")
+
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+            self.assertEqual(
+                {path.name for path in pipeline._cjk_stage_paths("JP")},
+                {"MapleMono-JP-Regular.ttf", "MapleMono-JP-Italic.ttf"},
+            )
+
+    def test_nf_stage_uses_generic_cache_validation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            font_config = make_font_config()
+            font_config.behavior.cache = True
+            font_config.cjk.entries = [make_custom_entry("JP")]
+            runtime_context = make_runtime_context(Path(tmp))
+            nf_file = Path(runtime_context.output_nf) / "MapleMono-NF-Regular.ttf"
+            write_test_font(nf_file)
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+            pipeline._cache_record = {
+                "schema": CACHE_SCHEMA,
+                "stages": {
+                    "nf": {
+                        "key": "nf-key",
+                        "snapshot": output_snapshot(
+                            Path(runtime_context.output_root),
+                            "nf",
+                            [nf_file],
+                        ),
+                    }
+                },
+            }
+            pipeline._cache_identity_checked = True
+            pipeline._cache_identity_valid = True
+
+            with patch.object(pipeline, "_stage_cache_identity", return_value="nf-key"):
+                self.assertTrue(pipeline._validate_recorded_stage("nf"))
+
+    def test_cjk_variable_stage_paths_only_include_current_profile(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            font_config = make_font_config()
+            font_config.behavior.cjk_output_format = "variable"
+            font_config.cjk.entries = [make_custom_entry("JP")]
+            runtime_context = make_runtime_context(Path(tmp))
+            output_dir = Path(runtime_context.output_root) / "Variable-JP"
+            write_test_font(output_dir / "MapleMono-JP[wght].ttf")
+            write_test_font(output_dir / "MapleMono-JP-Italic[wght].ttf")
+            write_test_font(output_dir / "MapleMono-OLD[wght].ttf")
+
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+            self.assertEqual(
+                {path.name for path in pipeline._cjk_stage_paths("JP")},
+                {"MapleMono-JP[wght].ttf", "MapleMono-JP-Italic[wght].ttf"},
+            )
+
     def test_cjk_variable_source_uses_effective_github_mirror(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             entry = make_custom_entry()
@@ -147,10 +259,13 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 write_test_font(Path(tmp) / "MapleMono-CJK-VF.ttf")
                 write_test_font(Path(tmp) / "MapleMono-CJK-Italic-VF.ttf")
 
-            with patch(
-                "scripts.pipeline.cjk_outputs.build_cjk_fonts",
-                side_effect=build_outputs,
-            ) as build:
+            with (
+                patch(
+                    "scripts.pipeline.cjk_outputs.build_cjk_fonts",
+                    side_effect=build_outputs,
+                ) as build,
+                patch("scripts.pipeline.cjk_outputs.logger.info") as log_info,
+            ):
                 result = ensure_cjk_variable_fonts(
                     entry,
                     font_config,
@@ -171,6 +286,7 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 executor=None,
                 github_mirror="mirror.example.com/github.com",
             )
+            log_info.assert_called_once_with("Build CJK variable fonts: %s", "HK")
 
     def test_prepare_sources_resolves_regular_vertical_metric(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -327,7 +443,7 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 ),
                 patch(
                     "scripts.pipeline.orchestrator.build_cjk_extended_static_outputs",
-                    side_effect=lambda *_: events.append("cjk-static"),
+                    side_effect=lambda *_args, **_kwargs: events.append("cjk-static"),
                 ),
                 patch(
                     "scripts.pipeline.orchestrator.cleanup_unselected_base_formats",
@@ -575,8 +691,29 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                         )
                         write_test_font(directory / file_name)
 
+            write_test_font(
+                Path(runtime_context.output_variable) / "MapleMonoDebug[wght].ttf"
+            )
+            for directory, suffix in (
+                (Path(runtime_context.output_ttf), ".ttf"),
+                (Path(runtime_context.output_ttf_hinted), ".ttf"),
+                (Path(runtime_context.output_woff2), ".ttf.woff2"),
+            ):
+                write_test_font(directory / f"MapleMonoDebug-Regular{suffix}")
+
             pipeline = MapleBuildPipeline(font_config, runtime_context)
             pipeline.write_build_record()
+            record = json.loads(
+                (Path(runtime_context.output_root) / "build-cache.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            recorded_files = {
+                path
+                for stage in record["stages"].values()
+                for path in stage["snapshot"]["files"]
+            }
+            self.assertFalse(any("Debug" in path for path in recorded_files))
             self.assertEqual(pipeline.base_formats_to_build(), ("otf",))
 
             Path(runtime_context.output_otf).mkdir(parents=True, exist_ok=True)
@@ -584,6 +721,9 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 write_test_font(
                     Path(runtime_context.output_otf) / f"MapleMono-{style}.otf"
                 )
+            write_test_font(
+                Path(runtime_context.output_otf) / "MapleMonoDebug-Regular.otf"
+            )
             pipeline.write_build_record()
             self.assertEqual(pipeline.base_formats_to_build(), ())
 
@@ -598,7 +738,7 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             self.assertIn("Reuse cached TTF-AutoHint outputs", messages)
             self.assertIn("Reuse cached WOFF2 outputs", messages)
 
-    def test_cache_invalidates_when_family_name_changes(self) -> None:
+    def test_cache_identity_miss_does_not_delete_unrelated_output(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             font_config = make_font_config()
@@ -615,7 +755,6 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
 
             pipeline = MapleBuildPipeline(font_config, runtime_context)
             with (
-                patch("scripts.pipeline.orchestrator.logger.info") as log_info,
                 patch("scripts.pipeline.orchestrator.logger.debug") as log_debug,
             ):
                 self.assertEqual(
@@ -624,24 +763,27 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 )
                 pipeline.prepare_output_root()
 
-            self.assertFalse(stale_output.exists())
-            messages = [call.args[0] for call in log_info.call_args_list]
-            self.assertIn(
-                "Invalidate font cache: build identity changed path=%s",
-                messages,
-            )
-            self.assertIn(
+            self.assertTrue(stale_output.exists())
+            self.assertNotIn(
                 "Clean invalidated build cache",
                 [call.args[0] for call in log_debug.call_args_list],
             )
 
-    def test_cache_identity_tracks_sources_but_not_runtime_controls(self) -> None:
+    def test_cache_identity_tracks_dimensions_but_not_runtime_controls(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             source_dir = tmp_path / "source"
             source_dir.mkdir()
+            designspace_text = (
+                "<designspace format='5.0'><lib><dict>"
+                "<key>GSDimensionPlugin.Dimensions</key><dict>"
+                "<key>dimension-a</key><dict/></dict>"
+                "</dict></lib></designspace>"
+            )
             designspace = source_dir / "MapleMono[wght].designspace"
-            designspace.write_text("first", encoding="utf-8")
+            italic_designspace = source_dir / "MapleMono-Italic[wght].designspace"
+            designspace.write_text(designspace_text, encoding="utf-8")
+            italic_designspace.write_text(designspace_text, encoding="utf-8")
 
             font_config = make_font_config()
             font_config.behavior.cache = True
@@ -661,10 +803,103 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             font_config.metrics.pool_size += 1
             unchanged = MapleBuildPipeline(font_config, runtime_context)
             self.assertTrue(unchanged._cache_matches_build())
+            unchanged_key = unchanged._stage_cache_identity("ttf")
 
-            designspace.write_text("second", encoding="utf-8")
+            designspace.write_text(
+                designspace_text.replace("dimension-a", "dimension-b"),
+                encoding="utf-8",
+            )
             changed = MapleBuildPipeline(font_config, runtime_context)
-            self.assertFalse(changed._cache_matches_build())
+            self.assertNotEqual(
+                changed._stage_cache_identity("ttf"),
+                unchanged_key,
+            )
+
+    def test_cache_record_excludes_archive_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            font_config = make_font_config()
+            runtime_context = make_runtime_context(tmp_path)
+            variable_dir = Path(runtime_context.output_variable)
+            write_test_font(variable_dir / "MapleMono[wght].ttf")
+            archive_dir = Path(runtime_context.output_root) / "archive"
+            archive_dir.mkdir(parents=True)
+            (archive_dir / "release.zip").write_bytes(b"archive")
+
+            MapleBuildPipeline(font_config, runtime_context).write_build_record()
+
+            record = json.loads(
+                (Path(runtime_context.output_root) / "build-cache.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            recorded_paths = {
+                path
+                for stage in record["stages"].values()
+                for path in stage["snapshot"]["files"]
+            }
+            self.assertFalse(
+                any(path.startswith("archive/") for path in recorded_paths)
+            )
+
+    def test_fonts_cache_record_excludes_source_cjk_cache(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            runtime_context = make_runtime_context(tmp_path)
+            font_config = make_font_config()
+            font_config.behavior.cache = True
+            entry = make_custom_entry("JP")
+            source_cache_dir = tmp_path / "source" / "cjk" / "jp"
+            entry.build_config = CJKBuildConfig(
+                source=entry.build_config.source,
+                output=CJKOutputConfig(dir=source_cache_dir),
+            )
+            font_config.cjk.entries = [entry]
+
+            source_marker = source_cache_dir / "MapleMono-JP-VF.ttf"
+            source_marker.parent.mkdir(parents=True)
+            source_marker.write_bytes(b"source-cache")
+            final_output = (
+                Path(runtime_context.output_root) / "JP" / "MapleMono-JP-Regular.ttf"
+            )
+            write_test_font(final_output)
+
+            MapleBuildPipeline(font_config, runtime_context).write_build_record()
+
+            record = json.loads(
+                (Path(runtime_context.output_root) / "build-cache.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            recorded_paths = {
+                path
+                for stage in record["stages"].values()
+                for path in stage["snapshot"]["files"]
+            }
+            self.assertEqual(recorded_paths, {"JP/MapleMono-JP-Regular.ttf"})
+            self.assertTrue(source_marker.is_file())
+
+    def test_cjk_cache_stages_split_locale_and_nf_profiles(self) -> None:
+        runtime_context = make_runtime_context(Path("/tmp/maple-font-stage-test"))
+        font_config = make_font_config()
+        font_config.behavior.use_cjk_both = True
+        font_config.cjk.entries = [make_custom_entry("HK"), make_custom_entry("JP")]
+        runtime_context.is_nf_built = True
+        pipeline = MapleBuildPipeline(font_config, runtime_context)
+
+        self.assertEqual(
+            [stage for stage, _entry, _locale in pipeline._cjk_stage_targets()],
+            [
+                "nf-hk-static",
+                "hk-static",
+                "nf-jp-static",
+                "jp-static",
+            ],
+        )
+        self.assertNotEqual(
+            pipeline._stage_cache_identity("hk-static"),
+            pipeline._stage_cache_identity("jp-static"),
+        )
 
     def test_woff2_stage_uses_static_ttf_outputs_and_skips_debug_builds(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -781,45 +1016,6 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                     self.assertNotIn("Width:", message)
                 else:
                     self.assertIn(width_summary, message)
-
-    def test_finish_logs_sorted_outputs_and_default_feature_config(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            tmp_path = Path(tmp)
-            runtime_context = make_runtime_context(tmp_path)
-            output_root = Path(runtime_context.output_dir)
-            for name in ["Variable", "TTF", "archive", ".cjk-temp", "temp"]:
-                (output_root / name).mkdir(parents=True, exist_ok=True)
-            (output_root / "Variable" / "regular.ttf").write_bytes(b"font")
-            (output_root / "Variable" / "italic.ttf").write_bytes(b"font")
-            (output_root / "TTF" / "regular.ttf").write_bytes(b"font")
-            (output_root / "archive" / "release.zip").write_bytes(b"archive")
-            (output_root / ".cjk-temp" / "ignored.ttf").write_bytes(b"font")
-            (output_root / "build-config.json").write_text("{}", encoding="utf-8")
-            font_config = make_font_config()
-            pipeline = MapleBuildPipeline(font_config, runtime_context)
-            pipeline.start_time = 10.0
-
-            with (
-                patch("scripts.pipeline.orchestrator.time.time", return_value=12.5),
-                patch.object(
-                    type(font_config),
-                    "freeze_config_str",
-                    new_callable=PropertyMock,
-                    return_value="",
-                ),
-                patch("scripts.pipeline.orchestrator.logger.info") as log_info,
-            ):
-                pipeline.finish_build()
-
-            message = log_info.call_args.args[0] % log_info.call_args.args[1:]
-            self.assertIn("Complete in 2.50s", message)
-            self.assertIn(
-                "Outputs: TTF: 1, Variable: 2, archive: 1",
-                message,
-            )
-            self.assertNotIn(".cjk-temp", message)
-            self.assertNotIn("build-config.json", message)
-            self.assertIn(f"Directory: {output_root.resolve()}", message)
 
     def test_missing_cjk_selection_logs_reason_outside_ci(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

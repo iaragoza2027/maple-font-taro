@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from typing import cast
+from unittest.mock import patch
 
 from scripts.pipeline.cache import (
     CACHE_SCHEMA,
@@ -24,10 +26,12 @@ class PipelineCacheTest(unittest.TestCase):
             output.parent.mkdir()
             output.write_bytes(b"font")
 
-            files = output_snapshot(root, "ttf", [output])
+            snapshot = output_snapshot(root, "ttf", [output])
+            files = cast(list[str], snapshot["files"])
 
-            self.assertEqual(list(files), ["TTF/MapleMono-Regular.ttf"])
-            self.assertNotIn("\\", next(iter(files)))
+            self.assertEqual(files, ["TTF/MapleMono-Regular.ttf"])
+            self.assertNotIn("\\", files[0])
+            self.assertEqual(set(snapshot), {"files", "digest"})
 
     def test_hash_mismatch_invalidates_stage(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -38,11 +42,10 @@ class PipelineCacheTest(unittest.TestCase):
             identity = stage_identity({"source": "one"}, "variable")
             record = {
                 "schema": CACHE_SCHEMA,
-                "identity": {"source": "one"},
                 "stages": {
                     "variable": {
-                        "identity": identity,
-                        "files": output_snapshot(root, "variable", [output]),
+                        "key": identity,
+                        "snapshot": output_snapshot(root, "variable", [output]),
                     }
                 },
             }
@@ -52,12 +55,42 @@ class PipelineCacheTest(unittest.TestCase):
                 validate_stage(root, record, "variable", identity, [output])
             )
 
+    def test_cache_logs_compact_hit_and_miss_messages(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            output = root / "TTF" / "MapleMono-Regular.ttf"
+            output.parent.mkdir()
+            output.write_bytes(b"font")
+            identity = stage_identity({"source": "one"}, "ttf")
+
+            with patch("scripts.pipeline.cache.logger.info") as log_info:
+                self.assertFalse(validate_stage(root, {}, "ttf", identity, [output]))
+                self.assertEqual(
+                    log_info.call_args.args,
+                    ("Cache miss: stage=%s, reason=missing-record", "ttf"),
+                )
+
+                record = {
+                    "schema": CACHE_SCHEMA,
+                    "stages": {
+                        "ttf": {
+                            "key": identity,
+                            "snapshot": output_snapshot(root, "ttf", [output]),
+                        }
+                    },
+                }
+                log_info.reset_mock()
+                self.assertTrue(validate_stage(root, record, "ttf", identity, [output]))
+                self.assertEqual(
+                    log_info.call_args.args,
+                    ("Cache hit: stage=%s", "ttf"),
+                )
+
     def test_cache_record_is_written_atomically(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             record = {
                 "schema": CACHE_SCHEMA,
-                "identity": {},
                 "stages": {},
             }
 

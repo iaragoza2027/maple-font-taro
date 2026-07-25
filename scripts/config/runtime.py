@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-import shutil
 from dataclasses import asdict, dataclass
 from os import environ, listdir, path
 from pathlib import Path
 from typing import Any, Callable, Literal
 
+from scripts.cjk.cache import (
+    has_valid_cjk_static_cache,
+    write_static_hash,
+)
+from scripts.cjk.builder import instantiate_cjk_static_from_variable
 from scripts.cjk.config import CJKBuildConfig
 from scripts.config.base import (
     BUILTIN_CJK_LOCALES,
@@ -14,8 +18,9 @@ from scripts.config.base import (
     ResolvedConfig,
 )
 from scripts.utils.downloads import download_zip_and_extract
-from scripts.utils.files import get_directory_hash, join_path
+from scripts.utils.files import join_path
 from scripts.utils.logging import logger
+from scripts.utils.errors import CJKBaseUnavailable
 from scripts.utils.process import get_font_forge_bin
 
 
@@ -31,7 +36,12 @@ def check_file_count(
 
 
 CJK_STATIC_DOWNLOAD_LOCALES = frozenset(BUILTIN_CJK_LOCALES)
-CJKStaticBaseSource = Literal["local-cache", "download", "variable"]
+CJKStaticBaseSource = Literal[
+    "local-static",
+    "remote-static",
+    "local-variable",
+    "remote-variable",
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,9 +131,6 @@ class BuildRuntimeContext:
     def cjk_static_dir(self, preset_config: CJKBuildConfig) -> Path:
         return preset_config.output.dir / preset_config.output.static_dir
 
-    def cjk_static_hash_path(self, preset_config: CJKBuildConfig) -> Path:
-        return preset_config.output.dir / preset_config.output.static_hash
-
     def cjk_static_archive_name(self, locale: BuiltinCJKLocaleId) -> str:
         return f"{locale}-static.zip"
 
@@ -157,29 +164,17 @@ class BuildRuntimeContext:
         available_styles = self.static_style_names(static_dir, static_file_prefix)
         return [style for style in required_styles if style not in available_styles]
 
-    def has_valid_cjk_static_hash(
-        self,
-        static_dir: Path,
-        hash_path: Path,
-    ) -> bool:
-        if not static_dir.is_dir() or not hash_path.is_file():
-            return False
-        return hash_path.read_text(encoding="utf-8").strip() == get_directory_hash(
-            str(static_dir)
-        )
-
     def has_valid_cjk_static_base(
         self,
+        preset_config: CJKBuildConfig,
         static_dir: Path,
-        static_file_prefix: str,
-        hash_path: Path,
         required_styles: list[str],
     ) -> bool:
-        return not self.missing_cjk_static_styles(
+        return has_valid_cjk_static_cache(
+            preset_config,
             static_dir,
-            static_file_prefix,
-            required_styles,
-        ) and self.has_valid_cjk_static_hash(static_dir, hash_path)
+            set(required_styles),
+        )
 
     def should_download_cjk_static_base(
         self, locale: BuiltinCJKLocaleId | None
@@ -196,13 +191,21 @@ class BuildRuntimeContext:
             return False
 
         static_dir = self.cjk_static_dir(preset_config)
-        static_dir.mkdir(parents=True, exist_ok=True)
+        if static_dir.exists():
+            logger.info(
+                "Skip CJK static base download because source cache exists: locale=%s",
+                preset_config.locale_name,
+            )
+            return False
+
+        static_dir.parent.mkdir(parents=True, exist_ok=True)
         archive_name = self.cjk_static_archive_name(locale)
         return download_zip_and_extract(
             name=f"{preset_config.locale_name} static CJK base font",
             url=self.cjk_static_download_url(locale),
-            zip_path=archive_name,
+            zip_path=static_dir.parent / f".{archive_name}.download.zip",
             output_dir=str(static_dir),
+            remove_zip=True,
             github_mirror=self.effective_github_mirror,
         )
 
@@ -215,52 +218,36 @@ class BuildRuntimeContext:
         builder(
             preset_config,
             build_config,
+            vf_only=True,
             github_mirror=self.effective_github_mirror,
         )
 
     def _resolve_local_cjk_static_base(
         self,
         clean_cache: bool,
+        preset_config: CJKBuildConfig,
         static_dir: Path,
         static_file_prefix: str,
-        hash_path: Path,
         required_styles: list[str],
         locale_name: str,
     ) -> CJKStaticBaseResolution | None:
-        if clean_cache:
-            logger.info("Clean CJK static base cache: path=%s", static_dir)
-            shutil.rmtree(static_dir, ignore_errors=True)
-            return None
-
         if self.has_valid_cjk_static_base(
+            preset_config,
             static_dir,
-            static_file_prefix,
-            hash_path,
             required_styles,
         ):
             return CJKStaticBaseResolution(
                 static_dir=static_dir,
                 static_file_prefix=static_file_prefix,
-                source_kind="local-cache",
+                source_kind="local-static",
             )
 
-        local_missing_styles = self.missing_cjk_static_styles(
-            static_dir,
-            static_file_prefix,
-            required_styles,
-        )
-        if local_missing_styles:
+        if static_dir.exists():
             logger.warning(
-                "Cached CJK static fonts are incomplete: locale=%s, styles=%s",
+                "Cached CJK static fonts are invalid; preserving cache: locale=%s",
                 locale_name,
-                ", ".join(local_missing_styles),
-            )
-        elif static_dir.exists():
-            logger.warning(
-                "Cached CJK static fonts failed hash check: locale=%s", locale_name
             )
 
-        shutil.rmtree(static_dir, ignore_errors=True)
         return None
 
     def _resolve_downloaded_cjk_static_base(
@@ -269,7 +256,6 @@ class BuildRuntimeContext:
         preset_config: CJKBuildConfig,
         static_dir: Path,
         static_file_prefix: str,
-        hash_path: Path,
         required_styles: list[str],
     ) -> CJKStaticBaseResolution | None:
         if not locale or not self.should_download_cjk_static_base(locale):
@@ -282,23 +268,33 @@ class BuildRuntimeContext:
         if not self.download_cjk_static_base(locale, preset_config):
             return None
 
-        missing_styles = self.missing_cjk_static_styles(
+        if self.missing_cjk_static_styles(
             static_dir,
-            static_file_prefix,
+            preset_config.naming.static_file_prefix,
             required_styles,
-        )
-        if not missing_styles and self.has_valid_cjk_static_hash(static_dir, hash_path):
+        ):
+            logger.warning(
+                "Downloaded CJK static fonts are incomplete; preserving cache and falling back to variable build: locale=%s",
+                preset_config.locale_name,
+            )
+            return None
+
+        write_static_hash(preset_config, static_dir)
+        if self.has_valid_cjk_static_base(
+            preset_config,
+            static_dir,
+            required_styles,
+        ):
             return CJKStaticBaseResolution(
                 static_dir=static_dir,
                 static_file_prefix=static_file_prefix,
-                source_kind="download",
+                source_kind="remote-static",
             )
 
         logger.warning(
-            "Downloaded CJK static fonts are invalid; falling back to variable build: locale=%s",
+            "Downloaded CJK static fonts are invalid; preserving cache and falling back to variable build: locale=%s",
             preset_config.locale_name,
         )
-        shutil.rmtree(static_dir, ignore_errors=True)
         return None
 
     def _resolve_variable_cjk_static_base(
@@ -309,28 +305,57 @@ class BuildRuntimeContext:
         required_styles: list[str],
         build_config: ResolvedConfig,
         builder: Callable[..., None],
+        clean_cache: bool,
     ) -> CJKStaticBaseResolution:
-        self.build_cjk_static_base_from_variable(
-            preset_config,
-            build_config,
-            builder,
+        failures: list[str] = []
+        variable_paths = (
+            preset_config.output.dir / preset_config.output.regular_variable,
+            preset_config.output.dir / preset_config.output.italic_variable,
         )
-        missing_styles = self.missing_cjk_static_styles(
-            static_dir,
-            static_file_prefix,
-            required_styles,
-        )
-        if missing_styles:
-            raise FileNotFoundError(
-                f"Unable to resolve {preset_config.locale_name} static CJK base "
-                f"font(s): missing style(s): {', '.join(missing_styles)}"
+        if not clean_cache and all(path.is_file() for path in variable_paths):
+            try:
+                instantiate_cjk_static_from_variable(preset_config, build_config)
+                if self.has_valid_cjk_static_base(
+                    preset_config,
+                    static_dir,
+                    required_styles,
+                ):
+                    return CJKStaticBaseResolution(
+                        static_dir=static_dir,
+                        static_file_prefix=static_file_prefix,
+                        source_kind="local-variable",
+                    )
+            except Exception as error:
+                failures.append(f"local variable instantiation: {error}")
+        else:
+            failures.append(
+                "local variable outputs unavailable or clean_cache is enabled"
             )
 
-        return CJKStaticBaseResolution(
-            static_dir=static_dir,
-            static_file_prefix=static_file_prefix,
-            source_kind="variable",
-        )
+        try:
+            self.build_cjk_static_base_from_variable(
+                preset_config,
+                build_config,
+                builder,
+            )
+            instantiate_cjk_static_from_variable(preset_config, build_config)
+            if not self.has_valid_cjk_static_base(
+                preset_config,
+                static_dir,
+                required_styles,
+            ):
+                raise RuntimeError("generated CJK static hash is invalid")
+            return CJKStaticBaseResolution(
+                static_dir=static_dir,
+                static_file_prefix=static_file_prefix,
+                source_kind="remote-variable",
+            )
+        except Exception as error:
+            failures.append(f"remote variable source: {error}")
+            raise CJKBaseUnavailable(
+                f"Unable to resolve {preset_config.locale_name} CJK base: "
+                + "; ".join(failures)
+            ) from error
 
     def resolve_cjk_static_base(
         self,
@@ -342,13 +367,12 @@ class BuildRuntimeContext:
         preset_config = entry.build_config
         static_dir = self.cjk_static_dir(preset_config)
         static_file_prefix = preset_config.naming.static_file_prefix
-        hash_path = self.cjk_static_hash_path(preset_config)
         required_styles = sorted(set(required_styles))
         local_resolution = self._resolve_local_cjk_static_base(
             entry.common_options.clean_cache,
+            preset_config,
             static_dir,
             static_file_prefix,
-            hash_path,
             required_styles,
             preset_config.locale_name,
         )
@@ -360,7 +384,6 @@ class BuildRuntimeContext:
             preset_config,
             static_dir,
             static_file_prefix,
-            hash_path,
             required_styles,
         )
         if download_resolution is not None:
@@ -373,6 +396,7 @@ class BuildRuntimeContext:
             required_styles,
             font_config,
             variable_builder,
+            entry.common_options.clean_cache,
         )
 
     def to_dict(self, config: ResolvedConfig | None = None) -> dict[str, Any]:

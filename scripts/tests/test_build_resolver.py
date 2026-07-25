@@ -8,6 +8,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from fontTools.fontBuilder import FontBuilder
+from fontTools.pens.ttGlyphPen import TTGlyphPen
+
+from scripts.cjk.cache import write_static_hash
 from scripts.config.cli import parse_args
 from scripts.config.base import CJKCommonBuildOptions, ResolvedCJKBuildEntry
 from scripts.utils.errors import BuildDependencyError
@@ -20,7 +24,6 @@ from scripts.cjk.config import (
     CJKSourceConfig,
 )
 from scripts.cjk.presets import CJKPresetId, get_preset
-from scripts.utils.files import get_directory_hash
 from scripts.pipeline.nerd_fonts import (
     ensure_font_patcher_available,
     should_use_font_patcher,
@@ -105,12 +108,35 @@ def make_entry(
 def write_static_fonts(static_dir: Path, prefix: str, styles: list[str]) -> None:
     static_dir.mkdir(parents=True, exist_ok=True)
     for style in styles:
-        (static_dir / f"{prefix}-{style}.ttf").write_bytes(style.encode("utf-8"))
+        write_test_font(static_dir / f"{prefix}-{style}.ttf")
 
 
-def write_static_hash(static_dir: Path, hash_path: Path) -> None:
-    hash_path.parent.mkdir(parents=True, exist_ok=True)
-    hash_path.write_text(get_directory_hash(str(static_dir)), encoding="utf-8")
+def write_test_font(path: Path) -> None:
+    builder = FontBuilder(1000, isTTF=True)
+    builder.setupGlyphOrder([".notdef"])
+    builder.setupCharacterMap({})
+    builder.setupGlyf({".notdef": TTGlyphPen(None).glyph()})
+    builder.setupHorizontalMetrics({".notdef": (600, 0)})
+    builder.setupHorizontalHeader(ascent=800, descent=-200)
+    builder.setupNameTable(
+        {
+            "familyName": "Test",
+            "styleName": "Regular",
+            "uniqueFontIdentifier": "Test Regular",
+            "fullName": "Test Regular",
+            "psName": "Test-Regular",
+        }
+    )
+    builder.setupOS2()
+    builder.setupPost()
+    builder.setupMaxp()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    builder.save(path)
+
+
+def write_variable_fonts(config: CJKBuildConfig) -> None:
+    write_test_font(config.output.dir / config.output.regular_variable)
+    write_test_font(config.output.dir / config.output.italic_variable)
 
 
 def resolve_quietly(
@@ -123,11 +149,7 @@ def resolve_quietly(
         *_args,
         **_kwargs,
     ) -> None:
-        write_static_fonts(
-            runtime_context.cjk_static_dir(config),
-            config.naming.static_file_prefix,
-            required_styles,
-        )
+        write_variable_fonts(config)
 
     with redirect_stdout(StringIO()):
         return runtime_context.resolve_cjk_static_base(
@@ -181,6 +203,7 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
             build.assert_called_once_with(
                 config,
                 make_font_config(),
+                vf_only=True,
                 github_mirror="mirror.example.com",
             )
 
@@ -195,17 +218,14 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
                 entry.build_config.naming.static_file_prefix,
                 ["Regular"],
             )
-            write_static_hash(
-                static_dir,
-                runtime_context.cjk_static_hash_path(entry.build_config),
-            )
+            write_static_hash(entry.build_config, static_dir)
 
             result = resolve_quietly(runtime_context, entry, ["Regular"])
 
-            self.assertEqual(result.source_kind, "local-cache")
+            self.assertEqual(result.source_kind, "local-static")
             self.assertEqual(result.static_dir, static_dir)
 
-    def test_mismatched_hash_attempts_download(self) -> None:
+    def test_invalid_static_hash_preserves_cache(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             runtime_context = make_runtime_context(tmp_path)
@@ -216,10 +236,55 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
                 entry.build_config.naming.static_file_prefix,
                 ["Regular"],
             )
-            runtime_context.cjk_static_hash_path(entry.build_config).write_text(
-                "bad-hash",
-                encoding="utf-8",
+            write_static_hash(entry.build_config, static_dir)
+            entry.build_config.output.dir.joinpath(
+                entry.build_config.output.static_hash
+            ).write_text("bad-hash", encoding="utf-8")
+
+            result = runtime_context._resolve_local_cjk_static_base(
+                False,
+                entry.build_config,
+                static_dir,
+                entry.build_config.naming.static_file_prefix,
+                ["Regular"],
+                entry.build_config.locale_name,
             )
+
+            self.assertIsNone(result)
+            self.assertTrue(static_dir.is_dir())
+            self.assertEqual(
+                entry.build_config.output.dir.joinpath(
+                    entry.build_config.output.static_hash
+                ).read_text(encoding="utf-8"),
+                "bad-hash",
+            )
+
+    def test_existing_static_cache_skips_remote_download(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            runtime_context = make_runtime_context(tmp_path)
+            entry = make_entry(tmp_path)
+            static_dir = runtime_context.cjk_static_dir(entry.build_config)
+            static_dir.mkdir(parents=True)
+            marker = static_dir / "existing-cache-marker"
+            marker.write_text("preserve", encoding="utf-8")
+
+            with patch("scripts.config.runtime.download_zip_and_extract") as download:
+                result = runtime_context.download_cjk_static_base(
+                    "cn",
+                    entry.build_config,
+                )
+
+            self.assertFalse(result)
+            download.assert_not_called()
+            self.assertEqual(marker.read_text(encoding="utf-8"), "preserve")
+
+    def test_incomplete_download_preserves_source_cache(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            runtime_context = make_runtime_context(tmp_path)
+            entry = make_entry(tmp_path)
+            static_dir = runtime_context.cjk_static_dir(entry.build_config)
 
             def fake_download(
                 self: BuildRuntimeContext,
@@ -231,10 +296,6 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
                     config.naming.static_file_prefix,
                     ["Regular"],
                 )
-                write_static_hash(
-                    self.cjk_static_dir(config),
-                    self.cjk_static_hash_path(config),
-                )
                 return True
 
             with patch.object(
@@ -242,14 +303,17 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
                 "download_cjk_static_base",
                 fake_download,
             ):
-                with patch.object(
-                    BuildRuntimeContext,
-                    "build_cjk_static_base_from_variable",
-                ) as build_mock:
-                    result = resolve_quietly(runtime_context, entry, ["Regular"])
+                result = runtime_context._resolve_downloaded_cjk_static_base(
+                    "cn",
+                    entry.build_config,
+                    static_dir,
+                    entry.build_config.naming.static_file_prefix,
+                    ["Regular", "Bold"],
+                )
 
-            self.assertEqual(result.source_kind, "download")
-            build_mock.assert_not_called()
+            self.assertIsNone(result)
+            self.assertTrue(static_dir.is_dir())
+            self.assertTrue((static_dir / "MapleMonoCN-Regular.ttf").is_file())
 
     def test_custom_entry_skips_download_and_uses_variable_fallback(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -262,11 +326,19 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
                 config: CJKBuildConfig,
                 *_args,
             ) -> None:
+                write_variable_fonts(config)
+
+            def fake_instantiate(
+                config: CJKBuildConfig,
+                _font_config,
+            ) -> None:
+                static_dir = runtime_context.cjk_static_dir(config)
                 write_static_fonts(
-                    self.cjk_static_dir(config),
+                    static_dir,
                     config.naming.static_file_prefix,
                     ["Regular"],
                 )
+                write_static_hash(config, static_dir)
 
             with patch.object(
                 BuildRuntimeContext,
@@ -278,12 +350,37 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
                     "build_cjk_static_base_from_variable",
                     fake_build,
                 ):
-                    result = resolve_quietly(runtime_context, entry, ["Regular"])
+                    with patch(
+                        "scripts.config.runtime.instantiate_cjk_static_from_variable",
+                        fake_instantiate,
+                    ):
+                        result = resolve_quietly(runtime_context, entry, ["Regular"])
 
             download_mock.assert_not_called()
-            self.assertEqual(result.source_kind, "variable")
+            self.assertEqual(result.source_kind, "remote-variable")
 
-    def test_variable_fallback_skips_hash_validation(self) -> None:
+    def test_clean_cache_reuses_valid_static_without_instantiation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            runtime_context = make_runtime_context(tmp_path)
+            entry = make_entry(tmp_path, clean_cache=True)
+            static_dir = runtime_context.cjk_static_dir(entry.build_config)
+            write_static_fonts(
+                static_dir,
+                entry.build_config.naming.static_file_prefix,
+                ["Regular"],
+            )
+            write_static_hash(entry.build_config, static_dir)
+
+            with patch(
+                "scripts.config.runtime.instantiate_cjk_static_from_variable"
+            ) as instantiate:
+                result = resolve_quietly(runtime_context, entry, ["Regular"])
+
+            self.assertEqual(result.source_kind, "local-static")
+            instantiate.assert_not_called()
+
+    def test_variable_fallback_does_not_require_variable_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             runtime_context = make_runtime_context(tmp_path)
@@ -294,11 +391,19 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
                 config: CJKBuildConfig,
                 *_args,
             ) -> None:
+                write_variable_fonts(config)
+
+            def fake_instantiate(
+                config: CJKBuildConfig,
+                _font_config,
+            ) -> None:
+                static_dir = runtime_context.cjk_static_dir(config)
                 write_static_fonts(
-                    self.cjk_static_dir(config),
+                    static_dir,
                     config.naming.static_file_prefix,
                     ["Regular"],
                 )
+                write_static_hash(config, static_dir)
 
             with patch.object(
                 BuildRuntimeContext,
@@ -310,11 +415,17 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
                     "build_cjk_static_base_from_variable",
                     fake_build,
                 ):
-                    result = resolve_quietly(runtime_context, entry, ["Regular"])
+                    with patch(
+                        "scripts.config.runtime.instantiate_cjk_static_from_variable",
+                        fake_instantiate,
+                    ):
+                        result = resolve_quietly(runtime_context, entry, ["Regular"])
 
-            self.assertEqual(result.source_kind, "variable")
-            self.assertFalse(
-                runtime_context.cjk_static_hash_path(entry.build_config).exists()
+            self.assertEqual(result.source_kind, "remote-variable")
+            self.assertTrue(
+                entry.build_config.output.dir.joinpath(
+                    entry.build_config.output.static_hash
+                ).exists()
             )
 
     def test_missing_styles_after_fallback_raise_clear_error(self) -> None:
@@ -333,7 +444,7 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
                     "build_cjk_static_base_from_variable",
                     return_value=None,
                 ):
-                    with self.assertRaisesRegex(FileNotFoundError, "missing style"):
+                    with self.assertRaisesRegex(Exception, "Unable to resolve"):
                         resolve_quietly(runtime_context, entry, ["Regular"])
 
 

@@ -33,6 +33,7 @@ from scripts.cjk.config import (
     CJKTransformConfig,
     CJKWeightInstance,
 )
+from scripts.cjk.cache import write_static_hash
 from scripts.cjk.resolver import (
     add_cjk_arguments,
     apply_cli_overrides,
@@ -69,7 +70,7 @@ from scripts.font_ops.names import FontNameConfig, set_font_name, update_font_na
 from scripts.font_ops.subset import subset_to_codepoints
 from scripts.utils.downloads import resolve_cached_download
 from scripts.utils.errors import CJKSourceUnavailable
-from scripts.utils.files import archive, get_directory_hash
+from scripts.utils.files import archive
 from scripts.utils.logging import logger, set_log_task
 from scripts.utils.process import SynchronousExecutor, create_process_executor
 
@@ -1232,12 +1233,7 @@ class CJKBuilder:
         return static_dir
 
     def _write_static_artifacts(self, static_dir: Path) -> None:
-        hash_path = self.config.output.dir / self.config.output.static_hash
-        with open(hash_path, "w") as file:
-            file.write(get_directory_hash(str(static_dir)))
-            file.flush()
-        logger.debug("Update CJK static font hash: path=%s", hash_path)
-
+        write_static_hash(self.config, static_dir)
         archive_path = self.config.output.dir / self.config.output.archive_name
         logger.debug("Archive CJK static fonts: path=%s", archive_path)
         archive(
@@ -1246,6 +1242,28 @@ class CJKBuilder:
             lambda path: path.endswith(".ttf"),
         )
         logger.debug("CJK static font archive ready: path=%s", archive_path)
+
+
+def instantiate_cjk_static_from_variable(
+    config: CJKBuildConfig,
+    font_config: FontNameConfig,
+    executor: Executor | None = None,
+) -> Path:
+    """Instantiate a static base from already-generated CJK variable fonts."""
+    owns_executor = executor is None
+    process_pool = executor or create_font_executor(
+        getattr(font_config, "pool_size", 4)
+    )
+    builder = CJKBuilder(config, font_config, process_pool)
+    try:
+        static_dir = builder._build_static_fonts(
+            (config.output.regular_variable, config.output.italic_variable)
+        )
+        write_static_hash(config, static_dir)
+        return static_dir
+    finally:
+        if owns_executor:
+            process_pool.shutdown(wait=True, cancel_futures=True)
 
 
 def finalize_static_font_instance(

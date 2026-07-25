@@ -7,7 +7,7 @@ import unittest
 from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 
-from scripts.cjk.cache import has_valid_cjk_variable_cache
+from scripts.cjk.cache import has_valid_cjk_static_cache, write_static_hash
 from scripts.cjk.config import CJKBuildConfig, CJKOutputConfig, CJKSourceConfig
 
 
@@ -34,55 +34,69 @@ def write_test_font(path: Path) -> None:
     builder.save(path)
 
 
-class CJKVariableCacheTest(unittest.TestCase):
+class CJKStaticCacheTest(unittest.TestCase):
     def make_config(self, root: Path) -> CJKBuildConfig:
-        source_path = root / "source.ttf"
-        source_path.write_bytes(b"source")
         return CJKBuildConfig(
             source=CJKSourceConfig(
-                path=source_path,
+                path=root / "source.ttf",
                 masters={
                     100: {"wght": 100},
                     400: {"wght": 400},
                     800: {"wght": 800},
                 },
             ),
-            output=CJKOutputConfig(dir=root / "output"),
+            output=CJKOutputConfig(
+                dir=root / "output",
+                static_hash="static-cn.sha256",
+            ),
         )
 
-    def write_outputs(self, config: CJKBuildConfig) -> None:
-        write_test_font(config.output.dir / config.output.regular_variable)
-        write_test_font(config.output.dir / config.output.italic_variable)
+    def write_static(self, config: CJKBuildConfig) -> Path:
+        static_dir = config.output.dir / config.output.static_dir
+        write_test_font(static_dir / "MapleMonoCJK-Regular.ttf")
+        write_static_hash(config, static_dir)
+        return static_dir
 
-    def test_cache_accepts_readable_outputs_after_source_changes(self) -> None:
+    def test_directory_hash_validates_static_stage(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             config = self.make_config(Path(tmp))
-            self.write_outputs(config)
+            static_dir = self.write_static(config)
 
-            self.assertTrue(has_valid_cjk_variable_cache(config))
+            self.assertTrue(has_valid_cjk_static_cache(config, static_dir, {"Regular"}))
 
-            config.source.path.write_bytes(b"changed")
-            self.assertTrue(has_valid_cjk_variable_cache(config))
+            (static_dir / "MapleMonoCJK-Regular.ttf").write_bytes(b"changed")
+            self.assertFalse(
+                has_valid_cjk_static_cache(config, static_dir, {"Regular"})
+            )
 
-    def test_missing_corrupt_and_zero_byte_outputs_are_rejected(self) -> None:
+    def test_missing_hash_or_style_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             config = self.make_config(Path(tmp))
+            static_dir = self.write_static(config)
+            config.output.dir.joinpath(config.output.static_hash).unlink()
+            self.assertFalse(
+                has_valid_cjk_static_cache(config, static_dir, {"Regular"})
+            )
 
-            self.assertFalse(has_valid_cjk_variable_cache(config))
+            write_static_hash(config, static_dir)
+            self.assertFalse(has_valid_cjk_static_cache(config, static_dir, {"Bold"}))
 
-            regular_path = config.output.dir / config.output.regular_variable
-            italic_path = config.output.dir / config.output.italic_variable
-            self.write_outputs(config)
-            italic_path.unlink()
-            self.assertFalse(has_valid_cjk_variable_cache(config))
+    def test_variable_files_are_not_verified_by_cjk_cache(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config = self.make_config(Path(tmp))
+            regular = config.output.dir / config.output.regular_variable
+            italic = config.output.dir / config.output.italic_variable
+            regular.parent.mkdir(parents=True)
+            regular.write_bytes(b"not inspected")
+            italic.write_bytes(b"not inspected")
 
-            self.write_outputs(config)
-            regular_path.write_bytes(b"{")
-            self.assertFalse(has_valid_cjk_variable_cache(config))
-
-            self.write_outputs(config)
-            regular_path.write_bytes(b"")
-            self.assertFalse(has_valid_cjk_variable_cache(config))
+            self.assertFalse(
+                has_valid_cjk_static_cache(
+                    config,
+                    config.output.dir / config.output.static_dir,
+                    {"Regular"},
+                )
+            )
 
 
 if __name__ == "__main__":

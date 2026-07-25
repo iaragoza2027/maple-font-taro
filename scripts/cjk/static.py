@@ -27,11 +27,20 @@ from scripts.utils.logging import logger
 
 
 def build_cjk_family_name(font_config: ResolvedConfig, locale_suffix: str) -> str:
-    return f"{font_config.family_name} {locale_suffix}"
+    return f"{font_config.family_name} {_cjk_locale_name(font_config, locale_suffix)}"
 
 
 def build_cjk_postscript_prefix(font_config: ResolvedConfig, locale_suffix: str) -> str:
-    return f"{font_config.family_name_compact}-{locale_suffix}"
+    return f"{font_config.family_name_compact}-{_cjk_locale_name(font_config, locale_suffix)}"
+
+
+def _cjk_locale_name(font_config: ResolvedConfig, locale_suffix: str) -> str:
+    """Avoid repeating the NF profile marker in generated CJK names."""
+    if locale_suffix.startswith("NF-") and font_config.family_name_compact.endswith(
+        f"-{font_config.get_nf_variant().symbol}"
+    ):
+        return locale_suffix.removeprefix("NF-")
+    return locale_suffix
 
 
 def apply_cjk_meta_table(

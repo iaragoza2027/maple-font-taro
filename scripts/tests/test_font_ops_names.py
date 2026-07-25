@@ -7,7 +7,11 @@ from fontTools.ttLib.tables._f_v_a_r import NamedInstance
 
 from scripts.cjk.config import CJKBuildConfig, CJKSourceConfig
 from scripts.cjk.builder import update_variable_font_names
-from scripts.cjk.static import apply_cjk_names
+from scripts.cjk.static import (
+    apply_cjk_names,
+    build_cjk_family_name,
+    build_cjk_postscript_prefix,
+)
 from scripts.config.resolver import BuildConfigResolver
 from scripts.font_ops.fonttools import TTFont, newTable
 from scripts.font_ops.names import get_font_name, update_font_names
@@ -117,6 +121,16 @@ class FontNameTest(unittest.TestCase):
         self.assertEqual(
             get_font_name(font, 3),
             "Version 7.900-beta.1;SUBF;MapleMono-CN-Regular;2026;FL830;Narrow;+calt;",
+        )
+
+    def test_nf_cjk_static_names_do_not_repeat_nf_marker(self) -> None:
+        config = make_font_config()
+        config.identity.family_name = "Maple Mono NF"
+        config.identity.family_name_compact = "MapleMono-NF"
+
+        self.assertEqual(build_cjk_family_name(config, "NF-CN"), "Maple Mono NF CN")
+        self.assertEqual(
+            build_cjk_postscript_prefix(config, "NF-CN"), "MapleMono-NF-CN"
         )
 
 

@@ -4,7 +4,7 @@ import argparse
 from collections.abc import Callable
 
 from scripts.task import cjk, designspace, fea, nf, page, publish, release
-from scripts.utils.logging import configure_logging, log_task
+from scripts.utils.logging import TaskName, configure_logging, log_task
 
 
 CommandHandler = Callable[[argparse.Namespace], None]
@@ -36,5 +36,5 @@ def main() -> None:
         parser.print_help()
         return
     configure_logging()
-    log_task(args.command, "Running task: %s", args.command)
+    log_task(TaskName(args.command), "Running task: %s", args.command)
     handler(args)

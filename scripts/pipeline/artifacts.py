@@ -34,6 +34,46 @@ def expected_static_styles(target_styles: list[str] | None) -> tuple[str, ...]:
     return tuple(DEFAULT_NAMING_MAPPING)
 
 
+def expected_static_font_paths(
+    output_dir: str | Path,
+    family_name_compact: str,
+    target_styles: list[str] | None,
+    extension: str = ".ttf",
+) -> list[Path]:
+    """Return the exact static artifacts owned by the current build."""
+    directory = Path(output_dir)
+    return [
+        directory
+        / (
+            f"{family_name_compact}-{style}.ttf.woff2"
+            if extension == ".woff2"
+            else f"{family_name_compact}-{style}{extension}"
+        )
+        for style in expected_static_styles(target_styles)
+    ]
+
+
+def require_existing_files(paths: list[Path], stage: str) -> None:
+    """Fail before scheduling a stage when an explicit input is unavailable."""
+    missing = [path for path in paths if not path.is_file()]
+    if missing:
+        formatted = ", ".join(str(path) for path in missing)
+        raise FileNotFoundError(f"Missing {stage} input files: {formatted}")
+
+
+def require_unique_targets(paths: list[Path], stage: str) -> None:
+    """Reject output collisions before parallel work can overwrite a result."""
+    seen: set[Path] = set()
+    duplicates: list[Path] = []
+    for path in paths:
+        if path in seen and path not in duplicates:
+            duplicates.append(path)
+        seen.add(path)
+    if duplicates:
+        formatted = ", ".join(str(path) for path in duplicates)
+        raise ValueError(f"Duplicate {stage} output paths: {formatted}")
+
+
 def is_valid_font_file(font_path: Path) -> bool:
     if not font_path.is_file() or font_path.stat().st_size == 0:
         return False
@@ -54,15 +94,12 @@ def has_cached_style_outputs(
     directory = Path(output_dir)
     if not directory.is_dir():
         return False
-    expected_files = {
-        directory
-        / (
-            f"{family_name_compact}-{style}.ttf.woff2"
-            if extension == ".woff2"
-            else f"{family_name_compact}-{style}{extension}"
-        )
-        for style in expected_static_styles(target_styles)
-    }
+    expected_files = expected_static_font_paths(
+        directory,
+        family_name_compact,
+        target_styles,
+        extension,
+    )
     return all(is_valid_font_file(font_path) for font_path in expected_files)
 
 

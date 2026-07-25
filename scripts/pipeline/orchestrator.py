@@ -66,6 +66,7 @@ from scripts.pipeline.artifacts import (
     base_cache_identity,
     cleanup_unselected_base_formats,
     ensure_base_output_dirs,
+    expected_static_font_paths,
     expected_static_styles,
     is_target_style_file,
     read_font_vertical_metric,
@@ -613,16 +614,18 @@ class MapleBuildPipeline:
         base_formats: tuple[Literal["variable", "ttf", "otf"], ...],
         process_executor: Executor,
     ) -> None:
+        ttf_paths = self._base_stage_expected_paths("ttf")
+        hinted_paths = self._base_stage_expected_paths("ttf-autohint")
         if self.should_build_hinted_ttf(base_formats):
-            build_base_fonts(
+            hinted_paths = build_base_fonts(
                 self.font_config,
                 self.runtime_context,
-                self.target_styles,
+                ttf_paths,
                 process_executor,
             )
         if self.should_build_woff2_outputs(base_formats):
             build_woff2_fonts(
-                self.font_config,
+                ttf_paths,
                 self.runtime_context,
                 process_executor,
             )
@@ -635,10 +638,11 @@ class MapleBuildPipeline:
                 logger.info("Reuse cached NF outputs")
                 self.runtime_context.is_nf_built = True
             else:
+                nf_inputs = hinted_paths if self.font_config.use_hinted else ttf_paths
                 build_nerd_fonts(
                     self.font_config,
                     self.runtime_context,
-                    self.target_styles,
+                    nf_inputs,
                     process_executor,
                 )
         else:
@@ -907,24 +911,27 @@ class MapleBuildPipeline:
                 if stage == "ttf"
                 else self.runtime_context.output_otf
             )
-            return [
-                output_dir / f"{self.font_config.family_name_compact}-{style}.{stage}"
-                for style in expected_static_styles(self.target_styles)
-            ]
+            return expected_static_font_paths(
+                output_dir,
+                self.font_config.family_name_compact,
+                self.target_styles,
+                f".{stage}",
+            )
 
         if stage == "ttf-autohint":
-            output_dir = Path(self.runtime_context.output_ttf_hinted)
-            return [
-                output_dir / f"{self.font_config.family_name_compact}-{style}.ttf"
-                for style in expected_static_styles(self.target_styles)
-            ]
+            return expected_static_font_paths(
+                self.runtime_context.output_ttf_hinted,
+                self.font_config.family_name_compact,
+                self.target_styles,
+            )
 
         if stage == "woff2":
-            output_dir = Path(self.runtime_context.output_woff2)
-            return [
-                output_dir / f"{self.font_config.family_name_compact}-{style}.ttf.woff2"
-                for style in expected_static_styles(self.target_styles)
-            ]
+            return expected_static_font_paths(
+                self.runtime_context.output_woff2,
+                self.font_config.family_name_compact,
+                self.target_styles,
+                ".woff2",
+            )
 
         raise ValueError(f"Unknown base stage: {stage}")
 

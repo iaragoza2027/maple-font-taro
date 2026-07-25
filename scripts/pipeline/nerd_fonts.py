@@ -13,10 +13,9 @@ from scripts.font_ops.glyph_transform import smart_change_width
 from scripts.font_ops.merge import merge_ttfonts
 from scripts.font_ops.metrics import adjust_line_height, verify_glyph_width
 from scripts.font_ops.names import parse_style_name, update_font_names
-from scripts.pipeline.artifacts import collect_build_files, prune_build_files
+from scripts.pipeline.artifacts import require_existing_files, require_unique_targets
 from scripts.utils.downloads import check_font_patcher
 from scripts.utils.errors import BuildDependencyError
-from scripts.utils.files import join_path
 from scripts.utils.logging import (
     TaskName,
     log_task,
@@ -29,7 +28,8 @@ from scripts.utils.process import run as run_command, run_process_jobs
 
 @dataclass(frozen=True)
 class NerdFontBuildJob:
-    font_basename: str
+    font_path: Path
+    output_path: Path
     use_font_patcher: bool
     font_config: ResolvedConfig
     runtime_context: BuildRuntimeContext
@@ -66,7 +66,7 @@ def ensure_font_patcher_available(
 
 
 def build_nf_by_prebuild_nerd_font(
-    font_basename: str,
+    font_path: Path,
     font_config: ResolvedConfig,
     runtime_context: BuildRuntimeContext,
 ) -> TTFont:
@@ -82,14 +82,14 @@ def build_nf_by_prebuild_nerd_font(
                 original_ref_width=font_config.glyph_width,
                 also_scale_y=True,
             )
-            temporary_path = f"{runtime_context.output_dir}/NF-Base-{font_basename}"
+            temporary_path = f"{runtime_context.output_dir}/NF-Base-{font_path.name}"
             save_font_atomic(temporary_font, temporary_path)
         finally:
             temporary_font.close()
 
     try:
         return merge_ttfonts(
-            base_font_path=join_path(runtime_context.ttf_base_dir, font_basename),
+            base_font_path=str(font_path),
             extra_font_path=temporary_path or nf_base_font_path,
         )
     finally:
@@ -98,7 +98,7 @@ def build_nf_by_prebuild_nerd_font(
 
 
 def build_nf_by_font_patcher(
-    font_basename: str,
+    font_path: Path,
     font_config: ResolvedConfig,
     runtime_context: BuildRuntimeContext,
 ) -> TTFont:
@@ -121,12 +121,12 @@ def build_nf_by_font_patcher(
     elif font_config.nerd_font.mono:
         patcher_args.append("--mono")
     patcher_args.extend(font_config.nerd_font.extra_args)
-    patcher_args.append(join_path(runtime_context.ttf_base_dir, font_basename))
+    patcher_args.append(str(font_path))
     run_command(patcher_args)
 
     variant = font_config.get_nf_variant()
     generated_path = str(
-        variant.patched_font_path(runtime_context.output_nf, font_basename)
+        variant.patched_font_path(runtime_context.output_nf, font_path.name)
     )
     font = TTFont(generated_path)
     remove(generated_path)
@@ -136,20 +136,21 @@ def build_nf_by_font_patcher(
 
 
 def build_nf(
-    font_basename: str,
-    load_source: Callable[[str, ResolvedConfig, BuildRuntimeContext], TTFont],
+    font_path: Path,
+    output_path: Path,
+    load_source: Callable[[Path, ResolvedConfig, BuildRuntimeContext], TTFont],
     use_font_patcher: bool,
     font_config: ResolvedConfig,
     runtime_context: BuildRuntimeContext,
 ) -> Path:
     logger.debug(
         "Build Nerd Font variant: source=%s, suffix=%s",
-        font_basename,
+        font_path.name,
         font_config.get_nf_variant().suffix,
     )
-    font = load_source(font_basename, font_config, runtime_context)
+    font = load_source(font_path, font_config, runtime_context)
     try:
-        style_compact = font_basename.split("-")[-1].split(".")[0]
+        style_compact = font_path.stem.rsplit("-", 1)[-1]
         (
             style_prefix,
             legacy_style,
@@ -182,12 +183,11 @@ def build_nf(
                 expect_widths=font_config.get_valid_glyph_width_list(),
                 file_name=postscript_name,
             )
-        target_path = Path(runtime_context.output_nf) / (f"{postscript_name}.ttf")
-        save_font_atomic(font, target_path)
-        logger.info("Saved Nerd Font to %s", target_path)
+        save_font_atomic(font, output_path)
+        logger.info("Saved Nerd Font to %s", output_path)
     finally:
         font.close()
-    return target_path
+    return output_path
 
 
 def build_nf_job(job: NerdFontBuildJob) -> Path:
@@ -198,7 +198,8 @@ def build_nf_job(job: NerdFontBuildJob) -> Path:
         else build_nf_by_prebuild_nerd_font
     )
     return build_nf(
-        job.font_basename,
+        job.font_path,
+        job.output_path,
         load_source,
         job.use_font_patcher,
         job.font_config,
@@ -209,7 +210,7 @@ def build_nf_job(job: NerdFontBuildJob) -> Path:
 def build_nerd_fonts(
     font_config: ResolvedConfig,
     runtime_context: BuildRuntimeContext,
-    target_styles: list[str] | None,
+    font_paths: list[Path],
     executor: Executor | None = None,
 ) -> list[Path]:
     """Build configured Nerd Font variants."""
@@ -217,28 +218,32 @@ def build_nerd_fonts(
         return []
 
     started_at = log_task(TaskName.NERD_FONT, "Build Nerd Font outputs")
-    makedirs(runtime_context.output_nf, exist_ok=True)
+    require_existing_files(font_paths, "Nerd Font")
+    symbol = font_config.get_nf_variant().symbol
     use_font_patcher = should_use_font_patcher(font_config)
+    jobs = [
+        NerdFontBuildJob(
+            font_path=font_path,
+            output_path=Path(runtime_context.output_nf)
+            / (
+                f"{font_config.family_name_compact}-{symbol}-"
+                f"{font_path.stem.rsplit('-', 1)[-1]}.ttf"
+            ),
+            use_font_patcher=use_font_patcher,
+            font_config=font_config,
+            runtime_context=runtime_context,
+        )
+        for font_path in font_paths
+    ]
+    require_unique_targets([job.output_path for job in jobs], "Nerd Font")
+
     ensure_font_patcher_available(font_config, runtime_context)
+    makedirs(runtime_context.output_nf, exist_ok=True)
     logger.debug(
         "Patch Nerd Font: version=%s, method=%s",
         font_config.nerd_font.version,
         "Font Patcher" if use_font_patcher else "prebuilt base font",
     )
-
-    prune_build_files(runtime_context.ttf_base_dir, target_styles, preserve_nf=True)
-    jobs = [
-        NerdFontBuildJob(
-            font_basename=file_name,
-            use_font_patcher=use_font_patcher,
-            font_config=font_config,
-            runtime_context=runtime_context,
-        )
-        for file_name in collect_build_files(
-            runtime_context.ttf_base_dir,
-            target_styles,
-        )
-    ]
     output_paths = run_process_jobs(
         font_config.pool_size,
         build_nf_job,

@@ -3,7 +3,7 @@ from __future__ import annotations
 from concurrent.futures import Executor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Sequence
 
 from scripts.font_ops.fonttools import TTFont
 
@@ -37,32 +37,54 @@ def _convert_font_to_web(
 
 
 def convert_to_web(
-    input_path: str | Path,
+    input_path: str | Path | Sequence[str | Path],
     output_dir: str | Path | None = None,
     flavor: WebFontFlavor = "woff2",
     executor: Executor | None = None,
 ) -> list[Path]:
-    """Convert an SFNT font or a flat directory of fonts to WOFF or WOFF2."""
-    source = Path(input_path)
-    font_paths = (
-        [source]
-        if source.is_file()
-        else sorted(
-            path
-            for path in source.iterdir()
-            if path.is_file() and path.suffix.lower() in {".ttf", ".otf"}
+    """Convert an SFNT font, flat directory, or explicit font sequence."""
+    source: Path | None
+    if isinstance(input_path, (str, Path)):
+        source = Path(input_path)
+        font_paths = (
+            [source]
+            if source.is_file()
+            else sorted(
+                path
+                for path in source.iterdir()
+                if path.is_file() and path.suffix.lower() in {".ttf", ".otf"}
+            )
         )
-    )
-    if not font_paths:
-        raise FileNotFoundError(f"No SFNT fonts found in {source}")
+    else:
+        source = None
+        font_paths = [Path(path) for path in input_path]
+        invalid = [
+            path for path in font_paths if path.suffix.lower() not in {".ttf", ".otf"}
+        ]
+        if invalid:
+            formatted = ", ".join(str(path) for path in invalid)
+            raise ValueError(f"Explicit inputs must be SFNT fonts: {formatted}")
+        missing = [path for path in font_paths if not path.is_file()]
+        if missing:
+            formatted = ", ".join(str(path) for path in missing)
+            raise FileNotFoundError(
+                f"Missing {flavor.upper()} conversion input files: {formatted}"
+            )
 
-    target_dir = (
-        Path(output_dir)
-        if output_dir is not None
-        else source.parent
-        if source.is_file()
-        else source
-    )
+    if not font_paths:
+        location = source if source is not None else "explicit input sequence"
+        raise FileNotFoundError(f"No SFNT fonts found in {location}")
+
+    if output_dir is not None:
+        target_dir = Path(output_dir)
+    elif source is None:
+        raise ValueError("output_dir is required for an explicit input sequence")
+    else:
+        target_dir = source.parent if source.is_file() else source
+
+    target_paths = [target_dir / f"{path.name}.{flavor}" for path in font_paths]
+    if len(set(target_paths)) != len(target_paths):
+        raise ValueError(f"Duplicate {flavor.upper()} conversion output paths")
     target_dir.mkdir(parents=True, exist_ok=True)
     jobs = [WebFontConversionJob(path, target_dir, flavor) for path in font_paths]
     if executor is not None:

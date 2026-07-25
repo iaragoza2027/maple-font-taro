@@ -20,6 +20,7 @@ class WebFontConversionTest(unittest.TestCase):
             source_dir.mkdir()
             for name in ("MapleMono-Bold.ttf", "MapleMono-Regular.ttf"):
                 (source_dir / name).write_bytes(b"")
+            (source_dir / "README.txt").write_text("unrelated", encoding="utf-8")
 
             with (
                 patch(
@@ -94,6 +95,83 @@ class WebFontConversionTest(unittest.TestCase):
 
             self.assertEqual(outputs, expected)
             self.assertIs(run_jobs.call_args.args[0], executor)
+
+    def test_explicit_inputs_ignore_stale_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source_dir = Path(tmp) / "TTF"
+            target_dir = Path(tmp) / "Woff2"
+            source_dir.mkdir()
+            current = source_dir / "MapleMono-Regular.ttf"
+            stale = source_dir / "OldFamily-Regular.ttf"
+            current.write_bytes(b"")
+            stale.write_bytes(b"")
+            executor = MagicMock()
+
+            with patch(
+                "scripts.font_ops.conversion.run_jobs",
+                side_effect=lambda _executor, _worker, jobs: [
+                    job.target_dir / f"{job.font_path.name}.{job.flavor}"
+                    for job in jobs
+                ],
+            ) as run_jobs:
+                outputs = convert_to_web(
+                    [current],
+                    target_dir,
+                    "woff2",
+                    executor=executor,
+                )
+
+            self.assertEqual(outputs, [target_dir / "MapleMono-Regular.ttf.woff2"])
+            self.assertEqual(
+                [job.font_path for job in run_jobs.call_args.args[2]],
+                [current],
+            )
+            self.assertTrue(stale.is_file())
+
+    def test_explicit_inputs_fail_before_scheduling_when_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "MapleMono-Regular.ttf"
+            executor = MagicMock()
+
+            with (
+                patch("scripts.font_ops.conversion.run_jobs") as run_jobs,
+                self.assertRaisesRegex(
+                    FileNotFoundError,
+                    "Missing WOFF2 conversion input files",
+                ),
+            ):
+                convert_to_web(
+                    [source],
+                    Path(tmp) / "Woff2",
+                    executor=executor,
+                )
+
+            run_jobs.assert_not_called()
+
+    def test_explicit_inputs_reject_duplicate_targets_before_scheduling(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            first = Path(tmp) / "current" / "MapleMono-Regular.ttf"
+            second = Path(tmp) / "stale" / "MapleMono-Regular.ttf"
+            first.parent.mkdir()
+            second.parent.mkdir()
+            first.write_bytes(b"")
+            second.write_bytes(b"")
+            executor = MagicMock()
+
+            with (
+                patch("scripts.font_ops.conversion.run_jobs") as run_jobs,
+                self.assertRaisesRegex(
+                    ValueError,
+                    "Duplicate WOFF2 conversion output paths",
+                ),
+            ):
+                convert_to_web(
+                    [first, second],
+                    Path(tmp) / "Woff2",
+                    executor=executor,
+                )
+
+            run_jobs.assert_not_called()
 
 
 if __name__ == "__main__":

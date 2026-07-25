@@ -20,6 +20,7 @@ from scripts.pipeline.orchestrator import (
     FontmakeBuildContext,
     MapleBuildPipeline,
     PreparedFontmakeSource,
+    build_base_fonts,
     build_woff2_fonts,
     compile_fontmake_formats,
     prepare_fontmake_sources,
@@ -923,10 +924,14 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
 
             executor = cast(Executor, MagicMock())
             with patch("scripts.pipeline.base_fonts.convert_to_web") as convert:
-                build_woff2_fonts(font_config, runtime_context, executor)
+                build_woff2_fonts(
+                    [output_ttf / "MapleMono-Regular.ttf"],
+                    runtime_context,
+                    executor,
+                )
 
             convert.assert_called_once_with(
-                runtime_context.output_ttf,
+                [output_ttf / "MapleMono-Regular.ttf"],
                 output_dir=runtime_context.output_woff2,
                 flavor="woff2",
                 executor=executor,
@@ -935,6 +940,55 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
 
             font_config.behavior.debug = True
             self.assertFalse(pipeline.should_build_woff2_outputs())
+
+    def test_derived_stages_receive_only_current_build_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime_context = make_runtime_context(Path(tmp))
+            font_config = make_font_config()
+            font_config.behavior.formats = ["woff2"]
+            font_config.behavior.least_styles = True
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+            raw_paths = pipeline._base_stage_expected_paths("ttf")
+            hinted_paths = pipeline._base_stage_expected_paths("ttf-autohint")
+
+            stale_path = Path(runtime_context.output_ttf) / "OldFamily-Regular.ttf"
+            stale_path.parent.mkdir(parents=True)
+            stale_path.touch()
+
+            executor = cast(Executor, MagicMock())
+            with (
+                patch(
+                    "scripts.pipeline.orchestrator.build_base_fonts",
+                    return_value=hinted_paths,
+                ) as auto_hint,
+                patch("scripts.pipeline.orchestrator.build_woff2_fonts") as convert,
+                patch("scripts.pipeline.orchestrator.build_nerd_fonts") as build_nf,
+            ):
+                pipeline._build_derived_outputs(("ttf",), executor)
+
+            auto_hint.assert_called_once_with(
+                font_config,
+                runtime_context,
+                raw_paths,
+                executor,
+            )
+            convert.assert_called_once_with(raw_paths, runtime_context, executor)
+            build_nf.assert_called_once_with(
+                font_config,
+                runtime_context,
+                hinted_paths,
+                executor,
+            )
+            self.assertEqual(
+                [path.name for path in raw_paths],
+                [
+                    "MapleMono-Regular.ttf",
+                    "MapleMono-Bold.ttf",
+                    "MapleMono-Italic.ttf",
+                    "MapleMono-BoldItalic.ttf",
+                ],
+            )
+            self.assertTrue(stale_path.is_file())
 
     def test_reuse_base_output_cache_restores_vertical_metric(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -1096,6 +1150,59 @@ class BuildFileSelectionTest(unittest.TestCase):
             self.assertEqual(collected, ["MapleMono-Bold.ttf", "MapleMono-Regular.ttf"])
             self.assertFalse((tmp_path / "MapleMono-Light.ttf").exists())
             self.assertTrue((tmp_path / "MapleMono-NF-Light.ttf").exists())
+
+    def test_autohint_missing_input_fails_before_parallel_work(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime_context = make_runtime_context(Path(tmp))
+            font_config = make_font_config()
+            missing = Path(runtime_context.output_ttf) / "MapleMono-Regular.ttf"
+            executor = cast(Executor, MagicMock())
+
+            with (
+                patch("scripts.pipeline.base_fonts.run_process_jobs") as run_jobs,
+                self.assertRaisesRegex(
+                    FileNotFoundError,
+                    "Missing TTF auto-hint input files",
+                ),
+            ):
+                build_base_fonts(
+                    font_config,
+                    runtime_context,
+                    [missing],
+                    executor,
+                )
+
+            run_jobs.assert_not_called()
+
+    def test_autohint_rejects_colliding_outputs_before_parallel_work(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            runtime_context = make_runtime_context(tmp_path)
+            font_config = make_font_config()
+            current = Path(runtime_context.output_ttf) / "MapleMono-Regular.ttf"
+            stale = tmp_path / "stale" / "MapleMono-Regular.ttf"
+            current.parent.mkdir(parents=True)
+            stale.parent.mkdir()
+            current.touch()
+            stale.touch()
+            executor = cast(Executor, MagicMock())
+
+            with (
+                patch("scripts.pipeline.base_fonts.run_process_jobs") as run_jobs,
+                self.assertRaisesRegex(
+                    ValueError,
+                    "Duplicate TTF auto-hint output paths",
+                ),
+            ):
+                build_base_fonts(
+                    font_config,
+                    runtime_context,
+                    [current, stale],
+                    executor,
+                )
+
+            run_jobs.assert_not_called()
+            self.assertTrue(stale.is_file())
 
 
 if __name__ == "__main__":

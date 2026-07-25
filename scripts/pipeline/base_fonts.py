@@ -13,8 +13,7 @@ from scripts.config.runtime import BuildRuntimeContext
 from scripts.feature.apply import apply_binary_features
 from scripts.font_ops.conversion import convert_to_web
 from scripts.font_ops.fonttools import TTFont
-from scripts.pipeline.artifacts import collect_build_files
-from scripts.utils.files import join_path
+from scripts.pipeline.artifacts import require_existing_files, require_unique_targets
 from scripts.utils.logging import (
     TaskName,
     log_task,
@@ -27,22 +26,24 @@ from scripts.utils.process import run_process_jobs
 
 @dataclass(frozen=True)
 class MonoAutohintJob:
-    font_basename: str
+    font_path: Path
+    reference_path: Path
+    output_path: Path
     font_config: ResolvedConfig
     runtime_context: BuildRuntimeContext
 
 
 def build_mono_autohint(
-    font_basename: str,
+    font_path: Path,
+    reference_path: Path,
+    output_path: Path,
     font_config: ResolvedConfig,
     runtime_context: BuildRuntimeContext,
 ) -> Path:
-    style_compact = font_basename.split("-")[-1].split(".")[0]
-    postscript_name = f"{font_config.family_name_compact}-{style_compact}"
-    logger.debug("Auto-hint font: %s.ttf", postscript_name)
+    style_compact = font_path.stem.rsplit("-", 1)[-1]
+    logger.debug("Auto-hint font: %s", output_path.name)
 
-    source_path = join_path(runtime_context.output_ttf, font_basename)
-    font = TTFont(source_path)
+    font = TTFont(font_path)
     try:
         is_italic = "Italic" in style_compact
         apply_binary_features(
@@ -61,13 +62,9 @@ def build_mono_autohint(
     finally:
         font.close()
 
-    output_path = Path(runtime_context.output_ttf_hinted) / f"{postscript_name}.ttf"
     options = {
         "in_buffer": buffer.getvalue(),
-        "reference_file": join_path(
-            runtime_context.output_ttf,
-            f"{font_config.family_name_compact}-Regular.ttf",
-        ),
+        "reference_file": str(reference_path),
         "out_file": str(output_path),
         "windows_compatibility": True,
     }
@@ -80,7 +77,9 @@ def build_mono_autohint(
 def build_mono_autohint_job(job: MonoAutohintJob) -> Path:
     set_log_task("ttf-autohint")
     return build_mono_autohint(
-        job.font_basename,
+        job.font_path,
+        job.reference_path,
+        job.output_path,
         job.font_config,
         job.runtime_context,
     )
@@ -89,22 +88,30 @@ def build_mono_autohint_job(job: MonoAutohintJob) -> Path:
 def build_base_fonts(
     font_config: ResolvedConfig,
     runtime_context: BuildRuntimeContext,
-    target_styles: list[str] | None,
+    font_paths: list[Path],
     executor: Executor | None = None,
 ) -> list[Path]:
     """Generate hinted TTF derivatives from production static TTF fonts."""
     started_at = log_task(TaskName.TTF_AUTOHINT, "Hint static TTF")
+    require_existing_files(font_paths, "TTF auto-hint")
+    reference_path = Path(runtime_context.output_ttf) / (
+        f"{font_config.family_name_compact}-Regular.ttf"
+    )
+    require_existing_files([reference_path], "TTF auto-hint reference")
     jobs = [
         MonoAutohintJob(
-            font_basename=file_name,
+            font_path=font_path,
+            reference_path=reference_path,
+            output_path=Path(runtime_context.output_ttf_hinted) / font_path.name,
             font_config=font_config,
             runtime_context=runtime_context,
         )
-        for file_name in collect_build_files(
-            runtime_context.output_ttf,
-            target_styles,
-        )
+        for font_path in font_paths
     ]
+    require_unique_targets(
+        [job.output_path for job in jobs],
+        "TTF auto-hint",
+    )
     output_paths = run_process_jobs(
         font_config.pool_size,
         build_mono_autohint_job,
@@ -116,14 +123,14 @@ def build_base_fonts(
 
 
 def build_woff2_fonts(
-    font_config: ResolvedConfig,
+    font_paths: list[Path],
     runtime_context: BuildRuntimeContext,
     executor: Executor | None = None,
 ) -> list[Path]:
     """Convert generated static TTF fonts to WOFF2."""
     started_at = log_task(TaskName.WOFF2, "Convert static TTF to WOFF2")
     output_paths = convert_to_web(
-        runtime_context.output_ttf,
+        font_paths,
         output_dir=runtime_context.output_woff2,
         flavor="woff2",
         executor=executor,

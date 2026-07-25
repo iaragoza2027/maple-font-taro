@@ -72,12 +72,13 @@ post-processing, and derived stages. Temporary Fontmake work under
 
 ### Base stages in `orchestrator.py`
 
-`prepare_fontmake_sources` materializes the committed regular and italic
-Designspace/UFO sources in a disposable workspace. `compile_fontmake_formats`
-submits Variable, TTF, and OTF Fontmake branches. The same module then
-post-processes the compiled base fonts: metadata, names, metrics, aliases,
-features, and width verification are applied before files are published under
-`fonts/Variable/`, `fonts/TTF/`, and `fonts/OTF/`.
+`prepare_fontmake_sources` loads the committed regular and italic
+Designspace/UFO sources, applies build metrics and feature configuration,
+freezes single substitutions across every master, and materializes the result
+in a disposable workspace. `compile_fontmake_formats` submits Variable, TTF,
+and OTF Fontmake branches from those shared prepared sources. The same module
+then post-processes metadata, names, aliases, and width verification before
+files are published under `fonts/Variable/`, `fonts/TTF/`, and `fonts/OTF/`.
 
 ### Derived stages in `base_fonts.py`
 

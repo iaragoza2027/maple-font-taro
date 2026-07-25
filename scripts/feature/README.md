@@ -20,28 +20,19 @@ feature files used by the file-based build path.
 
 ## Feature application paths
 
-The normal build path calls `generate_fea_string()` for every static and
-variable font. A static font is then passed through the freeze step. An enabled
-feature becomes a default substitution in a static font, a disabled feature has
-its lookup removed, and an ignored feature remains available as an OpenType
-feature. The static freeze step also moves the configured contextual rules into
-`calt` when the feature is one of the moving rules.
-
-Variable fonts use the same generated source, but cannot bake a glyph
-substitution into one fixed instance. For an enabled feature, the compiler
-removes that rule from its original `cvXX` or `ssXX` feature and places the
-applicable rule in `calt`, so the variable font changes with the feature
-configuration instead of treating the feature as ineffective. `disable` and
-`ignore` do not freeze variable-font glyphs; they leave the generated feature
-available according to the normal feature configuration.
+The normal build path prepares one feature source for each regular and italic
+Designspace before Fontmake runs. Enabled single substitutions copy the target
+glyph outline and advance width into the source glyph in every UFO master, so
+static and variable outputs use the same frozen outlines. Enabled contextual or
+ligature lookups are attached to `calt`, disabled feature rules are removed,
+and ignored features remain available as OpenType features.
 
 `--apply-fea-file` selects the second path. It applies the matching checked-in
-file, `source/features/regular.fea` or `source/features/italic.fea`, directly to
-base static and variable fonts. CJK static fonts select the corresponding
-`regular_cn.fea` or `italic_cn.fea` file. This path bypasses dynamic generation.
-Static fonts still run the static freeze step after the file is loaded, while
-variable fonts do not bake a static freeze; changes to generated feature options
-do not rewrite the loaded source file.
+file, `source/features/regular.fea` or `source/features/italic.fea`, during the
+same source preparation step. Includes are resolved before freeze rules are
+applied. CJK static fonts select the corresponding `regular_cn.fea` or
+`italic_cn.fea` file after CJK glyphs are merged; only CJK-specific substitutions
+are frozen at that later boundary.
 
 ## AST examples
 

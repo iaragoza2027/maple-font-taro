@@ -604,8 +604,8 @@ cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
 
 There are three kinds of options for feature freeze ([Why](https://github.com/subframe7536/maple-font/issues/233#issuecomment-2410170270)):
 
-1. `enable`: Static fonts bake applicable substitutions or move contextual rules into `calt`; variable fonts move applicable generated rules into `calt`.
-2. `disable`: Static fonts remove the feature lookup. Variable fonts do not bake a static substitution, so this setting does not freeze their glyphs.
+1. `enable`: Bake single substitutions into source outlines or enable contextual rules through `calt`.
+2. `disable`: Remove the feature rules.
 3. `ignore`: Leave the feature available as an OpenType feature.
 
 #### Custom OpenType Feature
@@ -705,8 +705,8 @@ Feature Options:
   -n, --normal          Use normal preset, just like `JetBrains Mono` with
                         slashed zero
   --feat FEAT           Enable and freeze the listed features, split by `,`
-                        (e.g. `--feat zero,cv01,ss07,ss08`); variable fonts
-                        move applicable rules into `calt`
+                        (e.g. `--feat zero,cv01,ss07,ss08`); contextual rules
+                        are enabled through `calt`
   --apply-fea-file      Apply matching
                         `source/features/{regular,italic}{_cn,}.fea` to static
                         and variable fonts

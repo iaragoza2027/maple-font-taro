@@ -10,7 +10,7 @@ from ttfautohint import ttfautohint
 from scripts.cjk.builder import get_ttfautohint_options
 from scripts.config.base import ResolvedConfig
 from scripts.config.runtime import BuildRuntimeContext
-from scripts.feature.apply import patch_font_feature
+from scripts.feature.apply import apply_binary_features
 from scripts.font_ops.conversion import convert_to_web
 from scripts.font_ops.fonttools import TTFont
 from scripts.pipeline.artifacts import collect_build_files
@@ -45,13 +45,12 @@ def build_mono_autohint(
     font = TTFont(source_path)
     try:
         is_italic = "Italic" in style_compact
-        patch_font_feature(
+        apply_binary_features(
             config=font_config,
             font=font,
             issue_fea_dir=runtime_context.output_dir,
             is_italic=is_italic,
             is_cn=False,
-            is_variable=False,
             is_hinted=True,
             fea_path=runtime_context.feature_file_path(is_italic),
         )

@@ -23,7 +23,7 @@ from glyphsLib.classes import (
 from scripts.font_ops.fonttools import TTFont, instantiate_variable_font
 
 from scripts.config.base import ResolvedConfig
-from scripts.feature.apply import patch_font_feature
+from scripts.feature.apply import apply_binary_features
 from scripts.font_ops.glyphs import (
     FontmakeBranchJob,
     SourceStyle,
@@ -503,13 +503,12 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
             )
             config = ResolvedConfig()
             config.behavior.apply_fea_file = True
-            patch_font_feature(
+            apply_binary_features(
                 config=config,
                 font=generated,
                 issue_fea_dir=tmp_path,
                 is_italic=False,
                 is_cn=False,
-                is_variable=True,
                 is_hinted=False,
                 fea_path=str(feature_path),
             )

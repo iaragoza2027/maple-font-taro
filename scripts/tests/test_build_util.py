@@ -17,6 +17,7 @@ from scripts.cjk.static import (
 )
 from scripts.cjk.config import CJKBuildConfig, CJKSourceConfig
 from scripts.cjk.presets import build_preset_config, get_preset
+from scripts.feature.catalog import CJK_FEATURES
 
 
 def make_runtime_context() -> BuildRuntimeContext:
@@ -120,7 +121,7 @@ class PostprocessCJKStaticFontTest(unittest.TestCase):
             patch("scripts.cjk.static.apply_cjk_meta_table") as apply_meta_mock,
             patch("scripts.cjk.static.apply_cjk_metrics"),
             patch("scripts.cjk.static.verify_cjk_widths"),
-            patch("scripts.cjk.static.patch_font_feature"),
+            patch("scripts.cjk.static.apply_binary_features") as apply_binary_features,
         ):
             postprocess_cjk_extended_static_font(
                 TTFont(),
@@ -131,6 +132,10 @@ class PostprocessCJKStaticFontTest(unittest.TestCase):
             )
 
         apply_meta_mock.assert_called_once()
+        self.assertEqual(
+            apply_binary_features.call_args.kwargs["outline_tags"],
+            frozenset(feature.tag for feature in CJK_FEATURES),
+        )
 
     def test_custom_entry_skips_meta_table_even_when_enabled(self) -> None:
         font_config = BuildConfigResolver().load_defaults()
@@ -148,7 +153,7 @@ class PostprocessCJKStaticFontTest(unittest.TestCase):
             patch("scripts.cjk.static.apply_cjk_meta_table") as apply_meta_mock,
             patch("scripts.cjk.static.apply_cjk_metrics"),
             patch("scripts.cjk.static.verify_cjk_widths"),
-            patch("scripts.cjk.static.patch_font_feature"),
+            patch("scripts.cjk.static.apply_binary_features"),
         ):
             postprocess_cjk_extended_static_font(
                 TTFont(),

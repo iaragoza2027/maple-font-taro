@@ -611,8 +611,8 @@ cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
 
 有三种选项（[为什么](https://github.com/subframe7536/maple-font/issues/233#issuecomment-2410170270)）：
 
-1. `enable`: 静态字体会固化适用的替换或将上下文规则移入 `calt`；可变字体会将生成的适用规则移入 `calt`。
-2. `disable`: 静态字体会删除该特性 lookup；可变字体不会固化静态替换，因此不会冻结字形。
+1. `enable`: 单字替换固化到源轮廓，或通过 `calt` 启用上下文规则。
+2. `disable`: 删除该特性规则。
 3. `ignore`: 保留该 OpenType 特性供字体使用。
 
 #### 自定义 OpenType 特性
@@ -698,7 +698,7 @@ options:
 Feature Options:
   -n, --normal          使用 normal 预设，就像带斜杠零的 `JetBrains Mono`
   --feat FEAT           启用并冻结列出的字体特性，用 `,` 分隔（例如 `--feat
-                        zero,cv01,ss07,ss08`）；可变字体会将适用规则移入 `calt`
+                        zero,cv01,ss07,ss08`）；上下文规则通过 `calt` 启用
   --apply-fea-file      应用匹配的 `source/features/{regular,italic}{_cn,}.fea` 到静态和可变字体
   --hinted              在 NF / CJK / NF-CJK 中使用 hinted 字体作为基础字体（默认）
   --no-hinted           在 NF / CJK / NF-CJK 中使用 unhinted 字体作为基础字体

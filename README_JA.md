@@ -605,8 +605,8 @@ cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
 
 以下の3つのオプションがあります（[理由はこちら](https://github.com/subframe7536/maple-font/issues/233#issuecomment-2410170270)）：
 
-1. `enable`: 静的フォントでは適用可能な置換を固定するかコンテキスト規則を `calt` に移し、可変フォントでは適用可能な生成規則を `calt` に移します。
-2. `disable`: 静的フォントでは feature lookup を削除します。可変フォントでは静的置換を固定しないため、字形を凍結しません。
+1. `enable`: 単一置換をソースアウトラインに固定するか、コンテキスト規則を `calt` で有効にします。
+2. `disable`: feature 規則を削除します。
 3. `ignore`: OpenType feature をそのまま利用できるようにします。
 
 #### カスタム OpenType テクニカル
@@ -692,7 +692,7 @@ options:
 Feature Options:
   -n, --normal          `JetBrains Mono` のように斜線付きゼロを持つ通常のプリセットを使用
   --feat FEAT           フォント機能を有効化・フリーズし、`,` で区切る（例：`--feat
-                        zero,cv01,ss07,ss08`）。可変フォントでは適用可能な規則を `calt` に移動
+                        zero,cv01,ss07,ss08`）。コンテキスト規則は `calt` で有効化
   --apply-fea-file      対応する `source/features/{regular,italic}{_cn,}.fea` を静的・可変フォントに適用
   --hinted              NF / CJK / NF-CJKでヒント付きフォントをベースフォントとして使用
                         （デフォルト）

@@ -316,6 +316,15 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
 
             self.assertEqual(runtime_context.resolved_vertical_metric, (1100, -300))
             self.assertEqual(len(context.sources), 2)
+            jobs = executor_mock.map.call_args.args[1]
+            self.assertEqual(
+                {job.feature_file_path for job in jobs},
+                {
+                    "source/features/regular.fea",
+                    "source/features/italic.fea",
+                },
+            )
+            self.assertTrue(all(job.font_config is font_config for job in jobs))
 
     def test_fontmake_formats_compile_all_branches_in_one_batch(self) -> None:
         context = FontmakeBuildContext(

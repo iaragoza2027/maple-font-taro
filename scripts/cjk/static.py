@@ -11,7 +11,8 @@ from scripts.config.base import (
     ResolvedConfig,
 )
 from scripts.config.runtime import BuildRuntimeContext
-from scripts.feature.apply import patch_font_feature
+from scripts.feature.apply import apply_binary_features
+from scripts.feature.catalog import CJK_FEATURES
 from scripts.font_ops.fonttools import MetaTable, TTFont
 from scripts.font_ops.glyph_transform import (
     change_glyph_width_or_scale,
@@ -212,15 +213,15 @@ def postprocess_cjk_extended_static_font(
             entry.preset_spec.code_page_range1,
         )
     apply_cjk_metrics(font, font_config, runtime_context)
-    patch_font_feature(
+    apply_binary_features(
         config=font_config,
         font=font,
         issue_fea_dir=runtime_context.output_dir,
         is_italic="Italic" in style_compact,
         is_cn=True,
-        is_variable=False,
         is_hinted=False,
         fea_path=runtime_context.feature_file_path("Italic" in style_compact, True),
+        outline_tags=frozenset(feature.tag for feature in CJK_FEATURES),
     )
     verify_cjk_widths(
         font,

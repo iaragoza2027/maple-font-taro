@@ -35,31 +35,24 @@ def generate_fea_string(
     is_calt: bool = True,
     enable_infinite: bool = True,
     enable_tag: bool = True,
-    variable_enabled_feature_list: list[str] | None = None,
     remove_italic_calt: bool = False,
 ):
     """
     Generates feature string.
-
-    For ``variable=True, normal=True``, enabled features are
-    moved to calt feature to freeze them.
 
     Args:
         is_italic (bool): Whether to generate italic features
         is_cn (bool): Whether to include Chinese-specific features
         is_normal (bool): Whether to generate normal preset
         is_calt (bool): Whether to enable calt
-        variable_enabled_feature_list (list[str]): List of features that
-            be enabled in variable format
         infinite (bool): Whether to add infinite arrow ligatures
     """
     logger.debug(
-        "Generate feature string: italic=%s, cn=%s, normal=%s, calt=%s, variable_freeze=%s, infinite=%s, tag=%s, remove_italic_calt=%s",
+        "Generate feature string: italic=%s, cn=%s, normal=%s, calt=%s, infinite=%s, tag=%s, remove_italic_calt=%s",
         is_italic,
         is_cn,
         is_normal,
         is_calt,
-        bool(variable_enabled_feature_list),
         enable_infinite,
         enable_tag,
         remove_italic_calt,
@@ -91,26 +84,6 @@ def generate_fea_string(
         calt_feat.content = []
 
     cv_ss_list = deepcopy(cv_list + (cv_list_cn if is_cn else []) + ss_list)
-
-    # for variable font, freeze feature by moving it to `calt`
-    if variable_enabled_feature_list:
-        extracted_lookup_list = []
-        for feat in cv_ss_list:
-            if feat.tag in variable_enabled_feature_list:
-                # prevent features that add ligatures like `ss08`
-                if not is_calt and feat.has_lookup:
-                    continue
-
-                extracted_lookup_list.append(
-                    feat.content
-                    if feat.has_lookup
-                    else [ast.Lookup(f"move_{feat.tag}", None, feat.content)]
-                )
-
-                # cleanup
-                feat.content = []
-
-        calt_feat.content.extend(extracted_lookup_list)
 
     # Add placeholder to calt if empty, to prevent fonttools warning
     if not calt_feat.content:

@@ -3,11 +3,20 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+
+from fontTools.designspaceLib import DesignSpaceDocument, SourceDescriptor
+from fontTools.feaLib.builder import addOpenTypeFeaturesFromString
+from ufoLib2 import Font as UFOFont
+from ufoLib2.objects import Anchor
 
 from scripts.config.base import ResolvedConfig, normalize_feature_freeze
-from scripts.feature.apply import patch_font_feature
+from scripts.feature.apply import (
+    FeatureSubstitution,
+    apply_ufo_substitutions,
+    prepare_feature_source,
+)
 from scripts.feature.compiler import generate_fea_string, generate_fea_string_cn_only
+from scripts.font_ops.fonttools import TTFont
 
 
 class FeatureFreezeConfigTest(unittest.TestCase):
@@ -39,103 +48,208 @@ class FeatureFreezeConfigTest(unittest.TestCase):
 
 
 class FeatureApplicationTest(unittest.TestCase):
-    def test_variable_enabled_feature_is_moved_into_calt(self) -> None:
-        generated = generate_fea_string(
+    def _prepare_file(
+        self,
+        root: Path,
+        source: str,
+        config: ResolvedConfig,
+        glyph_names: tuple[str, ...] = (".notdef", "a", "a.alt", "b", "b.alt"),
+    ):
+        feature_path = root / "test.fea"
+        feature_path.write_text(source, encoding="utf-8")
+        config.behavior.apply_fea_file = True
+        prepared = prepare_feature_source(
+            config,
+            glyph_names=glyph_names,
+            issue_fea_dir=root,
             is_italic=False,
             is_cn=False,
-            variable_enabled_feature_list=[],
+            is_hinted=False,
+            fea_path=str(feature_path),
         )
-        enabled = generate_fea_string(
-            is_italic=False,
-            is_cn=False,
-            variable_enabled_feature_list=["cv01"],
+        self.assertIsNotNone(prepared)
+        return prepared
+
+    def _compiled_feature_counts(
+        self,
+        source: str,
+        glyph_names: tuple[str, ...] = (".notdef", "a", "a.alt", "b", "b.alt"),
+    ) -> dict[str, int]:
+        font = TTFont()
+        font.setGlyphOrder(list(glyph_names))
+        addOpenTypeFeaturesFromString(font, source)
+        try:
+            if "GSUB" not in font:
+                return {}
+            return {
+                record.FeatureTag: record.Feature.LookupCount
+                for record in font["GSUB"].table.FeatureList.FeatureRecord
+            }
+        finally:
+            font.close()
+
+    def test_prepares_enabled_disabled_and_ignored_features(self) -> None:
+        config = ResolvedConfig()
+        config.feature_freeze.update(
+            {"cv01": "enable", "cv02": "disable", "cv03": "ignore"}
         )
+        with tempfile.TemporaryDirectory() as tmp:
+            prepared = self._prepare_file(
+                Path(tmp),
+                """
+feature cv01 { sub a by a.alt; } cv01;
+feature cv02 { sub b by b.alt; } cv02;
+feature cv03 { sub b by b.alt; } cv03;
+""",
+                config,
+            )
+        self.assertEqual(
+            prepared.substitutions,
+            (FeatureSubstitution("cv01", "a", "a.alt"),),
+        )
+        counts = self._compiled_feature_counts(prepared.source)
+        self.assertEqual(counts["cv01"], 1)
+        self.assertNotIn("cv02", counts)
+        self.assertEqual(counts["cv03"], 1)
 
-        self.assertNotEqual(generated, enabled)
-        calt_start = enabled.index("feature calt {")
-        calt_end = enabled.index("} calt;", calt_start)
-        calt_source = enabled[calt_start:calt_end]
-        self.assertIn("lookup move_cv01", calt_source)
+    def test_moves_contextual_lookup_into_calt(self) -> None:
+        config = ResolvedConfig()
+        config.feature_freeze["ss03"] = "enable"
+        with tempfile.TemporaryDirectory() as tmp:
+            prepared = self._prepare_file(
+                Path(tmp),
+                """
+feature calt { sub b by b.alt; } calt;
+feature ss03 {
+  lookup contextual {
+    sub b a' by a.alt;
+  } contextual;
+} ss03;
+""",
+                config,
+            )
+        counts = self._compiled_feature_counts(prepared.source)
+        self.assertEqual(prepared.substitutions, ())
+        self.assertEqual(counts["calt"], 2)
+        self.assertEqual(counts["ss03"], 1)
 
-    def test_file_based_features_apply_to_static_and_variable_fonts(self) -> None:
+    def test_disabling_calt_preserves_referenced_lookup_definitions(self) -> None:
+        config = ResolvedConfig()
+        config.feature.liga = False
+        with tempfile.TemporaryDirectory() as tmp:
+            prepared = self._prepare_file(
+                Path(tmp),
+                """
+feature calt {
+  lookup shared { sub a by a.alt; } shared;
+} calt;
+feature ss12 { lookup shared; } ss12;
+""",
+                config,
+            )
+        counts = self._compiled_feature_counts(prepared.source)
+        self.assertNotIn("calt", counts)
+        self.assertEqual(counts["ss12"], 1)
+
+    def test_disabling_feature_preserves_externally_referenced_lookup(self) -> None:
+        config = ResolvedConfig()
+        config.feature_freeze["cv02"] = "disable"
+        with tempfile.TemporaryDirectory() as tmp:
+            prepared = self._prepare_file(
+                Path(tmp),
+                """
+feature cv02 {
+  lookup shared { sub a by a.alt; } shared;
+} cv02;
+feature ss12 { lookup shared; } ss12;
+""",
+                config,
+            )
+        counts = self._compiled_feature_counts(prepared.source)
+        self.assertNotIn("cv02", counts)
+        self.assertEqual(counts["ss12"], 1)
+
+    def test_custom_feature_file_follows_includes(self) -> None:
         config = ResolvedConfig()
         config.behavior.apply_fea_file = True
-        font = MagicMock()
-
+        config.feature_freeze["cv01"] = "enable"
         with tempfile.TemporaryDirectory() as tmp:
-            with (
-                patch("scripts.feature.apply.addOpenTypeFeatures") as add_features,
-                patch("scripts.feature.apply.generate_fea_string") as generate,
-                patch("scripts.feature.apply.freeze_feature") as freeze_feature,
-            ):
-                for is_variable in (False, True):
-                    patch_font_feature(
-                        config,
-                        font,
-                        Path(tmp),
-                        is_italic=False,
-                        is_cn=False,
-                        is_variable=is_variable,
-                        is_hinted=False,
-                        fea_path="source/features/regular.fea",
-                    )
+            root = Path(tmp)
+            (root / "included.fea").write_text(
+                "feature cv01 { sub a by a.alt; } cv01;",
+                encoding="utf-8",
+            )
+            (root / "test.fea").write_text(
+                "include(included.fea);",
+                encoding="utf-8",
+            )
+            prepared = prepare_feature_source(
+                config,
+                glyph_names=(".notdef", "a", "a.alt"),
+                issue_fea_dir=root,
+                is_italic=False,
+                is_cn=False,
+                is_hinted=False,
+                fea_path=str(root / "test.fea"),
+            )
+        self.assertIsNotNone(prepared)
+        self.assertEqual(
+            prepared.substitutions,
+            (FeatureSubstitution("cv01", "a", "a.alt"),),
+        )
 
-                self.assertEqual(
-                    add_features.call_args_list,
-                    [
-                        call(font, "source/features/regular.fea"),
-                        call(font, "source/features/regular.fea"),
-                    ],
-                )
-                generate.assert_not_called()
-                freeze_feature.assert_called_once()
-
-    @patch("scripts.feature.apply.freeze_feature")
-    @patch("scripts.feature.apply.get_freeze_moving_rules", return_value=["cv01"])
-    @patch("scripts.feature.apply.addOpenTypeFeaturesFromString")
-    @patch(
-        "scripts.feature.apply.generate_fea_string",
-        return_value="feature calt { } calt;",
-    )
-    def test_freezes_static_fonts_but_not_variable_fonts(
-        self,
-        generate_fea_string: MagicMock,
-        add_features: MagicMock,
-        moving_rules: MagicMock,
-        freeze_feature: MagicMock,
-    ) -> None:
+    def test_invalid_feature_writes_issue_source(self) -> None:
         config = ResolvedConfig()
-        font = MagicMock()
-
         with tempfile.TemporaryDirectory() as tmp:
-            patch_font_feature(
-                config,
-                font,
-                Path(tmp),
-                is_italic=False,
-                is_cn=False,
-                is_variable=False,
-                is_hinted=False,
-                fea_path="",
-            )
-            patch_font_feature(
-                config,
-                font,
-                Path(tmp),
-                is_italic=False,
-                is_cn=False,
-                is_variable=True,
-                is_hinted=False,
-                fea_path="",
-            )
+            root = Path(tmp)
+            with self.assertRaisesRegex(SyntaxError, "Error preparing feature source"):
+                self._prepare_file(root, "feature cv01 {", config)
+            issue_path = root / "issue.fea"
+            self.assertTrue(issue_path.is_file())
+            self.assertIn("feature cv01 {", issue_path.read_text(encoding="utf-8"))
 
-        self.assertEqual(generate_fea_string.call_count, 2)
-        self.assertEqual(add_features.call_count, 2)
-        moving_rules.assert_called_once_with()
-        freeze_feature.assert_called_once_with(
-            font,
-            ["cv01"],
-            normalize_feature_freeze(config.feature_freeze, config.enable_ligature),
+    def test_ufo_freeze_preserves_source_metadata(self) -> None:
+        font = UFOFont()
+        source = font.newGlyph("a")
+        source.unicodes = [0x61]
+        source.lib["preserve"] = True
+        source.anchors.append(Anchor(x=10, y=20, name="top"))
+        source.width = 400
+        target = font.newGlyph("a.alt")
+        target.unicodes = [0xE001]
+        target.width = 600
+        pen = target.getPen()
+        pen.moveTo((0, 0))
+        pen.lineTo((100, 0))
+        pen.lineTo((100, 100))
+        pen.closePath()
+        descriptor = SourceDescriptor()
+        descriptor.font = font
+        designspace = DesignSpaceDocument()
+        designspace.addSource(descriptor)
+
+        apply_ufo_substitutions(
+            designspace,
+            (FeatureSubstitution("cv01", "a", "a.alt"),),
+        )
+
+        self.assertEqual(source.width, 600)
+        self.assertEqual(source.unicodes, [0x61])
+        self.assertEqual(source.lib["preserve"], True)
+        self.assertEqual(source.anchors[0].name, "top")
+        self.assertEqual(source.getBounds(font), target.getBounds(font))
+
+    def test_ufo_freeze_skips_missing_glyphs(self) -> None:
+        font = UFOFont()
+        font.newGlyph("a")
+        descriptor = SourceDescriptor()
+        descriptor.font = font
+        designspace = DesignSpaceDocument()
+        designspace.addSource(descriptor)
+
+        apply_ufo_substitutions(
+            designspace,
+            (FeatureSubstitution("cv01", "a", "missing"),),
         )
 
 
@@ -149,19 +263,17 @@ class FeatureGenerationLoggingTest(unittest.TestCase):
                 is_calt=False,
                 enable_infinite=False,
                 enable_tag=False,
-                variable_enabled_feature_list=["cv01"],
                 remove_italic_calt=True,
             )
             generate_fea_string(
                 is_italic=True,
                 is_cn=True,
-                variable_enabled_feature_list=["cv02"],
             )
             generate_fea_string_cn_only()
 
         output = "\n".join(logs.output)
         self.assertIn("italic=False, cn=False, normal=True, calt=False", output)
-        self.assertIn("variable_freeze=True, infinite=False, tag=False", output)
+        self.assertIn("infinite=False, tag=False", output)
         self.assertIn("remove_italic_calt=True", output)
         self.assertIn("italic=True, cn=True", output)
         self.assertIn("cn_only=True", output)

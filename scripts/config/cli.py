@@ -46,7 +46,7 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
     feature_group.add_argument(
         "--feat",
         type=lambda x: x.strip().split(","),
-        help="Enable and freeze the listed features, split by `,` (e.g. `--feat zero,cv01,ss07,ss08`); variable fonts move applicable rules into `calt`",
+        help="Enable and freeze the listed features, split by `,` (e.g. `--feat zero,cv01,ss07,ss08`); contextual rules are enabled through `calt`",
     )
     feature_group.add_argument(
         "--apply-fea-file",

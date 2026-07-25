@@ -42,7 +42,7 @@ from scripts.utils.process import (
     run_process_jobs,
 )
 from scripts.utils.version import version_tag
-from scripts.feature.apply import patch_font_feature
+from scripts.feature.apply import prepare_designspace_features
 from scripts.font_ops.glyphs import (
     FontmakeBranchJob,
     SourceStyle,
@@ -99,6 +99,9 @@ class FontmakeSourceJob:
     source_path: str
     style: SourceStyle
     workspace: str
+    feature_file_path: str
+    issue_fea_dir: str
+    font_config: ResolvedConfig
     target_width: int | None
     original_ref_width: int
     weight_mapping: dict[str, int]
@@ -225,16 +228,6 @@ def postprocess_static_font(
             runtime_context.resolved_vertical_metric,
         )
 
-    patch_font_feature(
-        config=font_config,
-        font=font,
-        issue_fea_dir=runtime_context.output_dir,
-        is_italic=is_italic,
-        is_cn=False,
-        is_variable=False,
-        is_hinted=False,
-        fea_path=runtime_context.feature_file_path(is_italic),
-    )
     alias_codepoints(font, font_config.codepoint_alias)
 
     verify_glyph_width(
@@ -279,6 +272,13 @@ def build_fontmake_source_job(job: FontmakeSourceJob) -> PreparedFontmakeSource:
         weight_mapping=job.weight_mapping,
         line_height=job.line_height,
     )
+    prepare_designspace_features(
+        job.font_config,
+        prepared.designspace,
+        issue_fea_dir=job.issue_fea_dir,
+        is_italic=job.style == "italic",
+        fea_path=job.feature_file_path,
+    )
     return PreparedFontmakeSource(
         job.style,
         str(materialize_prepared_source(prepared, job.workspace)),
@@ -319,6 +319,9 @@ def prepare_fontmake_sources(
             source_path=str(source_path),
             style=style,
             workspace=str(temp_path / "prepared" / style),
+            feature_file_path=runtime_context.feature_file_path(style == "italic"),
+            issue_fea_dir=runtime_context.output_dir,
+            font_config=font_config,
             target_width=target_width,
             original_ref_width=font_config.glyph_width,
             weight_mapping=font_config.weight_mapping,
@@ -412,17 +415,6 @@ def postprocess_variable_font_job(
     output_name = f"{file_name}[wght].ttf"
     font = TTFont(raw_path)
     try:
-        patch_font_feature(
-            config=job.font_config,
-            font=font,
-            issue_fea_dir=job.runtime_context.output_dir,
-            is_italic=is_italic,
-            is_cn=False,
-            is_variable=True,
-            is_hinted=False,
-            fea_path=job.runtime_context.feature_file_path(is_italic),
-        )
-
         style_name = "Italic" if is_italic else "Regular"
         postscript_name = f"{job.font_config.family_name_compact}-{style_name}"
         update_font_names(

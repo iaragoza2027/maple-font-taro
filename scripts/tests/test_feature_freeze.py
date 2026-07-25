@@ -81,10 +81,32 @@ class FeatureApplicationTest(unittest.TestCase):
         try:
             if "GSUB" not in font:
                 return {}
-            return {
-                record.FeatureTag: record.Feature.LookupCount
+            counts: dict[str, int] = {}
+            for record in font["GSUB"].table.FeatureList.FeatureRecord:
+                counts[record.FeatureTag] = (
+                    counts.get(record.FeatureTag, 0) + record.Feature.LookupCount
+                )
+            return counts
+        finally:
+            font.close()
+
+    def _compiled_feature_lookup_indexes(
+        self,
+        source: str,
+        tag: str,
+        glyph_names: tuple[str, ...] = (".notdef", "a", "a.alt", "b", "b.alt"),
+    ) -> list[list[int]]:
+        font = TTFont()
+        font.setGlyphOrder(list(glyph_names))
+        addOpenTypeFeaturesFromString(font, source)
+        try:
+            if "GSUB" not in font:
+                return []
+            return [
+                list(record.Feature.LookupListIndex)
                 for record in font["GSUB"].table.FeatureList.FeatureRecord
-            }
+                if record.FeatureTag == tag
+            ]
         finally:
             font.close()
 
@@ -111,6 +133,111 @@ feature cv03 { sub b by b.alt; } cv03;
         self.assertEqual(counts["cv01"], 1)
         self.assertNotIn("cv02", counts)
         self.assertEqual(counts["cv03"], 1)
+
+    def test_disables_every_repeated_feature_block(self) -> None:
+        config = ResolvedConfig()
+        config.feature_freeze["cv01"] = "disable"
+        with tempfile.TemporaryDirectory() as tmp:
+            prepared = self._prepare_file(
+                Path(tmp),
+                """
+feature cv01 { sub a by a.alt; } cv01;
+feature cv01 { sub b by b.alt; } cv01;
+""",
+                config,
+            )
+
+        self.assertEqual(prepared.substitutions, ())
+        self.assertNotIn("cv01", self._compiled_feature_counts(prepared.source))
+
+    def test_moves_every_repeated_feature_block_into_calt(self) -> None:
+        config = ResolvedConfig()
+        config.feature_freeze["ss03"] = "enable"
+        with tempfile.TemporaryDirectory() as tmp:
+            prepared = self._prepare_file(
+                Path(tmp),
+                """
+feature calt { sub b by b.alt; } calt;
+feature ss03 {
+  lookup first { sub b a' by a.alt; } first;
+} ss03;
+feature ss03 {
+  lookup second { sub a b' by b.alt; } second;
+} ss03;
+""",
+                config,
+            )
+
+        counts = self._compiled_feature_counts(prepared.source)
+        self.assertEqual(prepared.substitutions, ())
+        self.assertEqual(counts["calt"], 3)
+        self.assertEqual(counts["ss03"], 2)
+
+    def test_moves_repeated_blocks_into_every_repeated_calt_block(self) -> None:
+        config = ResolvedConfig()
+        config.feature_freeze["ss03"] = "enable"
+        with tempfile.TemporaryDirectory() as tmp:
+            prepared = self._prepare_file(
+                Path(tmp),
+                """
+feature calt {
+  lookup firstCalt { sub a by a.alt; } firstCalt;
+} calt;
+feature calt {
+  lookup secondCalt { sub b by b.alt; } secondCalt;
+} calt;
+feature ss03 {
+  lookup first { sub b a' by a.alt; } first;
+} ss03;
+feature ss03 {
+  lookup second { sub a b' by b.alt; } second;
+} ss03;
+""",
+                config,
+            )
+
+        calt_lookups = self._compiled_feature_lookup_indexes(prepared.source, "calt")
+        ss03_lookups = self._compiled_feature_lookup_indexes(prepared.source, "ss03")
+        calt_blocks = prepared.source.split("feature calt {")[1:]
+        self.assertEqual(len(calt_blocks), 2)
+        for block in calt_blocks:
+            self.assertLess(block.index("lookup first;"), block.index("lookup second;"))
+        self.assertEqual([len(lookups) for lookups in calt_lookups], [4])
+        self.assertEqual([len(lookups) for lookups in ss03_lookups], [2])
+        moved_lookups = ss03_lookups[0]
+        self.assertEqual(calt_lookups[0][1:3], moved_lookups)
+
+    def test_ignores_every_repeated_feature_block(self) -> None:
+        config = ResolvedConfig()
+        config.feature_freeze["cv01"] = "ignore"
+        with tempfile.TemporaryDirectory() as tmp:
+            prepared = self._prepare_file(
+                Path(tmp),
+                """
+feature cv01 { sub a by a.alt; } cv01;
+feature cv01 { sub b by b.alt; } cv01;
+""",
+                config,
+            )
+
+        self.assertEqual(prepared.substitutions, ())
+        self.assertEqual(self._compiled_feature_counts(prepared.source)["cv01"], 2)
+
+    def test_keeps_a_single_feature_block_behavior_unchanged(self) -> None:
+        config = ResolvedConfig()
+        config.feature_freeze["cv01"] = "enable"
+        with tempfile.TemporaryDirectory() as tmp:
+            prepared = self._prepare_file(
+                Path(tmp),
+                "feature cv01 { sub a by a.alt; } cv01;",
+                config,
+            )
+
+        self.assertEqual(
+            prepared.substitutions,
+            (FeatureSubstitution("cv01", "a", "a.alt"),),
+        )
+        self.assertEqual(self._compiled_feature_counts(prepared.source)["cv01"], 1)
 
     def test_moves_contextual_lookup_into_calt(self) -> None:
         config = ResolvedConfig()

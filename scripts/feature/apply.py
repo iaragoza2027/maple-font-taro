@@ -100,12 +100,12 @@ def _parse_feature_source(
 
 def _feature_blocks(
     feature_file: fea_ast.FeatureFile,
-) -> dict[str, fea_ast.FeatureBlock]:
-    return {
-        statement.name: statement
-        for statement in feature_file.statements
-        if isinstance(statement, fea_ast.FeatureBlock)
-    }
+) -> dict[str, list[fea_ast.FeatureBlock]]:
+    blocks: dict[str, list[fea_ast.FeatureBlock]] = {}
+    for statement in feature_file.statements:
+        if isinstance(statement, fea_ast.FeatureBlock):
+            blocks.setdefault(statement.name, []).append(statement)
+    return blocks
 
 
 def _non_rule_statements(statements: list[Any]) -> list[Any]:
@@ -192,33 +192,36 @@ def _rewrite_feature_tree(
     for tag, status in freeze_config.items():
         if tag == "calt":
             continue
-        block = blocks.get(tag)
-        if block is None:
+        matching_blocks = blocks.get(tag)
+        if not matching_blocks:
             continue
         if status == "-1":
-            detached_feature_definitions.extend(
-                statement
-                for statement in block.statements
-                if isinstance(
-                    statement,
-                    (fea_ast.GlyphClassDefinition, fea_ast.LookupBlock),
-                )
-            )
-            block.statements = _non_rule_statements(block.statements)
-        elif status == "1" and enable_calt and tag in moving_rules:
-            rewritten_statements: list[Any] = []
-            for statement in block.statements:
-                if isinstance(statement, fea_ast.GlyphClassDefinition):
-                    detached_feature_definitions.append(statement)
-                elif isinstance(statement, fea_ast.LookupBlock):
-                    detached_feature_definitions.append(statement)
-                    rewritten_statements.append(
-                        fea_ast.LookupReferenceStatement(statement)
+            for block in matching_blocks:
+                detached_feature_definitions.extend(
+                    statement
+                    for statement in block.statements
+                    if isinstance(
+                        statement,
+                        (fea_ast.GlyphClassDefinition, fea_ast.LookupBlock),
                     )
-                else:
-                    rewritten_statements.append(statement)
-            block.statements = rewritten_statements
-            additions = _moving_statements(block.statements)
+                )
+                block.statements = _non_rule_statements(block.statements)
+        elif status == "1" and enable_calt and tag in moving_rules:
+            additions: list[Any] = []
+            for block in matching_blocks:
+                rewritten_statements: list[Any] = []
+                for statement in block.statements:
+                    if isinstance(statement, fea_ast.GlyphClassDefinition):
+                        detached_feature_definitions.append(statement)
+                    elif isinstance(statement, fea_ast.LookupBlock):
+                        detached_feature_definitions.append(statement)
+                        rewritten_statements.append(
+                            fea_ast.LookupReferenceStatement(statement)
+                        )
+                    else:
+                        rewritten_statements.append(statement)
+                block.statements = rewritten_statements
+                additions.extend(_moving_statements(block.statements))
             for calt_block in calt_blocks:
                 calt_block.statements.extend(deepcopy(additions))
     if detached_feature_definitions:

@@ -6,6 +6,7 @@ on:
       - "**.py"
       - "config.json"
       - "pyproject.toml"
+      - "requirements.txt"
       - "uv.lock"
       - ".github/workflows/python.yml"
   pull_request:
@@ -13,6 +14,7 @@ on:
       - "**.py"
       - "config.json"
       - "pyproject.toml"
+      - "requirements.txt"
       - "uv.lock"
       - ".github/workflows/python.yml"
 
@@ -32,6 +34,10 @@ jobs:
         with:
           enable-cache: true
           python-version: ${{ matrix.python-version }}
+      - name: Check exported requirements
+        run: |
+          uv export --locked --no-dev --no-hashes --output-file requirements.txt
+          git diff --exit-code -- requirements.txt
       - name: Sync locked environment
         run: uv sync --locked
       - name: Check formatting

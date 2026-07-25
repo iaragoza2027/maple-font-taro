@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from os import path, remove
+from pathlib import Path
 
 from scripts.font_ops.fonttools import TTFont
 from scripts.font_ops.nerd_font import NerdFontVariant, parse_codes_from_json
@@ -37,23 +38,34 @@ def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
     return parser
 
 
-def update_config_json(config_path: str, version: str):
-    with open(config_path, "r+", encoding="utf-8") as file:
+def update_config_json(config_path: str, version: str) -> None:
+    config_file = Path(config_path)
+    with config_file.open(encoding="utf-8") as file:
         data = json.load(file)
 
-        if "nerd_font" in data:
-            data["nerd_font"]["version"] = version
+    if not isinstance(data, dict):
+        raise ValueError(f"Invalid config JSON: expected an object in {config_file}")
+    nerd_font = data.get("nerd_font")
+    if not isinstance(nerd_font, dict):
+        raise ValueError(
+            f"Invalid config JSON: missing nerd_font object in {config_file}"
+        )
+    if not isinstance(nerd_font.get("version"), str):
+        raise ValueError(
+            f"Invalid config JSON: missing nerd_font.version in {config_file}"
+        )
 
-        file.seek(0)
+    nerd_font["version"] = version
+    with config_file.open("w", encoding="utf-8") as file:
         json.dump(data, file, ensure_ascii=False, indent=2)
+        file.write("\n")
 
 
-def check_update():
+def check_update(config_path: str = "config.json") -> None:
     github_mirror = github_mirror_from_config()
-    current_version = None
-    with open("./config.json", "r", encoding="utf-8") as file:
+    with open(config_path, "r", encoding="utf-8") as file:
         data = json.load(file)
-        current_version = data["nerd_font"]["version"]
+    current_version = data["nerd_font"]["version"]
 
     latest_version = current_version
     logger.info("Fetch latest Nerd Font version")
@@ -81,8 +93,7 @@ def check_update():
     if not check_font_patcher(latest_version, github_mirror):
         logger.error("Failed to update FontPatcher")
         exit(1)
-    update_config_json("./config.json", latest_version)
-    update_config_json("./source/preset-normal.json", latest_version)
+    update_config_json(config_path, latest_version)
 
 
 def get_nerd_font_patcher_args(mono: bool, propo: bool = False):

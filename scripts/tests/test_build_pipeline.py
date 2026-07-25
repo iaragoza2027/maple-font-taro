@@ -30,7 +30,12 @@ from scripts.pipeline.cjk_outputs import (
     ensure_cjk_variable_fonts,
 )
 from scripts.pipeline.artifacts import collect_build_files, prune_build_files
-from scripts.pipeline.cache import CACHE_SCHEMA, output_snapshot
+from scripts.pipeline.cache import (
+    CACHE_SCHEMA,
+    output_snapshot,
+    stage_digest,
+    write_cache_record,
+)
 from scripts.config.resolver import BuildConfigResolver
 from scripts.config.runtime import BuildRuntimeContext
 from scripts.cjk.config import CJKBuildConfig, CJKOutputConfig, CJKSourceConfig
@@ -105,6 +110,21 @@ def write_test_font(path: Path) -> None:
     builder.save(path)
 
 
+def make_stage_record(
+    pipeline: MapleBuildPipeline,
+    stage: str,
+    paths: list[Path],
+) -> dict[str, object]:
+    return {
+        "key": pipeline._stage_cache_identity(stage),
+        "snapshot": output_snapshot(
+            Path(pipeline.runtime_context.output_root),
+            stage,
+            paths,
+        ),
+    }
+
+
 def make_builtin_entry(locale: CJKPresetId = "cn") -> ResolvedCJKBuildEntry:
     preset_config = build_preset_config(locale)
     return ResolvedCJKBuildEntry(
@@ -150,6 +170,7 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 patch(
                     "scripts.pipeline.orchestrator.build_cjk_extended_static_outputs"
                 ) as build_cjk,
+                patch.object(pipeline, "_mark_stage_rebuilt"),
                 patch("scripts.pipeline.orchestrator.logger.info") as log_info,
             ):
                 pipeline._build_cjk_outputs(cast(Executor, MagicMock()))
@@ -207,9 +228,10 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             font_config.behavior.cache = True
             font_config.cjk.entries = [make_custom_entry("JP")]
             runtime_context = make_runtime_context(Path(tmp))
-            nf_file = Path(runtime_context.output_nf) / "MapleMono-NF-Regular.ttf"
-            write_test_font(nf_file)
             pipeline = MapleBuildPipeline(font_config, runtime_context)
+            nf_paths = pipeline._nf_stage_expected_paths()
+            for nf_path in nf_paths:
+                write_test_font(nf_path)
             pipeline._cache_record = {
                 "schema": CACHE_SCHEMA,
                 "stages": {
@@ -218,7 +240,7 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                         "snapshot": output_snapshot(
                             Path(runtime_context.output_root),
                             "nf",
-                            [nf_file],
+                            nf_paths,
                         ),
                     }
                 },
@@ -413,6 +435,7 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                     "write_build_record",
                     side_effect=lambda: events.append("record"),
                 ),
+                patch.object(MapleBuildPipeline, "_mark_stage_rebuilt"),
                 patch.object(
                     MapleBuildPipeline,
                     "archive_outputs",
@@ -557,6 +580,20 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
         font_config.behavior.use_cjk_both = True
         self.assertTrue(font_config.needs_hinted_ttf())
 
+    def test_cache_record_omits_cleaned_intermediate_ttf_stages(self) -> None:
+        font_config = make_font_config()
+        font_config.behavior.formats = ["otf"]
+        font_config.feature.hinted = True
+        font_config.nerd_font.enable = True
+        pipeline = MapleBuildPipeline(
+            font_config,
+            make_runtime_context(Path("/tmp/maple-font-cache-stage-test")),
+        )
+
+        self.assertTrue(font_config.needs_hinted_ttf())
+        self.assertNotIn("ttf", pipeline._requested_cache_stages())
+        self.assertNotIn("ttf-autohint", pipeline._requested_cache_stages())
+
     def test_otf_only_build_skips_unconsumed_autohint_stage(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             font_config = make_font_config()
@@ -578,6 +615,7 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 patch.object(MapleBuildPipeline, "start_build_timer"),
                 patch.object(MapleBuildPipeline, "prepare_output_root"),
                 patch.object(MapleBuildPipeline, "write_build_record"),
+                patch.object(MapleBuildPipeline, "_mark_stage_rebuilt"),
                 patch.object(MapleBuildPipeline, "finish_build"),
                 patch(
                     "scripts.pipeline.orchestrator.prepare_fontmake_sources",
@@ -621,6 +659,11 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             events: list[str] = []
 
             pipeline = MapleBuildPipeline(font_config, runtime_context)
+            for stage in ("variable", "ttf", "otf", "ttf-autohint", "woff2"):
+                pipeline._mark_stage_rebuilt(
+                    stage,
+                    pipeline._base_stage_expected_paths(stage),
+                )
             pipeline.write_build_record()
             with patch.object(
                 MapleBuildPipeline,
@@ -675,6 +718,208 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             build_nf_mock.assert_not_called()
             build_cjk_mock.assert_not_called()
 
+    def test_all_cache_hits_are_hashed_only_during_validation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            font_config = make_font_config()
+            font_config.behavior.cache = True
+            font_config.behavior.formats = ["otf"]
+            font_config.feature.hinted = False
+            font_config.behavior.least_styles = True
+            font_config.nerd_font.enable = False
+            font_config.cjk.entries = []
+            runtime_context = make_runtime_context(Path(tmp))
+
+            seeded = MapleBuildPipeline(font_config, runtime_context)
+            for stage in ("variable", "otf"):
+                paths = seeded._base_stage_expected_paths(stage)
+                for path in paths:
+                    write_test_font(path)
+                seeded._mark_stage_rebuilt(stage, paths)
+            seeded.write_cache_record()
+            original_record = json.loads(
+                (Path(runtime_context.output_root) / "build-cache.json").read_text()
+            )
+
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+            with patch(
+                "scripts.pipeline.cache.stage_digest",
+                wraps=stage_digest,
+            ) as digest:
+                self.assertEqual(pipeline.base_formats_to_build(), ())
+                pipeline.write_cache_record()
+
+            self.assertEqual(digest.call_count, 2)
+            self.assertEqual(
+                json.loads(
+                    (Path(runtime_context.output_root) / "build-cache.json").read_text()
+                ),
+                original_record,
+            )
+
+    def test_mixed_cache_reuses_hits_and_snapshots_only_rebuilt_stages(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            font_config = make_font_config()
+            font_config.behavior.cache = True
+            font_config.behavior.formats = ["otf"]
+            font_config.feature.hinted = False
+            font_config.behavior.least_styles = True
+            font_config.nerd_font.enable = False
+            font_config.cjk.entries = []
+            runtime_context = make_runtime_context(Path(tmp))
+            root = Path(runtime_context.output_root)
+
+            seeded = MapleBuildPipeline(font_config, runtime_context)
+            paths_by_stage = {
+                stage: seeded._base_stage_expected_paths(stage)
+                for stage in ("variable", "otf")
+            }
+            for paths in paths_by_stage.values():
+                for path in paths:
+                    write_test_font(path)
+            original_variable = make_stage_record(
+                seeded,
+                "variable",
+                paths_by_stage["variable"],
+            )
+            record = {
+                "schema": CACHE_SCHEMA,
+                "stages": {
+                    "variable": original_variable,
+                    "otf": make_stage_record(
+                        seeded,
+                        "otf",
+                        paths_by_stage["otf"],
+                    ),
+                    "ttf": {
+                        "key": "stale",
+                        "snapshot": {
+                            "files": ["TTF/Stale.ttf"],
+                            "digest": "stale",
+                        },
+                    },
+                },
+            }
+            write_cache_record(root, record)
+            paths_by_stage["otf"][0].write_bytes(b"corrupt")
+
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+            with patch(
+                "scripts.pipeline.cache.stage_digest",
+                wraps=stage_digest,
+            ) as digest:
+                self.assertEqual(pipeline.base_formats_to_build(), ("otf",))
+                for path in paths_by_stage["otf"]:
+                    write_test_font(path)
+                pipeline._mark_stage_rebuilt("otf", paths_by_stage["otf"])
+                pipeline.write_cache_record()
+
+            current_record = json.loads((root / "build-cache.json").read_text())
+            self.assertEqual(digest.call_count, 3)
+            self.assertEqual(
+                current_record["stages"]["variable"],
+                original_variable,
+            )
+            self.assertEqual(set(current_record["stages"]), {"variable", "otf"})
+
+    def test_failed_rebuild_does_not_restore_invalidated_stage_record(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            font_config = make_font_config()
+            font_config.behavior.cache = True
+            font_config.behavior.formats = ["otf"]
+            font_config.feature.hinted = False
+            font_config.behavior.least_styles = True
+            font_config.nerd_font.enable = False
+            font_config.cjk.entries = []
+            runtime_context = make_runtime_context(Path(tmp))
+            root = Path(runtime_context.output_root)
+            seeded = MapleBuildPipeline(font_config, runtime_context)
+
+            variable_paths = seeded._base_stage_expected_paths("variable")
+            otf_paths = seeded._base_stage_expected_paths("otf")
+            for path in (*variable_paths, *otf_paths):
+                write_test_font(path)
+            otf_record = make_stage_record(seeded, "otf", otf_paths)
+            otf_record["key"] = "obsolete"
+            write_cache_record(
+                root,
+                {
+                    "schema": CACHE_SCHEMA,
+                    "stages": {
+                        "variable": make_stage_record(
+                            seeded,
+                            "variable",
+                            variable_paths,
+                        ),
+                        "otf": otf_record,
+                    },
+                },
+            )
+
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+            with (
+                patch(
+                    "scripts.pipeline.orchestrator.prepare_fontmake_sources",
+                    side_effect=RuntimeError("build failed"),
+                ),
+                self.assertRaisesRegex(RuntimeError, "build failed"),
+            ):
+                pipeline.build()
+
+            record = json.loads((root / "build-cache.json").read_text())
+            self.assertEqual(set(record["stages"]), {"variable"})
+
+    def test_cjk_profiles_reuse_and_rebuild_independently(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            font_config = make_font_config()
+            font_config.behavior.cache = True
+            font_config.behavior.debug = True
+            font_config.behavior.use_cjk_both = True
+            font_config.cjk.entries = [make_custom_entry("HK")]
+            runtime_context = make_runtime_context(Path(tmp))
+            runtime_context.is_nf_built = True
+            root = Path(runtime_context.output_root)
+            seeded = MapleBuildPipeline(font_config, runtime_context)
+            hk_paths = seeded._cjk_stage_expected_paths("HK")
+            nf_hk_paths = seeded._cjk_stage_expected_paths("NF-HK")
+            for path in (*hk_paths, *nf_hk_paths):
+                write_test_font(path)
+            hk_record = make_stage_record(seeded, "hk-static", hk_paths)
+            write_cache_record(
+                root,
+                {
+                    "schema": CACHE_SCHEMA,
+                    "stages": {
+                        "hk-static": hk_record,
+                        "nf-hk-static": make_stage_record(
+                            seeded,
+                            "nf-hk-static",
+                            nf_hk_paths,
+                        ),
+                    },
+                },
+            )
+            nf_hk_paths[0].write_bytes(b"corrupt")
+
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+            with patch(
+                "scripts.pipeline.cache.stage_digest",
+                wraps=stage_digest,
+            ) as digest:
+                self.assertTrue(pipeline._validate_recorded_stage("hk-static"))
+                self.assertFalse(pipeline._validate_recorded_stage("nf-hk-static"))
+                pipeline._invalidate_recorded_stage("nf-hk-static")
+                write_test_font(nf_hk_paths[0])
+                pipeline._mark_stage_rebuilt("nf-hk-static", nf_hk_paths)
+                pipeline.write_cache_record()
+
+            current_record = json.loads((root / "build-cache.json").read_text())
+            self.assertEqual(digest.call_count, 3)
+            self.assertEqual(current_record["stages"]["hk-static"], hk_record)
+            self.assertEqual(
+                set(current_record["stages"]),
+                {"hk-static", "nf-hk-static"},
+            )
+
     def test_cache_builds_only_missing_base_format(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             font_config = make_font_config()
@@ -712,6 +957,11 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 write_test_font(directory / f"MapleMonoDebug-Regular{suffix}")
 
             pipeline = MapleBuildPipeline(font_config, runtime_context)
+            for stage in ("variable", "ttf", "ttf-autohint", "woff2"):
+                pipeline._mark_stage_rebuilt(
+                    stage,
+                    pipeline._base_stage_expected_paths(stage),
+                )
             pipeline.write_build_record()
             record = json.loads(
                 (Path(runtime_context.output_root) / "build-cache.json").read_text(
@@ -733,6 +983,10 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 )
             write_test_font(
                 Path(runtime_context.output_otf) / "MapleMonoDebug-Regular.otf"
+            )
+            pipeline._mark_stage_rebuilt(
+                "otf",
+                pipeline._base_stage_expected_paths("otf"),
             )
             pipeline.write_build_record()
             self.assertEqual(pipeline.base_formats_to_build(), ())
@@ -832,11 +1086,17 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             runtime_context = make_runtime_context(tmp_path)
             variable_dir = Path(runtime_context.output_variable)
             write_test_font(variable_dir / "MapleMono[wght].ttf")
+            write_test_font(variable_dir / "MapleMono-Italic[wght].ttf")
             archive_dir = Path(runtime_context.output_root) / "archive"
             archive_dir.mkdir(parents=True)
             (archive_dir / "release.zip").write_bytes(b"archive")
 
-            MapleBuildPipeline(font_config, runtime_context).write_build_record()
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+            pipeline._mark_stage_rebuilt(
+                "variable",
+                pipeline._base_stage_expected_paths("variable"),
+            )
+            pipeline.write_build_record()
 
             record = json.loads(
                 (Path(runtime_context.output_root) / "build-cache.json").read_text(
@@ -869,12 +1129,15 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             source_marker = source_cache_dir / "MapleMono-JP-VF.ttf"
             source_marker.parent.mkdir(parents=True)
             source_marker.write_bytes(b"source-cache")
-            final_output = (
-                Path(runtime_context.output_root) / "JP" / "MapleMono-JP-Regular.ttf"
+            font_config.behavior.debug = True
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+            for final_output in pipeline._cjk_stage_expected_paths("JP"):
+                write_test_font(final_output)
+            pipeline._mark_stage_rebuilt(
+                "jp-static",
+                pipeline._cjk_stage_expected_paths("JP"),
             )
-            write_test_font(final_output)
-
-            MapleBuildPipeline(font_config, runtime_context).write_build_record()
+            pipeline.write_build_record()
 
             record = json.loads(
                 (Path(runtime_context.output_root) / "build-cache.json").read_text(
@@ -886,7 +1149,13 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                 for stage in record["stages"].values()
                 for path in stage["snapshot"]["files"]
             }
-            self.assertEqual(recorded_paths, {"JP/MapleMono-JP-Regular.ttf"})
+            self.assertEqual(
+                recorded_paths,
+                {
+                    "JP/MapleMono-JP-Regular.ttf",
+                    "JP/MapleMono-JP-Italic.ttf",
+                },
+            )
             self.assertTrue(source_marker.is_file())
 
     def test_cjk_cache_stages_split_locale_and_nf_profiles(self) -> None:
@@ -961,6 +1230,7 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
                     "scripts.pipeline.orchestrator.build_base_fonts",
                     return_value=hinted_paths,
                 ) as auto_hint,
+                patch.object(pipeline, "_mark_stage_rebuilt"),
                 patch("scripts.pipeline.orchestrator.build_woff2_fonts") as convert,
                 patch("scripts.pipeline.orchestrator.build_nerd_fonts") as build_nf,
             ):

@@ -76,7 +76,7 @@ from scripts.pipeline.cache import (
     output_snapshot,
     read_cache_record,
     stage_identity,
-    validate_stage,
+    validated_stage_record,
     write_cache_record as persist_cache_record,
 )
 from scripts.pipeline.base_fonts import build_base_fonts, build_woff2_fonts
@@ -525,6 +525,8 @@ class MapleBuildPipeline:
         self._cache_identity_valid = True
         self._cache_reuse_logged: set[str] = set()
         self._cache_record: dict[str, Any] | None = None
+        self._validated_stage_records: dict[str, dict[str, object]] = {}
+        self._rebuilt_stage_paths: dict[str, list[Path]] = {}
         self._build_identity: dict[str, object] | None = None
 
     def build(self) -> None:
@@ -590,6 +592,10 @@ class MapleBuildPipeline:
                     fontmake_context,
                     process_executor,
                 )
+                self._mark_stage_rebuilt(
+                    "variable",
+                    self._base_stage_expected_paths("variable"),
+                )
                 output_counts.append(("Variable", len(variable_paths or ())))
             for build_format in ("ttf", "otf"):
                 if build_format in base_formats:
@@ -600,6 +606,10 @@ class MapleBuildPipeline:
                         build_format,
                         self.target_styles,
                         process_executor,
+                    )
+                    self._mark_stage_rebuilt(
+                        build_format,
+                        self._base_stage_expected_paths(build_format),
                     )
                     output_counts.append(
                         (build_format.upper(), len(static_paths or ()))
@@ -617,17 +627,27 @@ class MapleBuildPipeline:
         ttf_paths = self._base_stage_expected_paths("ttf")
         hinted_paths = self._base_stage_expected_paths("ttf-autohint")
         if self.should_build_hinted_ttf(base_formats):
+            self._invalidate_recorded_stage("ttf-autohint")
             hinted_paths = build_base_fonts(
                 self.font_config,
                 self.runtime_context,
                 ttf_paths,
                 process_executor,
             )
+            self._mark_stage_rebuilt(
+                "ttf-autohint",
+                self._base_stage_expected_paths("ttf-autohint"),
+            )
         if self.should_build_woff2_outputs(base_formats):
+            self._invalidate_recorded_stage("woff2")
             build_woff2_fonts(
                 ttf_paths,
                 self.runtime_context,
                 process_executor,
+            )
+            self._mark_stage_rebuilt(
+                "woff2",
+                self._base_stage_expected_paths("woff2"),
             )
         elif self.font_config.wants_format("woff2") and self.font_config.debug:
             set_log_task("woff2")
@@ -638,6 +658,7 @@ class MapleBuildPipeline:
                 logger.info("Reuse cached NF outputs")
                 self.runtime_context.is_nf_built = True
             else:
+                self._invalidate_recorded_stage("nf")
                 nf_inputs = hinted_paths if self.font_config.use_hinted else ttf_paths
                 build_nerd_fonts(
                     self.font_config,
@@ -645,6 +666,7 @@ class MapleBuildPipeline:
                     nf_inputs,
                     process_executor,
                 )
+                self._mark_stage_rebuilt("nf", self._nf_stage_expected_paths())
         else:
             set_log_task("nerd-font")
             logger.debug("Skip Nerd Font outputs because the stage is disabled")
@@ -771,6 +793,10 @@ class MapleBuildPipeline:
                         output_locales,
                         started_at=started_at,
                     )
+                self._mark_stage_rebuilt(
+                    stage,
+                    self._cjk_stage_expected_paths(output_locale),
+                )
                 built_any = True
             self.runtime_context.is_cjk_built = built_any
         else:
@@ -848,6 +874,7 @@ class MapleBuildPipeline:
             if self._has_cached_base_format(build_format):
                 self._log_cache_reuse(build_format)
             else:
+                self._invalidate_recorded_stage(build_format)
                 missing_formats.append(build_format)
         return tuple(missing_formats)
 
@@ -936,17 +963,22 @@ class MapleBuildPipeline:
         raise ValueError(f"Unknown base stage: {stage}")
 
     def _validate_cached_stage(self, stage: str, paths: list[Path]) -> bool:
+        self._validated_stage_records.pop(stage, None)
         if not self.should_use_cache:
             return False
         if not self._cache_matches_build():
             return False
-        return validate_stage(
+        stage_record = validated_stage_record(
             Path(self.runtime_context.output_root),
             self._cache_record,
             stage,
             self._stage_cache_identity(stage),
             paths,
         )
+        if stage_record is None:
+            return False
+        self._validated_stage_records[stage] = stage_record
+        return True
 
     def _validate_recorded_stage(self, stage: str) -> bool:
         if not self.should_use_cache or not self._cache_matches_build():
@@ -961,6 +993,8 @@ class MapleBuildPipeline:
         if not isinstance(files, list) or not files:
             logger.info("Cache miss: stage=%s, reason=missing-output", stage)
             return False
+        if stage == "nf":
+            return self._validate_cached_stage(stage, self._nf_stage_expected_paths())
         root = Path(self.runtime_context.output_root)
         cjk_stages = {
             target_stage
@@ -979,13 +1013,7 @@ class MapleBuildPipeline:
             except ValueError:
                 logger.info("Cache miss: stage=%s, reason=invalid-record", stage)
                 return False
-            return validate_stage(
-                root,
-                self._cache_record,
-                stage,
-                self._stage_cache_identity(stage),
-                paths,
-            )
+            return self._validate_cached_stage(stage, paths)
 
         _entry, output_locale = self._cjk_stage_target(stage)
         paths = self._cjk_stage_expected_paths(output_locale)
@@ -998,15 +1026,23 @@ class MapleBuildPipeline:
         ):
             logger.info("Cache miss: stage=%s, reason=missing-output", stage)
             return False
-        return validate_stage(
-            root,
-            self._cache_record,
-            stage,
-            self._stage_cache_identity(stage),
-            paths,
-        )
+        return self._validate_cached_stage(stage, paths)
+
+    def _nf_stage_expected_paths(self) -> list[Path]:
+        upstream = "ttf-autohint" if self.font_config.use_hinted else "ttf"
+        symbol = self.font_config.get_nf_variant().symbol
+        return [
+            Path(self.runtime_context.output_nf)
+            / (
+                f"{self.font_config.family_name_compact}-{symbol}-"
+                f"{path.stem.rsplit('-', 1)[-1]}.ttf"
+            )
+            for path in self._base_stage_expected_paths(upstream)
+        ]
 
     def _invalidate_recorded_stage(self, stage: str) -> None:
+        self._validated_stage_records.pop(stage, None)
+        self._rebuilt_stage_paths.pop(stage, None)
         if not self.should_use_cache or self._cache_record is None:
             return
         stages = self._cache_record.get("stages")
@@ -1017,6 +1053,16 @@ class MapleBuildPipeline:
             Path(self.runtime_context.output_root),
             self._cache_record,
         )
+
+    def _mark_stage_rebuilt(self, stage: str, paths: list[Path]) -> None:
+        if not paths or any(
+            not path.is_file() or path.stat().st_size == 0 for path in paths
+        ):
+            raise FileNotFoundError(
+                f"Stage {stage} did not produce all expected output files"
+            )
+        self._validated_stage_records.pop(stage, None)
+        self._rebuilt_stage_paths[stage] = list(paths)
 
     def _stage_cache_identity(self, stage: str) -> str:
         record = self.font_config.to_dict()
@@ -1137,49 +1183,47 @@ class MapleBuildPipeline:
         self.write_build_config()
         self.write_cache_record()
 
+    def _requested_cache_stages(self) -> list[str]:
+        stages = ["variable"]
+        if self.font_config.wants_format("ttf"):
+            stages.append("ttf")
+            if self.font_config.needs_hinted_ttf():
+                stages.append("ttf-autohint")
+        if self.font_config.wants_format("otf") and not self.font_config.debug:
+            stages.append("otf")
+        if self.plan.build_woff2:
+            stages.append("woff2")
+        if self.plan.build_nerd_font:
+            stages.append("nf")
+        stages.extend(stage for stage, _entry, _locale in self._cjk_stage_targets())
+        return stages
+
     def write_cache_record(self) -> None:
         log_task(TaskName.BUILD, "Write cache record", force_separator=True)
         root = Path(self.runtime_context.output_root)
         stages: dict[str, dict[str, object]] = {}
-        for stage in ("variable", "ttf", "otf", "ttf-autohint", "woff2"):
-            files = [
-                path
-                for path in self._base_stage_expected_paths(stage)
-                if path.is_file()
-            ]
-            if files:
+        for stage in self._requested_cache_stages():
+            rebuilt_paths = self._rebuilt_stage_paths.get(stage)
+            if rebuilt_paths is not None:
+                if any(
+                    not path.is_file() or path.stat().st_size == 0
+                    for path in rebuilt_paths
+                ):
+                    raise FileNotFoundError(
+                        f"Stage {stage} outputs changed before cache recording"
+                    )
                 stages[stage] = {
                     "key": self._stage_cache_identity(stage),
                     "snapshot": output_snapshot(
                         root,
                         stage,
-                        files,
+                        rebuilt_paths,
                     ),
                 }
-        nf_dir = Path(self.runtime_context.output_nf)
-        nf_files = sorted(path for path in nf_dir.rglob("*") if path.is_file())
-        if nf_files:
-            stages["nf"] = {
-                "key": self._stage_cache_identity("nf"),
-                "snapshot": output_snapshot(
-                    root,
-                    "nf",
-                    nf_files,
-                ),
-            }
-        if self.plan.cjk_mode:
-            for stage, _entry, output_locale in self._cjk_stage_targets():
-                files = self._cjk_stage_paths(output_locale)
-                if not files:
-                    continue
-                stages[stage] = {
-                    "key": self._stage_cache_identity(stage),
-                    "snapshot": output_snapshot(
-                        root,
-                        stage,
-                        files,
-                    ),
-                }
+                continue
+            validated_record = self._validated_stage_records.get(stage)
+            if validated_record is not None:
+                stages[stage] = validated_record
         record: dict[str, Any] = {
             "schema": CACHE_SCHEMA,
             "stages": stages,

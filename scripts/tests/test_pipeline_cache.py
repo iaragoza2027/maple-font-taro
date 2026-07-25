@@ -14,6 +14,7 @@ from scripts.pipeline.cache import (
     relative_cache_path,
     stage_identity,
     validate_stage,
+    validated_stage_record,
     write_cache_record,
 )
 
@@ -53,6 +54,37 @@ class PipelineCacheTest(unittest.TestCase):
 
             self.assertFalse(
                 validate_stage(root, record, "variable", identity, [output])
+            )
+
+    def test_validation_returns_an_independent_copy_of_the_stage_record(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            output = root / "Variable" / "MapleMono[wght].ttf"
+            output.parent.mkdir()
+            output.write_bytes(b"font")
+            identity = stage_identity({"source": "one"}, "variable")
+            stage_record = {
+                "key": identity,
+                "snapshot": output_snapshot(root, "variable", [output]),
+            }
+            record = {
+                "schema": CACHE_SCHEMA,
+                "stages": {"variable": stage_record},
+            }
+
+            validated = validated_stage_record(
+                root,
+                record,
+                "variable",
+                identity,
+                [output],
+            )
+            cast(dict[str, object], stage_record["snapshot"])["digest"] = "changed"
+
+            self.assertIsNotNone(validated)
+            self.assertNotEqual(
+                cast(dict[str, object], validated)["snapshot"],
+                stage_record["snapshot"],
             )
 
     def test_cache_logs_compact_hit_and_miss_messages(self) -> None:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -108,33 +109,47 @@ def validate_stage(
     identity: str,
     expected_paths: list[Path],
 ) -> bool:
+    return (
+        validated_stage_record(root, record, stage, identity, expected_paths)
+        is not None
+    )
+
+
+def validated_stage_record(
+    root: Path,
+    record: dict[str, Any] | None,
+    stage: str,
+    identity: str,
+    expected_paths: list[Path],
+) -> dict[str, object] | None:
+    """Validate a stage and return an independent copy of its original record."""
     stages = (record or {}).get("stages")
     stage_record = stages.get(stage) if isinstance(stages, dict) else None
     if not isinstance(stage_record, dict):
         logger.info("Cache miss: stage=%s, reason=missing-record", stage)
-        return False
+        return None
     if stage_record.get("key") != identity:
         logger.info("Cache miss: stage=%s, reason=identity-changed", stage)
-        return False
+        return None
 
     snapshot = stage_record.get("snapshot")
     if not isinstance(snapshot, dict):
         logger.info("Cache miss: stage=%s, reason=invalid-record", stage)
-        return False
+        return None
     files = snapshot.get("files")
     digest = snapshot.get("digest")
     if not isinstance(files, list) or not all(isinstance(item, str) for item in files):
         logger.info("Cache miss: stage=%s, reason=invalid-record", stage)
-        return False
+        return None
     expected = {relative_cache_path(root, path) for path in expected_paths}
     if expected != set(files):
         logger.info("Cache miss: stage=%s, reason=missing-output", stage)
-        return False
+        return None
     if any(not path.is_file() or path.stat().st_size == 0 for path in expected_paths):
         logger.info("Cache miss: stage=%s, reason=missing-output", stage)
-        return False
+        return None
     if not isinstance(digest, str) or digest != stage_digest(root, expected_paths):
         logger.info("Cache miss: stage=%s, reason=stage-digest-mismatch", stage)
-        return False
+        return None
     logger.info("Cache hit: stage=%s", stage)
-    return True
+    return deepcopy(stage_record)

@@ -151,6 +151,11 @@ def download_file(
                     total_size,
                 )
                 log_progress(progress_message)
+            if total_size > 0 and downloaded_size != total_size:
+                raise OSError(
+                    "Downloaded file size does not match Content-Length: "
+                    f"expected {total_size} bytes, received {downloaded_size} bytes"
+                )
         finally:
             if total_size > 0:
                 progress_message = _download_progress_message(

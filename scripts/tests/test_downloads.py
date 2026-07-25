@@ -39,6 +39,16 @@ class FakeResponse:
 
 
 class DownloadProgressTest(unittest.TestCase):
+    def test_accepts_matching_content_length(self) -> None:
+        payload = b"font data"
+        response = FakeResponse(payload, str(len(payload)))
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "font.ttf"
+            with patch("scripts.utils.downloads.urlopen", return_value=response):
+                download_file("https://example.com/font.ttf", target)
+
+            self.assertEqual(target.read_bytes(), payload)
+
     def test_reports_percentage_progress_on_one_terminal_line(self) -> None:
         payload = b"a" * 16384
         response = FakeResponse(payload, str(len(payload)))
@@ -70,6 +80,16 @@ class DownloadProgressTest(unittest.TestCase):
                         download_file("https://example.com/font.ttf", target)
 
                     progress.assert_not_called()
+
+    def test_accepts_unknown_content_length(self) -> None:
+        payload = b"font data"
+        response = FakeResponse(payload, "unknown")
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "font.ttf"
+            with patch("scripts.utils.downloads.urlopen", return_value=response):
+                download_file("https://example.com/font.ttf", target)
+
+            self.assertEqual(target.read_bytes(), payload)
 
 
 class DownloadUrlResolutionTest(unittest.TestCase):
@@ -149,6 +169,30 @@ class DownloadUrlResolutionTest(unittest.TestCase):
 
 
 class CachedDownloadTest(unittest.TestCase):
+    def test_rejects_mismatched_content_length_and_cleans_up(self) -> None:
+        for payload in (b"short", b"longer than expected"):
+            with (
+                self.subTest(received_size=len(payload)),
+                tempfile.TemporaryDirectory() as tmp,
+            ):
+                target = Path(tmp) / "font.ttf"
+                response = FakeResponse(payload, "10")
+                with (
+                    patch("scripts.utils.downloads.urlopen", return_value=response),
+                    self.assertRaisesRegex(
+                        FileNotFoundError,
+                        rf"expected 10 bytes, received {len(payload)} bytes",
+                    ),
+                ):
+                    resolve_cached_download(
+                        "font",
+                        target,
+                        "https://example.com/font.ttf",
+                    )
+
+                self.assertFalse(target.exists())
+                self.assertFalse((target.parent / ".font.ttf.download").exists())
+
     def test_reuses_existing_file_without_downloading(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "font.ttf"

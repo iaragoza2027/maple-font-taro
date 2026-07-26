@@ -141,7 +141,7 @@ def generate_release_assets(plan: ReleasePlan) -> None:
 def publish_release(plan: ReleasePlan) -> None:
     git_release_commit(
         plan.tag,
-        ["woff2", plan.requirements_file, "pyproject.toml"],
+        ["woff2", plan.requirements_file, "pyproject.toml", "uv.lock"],
     )
 
 

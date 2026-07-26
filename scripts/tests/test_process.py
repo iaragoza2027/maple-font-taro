@@ -1,13 +1,101 @@
 from __future__ import annotations
 
-from concurrent.futures import Future
+from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
-from scripts.utils.process import run_jobs, run_process_jobs
+from scripts.utils.process import (
+    _probe_process_worker,
+    create_process_executor,
+    run_jobs,
+    run_process_jobs,
+)
 
 
 class ProcessExecutorTest(unittest.TestCase):
+    @patch("scripts.utils.process.ProcessPoolExecutor")
+    def test_create_process_executor_probes_worker_before_returning(
+        self, process_pool: MagicMock
+    ) -> None:
+        executor = process_pool.return_value
+        probe_future = executor.submit.return_value
+
+        result = create_process_executor(3)
+
+        self.assertIs(result, executor)
+        executor.submit.assert_called_once_with(_probe_process_worker)
+        probe_future.result.assert_called_once_with()
+
+    @patch("scripts.utils.process.ThreadPoolExecutor")
+    @patch("scripts.utils.process.ProcessPoolExecutor")
+    def test_create_process_executor_falls_back_after_constructor_failure(
+        self, process_pool: MagicMock, thread_pool: MagicMock
+    ) -> None:
+        process_pool.side_effect = OSError("processes unavailable")
+
+        result = create_process_executor(3, fallback_to_threads=True)
+
+        self.assertIs(result, thread_pool.return_value)
+        thread_pool.assert_called_once_with(max_workers=3)
+
+    @patch("scripts.utils.process.ThreadPoolExecutor")
+    @patch("scripts.utils.process.ProcessPoolExecutor")
+    def test_create_process_executor_propagates_constructor_failure(
+        self, process_pool: MagicMock, thread_pool: MagicMock
+    ) -> None:
+        error = OSError("processes unavailable")
+        process_pool.side_effect = error
+
+        with self.assertRaises(OSError) as raised:
+            create_process_executor(3)
+
+        self.assertIs(raised.exception, error)
+        thread_pool.assert_not_called()
+
+    @patch("scripts.utils.process.ThreadPoolExecutor")
+    @patch("scripts.utils.process.ProcessPoolExecutor")
+    def test_create_process_executor_shuts_down_after_submit_failure(
+        self, process_pool: MagicMock, thread_pool: MagicMock
+    ) -> None:
+        executor = process_pool.return_value
+        executor.submit.side_effect = PermissionError("workers unavailable")
+
+        result = create_process_executor(2, fallback_to_threads=True)
+
+        self.assertIs(result, thread_pool.return_value)
+        executor.shutdown.assert_called_once_with(wait=True, cancel_futures=True)
+        thread_pool.assert_called_once_with(max_workers=2)
+
+    @patch("scripts.utils.process.ThreadPoolExecutor")
+    @patch("scripts.utils.process.ProcessPoolExecutor")
+    def test_create_process_executor_handles_broken_probe_worker(
+        self, process_pool: MagicMock, thread_pool: MagicMock
+    ) -> None:
+        executor = process_pool.return_value
+        error = BrokenProcessPool("worker failed to start")
+        executor.submit.return_value.result.side_effect = error
+
+        with self.assertRaises(BrokenProcessPool) as raised:
+            create_process_executor(2)
+
+        self.assertIs(raised.exception, error)
+        executor.shutdown.assert_called_once_with(wait=True, cancel_futures=True)
+        thread_pool.assert_not_called()
+
+    @patch(
+        "scripts.utils.process.ProcessPoolExecutor",
+        side_effect=BrokenProcessPool("worker failed to start"),
+    )
+    def test_thread_fallback_runs_jobs_after_startup_failure(
+        self, _process_pool: MagicMock
+    ) -> None:
+        with create_process_executor(2, fallback_to_threads=True) as executor:
+            self.assertIsInstance(executor, ThreadPoolExecutor)
+            results = run_jobs(executor, lambda value: value * 2, [1, 2, 3])
+
+        self.assertEqual(results, [2, 4, 6])
+
     def test_run_process_jobs_uses_serial_execution_for_one_worker(self) -> None:
         calls: list[int] = []
 

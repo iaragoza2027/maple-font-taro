@@ -8,6 +8,7 @@ from concurrent.futures import (
     ThreadPoolExecutor,
     as_completed,
 )
+from concurrent.futures.process import BrokenProcessPool
 import os
 import shutil
 import subprocess
@@ -28,6 +29,11 @@ CI_ENVIRONMENTS = (
 )
 T = TypeVar("T")
 R = TypeVar("R")
+
+
+def _probe_process_worker() -> bool:
+    """Confirm that a process worker can start before accepting build jobs."""
+    return True
 
 
 class SynchronousExecutor(Executor):
@@ -87,13 +93,18 @@ def create_process_executor(
     fallback_to_threads: bool = False,
 ) -> Executor:
     """Create a process executor with consistent logging and optional fallback."""
+    executor: ProcessPoolExecutor | None = None
     try:
-        return ProcessPoolExecutor(
+        executor = ProcessPoolExecutor(
             max_workers=max_workers,
             initializer=initializer,
             initargs=initargs,
         )
-    except (OSError, PermissionError):
+        executor.submit(_probe_process_worker).result()
+        return executor
+    except (OSError, PermissionError, BrokenProcessPool):
+        if executor is not None:
+            executor.shutdown(wait=True, cancel_futures=True)
         if not fallback_to_threads:
             raise
         logger.warning("Process pool unavailable; falling back to thread pool")

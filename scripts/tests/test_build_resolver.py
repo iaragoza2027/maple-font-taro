@@ -449,6 +449,12 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
 
 
 class BuildConfigResolverJsonTest(unittest.TestCase):
+    def _resolve_with_config(self, config_data: dict):
+        with tempfile.TemporaryDirectory() as tmp:
+            config_path = Path(tmp) / "config.json"
+            config_path.write_text(json.dumps(config_data), encoding="utf-8")
+            return BuildConfigResolver(project_root=Path(tmp)).resolve(parse_args([]))
+
     def test_rejects_non_object_config(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             config_path = Path(tmp) / "config.json"
@@ -456,6 +462,114 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
 
             with self.assertRaisesRegex(ValueError, "JSON object"):
                 BuildConfigResolver(project_root=Path(tmp)).resolve(parse_args([]))
+
+    def test_feature_boolean_rejects_non_boolean_values(self) -> None:
+        for value in ("false", "true", 0, 1, None):
+            with self.subTest(value=value), self.assertRaises(ValueError) as error:
+                self._resolve_with_config({"use_hinted": value})
+
+            self.assertIn("use_hinted", str(error.exception))
+
+    def test_json_boolean_fields_report_their_full_paths(self) -> None:
+        common_options = (
+            "with_nerd_font",
+            "fix_meta_table",
+            "clean_cache",
+            "narrow",
+            "use_hinted",
+        )
+        cases = [
+            ({"enable_ligature": "true"}, "enable_ligature"),
+            ({"ligature": None}, "ligature"),
+            ({"remove_tag_liga": 0}, "remove_tag_liga"),
+            ({"nerd_font": {"enable": "false"}}, "nerd_font.enable"),
+            ({"nerd_font": {"mono": 1}}, "nerd_font.mono"),
+            ({"nerd_font": {"propo": None}}, "nerd_font.propo"),
+            (
+                {"nerd_font": {"use_font_patcher": "true"}},
+                "nerd_font.use_font_patcher",
+            ),
+            ({"cjk": {"locales": {"cn": "false"}}}, "cjk.locales.cn"),
+            (
+                {"cjk": {"locales": {"custom": [{"enable": 1}]}}},
+                "cjk.locales.custom[0].enable",
+            ),
+        ]
+        cases.extend(({"cjk": {key: "false"}}, f"cjk.{key}") for key in common_options)
+        cases.append(({"cn": {"enable": None}}, "cn.enable"))
+        cases.extend(({"cn": {key: "true"}}, f"cn.{key}") for key in common_options)
+
+        for config_data, field in cases:
+            with self.subTest(field=field), self.assertRaises(ValueError) as error:
+                self._resolve_with_config(config_data)
+
+            self.assertIn(field, str(error.exception))
+
+    def test_real_booleans_remain_supported(self) -> None:
+        font_config = self._resolve_with_config(
+            {
+                "use_hinted": False,
+                "enable_ligature": True,
+                "remove_tag_liga": True,
+                "nerd_font": {
+                    "enable": True,
+                    "mono": False,
+                    "propo": True,
+                    "use_font_patcher": False,
+                },
+                "cjk": {
+                    "locales": {"cn": False, "jp": True},
+                    "with_nerd_font": True,
+                    "fix_meta_table": False,
+                    "clean_cache": True,
+                    "narrow": False,
+                    "use_hinted": True,
+                },
+            }
+        )
+
+        self.assertFalse(font_config.feature.hinted)
+        self.assertTrue(font_config.feature.liga)
+        self.assertTrue(font_config.feature.remove_tag_liga)
+        self.assertTrue(font_config.nerd_font.enable)
+        self.assertFalse(font_config.nerd_font.mono)
+        self.assertTrue(font_config.nerd_font.propo)
+        self.assertFalse(font_config.nerd_font.use_font_patcher)
+        self.assertEqual(font_config.cjk.locales.builtin_enabled_locales(), ["jp"])
+        self.assertEqual(
+            font_config.cjk.common_options,
+            CJKCommonBuildOptions(
+                with_nerd_font=True,
+                fix_meta_table=False,
+                clean_cache=True,
+                narrow=False,
+                use_hinted=True,
+            ),
+        )
+
+    def test_false_legacy_cn_enable_preserves_cjk_locale_selection(self) -> None:
+        font_config = self._resolve_with_config(
+            {
+                "cjk": {"locales": {"cn": True}},
+                "cn": {"enable": False},
+            }
+        )
+
+        self.assertEqual(font_config.cjk.locales.builtin_enabled_locales(), ["cn"])
+
+    def test_infinite_arrow_accepts_boolean_or_null(self) -> None:
+        for value in (None, True, False):
+            with self.subTest(value=value):
+                font_config = self._resolve_with_config({"infinite_arrow": value})
+
+            self.assertIs(font_config.feature.infinite_arrow, value)
+
+    def test_infinite_arrow_rejects_strings_and_integers(self) -> None:
+        for value in ("false", "true", 0, 1):
+            with self.subTest(value=value), self.assertRaises(ValueError) as error:
+                self._resolve_with_config({"infinite_arrow": value})
+
+            self.assertIn("infinite_arrow", str(error.exception))
 
 
 class BuildConfigResolverCJKEntryTest(unittest.TestCase):

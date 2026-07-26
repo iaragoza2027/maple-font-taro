@@ -36,6 +36,12 @@ from scripts.utils.logging import logger
 from scripts.config.runtime import BuildRuntimeContext
 
 
+def _require_bool(value: Any, field: str) -> bool:
+    if not isinstance(value, bool):
+        raise ValueError(f"{field} must be a boolean")
+    return value
+
+
 class BuildConfigResolver:
     def __init__(self, project_root: str | Path = ".", version_tag: str = "v7.9"):
         self.project_root = Path(project_root)
@@ -141,19 +147,28 @@ class BuildConfigResolver:
         data: dict[str, Any],
     ) -> None:
         if "use_hinted" in data:
-            config.feature.hinted = bool(data["use_hinted"])
+            config.feature.hinted = _require_bool(data["use_hinted"], "use_hinted")
         if "enable_ligature" in data:
-            config.feature.liga = bool(data["enable_ligature"])
-        if "ligature" in data and data["ligature"] is not None:
-            config.feature.liga = bool(data["ligature"])
+            config.feature.liga = _require_bool(
+                data["enable_ligature"], "enable_ligature"
+            )
+        if "ligature" in data:
+            config.feature.liga = _require_bool(data["ligature"], "ligature")
         if "infinite_arrow" in data:
-            config.feature.infinite_arrow = data["infinite_arrow"]
+            infinite_arrow = data["infinite_arrow"]
+            config.feature.infinite_arrow = (
+                None
+                if infinite_arrow is None
+                else _require_bool(infinite_arrow, "infinite_arrow")
+            )
         if "line_height" in data:
             config.feature.line_height = float(data["line_height"])
         if "width" in data:
             config.feature.width = str(data["width"])
         if "remove_tag_liga" in data:
-            config.feature.remove_tag_liga = bool(data["remove_tag_liga"])
+            config.feature.remove_tag_liga = _require_bool(
+                data["remove_tag_liga"], "remove_tag_liga"
+            )
         if "feature_freeze" in data:
             config.feature_freeze.update(dict(data["feature_freeze"]))
 
@@ -178,15 +193,23 @@ class BuildConfigResolver:
         if "nerd_font" in data:
             nerd_font = dict(data["nerd_font"])
             if "enable" in nerd_font:
-                config.nerd_font.enable = bool(nerd_font["enable"])
+                config.nerd_font.enable = _require_bool(
+                    nerd_font["enable"], "nerd_font.enable"
+                )
             if "version" in nerd_font:
                 config.nerd_font.version = str(nerd_font["version"])
             if "mono" in nerd_font:
-                config.nerd_font.mono = bool(nerd_font["mono"])
+                config.nerd_font.mono = _require_bool(
+                    nerd_font["mono"], "nerd_font.mono"
+                )
             if "propo" in nerd_font:
-                config.nerd_font.propo = bool(nerd_font["propo"])
+                config.nerd_font.propo = _require_bool(
+                    nerd_font["propo"], "nerd_font.propo"
+                )
             if "use_font_patcher" in nerd_font:
-                config.nerd_font.use_font_patcher = bool(nerd_font["use_font_patcher"])
+                config.nerd_font.use_font_patcher = _require_bool(
+                    nerd_font["use_font_patcher"], "nerd_font.use_font_patcher"
+                )
             if "glyphs" in nerd_font:
                 config.nerd_font.glyphs = list(nerd_font["glyphs"])
             if "extra_args" in nerd_font:
@@ -221,15 +244,21 @@ class BuildConfigResolver:
             return selection
 
         for locale in BUILTIN_CJK_LOCALES:
-            selection.set_builtin_enabled(locale, bool(raw_locales.get(locale, False)))
+            enabled = False
+            if locale in raw_locales:
+                enabled = _require_bool(raw_locales[locale], f"cjk.locales.{locale}")
+            selection.set_builtin_enabled(locale, enabled)
 
         raw_custom = raw_locales.get("custom", [])
         if isinstance(raw_custom, list):
-            for raw_entry in raw_custom:
+            for index, raw_entry in enumerate(raw_custom):
                 if not isinstance(raw_entry, dict):
                     continue
                 entry_data = dict(raw_entry)
-                enable = bool(entry_data.pop("enable", True))
+                raw_enable = entry_data.pop("enable", True)
+                enable = _require_bool(
+                    raw_enable, f"cjk.locales.custom[{index}].enable"
+                )
                 selection.custom.append(
                     CustomCJKEntryConfig(
                         enable=enable,
@@ -255,7 +284,7 @@ class BuildConfigResolver:
             "use_hinted",
         ):
             if key in raw_cjk:
-                setattr(options, key, bool(raw_cjk[key]))
+                setattr(options, key, _require_bool(raw_cjk[key], f"cjk.{key}"))
         if "scale_factor" in raw_cjk:
             options.scale_factor = parse_scale_factor(raw_cjk["scale_factor"])
         return options
@@ -268,8 +297,9 @@ class BuildConfigResolver:
         if not isinstance(legacy_cn, dict):
             return
 
-        if legacy_cn.get("enable"):
-            selection.locales.cn = True
+        if "enable" in legacy_cn:
+            if _require_bool(legacy_cn["enable"], "cn.enable"):
+                selection.locales.cn = True
         for key in (
             "with_nerd_font",
             "fix_meta_table",
@@ -278,7 +308,11 @@ class BuildConfigResolver:
             "use_hinted",
         ):
             if key in legacy_cn:
-                setattr(selection.common_options, key, bool(legacy_cn[key]))
+                setattr(
+                    selection.common_options,
+                    key,
+                    _require_bool(legacy_cn[key], f"cn.{key}"),
+                )
         if "scale_factor" in legacy_cn:
             selection.common_options.scale_factor = parse_scale_factor(
                 legacy_cn["scale_factor"]

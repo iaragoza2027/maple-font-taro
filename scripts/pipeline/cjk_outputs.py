@@ -39,7 +39,10 @@ from scripts.font_ops.fonttools import (
     instantiate_variable_font,
     save_font_atomic,
 )
-from scripts.font_ops.glyph_transform import smart_change_width
+from scripts.font_ops.glyph_transform import (
+    reduce_glyph_side_bearings,
+    smart_change_width,
+)
 from scripts.font_ops.merge import merge_ttfonts
 from scripts.font_ops.names import update_font_names
 from scripts.font_ops.nerd_font import parse_codes_from_json
@@ -213,6 +216,16 @@ def build_cjk_extended_variable_fonts(
                 merged_font, cjk_added_glyphs, cjk_added_codepoints = merge_vf(
                     merged_font, extra_path
                 )
+                if font_config.get_width_name():
+                    reduce_glyph_side_bearings(
+                        merged_font,
+                        cjk_added_glyphs,
+                        {
+                            font_config.glyph_width: font_config.get_target_width(),
+                            2 * font_config.glyph_width: 2
+                            * font_config.get_target_width(),
+                        },
+                    )
                 recalculate_font_metrics(merged_font)
                 merged_font.table("OS/2").xAvgCharWidth = font_config.get_target_width()
                 drop_font_tables(merged_font, ("HVAR", "VVAR"))

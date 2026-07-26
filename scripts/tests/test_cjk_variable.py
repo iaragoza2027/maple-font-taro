@@ -12,6 +12,7 @@ from scripts.cjk.variable import (
     rebuild_weight_masters_with_regular_default,
     skew_glyphs,
 )
+from scripts.font_ops.glyph_transform import reduce_glyph_side_bearings
 from scripts.font_ops.fonttools import instantiate_variable_font
 from scripts.tests.cjk_font_fixtures import (
     CMAP,
@@ -23,6 +24,57 @@ from scripts.tests.cjk_font_fixtures import (
 
 
 class CJKVariableOperationsTest(unittest.TestCase):
+    def test_reduce_side_bearings_preserves_variable_glyph_shapes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            font = build_test_font(root / "variable.ttf", variable=True)
+            font["hmtx"].metrics.update(
+                {
+                    "box": (600, 50),
+                    "box.component": (600, 90),
+                    "cjk": (1200, 80),
+                }
+            )
+            original_coordinates = {
+                glyph_name: glyph_coordinates(font, glyph_name)
+                for glyph_name in ("box", "box.component", "cjk")
+            }
+            original_variations = {
+                glyph_name: [
+                    list(variation.coordinates or ())
+                    for variation in font["gvar"].variations[glyph_name]
+                ]
+                for glyph_name in ("box", "box.component", "cjk")
+            }
+
+            reduce_glyph_side_bearings(
+                font,
+                ("box", "box.component", "cjk"),
+                {600: 550, 1200: 1100},
+            )
+            adjusted = roundtrip_font(font, root / "adjusted.ttf")
+            self.addCleanup(adjusted.close)
+
+            self.assertEqual(adjusted["hmtx"].metrics["box"], (550, 25))
+            self.assertEqual(adjusted["hmtx"].metrics["box.component"], (550, 65))
+            self.assertEqual(adjusted["hmtx"].metrics["cjk"], (1100, 30))
+            for glyph_name, shift_x in (
+                ("box", -25),
+                ("box.component", -25),
+                ("cjk", -50),
+            ):
+                self.assertEqual(
+                    glyph_coordinates(adjusted, glyph_name),
+                    [(x + shift_x, y) for x, y in original_coordinates[glyph_name]],
+                )
+                self.assertEqual(
+                    [
+                        list(variation.coordinates or ())
+                        for variation in adjusted["gvar"].variations[glyph_name]
+                    ],
+                    original_variations[glyph_name],
+                )
+
     def test_merge_preserves_font_data_and_invalidates_metric_variations(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

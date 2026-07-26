@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable, Mapping
 from typing import Any, List, Tuple
 
 from fontTools.misc.transform import Transform
@@ -12,6 +13,55 @@ from scripts.font_ops.fonttools import TTFont
 
 # Type aliases
 Coordinate = Tuple[float, float]
+
+
+def reduce_glyph_side_bearings(
+    font: TTFont,
+    glyph_names: Iterable[str],
+    width_mapping: Mapping[int, int],
+) -> None:
+    """Reduce advances symmetrically without scaling glyph outlines."""
+    glyf = font["glyf"]
+    hmtx = font["hmtx"]
+    target_widths = {
+        glyph_name: width_mapping[advance]
+        for glyph_name in glyph_names
+        if glyph_name in hmtx.metrics
+        and (advance := hmtx.metrics[glyph_name][0]) in width_mapping
+        and width_mapping[advance] != advance
+    }
+
+    for glyph_name, target_width in target_widths.items():
+        glyph = glyf[glyph_name]
+        advance, lsb = hmtx.metrics[glyph_name]
+        shift_x = int(round((target_width - advance) / 2))
+
+        if glyph.isComposite():
+            for component in glyph.components:
+                if component.glyphName in target_widths:
+                    continue
+                if not hasattr(component, "x"):
+                    raise ValueError(
+                        "Cannot adjust point-aligned composite side bearings: "
+                        f"{glyph_name}"
+                    )
+                component.x += shift_x
+        elif glyph.numberOfContours > 0:
+            glyph.coordinates.translate((shift_x, 0))
+            glyph.coordinates.toInt()
+            glyph.recalcBounds(glyf)
+
+        hmtx.metrics[glyph_name] = (target_width, lsb + shift_x)
+
+    for glyph_name in target_widths:
+        glyph = glyf[glyph_name]
+        if glyph.isComposite():
+            glyph.recalcBounds(glyf)
+
+    if "hhea" in font:
+        font.table("hhea").advanceWidthMax = max(
+            advance for advance, _ in hmtx.metrics.values()
+        )
 
 
 def _calculate_normal(

@@ -4,6 +4,7 @@ from concurrent.futures import Executor
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from typing import cast
 from unittest.mock import MagicMock, patch
 
@@ -12,6 +13,7 @@ from scripts.cjk.config import (
     CJKDownloadConfig,
     CJKOutputConfig,
     CJKSourceConfig,
+    CJKWeightInstance,
 )
 from scripts.cjk.outlines import (
     convert_cff_master_files_to_glyf_tables_parallel,
@@ -44,6 +46,122 @@ def make_config(output_dir: Path) -> CJKBuildConfig:
 
 
 class CJKExecutorOwnershipTest(unittest.TestCase):
+    def test_static_instantiation_filters_compact_styles(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config = make_config(Path(tmp))
+            static_dir = config.output.dir / config.output.static_dir
+            existing_regular = (
+                static_dir / f"{config.naming.static_file_prefix}-Regular.ttf"
+            )
+            existing_regular.parent.mkdir(parents=True)
+            existing_regular.write_bytes(b"stale")
+            stale_bold = static_dir / f"{config.naming.static_file_prefix}-Bold.ttf"
+            stale_bold.write_bytes(b"stale")
+            unrelated_font = static_dir / "OtherFamily-Bold.ttf"
+            unrelated_font.write_bytes(b"unrelated")
+            marker = static_dir / "existing-cache-marker"
+            marker.write_text("preserve", encoding="utf-8")
+            executor = cast(Executor, MagicMock())
+            feature_font = MagicMock()
+            regular_font = MagicMock()
+            italic_font = MagicMock()
+            axis = SimpleNamespace(minValue=100, defaultValue=400, maxValue=700)
+            completed_future = MagicMock()
+            cast(MagicMock, executor).submit.return_value = completed_future
+
+            def assert_jobs_completed(*_args) -> None:
+                self.assertEqual(completed_future.result.call_count, 2)
+
+            with (
+                patch(
+                    "scripts.cjk.builder.load_feature_variable_font",
+                    return_value=feature_font,
+                ),
+                patch(
+                    "scripts.cjk.builder.load_font_eager",
+                    side_effect=(regular_font, italic_font),
+                ),
+                patch("scripts.cjk.builder.weight_axis", return_value=axis),
+                patch(
+                    "scripts.cjk.builder.feature_weight_instances",
+                    return_value=(
+                        CJKWeightInstance("Regular", 400),
+                        CJKWeightInstance("Bold", 700),
+                    ),
+                ),
+                patch(
+                    "scripts.cjk.builder.write_static_hash",
+                    side_effect=assert_jobs_completed,
+                ) as write_hash,
+            ):
+                instantiate_cjk_static_from_variable(
+                    config,
+                    BuildConfigResolver().load_defaults(),
+                    executor,
+                    {"Regular", "Italic"},
+                )
+
+            jobs = [
+                call.args[1] for call in cast(MagicMock, executor).submit.call_args_list
+            ]
+            self.assertEqual(
+                [Path(job.output_path).stem for job in jobs],
+                [
+                    f"{config.naming.static_file_prefix}-Regular",
+                    f"{config.naming.static_file_prefix}-Italic",
+                ],
+            )
+            self.assertEqual(Path(jobs[0].output_path), existing_regular)
+            self.assertFalse(stale_bold.exists())
+            self.assertEqual(unrelated_font.read_bytes(), b"unrelated")
+            self.assertEqual(marker.read_text(encoding="utf-8"), "preserve")
+            write_hash.assert_called_once_with(config, static_dir)
+            cast(MagicMock, executor).shutdown.assert_not_called()
+
+    def test_static_instantiation_without_filter_schedules_all_styles(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config = make_config(Path(tmp))
+            executor = cast(Executor, MagicMock())
+            axis = SimpleNamespace(minValue=100, defaultValue=400, maxValue=700)
+
+            with (
+                patch(
+                    "scripts.cjk.builder.load_feature_variable_font",
+                    return_value=MagicMock(),
+                ),
+                patch(
+                    "scripts.cjk.builder.load_font_eager",
+                    side_effect=(MagicMock(), MagicMock()),
+                ),
+                patch("scripts.cjk.builder.weight_axis", return_value=axis),
+                patch(
+                    "scripts.cjk.builder.feature_weight_instances",
+                    return_value=(
+                        CJKWeightInstance("Regular", 400),
+                        CJKWeightInstance("Bold", 700),
+                    ),
+                ),
+                patch("scripts.cjk.builder.write_static_hash"),
+            ):
+                instantiate_cjk_static_from_variable(
+                    config,
+                    BuildConfigResolver().load_defaults(),
+                    executor,
+                )
+
+            jobs = [
+                call.args[1] for call in cast(MagicMock, executor).submit.call_args_list
+            ]
+            self.assertEqual(
+                [Path(job.output_path).stem for job in jobs],
+                [
+                    f"{config.naming.static_file_prefix}-Regular",
+                    f"{config.naming.static_file_prefix}-Bold",
+                    f"{config.naming.static_file_prefix}-Italic",
+                    f"{config.naming.static_file_prefix}-BoldItalic",
+                ],
+            )
+
     def test_static_instantiation_preserves_existing_cache_directory(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             config = make_config(Path(tmp))

@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from contextlib import redirect_stdout
+from concurrent.futures import Executor
 from io import StringIO
 import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+from typing import cast
 
 from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.ttGlyphPen import TTGlyphPen
@@ -22,12 +25,14 @@ from scripts.cjk.config import (
     CJKNamingConfig,
     CJKOutputConfig,
     CJKSourceConfig,
+    CJKWeightInstance,
 )
 from scripts.cjk.presets import CJKPresetId, get_preset
 from scripts.pipeline.nerd_fonts import (
     ensure_font_patcher_available,
     should_use_font_patcher,
 )
+from scripts.utils.process import SynchronousExecutor
 
 
 def make_runtime_context(tmp_path: Path) -> BuildRuntimeContext:
@@ -204,7 +209,114 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
                 config,
                 make_font_config(),
                 vf_only=True,
+                executor=None,
                 github_mirror="mirror.example.com",
+            )
+
+    def test_local_variable_fallback_forwards_executor_and_styles(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            runtime_context = make_runtime_context(tmp_path)
+            entry = make_entry(tmp_path)
+            write_variable_fonts(entry.build_config)
+            executor = cast(Executor, MagicMock())
+
+            def fake_instantiate(
+                config: CJKBuildConfig,
+                _font_config,
+                *,
+                executor: Executor | None,
+                required_styles,
+            ) -> None:
+                self.assertIs(executor, sentinel_executor)
+                self.assertEqual(required_styles, ["Bold", "Regular"])
+                static_dir = runtime_context.cjk_static_dir(config)
+                write_static_fonts(
+                    static_dir,
+                    config.naming.static_file_prefix,
+                    required_styles,
+                )
+                write_static_hash(config, static_dir)
+
+            sentinel_executor = executor
+            with (
+                patch.object(
+                    BuildRuntimeContext,
+                    "download_cjk_static_base",
+                    return_value=False,
+                ),
+                patch(
+                    "scripts.config.runtime.instantiate_cjk_static_from_variable",
+                    side_effect=fake_instantiate,
+                ) as instantiate,
+            ):
+                result = runtime_context.resolve_cjk_static_base(
+                    entry,
+                    ["Regular", "Bold"],
+                    make_font_config(),
+                    MagicMock(),
+                    executor,
+                )
+
+            self.assertEqual(result.source_kind, "local-variable")
+            instantiate.assert_called_once()
+
+    def test_source_rebuild_forwards_executor_and_styles(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            runtime_context = make_runtime_context(tmp_path)
+            entry = make_entry(tmp_path)
+            executor = cast(Executor, MagicMock())
+            variable_builder = MagicMock(
+                side_effect=lambda config, _font_config, **_kwargs: (
+                    write_variable_fonts(config)
+                )
+            )
+
+            def fake_instantiate(
+                config: CJKBuildConfig,
+                _font_config,
+                *,
+                executor: Executor | None,
+                required_styles,
+            ) -> None:
+                self.assertIs(executor, sentinel_executor)
+                self.assertEqual(required_styles, ["Italic", "Regular"])
+                static_dir = runtime_context.cjk_static_dir(config)
+                write_static_fonts(
+                    static_dir,
+                    config.naming.static_file_prefix,
+                    required_styles,
+                )
+                write_static_hash(config, static_dir)
+
+            sentinel_executor = executor
+            with (
+                patch.object(
+                    BuildRuntimeContext,
+                    "download_cjk_static_base",
+                    return_value=False,
+                ),
+                patch(
+                    "scripts.config.runtime.instantiate_cjk_static_from_variable",
+                    side_effect=fake_instantiate,
+                ),
+            ):
+                result = runtime_context.resolve_cjk_static_base(
+                    entry,
+                    ["Regular", "Italic"],
+                    make_font_config(),
+                    variable_builder,
+                    executor,
+                )
+
+            self.assertEqual(result.source_kind, "remote-variable")
+            variable_builder.assert_called_once_with(
+                entry.build_config,
+                make_font_config(),
+                vf_only=True,
+                executor=executor,
+                github_mirror="github.com",
             )
 
     def test_reuses_valid_local_cache(self) -> None:
@@ -331,6 +443,7 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
             def fake_instantiate(
                 config: CJKBuildConfig,
                 _font_config,
+                **_kwargs,
             ) -> None:
                 static_dir = runtime_context.cjk_static_dir(config)
                 write_static_fonts(
@@ -396,6 +509,7 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
             def fake_instantiate(
                 config: CJKBuildConfig,
                 _font_config,
+                **_kwargs,
             ) -> None:
                 static_dir = runtime_context.cjk_static_dir(config)
                 write_static_fonts(
@@ -426,6 +540,124 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
                 entry.build_config.output.dir.joinpath(
                     entry.build_config.output.static_hash
                 ).exists()
+            )
+
+    def test_partial_cache_is_completed_by_a_broader_request(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            runtime_context = make_runtime_context(tmp_path)
+            entry = make_entry(tmp_path)
+            config = entry.build_config
+            static_dir = runtime_context.cjk_static_dir(config)
+            write_variable_fonts(config)
+            write_static_fonts(
+                static_dir,
+                config.naming.static_file_prefix,
+                ["Regular", "Bold", "Italic", "BoldItalic"],
+            )
+            marker = static_dir / "existing-cache-marker"
+            marker.write_text("preserve", encoding="utf-8")
+            unrelated_font = static_dir / "OtherFamily-Bold.ttf"
+            unrelated_font.write_bytes(b"unrelated")
+            scheduled: list[str] = []
+            axis = SimpleNamespace(minValue=100, defaultValue=400, maxValue=700)
+
+            def instantiate_job(job) -> None:
+                style = f"{job.name}{'Italic' if job.is_italic else ''}".replace(
+                    "RegularItalic", "Italic"
+                )
+                scheduled.append(style)
+                Path(job.output_path).write_bytes(f"generated-{style}".encode())
+
+            with (
+                patch.object(
+                    BuildRuntimeContext,
+                    "download_cjk_static_base",
+                    return_value=False,
+                ),
+                patch(
+                    "scripts.cjk.builder.load_feature_variable_font",
+                    return_value=MagicMock(),
+                ),
+                patch(
+                    "scripts.cjk.builder.load_font_eager",
+                    return_value=MagicMock(),
+                ),
+                patch("scripts.cjk.builder.weight_axis", return_value=axis),
+                patch(
+                    "scripts.cjk.builder.feature_weight_instances",
+                    return_value=(
+                        CJKWeightInstance("Regular", 400),
+                        CJKWeightInstance("Bold", 700),
+                    ),
+                ),
+                patch(
+                    "scripts.cjk.builder.instantiate_static_font_job",
+                    side_effect=instantiate_job,
+                ),
+            ):
+                partial = runtime_context.resolve_cjk_static_base(
+                    entry,
+                    ["Regular", "Italic"],
+                    make_font_config(),
+                    MagicMock(),
+                    SynchronousExecutor(),
+                )
+                partial_digest = config.output.dir.joinpath(
+                    config.output.static_hash
+                ).read_text(encoding="utf-8")
+                self.assertEqual(scheduled, ["Regular", "Italic"])
+                self.assertFalse(
+                    static_dir.joinpath(
+                        f"{config.naming.static_file_prefix}-Bold.ttf"
+                    ).exists()
+                )
+                self.assertFalse(
+                    static_dir.joinpath(
+                        f"{config.naming.static_file_prefix}-BoldItalic.ttf"
+                    ).exists()
+                )
+                self.assertEqual(marker.read_text(encoding="utf-8"), "preserve")
+                self.assertEqual(unrelated_font.read_bytes(), b"unrelated")
+                self.assertFalse(
+                    runtime_context.has_valid_cjk_static_base(
+                        config,
+                        static_dir,
+                        ["Regular", "Bold", "Italic", "BoldItalic"],
+                    )
+                )
+
+                completed = runtime_context.resolve_cjk_static_base(
+                    entry,
+                    ["Regular", "Bold", "Italic", "BoldItalic"],
+                    make_font_config(),
+                    MagicMock(),
+                    SynchronousExecutor(),
+                )
+
+            complete_digest = config.output.dir.joinpath(
+                config.output.static_hash
+            ).read_text(encoding="utf-8")
+            self.assertEqual(partial.source_kind, "local-variable")
+            self.assertEqual(completed.source_kind, "local-variable")
+            self.assertEqual(
+                scheduled,
+                [
+                    "Regular",
+                    "Italic",
+                    "Regular",
+                    "Bold",
+                    "Italic",
+                    "BoldItalic",
+                ],
+            )
+            self.assertNotEqual(partial_digest, complete_digest)
+            self.assertTrue(
+                runtime_context.has_valid_cjk_static_base(
+                    config,
+                    completed.static_dir,
+                    ["Regular", "Bold", "Italic", "BoldItalic"],
+                )
             )
 
     def test_missing_styles_after_fallback_raise_clear_error(self) -> None:

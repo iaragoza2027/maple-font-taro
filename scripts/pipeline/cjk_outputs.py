@@ -490,6 +490,7 @@ def build_cjk_extended_static_fonts_from_cache(
         required_styles,
         font_config,
         build_cjk_fonts,
+        executor,
     )
     cached_fonts = load_cached_cjk_static_fonts(
         resolved_base.static_dir,

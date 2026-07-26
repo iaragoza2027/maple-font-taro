@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from io import BytesIO
 from os import cpu_count, makedirs
 from pathlib import Path
-from typing import Any, Iterable, Literal, TypeVar, cast
+from typing import Any, Collection, Iterable, Literal, TypeVar, cast
 
 from fontTools.misc.transform import Transform
 from fontTools.pens.t2CharStringPen import T2CharStringPen
@@ -1152,7 +1152,11 @@ class CJKBuilder:
         save_font_atomic(italic_font, self.italic_output)
         logger.info("Saved CJK variable font to %s", self.italic_output)
 
-    def _build_static_fonts(self, var_font_names: Iterable[str]) -> Path:
+    def _build_static_fonts(
+        self,
+        var_font_names: Iterable[str],
+        required_styles: Collection[str] | None = None,
+    ) -> Path:
         static_dir = self.static_dir
         makedirs(static_dir, exist_ok=True)
         var_font_names = tuple(var_font_names)
@@ -1198,10 +1202,16 @@ class CJKBuilder:
                     var_font.close()
 
                 for instance in mapped_instances:
+                    style_name = f"{instance.name}{'Italic' if is_italic else ''}"
+                    style_name = style_name.replace("RegularItalic", "Italic")
+                    if (
+                        required_styles is not None
+                        and style_name not in required_styles
+                    ):
+                        continue
                     output_name = (
-                        f"{self.config.naming.static_file_prefix}-{instance.name}"
-                        f"{'Italic' if is_italic else ''}.ttf"
-                    ).replace("RegularItalic", "Italic")
+                        f"{self.config.naming.static_file_prefix}-{style_name}.ttf"
+                    )
                     job = StaticInstanceJob(
                         input_path=str(input_path),
                         output_path=str(static_dir / output_name),
@@ -1222,6 +1232,12 @@ class CJKBuilder:
 
         for future in futures:
             future.result()
+        if required_styles is not None:
+            static_prefix = f"{self.config.naming.static_file_prefix}-"
+            for static_path in static_dir.glob(f"{static_prefix}*.ttf"):
+                style_name = static_path.stem.removeprefix(static_prefix)
+                if style_name not in required_styles:
+                    static_path.unlink()
         logger.debug("CJK static fonts ready: output_dir=%s", static_dir)
         return static_dir
 
@@ -1241,6 +1257,7 @@ def instantiate_cjk_static_from_variable(
     config: CJKBuildConfig,
     font_config: FontNameConfig,
     executor: Executor | None = None,
+    required_styles: Collection[str] | None = None,
 ) -> Path:
     """Instantiate a static base from already-generated CJK variable fonts."""
     owns_executor = executor is None
@@ -1250,7 +1267,8 @@ def instantiate_cjk_static_from_variable(
     builder = CJKBuilder(config, font_config, process_pool)
     try:
         static_dir = builder._build_static_fonts(
-            (config.output.regular_variable, config.output.italic_variable)
+            (config.output.regular_variable, config.output.italic_variable),
+            required_styles,
         )
         write_static_hash(config, static_dir)
         return static_dir

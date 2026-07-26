@@ -9,9 +9,11 @@ from typing import cast
 from unittest.mock import MagicMock, patch
 
 
-from scripts.pipeline.orchestrator import MapleBuildPipeline
+from scripts.pipeline.orchestrator import BuildPlan, MapleBuildPipeline
 from scripts.pipeline.cjk_outputs import (
+    build_cjk_extended_static_fonts_from_cache,
     build_cjk_extended_variable_outputs,
+    cjk_static_base_profiles,
     ensure_cjk_variable_fonts,
 )
 from scripts.pipeline.cache import (
@@ -21,6 +23,7 @@ from scripts.pipeline.cache import (
     write_cache_record,
 )
 from scripts.cjk.config import CJKBuildConfig, CJKOutputConfig
+from scripts.config.runtime import BuildRuntimeContext, CJKStaticBaseResolution
 from scripts.tests.pipeline_fixtures import (
     make_builtin_entry,
     make_custom_entry,
@@ -33,6 +36,65 @@ from scripts.tests.pipeline_fixtures import (
 
 
 class PipelineCJKOutputsTest(unittest.TestCase):
+    def test_static_cache_resolution_receives_target_styles_and_executor(self) -> None:
+        for mode, expected_styles in (
+            ("debug", ["Regular", "Italic"]),
+            ("least", ["Regular", "Bold", "Italic", "BoldItalic"]),
+        ):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as tmp:
+                tmp_path = Path(tmp)
+                font_config = make_font_config()
+                font_config.behavior.debug = mode == "debug"
+                font_config.behavior.least_styles = mode == "least"
+                font_config.nerd_font.enable = False
+                target_styles = BuildPlan.from_config(font_config).target_styles
+                self.assertEqual(target_styles, expected_styles)
+                entry = make_custom_entry("JP")
+                runtime_context = make_runtime_context(tmp_path)
+                executor = cast(Executor, MagicMock())
+                profiles = cjk_static_base_profiles(
+                    font_config,
+                    runtime_context,
+                    entry,
+                )
+                for profile in profiles:
+                    for style in expected_styles:
+                        write_test_font(
+                            Path(profile.base_dir)
+                            / f"{profile.family_name_compact}-{style}.ttf"
+                        )
+                cache_dir = tmp_path / "cjk-static"
+                for style in expected_styles:
+                    write_test_font(
+                        cache_dir
+                        / f"{entry.build_config.naming.static_file_prefix}-{style}.ttf"
+                    )
+                resolution = CJKStaticBaseResolution(
+                    static_dir=cache_dir,
+                    static_file_prefix=entry.build_config.naming.static_file_prefix,
+                    source_kind="local-static",
+                )
+
+                with (
+                    patch.object(
+                        BuildRuntimeContext,
+                        "resolve_cjk_static_base",
+                        return_value=resolution,
+                    ) as resolve,
+                    patch("scripts.pipeline.cjk_outputs.run_process_jobs"),
+                ):
+                    built = build_cjk_extended_static_fonts_from_cache(
+                        entry,
+                        font_config,
+                        runtime_context,
+                        target_styles,
+                        executor,
+                    )
+
+                self.assertTrue(built)
+                self.assertEqual(resolve.call_args.args[1], sorted(expected_styles))
+                self.assertIs(resolve.call_args.args[4], executor)
+
     def test_cjk_stage_logs_grouped_task_after_cache_miss(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             font_config = make_font_config()

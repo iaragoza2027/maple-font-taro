@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import Executor
 from dataclasses import asdict, dataclass
 from os import environ, listdir, path
 from pathlib import Path
@@ -214,11 +215,13 @@ class BuildRuntimeContext:
         preset_config: CJKBuildConfig,
         build_config: ResolvedConfig,
         builder: Callable[..., None],
+        executor: Executor | None = None,
     ) -> None:
         builder(
             preset_config,
             build_config,
             vf_only=True,
+            executor=executor,
             github_mirror=self.effective_github_mirror,
         )
 
@@ -306,6 +309,7 @@ class BuildRuntimeContext:
         build_config: ResolvedConfig,
         builder: Callable[..., None],
         clean_cache: bool,
+        executor: Executor | None = None,
     ) -> CJKStaticBaseResolution:
         failures: list[str] = []
         variable_paths = (
@@ -314,7 +318,12 @@ class BuildRuntimeContext:
         )
         if not clean_cache and all(path.is_file() for path in variable_paths):
             try:
-                instantiate_cjk_static_from_variable(preset_config, build_config)
+                instantiate_cjk_static_from_variable(
+                    preset_config,
+                    build_config,
+                    executor=executor,
+                    required_styles=required_styles,
+                )
                 if self.has_valid_cjk_static_base(
                     preset_config,
                     static_dir,
@@ -337,8 +346,14 @@ class BuildRuntimeContext:
                 preset_config,
                 build_config,
                 builder,
+                executor,
             )
-            instantiate_cjk_static_from_variable(preset_config, build_config)
+            instantiate_cjk_static_from_variable(
+                preset_config,
+                build_config,
+                executor=executor,
+                required_styles=required_styles,
+            )
             if not self.has_valid_cjk_static_base(
                 preset_config,
                 static_dir,
@@ -363,6 +378,7 @@ class BuildRuntimeContext:
         required_styles: list[str],
         font_config: ResolvedConfig,
         variable_builder: Callable[..., None],
+        executor: Executor | None = None,
     ) -> CJKStaticBaseResolution:
         preset_config = entry.build_config
         static_dir = self.cjk_static_dir(preset_config)
@@ -397,6 +413,7 @@ class BuildRuntimeContext:
             font_config,
             variable_builder,
             entry.common_options.clean_cache,
+            executor,
         )
 
     def to_dict(self, config: ResolvedConfig | None = None) -> dict[str, Any]:

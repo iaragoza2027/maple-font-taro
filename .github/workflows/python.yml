@@ -50,3 +50,6 @@ jobs:
         run: uv run python -m unittest discover -s scripts/tests
       - name: Validate CI dry-run JSON
         run: GITHUB_ACTIONS=1 uv run build.py --dry | uv run python -m json.tool
+      - name: Run production build smoke test
+        if: matrix.python-version == '3.12'
+        run: uv run python -m scripts.tests.build_smoke

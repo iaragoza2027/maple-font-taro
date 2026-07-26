@@ -5,14 +5,95 @@ import os
 import subprocess
 import sys
 import unittest
+from contextlib import redirect_stderr
+from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from scripts.config import cli
+from scripts.config.cli import parse_args
 from scripts.pipeline import main as run_build_cli
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+
+BUILD_OPTION_CONTRACT = {
+    ("-h", "--help"),
+    ("-v", "--version"),
+    ("-d", "--dry"),
+    ("--debug",),
+    ("-n", "--normal"),
+    ("--feat",),
+    ("--apply-fea-file",),
+    ("--hinted",),
+    ("--no-hinted",),
+    ("--liga",),
+    ("--no-liga",),
+    ("--infinite-arrow",),
+    ("--remove-tag-liga",),
+    ("--line-height",),
+    ("--width",),
+    ("--format",),
+    ("--ttf-only",),
+    ("--least-styles",),
+    ("--cache",),
+    ("--archive",),
+    ("--nf", "--nerd-font"),
+    ("--no-nf", "--no-nerd-font"),
+    ("--nf-mono",),
+    ("--nf-propo",),
+    ("--font-patcher",),
+    ("--cjk",),
+    ("--cjk-format",),
+    ("--cjk-narrow",),
+    ("--cjk-scale-factor",),
+    ("--cjk-both",),
+    ("--cn",),
+    ("--no-cn",),
+    ("--cn-narrow",),
+    ("--cn-scale-factor",),
+    ("--cn-both",),
+    ("--cn-rebuild",),
+}
+
+
+VALID_BUILD_OPTION_CASES = (
+    (["--dry"], "dry", True),
+    (["--debug"], "debug", True),
+    (["--normal"], "normal", True),
+    (["--feat", "zero,cv01"], "feat", ["zero", "cv01"]),
+    (["--apply-fea-file"], "apply_fea_file", True),
+    (["--hinted"], "hinted", True),
+    (["--no-hinted"], "hinted", False),
+    (["--liga"], "liga", True),
+    (["--no-liga"], "liga", False),
+    (["--infinite-arrow"], "infinite_arrow", True),
+    (["--remove-tag-liga"], "remove_tag_liga", True),
+    (["--line-height", "1.2"], "line_height", 1.2),
+    (["--width", "slim"], "width", "slim"),
+    (["--format", "ttf,woff2"], "formats", ["ttf", "woff2"]),
+    (["--ttf-only"], "ttf_only", True),
+    (["--least-styles"], "least_styles", True),
+    (["--cache"], "cache", True),
+    (["--archive"], "archive", True),
+    (["--nf"], "nerd_font", True),
+    (["--no-nf"], "nerd_font", False),
+    (["--nf-mono"], "nf_mono", True),
+    (["--nf-propo"], "nf_propo", True),
+    (["--font-patcher"], "font_patcher", True),
+    (["--cjk", "cn,jp", "--cjk", "kr"], "cjk", ["cn,jp", "kr"]),
+    (["--cjk-format", "variable"], "cjk_format", "variable"),
+    (["--cjk-narrow"], "cjk_narrow", True),
+    (["--cjk-scale-factor", "1.1,0.9"], "cjk_scale_factor", (1.1, 0.9)),
+    (["--cjk-both"], "cjk_both", True),
+    (["--cn"], "cn", True),
+    (["--no-cn"], "cn", False),
+    (["--cn-narrow"], "cn_narrow", True),
+    (["--cn-scale-factor", "1.1"], "cn_scale_factor", (1.1, 1.1)),
+    (["--cn-both"], "cn_both", True),
+    (["--cn-rebuild"], "cn_rebuild", True),
+)
 
 
 class PublicCliContractTest(unittest.TestCase):
@@ -33,11 +114,77 @@ class PublicCliContractTest(unittest.TestCase):
         )
 
     def test_build_version_uses_project_version_once(self) -> None:
-        result = self.run_cli("build.py", "--version")
+        for option in ("--version", "-v"):
+            with self.subTest(option=option):
+                result = self.run_cli("build.py", option)
 
-        self.assertEqual(result.returncode, 0)
-        self.assertEqual(result.stdout.strip(), "Maple Mono Builder v7.9")
-        self.assertEqual(result.stderr, "")
+                self.assertEqual(result.returncode, 0)
+                self.assertEqual(result.stdout.strip(), "Maple Mono Builder v7.9")
+                self.assertEqual(result.stderr, "")
+
+    def test_build_help_short_and_long_options_are_equivalent(self) -> None:
+        long_help = self.run_cli("build.py", "--help")
+        short_help = self.run_cli("build.py", "-h")
+
+        self.assertEqual(long_help.returncode, 0)
+        self.assertEqual(short_help.returncode, 0)
+        self.assertEqual(short_help.stdout, long_help.stdout)
+        self.assertIn("Feature Options:", long_help.stdout)
+        self.assertIn("Build Options:", long_help.stdout)
+        self.assertIn("CJK Options:", long_help.stdout)
+        self.assertEqual(long_help.stderr, "")
+        self.assertEqual(short_help.stderr, "")
+
+    def test_build_option_surface_matches_the_explicit_contract(self) -> None:
+        option_surface = {
+            tuple(action.option_strings)
+            for action in cli.build_parser(version="v7.9")._actions
+            if action.option_strings
+        }
+
+        self.assertEqual(option_surface, BUILD_OPTION_CONTRACT)
+
+    def test_every_build_option_accepts_a_representative_value(self) -> None:
+        for args, attribute, expected in VALID_BUILD_OPTION_CASES:
+            with self.subTest(args=args):
+                parsed = parse_args(args, version="v7.9")
+
+                self.assertEqual(getattr(parsed, attribute), expected)
+
+    def test_build_option_aliases_are_equivalent(self) -> None:
+        aliases = (
+            (["-d"], ["--dry"], "dry"),
+            (["-n"], ["--normal"], "normal"),
+            (["--nerd-font"], ["--nf"], "nerd_font"),
+            (["--no-nerd-font"], ["--no-nf"], "nerd_font"),
+        )
+        for alias, canonical, attribute in aliases:
+            with self.subTest(alias=alias):
+                alias_value = getattr(parse_args(alias), attribute)
+                canonical_value = getattr(parse_args(canonical), attribute)
+
+                self.assertEqual(alias_value, canonical_value)
+
+    def test_invalid_or_conflicting_build_options_fail_as_usage_errors(self) -> None:
+        cases = (
+            ["--width", "wide"],
+            ["--format", "zip"],
+            ["--cjk-format", "woff2"],
+            ["--cjk-scale-factor", "1,2,3"],
+            ["--hinted", "--no-hinted"],
+            ["--liga", "--no-liga"],
+            ["--nf", "--no-nf"],
+            ["--cn", "--no-cn"],
+        )
+        for args in cases:
+            with self.subTest(args=args):
+                with (
+                    redirect_stderr(StringIO()),
+                    self.assertRaises(SystemExit) as error,
+                ):
+                    parse_args(args)
+
+                self.assertEqual(error.exception.code, 2)
 
     def test_task_help_lists_all_public_commands(self) -> None:
         result = self.run_cli("task.py", "--help")

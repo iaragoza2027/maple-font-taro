@@ -9,6 +9,7 @@ from scripts.cjk.presets import build_preset_config, get_preset
 from scripts.cjk.resolver import config_from_data
 from scripts.config.base import (
     BUILTIN_CJK_LOCALES,
+    WIDTH_MAP,
     BuildBehaviorConfig,
     BuildIdentityConfig,
     BuildMetricsConfig,
@@ -40,6 +41,12 @@ def _require_bool(value: Any, field: str) -> bool:
     if not isinstance(value, bool):
         raise ValueError(f"{field} must be a boolean")
     return value
+
+
+def _require_string_list(value: Any, field: str) -> list[str]:
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        raise ValueError(f"{field} must be an array of strings")
+    return list(value)
 
 
 class BuildConfigResolver:
@@ -148,10 +155,6 @@ class BuildConfigResolver:
     ) -> None:
         if "use_hinted" in data:
             config.feature.hinted = _require_bool(data["use_hinted"], "use_hinted")
-        if "enable_ligature" in data:
-            config.feature.liga = _require_bool(
-                data["enable_ligature"], "enable_ligature"
-            )
         if "ligature" in data:
             config.feature.liga = _require_bool(data["ligature"], "ligature")
         if "infinite_arrow" in data:
@@ -164,13 +167,26 @@ class BuildConfigResolver:
         if "line_height" in data:
             config.feature.line_height = float(data["line_height"])
         if "width" in data:
-            config.feature.width = str(data["width"])
+            width = str(data["width"])
+            if width not in WIDTH_MAP:
+                choices = ", ".join(WIDTH_MAP)
+                raise ValueError(f"width must be one of: {choices}")
+            config.feature.width = width
         if "remove_tag_liga" in data:
             config.feature.remove_tag_liga = _require_bool(
                 data["remove_tag_liga"], "remove_tag_liga"
             )
         if "feature_freeze" in data:
-            config.feature_freeze.update(dict(data["feature_freeze"]))
+            raw_feature_freeze = data["feature_freeze"]
+            if not isinstance(raw_feature_freeze, dict):
+                raise ValueError("feature_freeze must be an object")
+            for feature, value in raw_feature_freeze.items():
+                if value not in ("ignore", "disable", "enable"):
+                    raise ValueError(
+                        f"feature_freeze.{feature} must be one of: "
+                        "ignore, disable, enable"
+                    )
+            config.feature_freeze.update(raw_feature_freeze)
 
     def _apply_behavior_json_config(
         self,
@@ -211,9 +227,13 @@ class BuildConfigResolver:
                     nerd_font["use_font_patcher"], "nerd_font.use_font_patcher"
                 )
             if "glyphs" in nerd_font:
-                config.nerd_font.glyphs = list(nerd_font["glyphs"])
+                config.nerd_font.glyphs = _require_string_list(
+                    nerd_font["glyphs"], "nerd_font.glyphs"
+                )
             if "extra_args" in nerd_font:
-                config.nerd_font.extra_args = list(nerd_font["extra_args"])
+                config.nerd_font.extra_args = _require_string_list(
+                    nerd_font["extra_args"], "nerd_font.extra_args"
+                )
 
     def _resolve_cjk_selection(
         self,

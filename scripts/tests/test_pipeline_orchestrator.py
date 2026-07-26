@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from concurrent.futures import Executor
@@ -7,17 +8,108 @@ from pathlib import Path
 from typing import cast
 from unittest.mock import MagicMock, patch
 
-
+from scripts.config.cli import parse_args
+from scripts.config.resolver import BuildConfigResolver
 from scripts.pipeline.base_fonts import build_base_fonts, build_woff2_fonts
 from scripts.pipeline.fontmake import (
     FontmakeBuildContext,
 )
-from scripts.pipeline.orchestrator import MapleBuildPipeline
+from scripts.pipeline.orchestrator import BuildPlan, MapleBuildPipeline
 from scripts.tests.pipeline_fixtures import (
     make_builtin_entry,
     make_font_config,
     make_runtime_context,
 )
+
+
+class BuildPlanResolutionTest(unittest.TestCase):
+    def resolve_plan(
+        self,
+        args: list[str],
+        config_data: dict | None = None,
+    ) -> BuildPlan:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "config.json").write_text(
+                json.dumps(config_data or {}),
+                encoding="utf-8",
+            )
+            config = BuildConfigResolver(project_root=root).resolve(parse_args(args))
+            return BuildPlan.from_config(config)
+
+    def test_cli_and_config_resolve_to_expected_build_plans(self) -> None:
+        cases = (
+            (
+                ["--debug"],
+                {},
+                BuildPlan(
+                    target_styles=["Regular", "Italic"],
+                    required_base_formats=("variable", "ttf"),
+                    build_woff2=False,
+                    build_nerd_font=False,
+                    cjk_mode=None,
+                    cleanup_base_static=False,
+                    archive=False,
+                ),
+            ),
+            (
+                ["--format", "woff2", "--no-nf", "--no-hinted"],
+                {},
+                BuildPlan(
+                    target_styles=None,
+                    required_base_formats=("variable", "ttf"),
+                    build_woff2=True,
+                    build_nerd_font=False,
+                    cjk_mode=None,
+                    cleanup_base_static=True,
+                    archive=False,
+                ),
+            ),
+            (
+                ["--no-nf", "--no-hinted", "--archive"],
+                {"formats": ["otf"]},
+                BuildPlan(
+                    target_styles=None,
+                    required_base_formats=("variable", "otf"),
+                    build_woff2=False,
+                    build_nerd_font=False,
+                    cjk_mode=None,
+                    cleanup_base_static=True,
+                    archive=True,
+                ),
+            ),
+            (
+                ["--format", "ttf", "--least-styles", "--no-nf"],
+                {},
+                BuildPlan(
+                    target_styles=["Regular", "Bold", "Italic", "BoldItalic"],
+                    required_base_formats=("variable", "ttf"),
+                    build_woff2=False,
+                    build_nerd_font=False,
+                    cjk_mode=None,
+                    cleanup_base_static=False,
+                    archive=False,
+                ),
+            ),
+            (
+                ["--cjk", "jp", "--cjk-format", "variable", "--no-nf"],
+                {"formats": ["otf"]},
+                BuildPlan(
+                    target_styles=None,
+                    required_base_formats=("variable", "otf"),
+                    build_woff2=False,
+                    build_nerd_font=False,
+                    cjk_mode="variable",
+                    cleanup_base_static=True,
+                    archive=False,
+                ),
+            ),
+        )
+        for args, config_data, expected in cases:
+            with self.subTest(args=args, config_data=config_data):
+                plan = self.resolve_plan(args, config_data)
+
+                self.assertEqual(plan, expected)
 
 
 class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):

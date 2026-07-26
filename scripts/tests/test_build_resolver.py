@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
-from typing import cast
+from typing import Any, cast
 
 from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.ttGlyphPen import TTGlyphPen
@@ -681,11 +681,175 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
 
 
 class BuildConfigResolverJsonTest(unittest.TestCase):
-    def _resolve_with_config(self, config_data: dict):
+    def _resolve_with_config(
+        self,
+        config_data: dict,
+        args: list[str] | None = None,
+    ):
         with tempfile.TemporaryDirectory() as tmp:
             config_path = Path(tmp) / "config.json"
             config_path.write_text(json.dumps(config_data), encoding="utf-8")
-            return BuildConfigResolver(project_root=Path(tmp)).resolve(parse_args([]))
+            return BuildConfigResolver(project_root=Path(tmp)).resolve(
+                parse_args(args or [])
+            )
+
+    def test_all_top_level_config_sections_resolve_to_runtime_values(self) -> None:
+        font_config = self._resolve_with_config(
+            {
+                "family_name": "Fixture Mono",
+                "pool_size": 3,
+                "weight_mapping": {"regular": 450},
+                "codepoint_alias": {"0xE000": "0x0041"},
+                "use_hinted": False,
+                "ligature": False,
+                "infinite_arrow": True,
+                "remove_tag_liga": True,
+                "line_height": 1.15,
+                "width": "narrow",
+                "ttfautohint_param": {"hinting_limit": 180},
+                "feature_freeze": {"cv01": "enable"},
+                "github_mirror": "mirror.example.com/github.com",
+                "nerd_font": {
+                    "enable": False,
+                    "version": "3.4.0",
+                    "mono": True,
+                    "propo": False,
+                    "use_font_patcher": True,
+                    "glyphs": ["--codicons"],
+                    "extra_args": ["--careful"],
+                },
+                "formats": ["otf"],
+                "cjk": {
+                    "format": "variable",
+                    "locales": {"jp": True},
+                    "with_nerd_font": False,
+                    "narrow": True,
+                    "scale_factor": [1.1, 0.9],
+                },
+                "cn": {"enable": True},
+            }
+        )
+
+        self.assertEqual(font_config.identity.base_family_name, "Fixture Mono")
+        self.assertEqual(font_config.pool_size, 3)
+        self.assertEqual(font_config.weight_mapping["regular"], 450)
+        self.assertEqual(font_config.codepoint_alias, {0xE000: 0x0041})
+        self.assertFalse(font_config.use_hinted)
+        self.assertFalse(font_config.feature.liga)
+        self.assertTrue(font_config.infinite_arrow)
+        self.assertTrue(font_config.remove_tag_liga)
+        self.assertEqual(font_config.line_height, 1.15)
+        self.assertEqual(font_config.width, "narrow")
+        self.assertEqual(font_config.ttfautohint_param, {"hinting_limit": 180})
+        self.assertEqual(font_config.feature_freeze["cv01"], "enable")
+        self.assertEqual(font_config.github_mirror, "mirror.example.com/github.com")
+        self.assertFalse(font_config.nerd_font.enable)
+        self.assertEqual(font_config.nerd_font.version, "3.4.0")
+        self.assertTrue(font_config.nerd_font.mono)
+        self.assertFalse(font_config.nerd_font.propo)
+        self.assertTrue(font_config.nerd_font.use_font_patcher)
+        self.assertEqual(font_config.nerd_font.glyphs, ["--codicons"])
+        self.assertEqual(font_config.nerd_font.extra_args, ["--careful"])
+        self.assertEqual(font_config.formats, ["otf"])
+        self.assertEqual(font_config.cjk_output_format, "variable")
+        self.assertEqual(
+            font_config.cjk.locales.builtin_enabled_locales(), ["cn", "jp"]
+        )
+        self.assertFalse(font_config.cjk.common_options.with_nerd_font)
+        self.assertTrue(font_config.cjk.common_options.narrow)
+        self.assertEqual(font_config.cjk.common_options.scale_factor, (1.1, 0.9))
+
+    def test_cli_values_override_project_config_across_all_build_sections(self) -> None:
+        font_config = self._resolve_with_config(
+            {
+                "use_hinted": False,
+                "ligature": False,
+                "line_height": 1.1,
+                "width": "narrow",
+                "formats": ["otf"],
+                "nerd_font": {
+                    "enable": False,
+                    "mono": False,
+                    "propo": False,
+                    "use_font_patcher": False,
+                },
+                "cjk": {
+                    "format": "static",
+                    "locales": {"cn": False, "jp": False},
+                    "narrow": False,
+                    "scale_factor": 1.0,
+                },
+            },
+            [
+                "--normal",
+                "--feat",
+                "zero,cv01",
+                "--apply-fea-file",
+                "--hinted",
+                "--liga",
+                "--infinite-arrow",
+                "--remove-tag-liga",
+                "--line-height",
+                "1.25",
+                "--width",
+                "slim",
+                "--format",
+                "ttf,woff2",
+                "--least-styles",
+                "--cache",
+                "--archive",
+                "--nf-mono",
+                "--nf-propo",
+                "--font-patcher",
+                "--cjk",
+                "jp",
+                "--cjk-format",
+                "variable",
+                "--cjk-narrow",
+                "--cjk-scale-factor",
+                "1.2",
+                "--cjk-both",
+            ],
+        )
+
+        self.assertTrue(font_config.feature.normal)
+        self.assertEqual(font_config.feature.feat, ["zero", "cv01"])
+        self.assertTrue(font_config.apply_fea_file)
+        self.assertTrue(font_config.use_hinted)
+        self.assertTrue(font_config.feature.liga)
+        self.assertTrue(font_config.infinite_arrow)
+        self.assertTrue(font_config.remove_tag_liga)
+        self.assertEqual(font_config.line_height, 1.25)
+        self.assertEqual(font_config.width, "slim")
+        self.assertEqual(font_config.formats, ["ttf", "woff2"])
+        self.assertTrue(font_config.least_styles)
+        self.assertTrue(font_config.cache)
+        self.assertTrue(font_config.archive)
+        self.assertTrue(font_config.nerd_font.enable)
+        self.assertTrue(font_config.nerd_font.mono)
+        self.assertTrue(font_config.nerd_font.propo)
+        self.assertTrue(font_config.nerd_font.use_font_patcher)
+        self.assertEqual(font_config.cjk_output_format, "variable")
+        self.assertEqual(font_config.cjk.locales.builtin_enabled_locales(), ["jp"])
+        self.assertTrue(font_config.cjk.common_options.narrow)
+        self.assertEqual(font_config.cjk.common_options.scale_factor, (1.2, 1.2))
+        self.assertTrue(font_config.use_cjk_both)
+
+    def test_schema_constrained_config_values_are_rejected_during_resolution(
+        self,
+    ) -> None:
+        cases = (
+            ({"width": "wide"}, "width"),
+            ({"feature_freeze": {"cv01": "sometimes"}}, "cv01"),
+            ({"nerd_font": {"glyphs": "--complete"}}, "nerd_font.glyphs"),
+            ({"nerd_font": {"extra_args": "--careful"}}, "nerd_font.extra_args"),
+        )
+        for config_data, field in cases:
+            with self.subTest(field=field):
+                with self.assertRaises(ValueError) as error:
+                    self._resolve_with_config(config_data)
+
+                self.assertIn(field, str(error.exception))
 
     def test_rejects_non_object_config(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -710,8 +874,7 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
             "narrow",
             "use_hinted",
         )
-        cases = [
-            ({"enable_ligature": "true"}, "enable_ligature"),
+        cases: list[tuple[dict[str, Any], str]] = [
             ({"ligature": None}, "ligature"),
             ({"remove_tag_liga": 0}, "remove_tag_liga"),
             ({"nerd_font": {"enable": "false"}}, "nerd_font.enable"),
@@ -741,7 +904,7 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
         font_config = self._resolve_with_config(
             {
                 "use_hinted": False,
-                "enable_ligature": True,
+                "ligature": True,
                 "remove_tag_liga": True,
                 "nerd_font": {
                     "enable": True,

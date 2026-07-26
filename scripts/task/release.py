@@ -124,8 +124,7 @@ def generate_release_assets(plan: ReleasePlan) -> None:
             "--no-dev",
             "--no-hashes",
             "--output-file",
-            plan.requirements_file,
-            "--quiet",
+            "requirements.txt",
         ]
     )
 

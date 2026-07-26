@@ -13,8 +13,8 @@
 
 ## Unicode
 
-- [x] U+2200–U+22FF, reference from Julia Mono's math symbols #709
-- [x] claude code:
+- [x] full math glyphs U+2200–U+22FF, reference from Julia Mono's math symbols #709
+- [x] from claude code:
   - [x] spinner: U+273B, U+2605, U+273D, U+2733, U+2722, U+2736, U+2726
   - [x] progress: U+25D0-25D3
   - [x] figures: U+21BB, U+21AF
@@ -45,7 +45,6 @@
 - [x] stabilize cjk sha
 - [x] support object-based CJK source downloads, including direct files and a selected file inside 7z archives
 - [x] review cjk base font cache invalidation and download logic, and add more tests
-- [ ] generate build summary and basic usage and description in fonts/ , and for custom build, use it as release notes
 
 ### Web
 

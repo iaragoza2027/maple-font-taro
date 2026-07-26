@@ -56,6 +56,6 @@ jobs:
         path: release
 
     - name: Release artifacts
-      run: python task.py publish
+      run: python task.py publish --tag "${{ github.ref_name }}"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

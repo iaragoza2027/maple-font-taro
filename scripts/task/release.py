@@ -131,8 +131,7 @@ def generate_release_assets(plan: ReleasePlan) -> None:
     shutil.copytree("./fonts/CN", "./cdn/cn")
     logger.info("Generated CN files")
 
-    if os.path.exists(plan.fontsource_dir):
-        shutil.rmtree(plan.variable_woff2_dir)
+    shutil.rmtree(plan.variable_woff2_dir, ignore_errors=True)
     convert_to_web("./fonts/Variable", plan.variable_woff2_dir, flavor="woff2")
     rename_woff_files(plan.variable_woff2_dir, format_woff2_name)
 

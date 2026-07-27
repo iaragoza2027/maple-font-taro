@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from concurrent.futures import Executor
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -134,71 +135,82 @@ def prepare_designspace_source(
         )
 
     designspace = DesignSpaceDocument.fromfile(path)
-    for source in designspace.sources:
-        ufo_path = Path(source.path) if source.path is not None else None
-        if ufo_path is None or not ufo_path.is_dir():
-            label = source.filename or source.name or "Unknown"
-            raise FileNotFoundError(
-                f"Generated UFO source is missing: {label}; "
-                "run `python task.py designspace`"
-            )
-        source.font = UFOFont.open(ufo_path)
+    opened_fonts: list[UFOFont] = []
+    try:
+        for source in designspace.sources:
+            ufo_path = Path(source.path) if source.path is not None else None
+            if ufo_path is None or not ufo_path.is_dir():
+                label = source.filename or source.name or "Unknown"
+                raise FileNotFoundError(
+                    f"Generated UFO source is missing: {label}; "
+                    "run `python task.py designspace`"
+                )
+            source.font = UFOFont.open(ufo_path)
+            opened_fonts.append(source.font)
 
-    _apply_designspace_weight_mapping(designspace, weight_mapping)
-    weight_axis = next((axis for axis in designspace.axes if axis.tag == "wght"), None)
-    if not isinstance(weight_axis, AxisDescriptor) or weight_axis.name is None:
-        raise ValueError(
-            f"Designspace source requires a continuous named wght axis: {path}"
+        _apply_designspace_weight_mapping(designspace, weight_mapping)
+        weight_axis = next(
+            (axis for axis in designspace.axes if axis.tag == "wght"),
+            None,
         )
-    weight_axis.default = 400
-    axis_name = weight_axis.name
-    sources = list(designspace.sources)
-    default_source = next(
-        (source for source in sources if source.location.get(axis_name) == 400),
-        None,
-    )
-    if default_source is None or default_source.font is None:
-        raise ValueError(f"Designspace source is missing a wght 400 master: {path}")
-    info = default_source.font.info
-    ascender = info.openTypeHheaAscender
-    descender = info.openTypeHheaDescender
-    if ascender is None:
-        ascender = info.ascender
-    if descender is None:
-        descender = info.descender
-    if ascender is None or descender is None:
-        raise ValueError("UFO source is missing vertical metrics")
-    vertical_metric = int(round(ascender)), int(round(descender))
-    target_vertical_metric = (
-        calculate_line_height_metrics(line_height, vertical_metric)
-        if line_height != 1
-        else None
-    )
-    for source in sources:
-        if source.font is None:
-            raise ValueError(f"Designspace source master has no UFO font: {path}")
-        if target_vertical_metric is not None:
-            target_ascender, target_descender = target_vertical_metric
-            info = source.font.info
-            info.openTypeHheaAscender = target_ascender
-            info.openTypeHheaDescender = target_descender
-            info.openTypeOS2TypoAscender = target_ascender
-            info.openTypeOS2TypoDescender = target_descender
-            info.openTypeOS2WinAscent = target_ascender
-            info.openTypeOS2WinDescent = -target_descender
-        if target_width is not None:
-            scale_ufo_width(
-                source.font,
-                target_width=target_width,
-                original_ref_width=original_ref_width,
+        if not isinstance(weight_axis, AxisDescriptor) or weight_axis.name is None:
+            raise ValueError(
+                f"Designspace source requires a continuous named wght axis: {path}"
             )
+        weight_axis.default = 400
+        axis_name = weight_axis.name
+        sources = list(designspace.sources)
+        default_source = next(
+            (source for source in sources if source.location.get(axis_name) == 400),
+            None,
+        )
+        if default_source is None or default_source.font is None:
+            raise ValueError(f"Designspace source is missing a wght 400 master: {path}")
+        info = default_source.font.info
+        ascender = info.openTypeHheaAscender
+        descender = info.openTypeHheaDescender
+        if ascender is None:
+            ascender = info.ascender
+        if descender is None:
+            descender = info.descender
+        if ascender is None or descender is None:
+            raise ValueError("UFO source is missing vertical metrics")
+        vertical_metric = int(round(ascender)), int(round(descender))
+        target_vertical_metric = (
+            calculate_line_height_metrics(line_height, vertical_metric)
+            if line_height != 1
+            else None
+        )
+        for source in sources:
+            if source.font is None:
+                raise ValueError(f"Designspace source master has no UFO font: {path}")
+            if target_vertical_metric is not None:
+                target_ascender, target_descender = target_vertical_metric
+                info = source.font.info
+                info.openTypeHheaAscender = target_ascender
+                info.openTypeHheaDescender = target_descender
+                info.openTypeOS2TypoAscender = target_ascender
+                info.openTypeOS2TypoDescender = target_descender
+                info.openTypeOS2WinAscent = target_ascender
+                info.openTypeOS2WinDescent = -target_descender
+            if target_width is not None:
+                scale_ufo_width(
+                    source.font,
+                    target_width=target_width,
+                    original_ref_width=original_ref_width,
+                )
 
-    return PreparedDesignspaceSource(
-        source_path=path,
-        style=style,
-        designspace=designspace,
-        vertical_metric=vertical_metric,
-    )
+        return PreparedDesignspaceSource(
+            source_path=path,
+            style=style,
+            designspace=designspace,
+            vertical_metric=vertical_metric,
+        )
+    except BaseException:
+        for font in opened_fonts:
+            with suppress(Exception):
+                font.close()
+        raise
 
 
 def _apply_designspace_weight_mapping(
@@ -256,18 +268,41 @@ def materialize_prepared_source(
     designspace_path = root / f"{prepared.style}.designspace"
     prepared.designspace.path = str(designspace_path.resolve())
 
-    for index, source in enumerate(prepared.designspace.sources):
-        if source.font is None:
-            raise ValueError(f"Prepared source has no UFO font: {source.name}")
-        filename = Path(source.filename or f"master-{index}.ufo").name
-        ufo_path = root / filename
-        source.font.save(ufo_path, overwrite=True)
-        source.font = None
-        source.path = str(ufo_path.resolve())
+    fonts_to_close = []
+    try:
+        missing_source = None
+        for source in prepared.designspace.sources:
+            if source.font is None:
+                missing_source = source
+                continue
+            fonts_to_close.append((source, source.font))
+        if missing_source is not None:
+            raise ValueError(f"Prepared source has no UFO font: {missing_source.name}")
 
-    for instance in prepared.designspace.instances:
-        if instance.filename is not None:
-            instance.path = str((root / Path(instance.filename)).resolve())
+        for index, (source, font) in enumerate(fonts_to_close):
+            filename = Path(source.filename or f"master-{index}.ufo").name
+            ufo_path = root / filename
+            font.save(ufo_path, overwrite=True)
+            source.path = str(ufo_path.resolve())
 
-    prepared.designspace.write(designspace_path.resolve())
-    return designspace_path
+        while fonts_to_close:
+            source, font = fonts_to_close.pop()
+            try:
+                font.close()
+            finally:
+                source.font = None
+
+        for instance in prepared.designspace.instances:
+            if instance.filename is not None:
+                instance.path = str((root / Path(instance.filename)).resolve())
+
+        prepared.designspace.write(designspace_path.resolve())
+        return designspace_path
+    finally:
+        while fonts_to_close:
+            source, font = fonts_to_close.pop()
+            try:
+                with suppress(Exception):
+                    font.close()
+            finally:
+                source.font = None

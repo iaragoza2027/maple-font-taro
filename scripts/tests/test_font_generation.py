@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 import tempfile
 import unittest
 import json
@@ -8,6 +9,7 @@ from threading import Barrier, current_thread
 from unittest.mock import patch
 
 from fontmake.font_project import CFFOptimization, FontProject
+from fontTools.designspaceLib import DesignSpaceDocument
 from glyphsLib import load
 from glyphsLib.classes import (
     GSComponent,
@@ -20,6 +22,7 @@ from glyphsLib.classes import (
     GSNode,
     GSPath,
 )
+from ufoLib2 import Font as UFOFont
 from scripts.font_ops.fonttools import TTFont, instantiate_variable_font
 
 from scripts.config.base import ResolvedConfig
@@ -138,6 +141,15 @@ def compile_fixture(
 
 
 class DesignspaceVariableSourceTest(unittest.TestCase):
+    def assert_ufo_readers_closed(self, fonts: Sequence[UFOFont | None]) -> None:
+        for font in fonts:
+            self.assertIsNotNone(font)
+            assert font is not None
+            reader = font._reader
+            self.assertIsNotNone(reader)
+            assert reader is not None
+            self.assertTrue(reader.fs.isclosed())
+
     def test_prepare_sets_build_metadata_on_every_ufo_master(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             source_path = Path(tmp) / "Fixture.glyphs"
@@ -172,6 +184,106 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
                 self.assertEqual(info.openTypeOS2TypoDescender, -240)
                 self.assertEqual(info.openTypeOS2WinAscent, 960)
                 self.assertEqual(info.openTypeOS2WinDescent, 240)
+
+    def test_materializing_prepared_source_closes_every_ufo_reader(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source_path = root / "Fixture.glyphs"
+            write_glyphs_fixture(
+                source_path,
+                {".notdef": ("Thin", "Regular", "ExtraBold")},
+            )
+            prepared = prepare_glyphs_fixture(source_path, "regular")
+            fonts = [source.font for source in prepared.designspace.sources]
+
+            materialize_prepared_source(prepared, root / "prepared")
+
+            self.assert_ufo_readers_closed(fonts)
+            self.assertTrue(
+                all(source.font is None for source in prepared.designspace.sources)
+            )
+
+    def test_materialization_failure_closes_every_ufo_reader(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source_path = root / "Fixture.glyphs"
+            write_glyphs_fixture(
+                source_path,
+                {".notdef": ("Thin", "Regular", "ExtraBold")},
+            )
+            prepared = prepare_glyphs_fixture(source_path, "regular")
+            fonts = [source.font for source in prepared.designspace.sources]
+
+            with (
+                patch.object(UFOFont, "save", side_effect=OSError("save failed")),
+                self.assertRaisesRegex(OSError, "save failed"),
+            ):
+                materialize_prepared_source(prepared, root / "prepared")
+
+            self.assert_ufo_readers_closed(fonts)
+            self.assertTrue(
+                all(source.font is None for source in prepared.designspace.sources)
+            )
+
+    def test_designspace_write_failure_closes_every_ufo_reader(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source_path = root / "Fixture.glyphs"
+            write_glyphs_fixture(
+                source_path,
+                {".notdef": ("Thin", "Regular", "ExtraBold")},
+            )
+            prepared = prepare_glyphs_fixture(source_path, "regular")
+            fonts = [source.font for source in prepared.designspace.sources]
+
+            with (
+                patch.object(
+                    DesignSpaceDocument,
+                    "write",
+                    side_effect=OSError("designspace write failed"),
+                ),
+                self.assertRaisesRegex(OSError, "designspace write failed"),
+            ):
+                materialize_prepared_source(prepared, root / "prepared")
+
+            self.assert_ufo_readers_closed(fonts)
+            self.assertTrue(
+                all(source.font is None for source in prepared.designspace.sources)
+            )
+
+    def test_preparation_failure_closes_every_opened_ufo_reader(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source_path = root / "Fixture.glyphs"
+            write_glyphs_fixture(
+                source_path,
+                {".notdef": ("Thin", "Regular", "ExtraBold")},
+            )
+            static_source = prepare_static_fixture(source_path, "regular")
+            designspace_path = write_designspace_source(
+                static_source,
+                root / "generated",
+                "Fixture.designspace",
+            )
+            designspace = DesignSpaceDocument.fromfile(designspace_path)
+            designspace.axes = []
+            designspace.write(designspace_path)
+            opened_fonts: list[UFOFont] = []
+            original_open = UFOFont.open
+
+            def track_open(path):
+                font = original_open(path)
+                opened_fonts.append(font)
+                return font
+
+            with (
+                patch.object(UFOFont, "open", side_effect=track_open),
+                self.assertRaisesRegex(ValueError, "continuous named wght axis"),
+            ):
+                prepare_designspace_source(designspace_path, "regular")
+
+            self.assertEqual(len(opened_fonts), 3)
+            self.assert_ufo_readers_closed(opened_fonts)
 
     def test_fontmake_compiles_prepared_variable_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

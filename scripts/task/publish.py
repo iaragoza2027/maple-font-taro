@@ -1,27 +1,306 @@
 from __future__ import annotations
 
 import argparse
+import json
+import shlex
+import shutil
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, Literal
 
-from scripts.utils.process import is_ci
 from scripts.utils.logging import logger
+from scripts.utils.process import is_ci
+
+
+ReleaseTaskKind = Literal["base", "cjk"]
+RELEASE_ASSET_DIR = Path("release")
+RELEASE_TASK_DIR = Path("release-task")
+BUILD_ARCHIVE_DIR = Path("fonts/archive")
+
+
+@dataclass(frozen=True, slots=True)
+class ReleaseProfile:
+    id: str
+    args: tuple[str, ...]
+    family_suffix: str
+
+
+@dataclass(frozen=True, slots=True)
+class ReleaseWidth:
+    id: str
+    value: str
+    family_suffix: str
+
+
+@dataclass(frozen=True, slots=True)
+class ReleaseLocale:
+    id: str
+    name: str
+
+
+@dataclass(frozen=True, slots=True)
+class ReleaseTask:
+    kind: ReleaseTaskKind
+    profile: ReleaseProfile
+    width: ReleaseWidth
+    locale: ReleaseLocale | None = None
+
+    @property
+    def id(self) -> str:
+        parts = [self.kind, self.profile.id, self.width.id]
+        if self.locale is not None:
+            parts.append(self.locale.id)
+        return "-".join(parts)
+
+    @property
+    def family_name(self) -> str:
+        return "MapleMono" + self.profile.family_suffix + self.width.family_suffix
+
+    def archive_names(self) -> tuple[str, ...]:
+        if self.kind == "base":
+            targets = BASE_ARCHIVE_TARGETS
+        else:
+            if self.locale is None:
+                raise ValueError("CJK release task requires a locale")
+            targets = tuple(
+                target.format(locale=self.locale.name) for target in CJK_ARCHIVE_TARGETS
+            )
+        return tuple(f"{self.family_name}-{target}.zip" for target in targets)
+
+
+RELEASE_PROFILES = (
+    ReleaseProfile("default", ("--liga",), ""),
+    ReleaseProfile("normal", ("--normal", "--liga"), "Normal"),
+    ReleaseProfile("no-ligature", ("--no-liga",), "NL"),
+    ReleaseProfile(
+        "normal-no-ligature",
+        ("--normal", "--no-liga"),
+        "NormalNL",
+    ),
+)
+RELEASE_WIDTHS = (
+    ReleaseWidth("default", "default", ""),
+    ReleaseWidth("narrow", "narrow", "NR"),
+    ReleaseWidth("slim", "slim", "SL"),
+)
+RELEASE_CJK_LOCALES = (
+    ReleaseLocale("cn", "CN"),
+    ReleaseLocale("tc", "TC"),
+    ReleaseLocale("jp", "JP"),
+    ReleaseLocale("kr", "KR"),
+)
+BASE_ARCHIVE_TARGETS = (
+    "VF",
+    "TTF",
+    "TTF-AutoHint",
+    "OTF",
+    "Woff2",
+    "NF",
+    "NF-unhinted",
+)
+CJK_ARCHIVE_TARGETS = (
+    "NF-{locale}-VF",
+    "NF-{locale}",
+    "NF-{locale}-unhinted",
+)
 
 
 def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):
     parser = subparsers.add_parser(
-        "publish", help="Publish the font archives to GitHub Release"
+        "publish", help="Build and publish GitHub Release font archives"
     )
-    parser.add_argument(
+    actions = parser.add_subparsers(dest="publish_action", required=True)
+
+    matrix_parser = actions.add_parser(
+        "matrix", help="Print a GitHub Actions release task matrix"
+    )
+    matrix_parser.add_argument("kind", choices=("base", "cjk"))
+
+    build_parser = actions.add_parser("build", help="Run one release build task")
+    build_parser.add_argument("task", help="Task id emitted by the matrix command")
+    build_parser.add_argument(
+        "--build-args",
+        default="",
+        help="Additional build.py arguments used by workflow dispatch",
+    )
+
+    release_parser = actions.add_parser(
+        "release", help="Validate assets and create a draft GitHub Release"
+    )
+    release_parser.add_argument(
         "--write",
         action="store_true",
         help="Write changelog to release note file (auto write in CI)",
     )
-    parser.add_argument(
+    release_parser.add_argument(
         "--tag",
         help="Git tag to publish (defaults to the unique tag pointing at HEAD)",
     )
     return parser
+
+
+def release_tasks(kind: ReleaseTaskKind | None = None) -> tuple[ReleaseTask, ...]:
+    base_tasks = tuple(
+        ReleaseTask("base", profile, width)
+        for profile in RELEASE_PROFILES
+        for width in RELEASE_WIDTHS
+    )
+    cjk_tasks = tuple(
+        ReleaseTask("cjk", profile, width, locale)
+        for profile in RELEASE_PROFILES
+        for width in RELEASE_WIDTHS
+        for locale in RELEASE_CJK_LOCALES
+    )
+    if kind == "base":
+        return base_tasks
+    if kind == "cjk":
+        return cjk_tasks
+    return (*base_tasks, *cjk_tasks)
+
+
+def release_matrix(kind: ReleaseTaskKind) -> dict[str, list[dict[str, str]]]:
+    return {"include": [{"task": task.id} for task in release_tasks(kind)]}
+
+
+def release_manifest() -> dict[str, Any]:
+    return {
+        "profiles": [
+            {"id": profile.id, "family_suffix": profile.family_suffix}
+            for profile in RELEASE_PROFILES
+        ],
+        "widths": [
+            {
+                "id": width.id,
+                "value": width.value,
+                "family_suffix": width.family_suffix,
+            }
+            for width in RELEASE_WIDTHS
+        ],
+        "base": {"targets": list(BASE_ARCHIVE_TARGETS)},
+        "cjk": {
+            "locales": [
+                {"id": locale.id, "name": locale.name} for locale in RELEASE_CJK_LOCALES
+            ],
+            "targets": list(CJK_ARCHIVE_TARGETS),
+        },
+    }
+
+
+def resolve_release_task(task_id: str) -> ReleaseTask:
+    try:
+        return next(task for task in release_tasks() if task.id == task_id)
+    except StopIteration as error:
+        raise ValueError(f"Unknown release task: {task_id}") from error
+
+
+def release_build_steps(
+    task: ReleaseTask,
+    extra_args: tuple[str, ...] = (),
+) -> tuple[list[str], ...]:
+    common = [
+        *extra_args,
+        "--archive",
+        "--nf",
+        "--width",
+        task.width.value,
+        *task.profile.args,
+    ]
+    if task.kind == "base":
+        return (
+            [*common, "--format", "ttf,otf,woff2", "--hinted"],
+            [
+                *common,
+                "--format",
+                "ttf,otf,woff2",
+                "--no-hinted",
+                "--cache",
+            ],
+        )
+    if task.locale is None:
+        raise ValueError("CJK release task requires a locale")
+    cjk = [*common, "--format", "ttf", "--cjk", task.locale.id]
+    return (
+        [
+            *cjk,
+            "--cjk-format",
+            "static",
+            "--hinted",
+            "--cjk-hinted",
+        ],
+        [
+            *cjk,
+            "--cjk-format",
+            "static",
+            "--no-hinted",
+            "--no-cjk-hinted",
+            "--cache",
+        ],
+        [
+            *cjk,
+            "--cjk-format",
+            "variable",
+            "--no-hinted",
+            "--no-cjk-hinted",
+            "--cache",
+        ],
+    )
+
+
+def collect_release_task_archives(
+    task: ReleaseTask,
+    archive_dir: Path = BUILD_ARCHIVE_DIR,
+    output_dir: Path = RELEASE_TASK_DIR,
+) -> None:
+    shutil.rmtree(output_dir, ignore_errors=True)
+    output_dir.mkdir(parents=True)
+    missing = [
+        name for name in task.archive_names() if not (archive_dir / name).is_file()
+    ]
+    if missing:
+        raise FileNotFoundError(
+            f"Release task {task.id} did not produce: {', '.join(missing)}"
+        )
+    for archive_name in task.archive_names():
+        shutil.copy2(archive_dir / archive_name, output_dir / archive_name)
+
+
+def build_release_task(task_id: str, build_args: str = "") -> None:
+    from scripts.pipeline import main as build_main
+
+    task = resolve_release_task(task_id)
+    for build_step in release_build_steps(task, tuple(shlex.split(build_args))):
+        build_main(build_step)
+    collect_release_task_archives(task)
+
+
+def expected_release_archives() -> set[str]:
+    return {
+        archive_name
+        for task in release_tasks()
+        for archive_name in task.archive_names()
+    }
+
+
+def prepare_release_assets(release_dir: Path = RELEASE_ASSET_DIR) -> None:
+    archives = sorted(release_dir.rglob("*.zip"), key=lambda path: path.name)
+    archive_names = [path.name for path in archives]
+    if len(archive_names) != len(set(archive_names)):
+        raise ValueError("Release assets contain duplicate archive names")
+
+    expected = expected_release_archives()
+    actual = set(archive_names)
+    if actual != expected:
+        missing = ", ".join(sorted(expected - actual)) or "none"
+        unexpected = ", ".join(sorted(actual - expected)) or "none"
+        raise ValueError(
+            f"Release archive mismatch; missing: {missing}; unexpected: {unexpected}"
+        )
+
+    (release_dir / "release-manifest.json").write_text(
+        json.dumps(release_manifest(), indent=2) + "\n",
+        encoding="utf-8",
+    )
 
 
 def get_output(cmd: list[str]) -> str:
@@ -64,7 +343,8 @@ def publish(write: bool, tag: str | None = None, dry: bool = not is_ci()):
         "release",
         "create",
         tag,
-        "release/**/*.*",
+        "release/*.zip",
+        "release/release-manifest.json",
         "--notes-file",
         template_path.as_posix(),
         "-t",
@@ -86,8 +366,14 @@ def publish(write: bool, tag: str | None = None, dry: bool = not is_ci()):
     if dry:
         print(f"changelog:\n{changelog}\n\nRun command: {' '.join(cmd)}")
     else:
+        prepare_release_assets()
         subprocess.run(cmd, check=True)
 
 
 def run(args: argparse.Namespace) -> None:
-    publish(args.write, args.tag)
+    if args.publish_action == "matrix":
+        print(json.dumps(release_matrix(args.kind), separators=(",", ":")))
+    elif args.publish_action == "build":
+        build_release_task(args.task, args.build_args)
+    else:
+        publish(args.write, args.tag)

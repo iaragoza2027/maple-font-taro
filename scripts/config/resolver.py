@@ -464,6 +464,8 @@ class BuildConfigResolver:
             config.cjk.common_options.narrow = True
         if args.cjk_scale_factor is not None:
             config.cjk.common_options.scale_factor = args.cjk_scale_factor
+        if args.cjk_hinted is not None:
+            config.cjk.common_options.use_hinted = bool(args.cjk_hinted)
 
         if args.cn_narrow:
             logger.warning("--cn-narrow is deprecated; use --cjk-narrow instead")

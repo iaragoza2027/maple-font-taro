@@ -194,6 +194,21 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
         type=parse_scale_factor,
         help="Scale factor for selected CJK locales. Format: <factor> or <width_factor>,<height_factor>.",
     )
+    cjk_hint_group = cjk_group.add_mutually_exclusive_group()
+    cjk_hint_group.add_argument(
+        "--cjk-hinted",
+        dest="cjk_hinted",
+        default=None,
+        action="store_true",
+        help="Auto-hint final static CJK fonts.",
+    )
+    cjk_hint_group.add_argument(
+        "--no-cjk-hinted",
+        dest="cjk_hinted",
+        default=None,
+        action="store_false",
+        help="Do not auto-hint final static CJK fonts (default).",
+    )
     cjk_group.add_argument(
         "--cjk-both",
         action="store_true",

@@ -687,7 +687,8 @@ usage: build.py [-h] [-v] [-d] [--debug] [-n] [--feat FEAT] [--apply-fea-file]
                 [--format FORMATS] [--least-styles] [--cache] [--archive]
                 [--nf | --no-nf] [--nf-mono] [--nf-propo] [--font-patcher]
                 [--cjk CJK] [--cjk-format {static,variable}] [--cjk-narrow]
-                [--cjk-scale-factor CJK_SCALE_FACTOR] [--cjk-both]
+                [--cjk-scale-factor CJK_SCALE_FACTOR]
+                [--cjk-hinted | --no-cjk-hinted] [--cjk-both]
                 [--cn | --no-cn] [--cn-narrow]
                 [--cn-scale-factor CN_SCALE_FACTOR] [--cn-both]
 
@@ -753,6 +754,8 @@ CJK Options:
   --cjk-scale-factor CJK_SCALE_FACTOR
                         Scale factor for selected CJK locales. Format:
                         <factor> or <width_factor>,<height_factor>.
+  --cjk-hinted          Auto-hint final static CJK fonts.
+  --no-cjk-hinted       Do not auto-hint final static CJK fonts (default).
   --cjk-both            When Nerd Font is enabled, build both NF CJK and non-
                         NF CJK outputs.
 

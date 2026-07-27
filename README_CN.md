@@ -682,7 +682,8 @@ usage: build.py [-h] [-v] [-d] [--debug] [-n] [--feat FEAT] [--apply-fea-file]
                 [--format FORMATS] [--least-styles] [--cache] [--archive]
                 [--nf | --no-nf] [--nf-mono] [--nf-propo] [--font-patcher]
                 [--cjk CJK] [--cjk-format {static,variable}] [--cjk-narrow]
-                [--cjk-scale-factor CJK_SCALE_FACTOR] [--cjk-both]
+                [--cjk-scale-factor CJK_SCALE_FACTOR]
+                [--cjk-hinted | --no-cjk-hinted] [--cjk-both]
                 [--cn | --no-cn] [--cn-narrow]
                 [--cn-scale-factor CN_SCALE_FACTOR] [--cn-both]
 
@@ -732,6 +733,8 @@ CJK Options:
   --cjk-narrow          对选定 locale 应用窄 CJK 间距
   --cjk-scale-factor CJK_SCALE_FACTOR
                         选定 locale 的缩放因子。格式：<因子> 或 <宽度因子>,<高度因子>
+  --cjk-hinted          对最终静态 CJK 字体执行自动 hinting
+  --no-cjk-hinted       不对最终静态 CJK 字体执行自动 hinting（默认）
   --cjk-both            Nerd Font 启用时，同时构建 NF CJK 和普通 CJK 输出
 
 Deprecated CN Options:

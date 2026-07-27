@@ -58,11 +58,11 @@
 
 ## CJK
 
-- [ ] try not to convert CFF2 to glyf, directly use CFF2 to merge variable font and generate ttf when instantiating
+- [x] try not to convert CFF2 to glyf, directly use CFF2 to merge variable font and generate ttf when instantiating
 - [x] WenYuanRoundedSCVF as SC part
-- [ ] ChironGoRoundTCVF as TC + KR (range should reference from Pretendard) part
+- [x] ChironGoRoundTCVF as TC + KR (range should reference from Pretendard) part
   - Maple and ChironGoRoundTCVF weight mapping:
     - 100 -> 250
     - 400 -> 620
     - 800 -> 900
-- [ ] Resource Han Sans JP as JP part
+- [x] Resource Han Sans JP as JP part

@@ -891,7 +891,7 @@ class MapleBuildPipeline:
                 if not self.font_config.use_hinted:
                     suffix = "-unhinted"
 
-            sha256, zip_file_name_without_ext = archive_fonts(
+            _, zip_file_name_without_ext = archive_fonts(
                 family_name_compact=self.font_config.family_name_compact,
                 suffix=suffix,
                 source_file_or_dir_path=join_path(
@@ -904,13 +904,6 @@ class MapleBuildPipeline:
                 ),
                 target_parent_dir_path=archive_dir,
             )
-            with open(
-                join_path(archive_dir, f"{zip_file_name_without_ext}.sha256"),
-                "w",
-                encoding="utf-8",
-            ) as hash_file:
-                hash_file.write(sha256)
-
             archive_count += 1
             logger.info(
                 "Saved archive to %s",

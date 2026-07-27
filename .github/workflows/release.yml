@@ -16,46 +16,90 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        config: [
-          {name: normal-liga, args: "--normal --liga"},
-          {name: normal-no-liga, args: "--normal --no-liga"},
-          {name: liga, args: "--liga"},
-          {name: no-liga, args: "--no-liga"}
-        ]
+  prepare-matrix:
     runs-on: ubuntu-latest
+    outputs:
+      base: ${{ steps.matrix.outputs.base }}
+      cjk: ${{ steps.matrix.outputs.cjk }}
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
+    - uses: astral-sh/setup-uv@v6
       with:
+        enable-cache: true
         python-version: '3.12'
-        cache: 'pip'
-        cache-dependency-path: './requirements.txt'
-    - run: pip install -r requirements.txt
-    - name: Build fonts
+    - run: uv sync --locked --no-dev
+    - id: matrix
+      name: Generate release task matrices
       run: |
-        python build.py --archive --cn-both --hinted ${{ matrix.config.args }} ${{ github.event.inputs.build_args }}
-        python build.py --archive --cn-both --no-hinted --cache ${{ matrix.config.args }} ${{ github.event.inputs.build_args }}
+        echo "base=$(uv run task.py publish matrix base)" >> "$GITHUB_OUTPUT"
+        echo "cjk=$(uv run task.py publish matrix cjk)" >> "$GITHUB_OUTPUT"
+
+  build-base:
+    needs: prepare-matrix
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare-matrix.outputs.base) }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+        python-version: '3.12'
+    - run: uv sync --locked --no-dev
+    - name: Build release task
+      run: uv run task.py publish build "${{ matrix.task }}" --build-args="$BUILD_ARGS"
+      env:
+        BUILD_ARGS: ${{ github.event.inputs.build_args }}
     - uses: actions/upload-artifact@v4
       with:
-        name: release-artifacts-${{ matrix.config.name }}
-        path: fonts/archive/*
+        name: release-${{ matrix.task }}
+        path: release-task/*.zip
+        if-no-files-found: error
+
+  build-cjk:
+    needs: prepare-matrix
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.prepare-matrix.outputs.cjk) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+        python-version: '3.12'
+    - run: uv sync --locked --no-dev
+    - name: Build release task
+      run: uv run task.py publish build "${{ matrix.task }}" --build-args="$BUILD_ARGS"
+      env:
+        BUILD_ARGS: ${{ github.event.inputs.build_args }}
+    - uses: actions/upload-artifact@v4
+      with:
+        name: release-${{ matrix.task }}
+        path: release-task/*.zip
+        if-no-files-found: error
 
   create-release:
-    needs: build
+    needs: [build-base, build-cjk]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
+    - uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+        python-version: '3.12'
+    - run: uv sync --locked --no-dev
     - uses: actions/download-artifact@v4
       with:
-        pattern: release-artifacts*
+        pattern: release-*
         path: release
-
+        merge-multiple: true
     - name: Release artifacts
-      run: python task.py publish --tag "${{ github.ref_name }}"
+      run: uv run task.py publish release --tag "${{ github.ref_name }}"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

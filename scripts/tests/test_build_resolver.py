@@ -808,6 +808,7 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
                 "--cjk-narrow",
                 "--cjk-scale-factor",
                 "1.2",
+                "--cjk-hinted",
                 "--cjk-both",
             ],
         )
@@ -833,6 +834,7 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
         self.assertEqual(font_config.cjk.locales.builtin_enabled_locales(), ["jp"])
         self.assertTrue(font_config.cjk.common_options.narrow)
         self.assertEqual(font_config.cjk.common_options.scale_factor, (1.2, 1.2))
+        self.assertTrue(font_config.cjk.common_options.use_hinted)
         self.assertTrue(font_config.use_cjk_both)
 
     def test_schema_constrained_config_values_are_rejected_during_resolution(

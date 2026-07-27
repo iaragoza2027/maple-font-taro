@@ -2,14 +2,23 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
+from datetime import datetime, timezone
 import hashlib
-from os import path, walk
+from os import environ, path, walk
 from pathlib import Path
+import shutil
+import stat
 from typing import Any
 from urllib.parse import quote
-from zipfile import ZIP_BZIP2, ZIP_DEFLATED, ZipFile
+from zipfile import ZIP_BZIP2, ZIP_DEFLATED, ZipFile, ZipInfo
 
 from scripts.utils.logging import logger
+
+
+SOURCE_DATE_EPOCH = "SOURCE_DATE_EPOCH"
+ZIP_MIN_EPOCH = 315_532_800
+ZIP_MAX_EPOCH = 4_354_819_198
+ZIP_FILE_MODE = stat.S_IFREG | 0o644
 
 
 def join_path(*parts: str | Path) -> str:
@@ -46,56 +55,144 @@ def read_text(file_path: str | Path) -> str:
     return Path(file_path).read_text(encoding="utf-8")
 
 
+def _archive_timestamp() -> tuple[int, int, int, int, int, int]:
+    raw_value = environ.get(SOURCE_DATE_EPOCH)
+    if raw_value is None:
+        epoch = ZIP_MIN_EPOCH
+    else:
+        try:
+            epoch = int(raw_value)
+        except ValueError as error:
+            raise ValueError(f"{SOURCE_DATE_EPOCH} must be an integer") from error
+        if epoch < 0:
+            raise ValueError(f"{SOURCE_DATE_EPOCH} must not be negative")
+        epoch = min(max(epoch, ZIP_MIN_EPOCH), ZIP_MAX_EPOCH)
+    value = datetime.fromtimestamp(epoch, timezone.utc)
+    return (value.year, value.month, value.day, value.hour, value.minute, value.second)
+
+
+def _archive_info(
+    archive_path: str,
+    timestamp: tuple[int, int, int, int, int, int],
+    compression: int,
+) -> ZipInfo:
+    info = ZipInfo(archive_path, timestamp)
+    info.compress_type = compression
+    info.create_system = 3
+    info.external_attr = ZIP_FILE_MODE << 16
+    return info
+
+
+def _write_archive_file(
+    archive: ZipFile,
+    source: Path,
+    archive_path: str,
+    timestamp: tuple[int, int, int, int, int, int],
+    compression: int,
+) -> None:
+    info = _archive_info(archive_path, timestamp, compression)
+    with (
+        source.open("rb") as input_file,
+        archive.open(
+            info,
+            "w",
+            force_zip64=True,
+        ) as output_file,
+    ):
+        shutil.copyfileobj(input_file, output_file, length=1024 * 1024)
+
+
+def _write_archive_text(
+    archive: ZipFile,
+    content: str,
+    archive_path: str,
+    timestamp: tuple[int, int, int, int, int, int],
+    compression: int,
+) -> None:
+    archive.writestr(
+        _archive_info(archive_path, timestamp, compression),
+        content.encode("utf-8"),
+    )
+
+
 def archive(
     source: str | Path,
     target: str | Path,
     include: Callable[[str], bool],
 ) -> None:
     source_path = Path(source)
+    if not source_path.is_dir():
+        raise NotADirectoryError(f"Invalid archive source directory: {source_path}")
+    timestamp = _archive_timestamp()
     with ZipFile(target, "w", compression=ZIP_BZIP2, compresslevel=9) as zip_file:
-        for child in source_path.iterdir():
+        for child in sorted(source_path.iterdir()):
             if include(str(child)):
-                zip_file.write(child, child.name)
+                _write_archive_file(
+                    zip_file,
+                    child,
+                    child.name,
+                    timestamp,
+                    ZIP_BZIP2,
+                )
     logger.info("Created archive: path=%s", target)
 
 
 def archive_fonts(
-    source_file_or_dir_path: str,
+    source_file_or_dir_path: str | Path,
     target_parent_dir_path: str,
     family_name_compact: str,
     suffix: str,
     build_config_path: str,
 ) -> tuple[str, str]:
-    source_folder_name = path.basename(source_file_or_dir_path)
+    source_path = Path(source_file_or_dir_path)
+    if not source_path.is_dir():
+        raise NotADirectoryError(f"Invalid archive source directory: {source_path}")
+    source_folder_name = source_path.name
     archive_label = archive_output_label(source_folder_name)
     zip_name_without_ext = f"{family_name_compact}-{archive_label}{suffix}"
     zip_path = join_path(target_parent_dir_path, f"{zip_name_without_ext}.zip")
+    timestamp = _archive_timestamp()
 
-    font_files: list[str] = []
+    source_files = {
+        file_path.relative_to(source_path).as_posix(): file_path
+        for file_path in source_path.rglob("*")
+        if file_path.is_file()
+    }
+    source_files.pop("README.md", None)
+    font_files = [
+        relative_path
+        for relative_path, file_path in source_files.items()
+        if file_path.suffix.lower() in {".otf", ".ttf", ".woff2"}
+    ]
+    source_files["LICENSE.txt"] = Path("OFL.txt")
+    if not source_folder_name.startswith("Variable"):
+        source_files["config.json"] = Path(build_config_path)
+    generated_text = {
+        "README.md": archive_font_readme(zip_name_without_ext, font_files),
+    }
+
     with ZipFile(zip_path, "w", compression=ZIP_DEFLATED, compresslevel=5) as zip_file:
-        for root, _, files in walk(source_file_or_dir_path):
-            for file_name in files:
-                file_path = join_path(root, file_name)
-                relative_path = path.relpath(file_path, source_file_or_dir_path)
-                if relative_path == "README.md":
-                    continue
-                zip_file.write(
-                    file_path,
-                    relative_path,
+        for archive_path in sorted(source_files.keys() | generated_text.keys()):
+            if archive_path in generated_text:
+                _write_archive_text(
+                    zip_file,
+                    generated_text[archive_path],
+                    archive_path,
+                    timestamp,
+                    ZIP_DEFLATED,
                 )
-                if Path(file_name).suffix.lower() in {".otf", ".ttf", ".woff2"}:
-                    font_files.append(Path(relative_path).as_posix())
-        zip_file.writestr(
-            "README.md",
-            archive_font_readme(zip_name_without_ext, font_files),
-        )
-        zip_file.write("OFL.txt", "LICENSE.txt")
-        if not source_folder_name.startswith("Variable"):
-            zip_file.write(build_config_path, "config.json")
+                continue
+            _write_archive_file(
+                zip_file,
+                source_files[archive_path],
+                archive_path,
+                timestamp,
+                ZIP_DEFLATED,
+            )
 
     sha256 = hashlib.sha256()
     with Path(zip_path).open("rb") as zip_file:
-        while data := zip_file.read(1024):
+        while data := zip_file.read(1024 * 1024):
             sha256.update(data)
     return sha256.hexdigest(), zip_name_without_ext
 

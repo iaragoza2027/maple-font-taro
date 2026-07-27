@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 import shutil
 import time
-from os import environ, listdir, makedirs
+from os import environ, makedirs
 from typing import Any, Literal
 from scripts.config.base import ResolvedCJKBuildEntry, ResolvedConfig
 from scripts.cjk.resolver import serialize_cjk_build_config
@@ -38,6 +38,7 @@ from scripts.utils.process import (
 )
 from scripts.utils.version import version_tag
 from scripts.pipeline.artifacts import (
+    IGNORED_OUTPUT_DIRS,
     base_cache_identity,
     cleanup_unselected_base_formats,
     ensure_base_output_dirs,
@@ -874,8 +875,14 @@ class MapleBuildPipeline:
         makedirs(archive_dir, exist_ok=True)
 
         archive_count = 0
-        for file_name in listdir(self.runtime_context.output_dir):
-            if file_name == archive_dir_name or file_name.endswith(".json"):
+        output_root = Path(self.runtime_context.output_dir)
+        for output_path in sorted(output_root.iterdir(), key=lambda path: path.name):
+            file_name = output_path.name
+            if (
+                not output_path.is_dir()
+                or file_name == archive_dir_name
+                or file_name in IGNORED_OUTPUT_DIRS
+            ):
                 continue
 
             suffix = ""
@@ -894,10 +901,7 @@ class MapleBuildPipeline:
             _, zip_file_name_without_ext = archive_fonts(
                 family_name_compact=self.font_config.family_name_compact,
                 suffix=suffix,
-                source_file_or_dir_path=join_path(
-                    self.runtime_context.output_dir,
-                    file_name,
-                ),
+                source_file_or_dir_path=output_path,
                 build_config_path=join_path(
                     self.runtime_context.output_dir,
                     "build-config.json",

@@ -422,5 +422,32 @@ class DerivedOutputValidationTest(unittest.TestCase):
             self.assertTrue(stale.is_file())
 
 
+class ArchiveOutputTest(unittest.TestCase):
+    def test_archives_only_sorted_output_directories(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime_context = make_runtime_context(Path(tmp))
+            output_root = Path(runtime_context.output_dir)
+            output_root.mkdir(parents=True)
+            for name in ("Variable", "TTF", ".cjk-temp", "temp", "archive"):
+                (output_root / name).mkdir()
+            for name in ("build-config.json", "issue.fea"):
+                (output_root / name).touch()
+
+            pipeline = MapleBuildPipeline(make_font_config(), runtime_context)
+            with patch(
+                "scripts.pipeline.orchestrator.archive_fonts",
+                return_value=("", "archive"),
+            ) as archive_fonts:
+                pipeline.archive_outputs()
+
+            self.assertEqual(
+                [
+                    Path(call.kwargs["source_file_or_dir_path"]).name
+                    for call in archive_fonts.call_args_list
+                ],
+                ["TTF", "Variable"],
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

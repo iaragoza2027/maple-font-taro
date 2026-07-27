@@ -13,6 +13,7 @@ import py7zr
 
 from scripts.utils.downloads import (
     download_file,
+    download_json,
     download_zip_and_extract,
     github_mirror_from_config,
     resolve_cached_download,
@@ -39,6 +40,18 @@ class FakeResponse:
 
 
 class DownloadProgressTest(unittest.TestCase):
+    def test_passes_socket_timeout_to_urlopen(self) -> None:
+        response = FakeResponse(b"font data", "9")
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "font.ttf"
+            with patch(
+                "scripts.utils.downloads.urlopen",
+                return_value=response,
+            ) as urlopen:
+                download_file("https://example.com/font.ttf", target)
+
+        self.assertEqual(urlopen.call_args.kwargs, {"timeout": 60})
+
     def test_accepts_matching_content_length(self) -> None:
         payload = b"font data"
         response = FakeResponse(payload, str(len(payload)))
@@ -90,6 +103,56 @@ class DownloadProgressTest(unittest.TestCase):
                 download_file("https://example.com/font.ttf", target)
 
             self.assertEqual(target.read_bytes(), payload)
+
+    def test_rejects_declared_download_over_limit_and_cleans_up(self) -> None:
+        response = FakeResponse(b"", "5")
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "font.ttf"
+            with (
+                patch("scripts.utils.downloads.MAX_DOWNLOAD_BYTES", 4),
+                patch("scripts.utils.downloads.urlopen", return_value=response),
+                self.assertRaisesRegex(FileNotFoundError, "exceeds limit"),
+            ):
+                resolve_cached_download(
+                    "font",
+                    target,
+                    "https://example.com/font.ttf",
+                )
+
+            self.assertFalse(target.exists())
+            self.assertFalse((target.parent / ".font.ttf.download").exists())
+
+    def test_rejects_streamed_download_over_limit_and_cleans_up(self) -> None:
+        response = FakeResponse(b"12345", None)
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "font.ttf"
+            with (
+                patch("scripts.utils.downloads.MAX_DOWNLOAD_BYTES", 4),
+                patch("scripts.utils.downloads.urlopen", return_value=response),
+                self.assertRaisesRegex(FileNotFoundError, "exceeds limit"),
+            ):
+                resolve_cached_download(
+                    "font",
+                    target,
+                    "https://example.com/font.ttf",
+                )
+
+            self.assertFalse(target.exists())
+            self.assertFalse((target.parent / ".font.ttf.download").exists())
+
+    def test_rejects_json_over_limit(self) -> None:
+        response = FakeResponse(b'{"value": 1}', None)
+        with (
+            patch("scripts.utils.downloads.MAX_JSON_BYTES", 4),
+            patch(
+                "scripts.utils.downloads.urlopen",
+                return_value=response,
+            ) as urlopen,
+            self.assertRaisesRegex(ValueError, "JSON download exceeds limit"),
+        ):
+            download_json("https://example.com/data.json")
+
+        self.assertEqual(urlopen.call_args.kwargs, {"timeout": 60})
 
 
 class DownloadUrlResolutionTest(unittest.TestCase):
@@ -390,6 +453,72 @@ class CachedDownloadTest(unittest.TestCase):
             self.assertFalse(target.exists())
             self.assertEqual(list(root.glob(".font.otf.*")), [])
 
+    def test_rejects_7z_archives_over_member_limit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "font.otf"
+            payload = root / "payload.otf"
+            payload.write_bytes(b"font data")
+
+            def fake_download(
+                _url: str,
+                temporary_path: str | Path,
+                _github_mirror: str,
+            ) -> None:
+                with py7zr.SevenZipFile(temporary_path, mode="w") as archive:
+                    archive.write(payload, "font.otf")
+
+            with (
+                patch(
+                    "scripts.utils.downloads.download_file",
+                    side_effect=fake_download,
+                ),
+                patch("scripts.utils.downloads.MAX_ARCHIVE_MEMBERS", 0),
+                self.assertRaisesRegex(FileNotFoundError, "member limit"),
+            ):
+                resolve_cached_download(
+                    "font",
+                    target,
+                    "https://example.com/font.7z",
+                    path_in_archive="font.otf",
+                )
+
+            self.assertFalse(target.exists())
+            self.assertEqual(list(root.glob(".font.otf.*")), [])
+
+    def test_rejects_selected_7z_member_over_size_limit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "font.otf"
+            payload = root / "payload.otf"
+            payload.write_bytes(b"font data")
+
+            def fake_download(
+                _url: str,
+                temporary_path: str | Path,
+                _github_mirror: str,
+            ) -> None:
+                with py7zr.SevenZipFile(temporary_path, mode="w") as archive:
+                    archive.write(payload, "font.otf")
+
+            with (
+                patch(
+                    "scripts.utils.downloads.download_file",
+                    side_effect=fake_download,
+                ),
+                patch("scripts.utils.downloads.MAX_EXTRACTED_BYTES", 4),
+                self.assertRaisesRegex(FileNotFoundError, "extracted size limit"),
+            ):
+                resolve_cached_download(
+                    "font",
+                    target,
+                    "https://example.com/font.7z",
+                    path_in_archive="font.otf",
+                )
+
+            self.assertFalse(target.exists())
+            self.assertEqual(list(root.glob(".font.otf.*")), [])
+
 
 class ZipDownloadTest(unittest.TestCase):
     def test_replaces_corrupt_cached_archive_before_extracting(self) -> None:
@@ -439,6 +568,70 @@ class ZipDownloadTest(unittest.TestCase):
             with patch(
                 "scripts.utils.downloads.download_file",
                 side_effect=fail_download,
+            ):
+                result = download_zip_and_extract(
+                    "font cache",
+                    "https://example.com/cache.zip",
+                    archive_path,
+                    output_dir,
+                )
+
+            self.assertFalse(result)
+            self.assertFalse(archive_path.exists())
+            self.assertFalse(output_dir.exists())
+
+    def test_rejects_zip_archives_over_member_limit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            archive_path = root / "cache.zip"
+            output_dir = root / "output"
+
+            def fake_download(
+                _url: str,
+                temporary_path: str | Path,
+                _github_mirror: str,
+            ) -> None:
+                with ZipFile(temporary_path, "w") as archive:
+                    archive.writestr("font.ttf", b"font")
+
+            with (
+                patch(
+                    "scripts.utils.downloads.download_file",
+                    side_effect=fake_download,
+                ),
+                patch("scripts.utils.downloads.MAX_ARCHIVE_MEMBERS", 0),
+            ):
+                result = download_zip_and_extract(
+                    "font cache",
+                    "https://example.com/cache.zip",
+                    archive_path,
+                    output_dir,
+                )
+
+            self.assertFalse(result)
+            self.assertFalse(archive_path.exists())
+            self.assertFalse(output_dir.exists())
+
+    def test_rejects_zip_archives_over_extracted_size_limit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            archive_path = root / "cache.zip"
+            output_dir = root / "output"
+
+            def fake_download(
+                _url: str,
+                temporary_path: str | Path,
+                _github_mirror: str,
+            ) -> None:
+                with ZipFile(temporary_path, "w") as archive:
+                    archive.writestr("font.ttf", b"font")
+
+            with (
+                patch(
+                    "scripts.utils.downloads.download_file",
+                    side_effect=fake_download,
+                ),
+                patch("scripts.utils.downloads.MAX_EXTRACTED_BYTES", 3),
             ):
                 result = download_zip_and_extract(
                     "font cache",

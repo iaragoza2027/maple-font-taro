@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -16,11 +17,15 @@ class ProductionBuildSmokeTest(unittest.TestCase):
     def test_debug_ttf_build_produces_readable_expected_fonts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             worktree = Path(tmp)
-            (worktree / "config.json").symlink_to(PROJECT_ROOT / "config.json")
-            (worktree / "source").symlink_to(
-                PROJECT_ROOT / "source",
-                target_is_directory=True,
-            )
+            shutil.copy2(PROJECT_ROOT / "config.json", worktree / "config.json")
+            source_root = PROJECT_ROOT / "source"
+            source_copy = worktree / "source"
+            source_copy.mkdir()
+            for designspace_path in sorted(source_root.glob("*.designspace")):
+                shutil.copy2(designspace_path, source_copy / designspace_path.name)
+            for ufo_path in sorted(source_root.glob("*.ufo")):
+                shutil.copytree(ufo_path, source_copy / ufo_path.name)
+            shutil.copytree(source_root / "features", source_copy / "features")
 
             result = subprocess.run(
                 [

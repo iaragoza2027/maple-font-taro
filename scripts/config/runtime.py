@@ -283,22 +283,11 @@ class BuildRuntimeContext:
             return None
 
         write_static_hash(preset_config, static_dir)
-        if self.has_valid_cjk_static_base(
-            preset_config,
-            static_dir,
-            required_styles,
-        ):
-            return CJKStaticBaseResolution(
-                static_dir=static_dir,
-                static_file_prefix=static_file_prefix,
-                source_kind="remote-static",
-            )
-
-        logger.warning(
-            "Downloaded CJK static fonts are invalid; preserving cache and falling back to variable build: locale=%s",
-            preset_config.locale_name,
+        return CJKStaticBaseResolution(
+            static_dir=static_dir,
+            static_file_prefix=static_file_prefix,
+            source_kind="remote-static",
         )
-        return None
 
     def _resolve_variable_cjk_static_base(
         self,
@@ -324,16 +313,11 @@ class BuildRuntimeContext:
                     executor=executor,
                     required_styles=required_styles,
                 )
-                if self.has_valid_cjk_static_base(
-                    preset_config,
-                    static_dir,
-                    required_styles,
-                ):
-                    return CJKStaticBaseResolution(
-                        static_dir=static_dir,
-                        static_file_prefix=static_file_prefix,
-                        source_kind="local-variable",
-                    )
+                return CJKStaticBaseResolution(
+                    static_dir=static_dir,
+                    static_file_prefix=static_file_prefix,
+                    source_kind="local-variable",
+                )
             except Exception as error:
                 failures.append(f"local variable instantiation: {error}")
         else:
@@ -354,12 +338,6 @@ class BuildRuntimeContext:
                 executor=executor,
                 required_styles=required_styles,
             )
-            if not self.has_valid_cjk_static_base(
-                preset_config,
-                static_dir,
-                required_styles,
-            ):
-                raise RuntimeError("generated CJK static hash is invalid")
             return CJKStaticBaseResolution(
                 static_dir=static_dir,
                 static_file_prefix=static_file_prefix,

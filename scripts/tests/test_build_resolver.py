@@ -32,6 +32,7 @@ from scripts.pipeline.nerd_fonts import (
     ensure_font_patcher_available,
     should_use_font_patcher,
 )
+from scripts.utils.files import get_directory_hash
 from scripts.utils.process import SynchronousExecutor
 
 
@@ -336,6 +337,109 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
 
             self.assertEqual(result.source_kind, "local-static")
             self.assertEqual(result.static_dir, static_dir)
+
+    def test_existing_static_cache_hashes_contents_once(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            runtime_context = make_runtime_context(tmp_path)
+            entry = make_entry(tmp_path)
+            static_dir = runtime_context.cjk_static_dir(entry.build_config)
+            write_static_fonts(
+                static_dir,
+                entry.build_config.naming.static_file_prefix,
+                ["Regular"],
+            )
+            write_static_hash(entry.build_config, static_dir)
+
+            with patch(
+                "scripts.cjk.cache.get_directory_hash",
+                wraps=get_directory_hash,
+            ) as directory_hash:
+                result = resolve_quietly(runtime_context, entry, ["Regular"])
+
+            self.assertEqual(result.source_kind, "local-static")
+            directory_hash.assert_called_once_with(str(static_dir))
+
+    def test_downloaded_static_cache_hashes_contents_once(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            runtime_context = make_runtime_context(tmp_path)
+            entry = make_entry(tmp_path)
+            static_dir = runtime_context.cjk_static_dir(entry.build_config)
+
+            def fake_download(
+                self: BuildRuntimeContext,
+                _locale: str,
+                config: CJKBuildConfig,
+            ) -> bool:
+                write_static_fonts(
+                    self.cjk_static_dir(config),
+                    config.naming.static_file_prefix,
+                    ["Regular"],
+                )
+                return True
+
+            with (
+                patch.object(
+                    BuildRuntimeContext,
+                    "download_cjk_static_base",
+                    fake_download,
+                ),
+                patch(
+                    "scripts.cjk.cache.get_directory_hash",
+                    wraps=get_directory_hash,
+                ) as directory_hash,
+            ):
+                result = runtime_context._resolve_downloaded_cjk_static_base(
+                    "cn",
+                    entry.build_config,
+                    static_dir,
+                    entry.build_config.naming.static_file_prefix,
+                    ["Regular"],
+                )
+
+            self.assertIsNotNone(result)
+            directory_hash.assert_called_once_with(str(static_dir))
+
+    def test_instantiated_static_cache_hashes_contents_once(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            runtime_context = make_runtime_context(tmp_path)
+            entry = make_entry(tmp_path)
+            static_dir = runtime_context.cjk_static_dir(entry.build_config)
+            write_variable_fonts(entry.build_config)
+
+            def fake_instantiate(
+                config: CJKBuildConfig,
+                _font_config,
+                **_kwargs,
+            ) -> None:
+                write_static_fonts(
+                    static_dir,
+                    config.naming.static_file_prefix,
+                    ["Regular"],
+                )
+                write_static_hash(config, static_dir)
+
+            with (
+                patch.object(
+                    BuildRuntimeContext,
+                    "download_cjk_static_base",
+                    return_value=False,
+                ),
+                patch(
+                    "scripts.config.runtime.instantiate_cjk_static_from_variable",
+                    fake_instantiate,
+                ),
+                patch(
+                    "scripts.cjk.cache.get_directory_hash",
+                    wraps=get_directory_hash,
+                ) as directory_hash,
+            ):
+                result = resolve_quietly(runtime_context, entry, ["Regular"])
+
+            self.assertEqual(result.source_kind, "local-variable")
+            directory_hash.assert_called_once_with(str(static_dir))
 
     def test_invalid_static_hash_preserves_cache(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

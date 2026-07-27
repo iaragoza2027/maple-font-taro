@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import cast
-from unittest.mock import patch
+from unittest.mock import MagicMock, call, patch
 
 
 from scripts.config.base import (
@@ -30,9 +30,139 @@ from scripts.tests.pipeline_fixtures import (
     make_stage_record,
     write_test_font,
 )
+from scripts.utils.logging import TaskName
 
 
 class PipelineCachePolicyTest(unittest.TestCase):
+    def test_stage_cache_validation_header_precedes_each_non_cjk_miss(self) -> None:
+        font_config = make_font_config()
+        font_config.behavior.cache = True
+        pipeline = MapleBuildPipeline(
+            font_config,
+            make_runtime_context(Path("maple-font-cache-log-test")),
+        )
+        pipeline._cache_record = {"schema": CACHE_SCHEMA, "stages": {}}
+        pipeline._cache_identity_checked = True
+        pipeline._cache_identity_valid = True
+        task_names = {
+            "variable": TaskName.VARIABLE,
+            "ttf": TaskName.TTF,
+            "otf": TaskName.OTF,
+            "ttf-autohint": TaskName.TTF_AUTOHINT,
+            "woff2": TaskName.WOFF2,
+            "nf": TaskName.NERD_FONT,
+        }
+
+        manager = MagicMock()
+        manager.log_task.return_value = 1.0
+        with (
+            patch("scripts.pipeline.orchestrator.log_task", manager.log_task),
+            patch("scripts.pipeline.orchestrator.logger.info", manager.info),
+            patch.object(pipeline, "_stage_cache_identity", return_value="key"),
+        ):
+            for stage, task_name in task_names.items():
+                with self.subTest(stage=stage):
+                    manager.reset_mock()
+
+                    self.assertFalse(pipeline._validate_cached_stage(stage, []))
+
+                    self.assertEqual(
+                        manager.mock_calls,
+                        [
+                            call.log_task(
+                                task_name,
+                                "Validate stage cache: stage=%s",
+                                stage,
+                                force_separator=True,
+                            ),
+                            call.info(
+                                "Cache miss: stage=%s, reason=missing-record",
+                                stage,
+                            ),
+                        ],
+                    )
+
+    def test_missing_cache_record_is_reported_after_each_stage_header(self) -> None:
+        font_config = make_font_config()
+        font_config.behavior.cache = True
+        pipeline = MapleBuildPipeline(
+            font_config,
+            make_runtime_context(Path("maple-font-missing-cache-log-test")),
+        )
+        manager = MagicMock()
+        manager.log_task.return_value = 1.0
+
+        with (
+            patch("scripts.pipeline.orchestrator.log_task", manager.log_task),
+            patch("scripts.pipeline.orchestrator.logger.info", manager.info),
+            patch("scripts.pipeline.orchestrator.read_cache_record", return_value=None),
+        ):
+            self.assertFalse(pipeline._validate_cached_stage("variable", []))
+
+        self.assertEqual(
+            manager.mock_calls,
+            [
+                call.log_task(
+                    TaskName.VARIABLE,
+                    "Validate stage cache: stage=%s",
+                    "variable",
+                    force_separator=True,
+                ),
+                call.info(
+                    "Cache miss: stage=%s, reason=missing-cache-record path=%s",
+                    "variable",
+                    "build-cache.json",
+                ),
+            ],
+        )
+        self.assertNotIn(
+            "Cache miss: stage=all, reason=missing-cache-record path=%s",
+            [mock_call.args[0] for mock_call in manager.info.call_args_list],
+        )
+
+    def test_cache_hit_precedes_reuse_log_in_the_stage_section(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            font_config = make_font_config()
+            font_config.behavior.cache = True
+            runtime_context = make_runtime_context(Path(tmp))
+            seeded = MapleBuildPipeline(font_config, runtime_context)
+            paths = seeded._base_stage_expected_paths("variable")
+            for path in paths:
+                write_test_font(path)
+
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+            pipeline._cache_record = {
+                "schema": CACHE_SCHEMA,
+                "stages": {
+                    "variable": make_stage_record(seeded, "variable", paths),
+                },
+            }
+            pipeline._cache_identity_checked = True
+            pipeline._cache_identity_valid = True
+            manager = MagicMock()
+            manager.log_task.return_value = 1.0
+
+            with (
+                patch("scripts.pipeline.orchestrator.log_task", manager.log_task),
+                patch("scripts.pipeline.orchestrator.logger.info", manager.info),
+            ):
+                self.assertTrue(pipeline._has_cached_base_format("variable"))
+                pipeline._log_cache_reuse("variable")
+
+            self.assertEqual(
+                manager.mock_calls,
+                [
+                    call.log_task(
+                        TaskName.VARIABLE,
+                        "Validate stage cache: stage=%s",
+                        "variable",
+                        force_separator=True,
+                    ),
+                    call.info("Cache hit: stage=%s", "variable"),
+                    call.info("Reuse cached %s outputs", "VARIABLE"),
+                ],
+            )
+
     def test_hinted_ttf_demand_matrix(self) -> None:
         font_config = make_font_config()
         font_config.nerd_font.enable = False

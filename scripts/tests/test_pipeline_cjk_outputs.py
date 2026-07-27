@@ -6,7 +6,7 @@ import unittest
 from concurrent.futures import Executor
 from pathlib import Path
 from typing import cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 
 from scripts.pipeline.orchestrator import BuildPlan, MapleBuildPipeline
@@ -33,6 +33,7 @@ from scripts.tests.pipeline_fixtures import (
     write_cjk_profile_outputs,
     write_test_font,
 )
+from scripts.utils.logging import TaskName
 
 
 class PipelineCJKOutputsTest(unittest.TestCase):
@@ -95,7 +96,7 @@ class PipelineCJKOutputsTest(unittest.TestCase):
                 self.assertEqual(resolve.call_args.args[1], sorted(expected_styles))
                 self.assertIs(resolve.call_args.args[4], executor)
 
-    def test_cjk_stage_logs_grouped_task_after_cache_miss(self) -> None:
+    def test_cjk_stage_logs_grouped_task_before_cache_miss(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             font_config = make_font_config()
             font_config.behavior.cache = True
@@ -106,21 +107,36 @@ class PipelineCJKOutputsTest(unittest.TestCase):
             pipeline._cache_identity_checked = True
             pipeline._cache_identity_valid = True
 
+            manager = MagicMock()
+            manager.log_task.return_value = 1.0
             with (
                 patch(
                     "scripts.pipeline.orchestrator.build_cjk_extended_static_outputs"
                 ) as build_cjk,
                 patch.object(pipeline, "_mark_stage_rebuilt"),
-                patch("scripts.pipeline.orchestrator.logger.info") as log_info,
+                patch("scripts.pipeline.orchestrator.log_task", manager.log_task),
+                patch("scripts.pipeline.orchestrator.logger.info", manager.info),
             ):
                 pipeline._build_cjk_outputs(cast(Executor, MagicMock()))
 
-            messages = [call.args[0] for call in log_info.call_args_list]
             self.assertEqual(
-                messages[:2],
+                manager.mock_calls,
                 [
-                    "Cache miss: stage=%s, reason=missing-record",
-                    "Build CJK static outputs (%s)",
+                    call.log_task(
+                        TaskName.CJK,
+                        "Build CJK static outputs (%s)",
+                        "JP",
+                        task_label="jp",
+                        force_separator=True,
+                    ),
+                    call.info(
+                        "Validate stage cache: stage=%s",
+                        "jp-static",
+                    ),
+                    call.info(
+                        "Cache miss: stage=%s, reason=missing-record",
+                        "jp-static",
+                    ),
                 ],
             )
             build_cjk.assert_called_once()
@@ -129,12 +145,18 @@ class PipelineCJKOutputsTest(unittest.TestCase):
     def test_cjk_compatible_profile_misses_build_once(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             font_config = make_font_config()
+            font_config.behavior.cache = True
             font_config.behavior.use_cjk_both = True
             font_config.cjk.entries = [make_custom_entry("CN")]
             runtime_context = make_runtime_context(Path(tmp))
             runtime_context.is_nf_built = True
             pipeline = MapleBuildPipeline(font_config, runtime_context)
+            pipeline._cache_record = {"schema": CACHE_SCHEMA, "stages": {}}
+            pipeline._cache_identity_checked = True
+            pipeline._cache_identity_valid = True
 
+            manager = MagicMock()
+            manager.log_task.return_value = 1.0
             with (
                 patch(
                     "scripts.pipeline.orchestrator.build_cjk_extended_static_outputs",
@@ -145,15 +167,42 @@ class PipelineCJKOutputsTest(unittest.TestCase):
                 ) as build_cjk,
                 patch(
                     "scripts.pipeline.orchestrator.log_task",
-                    return_value=1.0,
-                ) as task,
+                    manager.log_task,
+                ),
+                patch("scripts.pipeline.orchestrator.logger.info", manager.info),
             ):
                 pipeline._build_cjk_outputs(cast(Executor, MagicMock()))
 
             build_cjk.assert_called_once()
             self.assertEqual(build_cjk.call_args.args[4], {"NF-CN", "CN"})
-            task.assert_called_once()
-            self.assertEqual(task.call_args.args[2], "NF-CN, CN")
+            self.assertEqual(
+                manager.mock_calls,
+                [
+                    call.log_task(
+                        TaskName.CJK,
+                        "Build CJK static outputs (%s)",
+                        "NF-CN, CN",
+                        task_label="cn",
+                        force_separator=True,
+                    ),
+                    call.info(
+                        "Validate stage cache: stage=%s",
+                        "nf-cn-static",
+                    ),
+                    call.info(
+                        "Cache miss: stage=%s, reason=missing-record",
+                        "nf-cn-static",
+                    ),
+                    call.info(
+                        "Validate stage cache: stage=%s",
+                        "cn-static",
+                    ),
+                    call.info(
+                        "Cache miss: stage=%s, reason=missing-record",
+                        "cn-static",
+                    ),
+                ],
+            )
             self.assertEqual(
                 set(pipeline._rebuilt_stage_paths),
                 {"nf-cn-static", "cn-static"},

@@ -76,6 +76,8 @@ AutoHint consumes published static TTFs and writes `fonts/TTF-AutoHint/`. WOFF2 
 
 Caching is opt-in. With `--cache`, `prepare_output_root` reads `fonts/build-cache.json` and leaves existing output files and unrelated directories in place. It validates each stage using the recorded identity, exact relative output list, file existence, and content digest. A miss does not clear the stage directory; CJK misses only remove their own cache record.
 
+Each requested stage is validated only after its task log section starts, then reports its `Cache hit` or `Cache miss` result. If the cache record is unavailable, every requested stage reports `missing-cache-record` in the active section instead of relying on one global miss.
+
 Without `--cache`, the generated output root and WOFF2 directory are cleared before the build. If TTF was not requested, TTF and AutoHint directories are removed at the post-build cleanup point, after WOFF2/NF/CJK consumers have used them.
 
 `build-config.json` is written before the executor starts and is rewritten by successful finalization. `build-cache.json` is written only by successful `write_build_record()`. If compilation or a later stage fails, the new config can remain while the cache is old, partially invalidated, or absent; no failed build is presented as a completed cache.

@@ -68,6 +68,16 @@ from scripts.pipeline.fontmake import (
 from scripts.pipeline.nerd_fonts import build_nerd_fonts
 
 
+_CACHE_STAGE_TASKS = {
+    "variable": TaskName.VARIABLE,
+    "ttf": TaskName.TTF,
+    "otf": TaskName.OTF,
+    "ttf-autohint": TaskName.TTF_AUTOHINT,
+    "woff2": TaskName.WOFF2,
+    "nf": TaskName.NERD_FONT,
+}
+
+
 @dataclass(frozen=True)
 class BuildPlan:
     """Content stages and output policy derived from resolved configuration."""
@@ -359,34 +369,16 @@ class MapleBuildPipeline:
     def _build_cjk_outputs(self, process_executor: Executor) -> None:
         if self.plan.cjk_mode:
             built_any = False
-            missing_groups: list[
-                tuple[ResolvedCJKBuildEntry, list[tuple[str, str]]]
-            ] = []
+            stage_groups: list[tuple[ResolvedCJKBuildEntry, list[tuple[str, str]]]] = []
             for stage, entry, output_locale in self._cjk_stage_targets():
-                if self._validate_recorded_stage(stage):
-                    started_at = log_task(
-                        TaskName.CJK,
-                        "Reuse cached CJK %s outputs (%s)",
-                        self.plan.cjk_mode,
-                        output_locale,
-                        task_label=entry.locale_name.lower(),
-                    )
-                    log_task_complete(
-                        started_at,
-                        f"{len(self._cjk_stage_paths(output_locale))} fonts",
-                    )
-                    built_any = True
-                    continue
-
-                self._invalidate_recorded_stage(stage)
-                for grouped_entry, profiles in missing_groups:
+                for grouped_entry, profiles in stage_groups:
                     if grouped_entry is entry:
                         profiles.append((stage, output_locale))
                         break
                 else:
-                    missing_groups.append((entry, [(stage, output_locale)]))
+                    stage_groups.append((entry, [(stage, output_locale)]))
 
-            for entry, profiles in missing_groups:
+            for entry, profiles in stage_groups:
                 output_locales = [output_locale for _stage, output_locale in profiles]
                 task_message = (
                     "Build CJK variable outputs (%s)"
@@ -398,10 +390,33 @@ class MapleBuildPipeline:
                     task_message,
                     ", ".join(output_locales),
                     task_label=entry.locale_name.lower(),
+                    force_separator=True,
                 )
+                missing_profiles: list[tuple[str, str]] = []
+                reused_count = 0
+                for stage, output_locale in profiles:
+                    if self._validate_recorded_stage(stage):
+                        logger.info(
+                            "Reuse cached CJK %s outputs (%s)",
+                            self.plan.cjk_mode,
+                            output_locale,
+                        )
+                        reused_count += len(self._cjk_stage_paths(output_locale))
+                        built_any = True
+                        continue
+                    self._invalidate_recorded_stage(stage)
+                    missing_profiles.append((stage, output_locale))
+
+                if not missing_profiles:
+                    log_task_complete(started_at, f"{reused_count} fonts")
+                    continue
+
+                missing_locales = [
+                    output_locale for _stage, output_locale in missing_profiles
+                ]
                 scoped_config = deepcopy(self.font_config)
                 scoped_config.cjk.entries = [entry]
-                output_locale_set = set(output_locales)
+                output_locale_set = set(missing_locales)
                 if self.plan.cjk_mode == "variable":
                     build_cjk_extended_variable_outputs(
                         scoped_config,
@@ -421,7 +436,7 @@ class MapleBuildPipeline:
                     )
 
                 output_error: FileNotFoundError | None = None
-                for stage, output_locale in profiles:
+                for stage, output_locale in missing_profiles:
                     try:
                         self._mark_stage_rebuilt(
                             stage,
@@ -521,10 +536,6 @@ class MapleBuildPipeline:
         self._cache_record = read_cache_record(Path(self.runtime_context.output_root))
         if not self._cache_record:
             self._cache_identity_valid = False
-            logger.info(
-                "Cache miss: stage=all, reason=missing-cache-record path=%s",
-                "build-cache.json",
-            )
         return self._cache_identity_valid
 
     def _current_build_identity(self) -> dict[str, object]:
@@ -597,11 +608,50 @@ class MapleBuildPipeline:
 
         raise ValueError(f"Unknown base stage: {stage}")
 
-    def _validate_cached_stage(self, stage: str, paths: list[Path]) -> bool:
-        self._validated_stage_records.pop(stage, None)
+    def _log_stage_cache_validation(self, stage: str) -> None:
+        task = _CACHE_STAGE_TASKS.get(stage)
+        if task is not None:
+            log_task(
+                task,
+                "Validate stage cache: stage=%s",
+                stage,
+                force_separator=True,
+            )
+            return
+
+        self._cjk_stage_target(stage)
+        logger.info(
+            "Validate stage cache: stage=%s",
+            stage,
+        )
+
+    def _stage_cache_record_available(self, stage: str) -> bool:
+        if self._cache_matches_build():
+            return True
+        logger.info(
+            "Cache miss: stage=%s, reason=missing-cache-record path=%s",
+            stage,
+            "build-cache.json",
+        )
+        return False
+
+    def _validate_cached_stage(
+        self,
+        stage: str,
+        paths: list[Path],
+    ) -> bool:
         if not self.should_use_cache:
             return False
-        if not self._cache_matches_build():
+        self._log_stage_cache_validation(stage)
+        return self._validate_cached_stage_after_log(stage, paths)
+
+    def _validate_cached_stage_after_log(
+        self,
+        stage: str,
+        paths: list[Path],
+    ) -> bool:
+        self._validated_stage_records.pop(stage, None)
+        if not self._stage_cache_record_available(stage):
             return False
         stage_record = validated_stage_record(
             Path(self.runtime_context.output_root),
@@ -616,7 +666,10 @@ class MapleBuildPipeline:
         return True
 
     def _validate_recorded_stage(self, stage: str) -> bool:
-        if not self.should_use_cache or not self._cache_matches_build():
+        if not self.should_use_cache:
+            return False
+        self._log_stage_cache_validation(stage)
+        if not self._stage_cache_record_available(stage):
             return False
         stages = (self._cache_record or {}).get("stages")
         stage_record = stages.get(stage) if isinstance(stages, dict) else None
@@ -629,7 +682,10 @@ class MapleBuildPipeline:
             logger.info("Cache miss: stage=%s, reason=missing-output", stage)
             return False
         if stage == "nf":
-            return self._validate_cached_stage(stage, self._nf_stage_expected_paths())
+            return self._validate_cached_stage_after_log(
+                stage,
+                self._nf_stage_expected_paths(),
+            )
         root = Path(self.runtime_context.output_root)
         cjk_stages = {
             target_stage
@@ -648,7 +704,10 @@ class MapleBuildPipeline:
             except ValueError:
                 logger.info("Cache miss: stage=%s, reason=invalid-record", stage)
                 return False
-            return self._validate_cached_stage(stage, paths)
+            return self._validate_cached_stage_after_log(
+                stage,
+                paths,
+            )
 
         _entry, output_locale = self._cjk_stage_target(stage)
         paths = self._cjk_stage_expected_paths(output_locale)
@@ -661,7 +720,10 @@ class MapleBuildPipeline:
         ):
             logger.info("Cache miss: stage=%s, reason=missing-output", stage)
             return False
-        return self._validate_cached_stage(stage, paths)
+        return self._validate_cached_stage_after_log(
+            stage,
+            paths,
+        )
 
     def _nf_stage_expected_paths(self) -> list[Path]:
         upstream = "ttf-autohint" if self.font_config.use_hinted else "ttf"

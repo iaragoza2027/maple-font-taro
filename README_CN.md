@@ -582,6 +582,8 @@ python build.py
 
 如果您想获得可变宽度的图标，请在 `config.json` 中设置 `"nerd_font.propo": true` 或在构建脚本参数中添加 `--nf-propo` 标志。
 
+如果您想获得可变 Nerd Font，请在 `config.json` 中设置 `"nerd_font.variable": true` 或在构建脚本参数中添加 `--nf-variable`。该选项会将 NF 输出切换到 `Variable-NF`，发布包名称为 `NF-VF`。
+
 对于自定义的 `font-patcher` 参数，需要 `font-forge`（也可能需要 `python3-fontforge`）。
 
 您可能还应该在 [config.json](./config.json) 中更改 `"nerd_font.extra_args"`。
@@ -680,7 +682,8 @@ usage: build.py [-h] [-v] [-d] [--debug] [-n] [--feat FEAT] [--apply-fea-file]
                 [--infinite-arrow] [--remove-tag-liga]
                 [--line-height LINE_HEIGHT] [--width {default,narrow,slim}]
                 [--format FORMATS] [--least-styles] [--cache] [--archive]
-                [--nf | --no-nf] [--nf-mono] [--nf-propo] [--font-patcher]
+                [--nf | --no-nf] [--nf-mono] [--nf-propo] [--nf-variable]
+                [--font-patcher]
                 [--cjk CJK] [--cjk-format {static,variable}] [--cjk-narrow]
                 [--cjk-scale-factor CJK_SCALE_FACTOR]
                 [--cjk-hinted | --no-cjk-hinted] [--cjk-both]
@@ -724,6 +727,7 @@ Nerd Font Options:
                         不构建 Nerd-Font 版本
   --nf-mono             使 Nerd Font 图标的宽度固定
   --nf-propo            使 Nerd Font 图标的宽度可变，覆盖 `--nf-mono`
+  --nf-variable         将 Nerd Font 构建为可变字体
   --font-patcher        强制使用 Nerd Font Patcher 构建 NF 格式
 
 CJK Options:

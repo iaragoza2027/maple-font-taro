@@ -373,6 +373,39 @@ class PipelineCJKOutputsTest(unittest.TestCase):
             with patch.object(pipeline, "_stage_cache_identity", return_value="nf-key"):
                 self.assertTrue(pipeline._validate_recorded_stage("nf"))
 
+    def test_variable_nf_stage_uses_variable_paths_and_cache_validation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            font_config = make_font_config()
+            font_config.behavior.cache = True
+            font_config.nerd_font.variable = True
+            runtime_context = make_runtime_context(Path(tmp))
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+            nf_paths = pipeline._nf_variable_stage_expected_paths()
+            for nf_path in nf_paths:
+                write_test_font(nf_path)
+            pipeline._cache_record = {
+                "schema": CACHE_SCHEMA,
+                "stages": {
+                    "nf-variable": {
+                        "key": "nf-variable-key",
+                        "snapshot": output_snapshot(
+                            Path(runtime_context.output_root),
+                            "nf-variable",
+                            nf_paths,
+                        ),
+                    }
+                },
+            }
+            pipeline._cache_identity_checked = True
+            pipeline._cache_identity_valid = True
+
+            with patch.object(
+                pipeline,
+                "_stage_cache_identity",
+                return_value="nf-variable-key",
+            ):
+                self.assertTrue(pipeline._validate_recorded_stage("nf-variable"))
+
     def test_cjk_variable_stage_paths_only_include_current_profile(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             font_config = make_font_config()

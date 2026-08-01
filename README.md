@@ -577,6 +577,8 @@ If you want to get fixed-width icons, set `"nerd_font.mono": true` in `config.js
 
 If you want to get variable-width icons, set `"nerd_font.propo": true` in `config.json` or add `--nf-propo` flag to build script args.
 
+If you want a variable Nerd Font, set `"nerd_font.variable": true` in `config.json` or add `--nf-variable` to build script args. This switches the NF output to `Variable-NF`; the release archive is named `NF-VF`.
+
 For custom `font-patcher` args, `font-forge` (and maybe `python3-fontforge` as well) is required.
 
 Maybe you should also change `"nerd_font.extra_args"` in [config.json](./config.json)
@@ -685,7 +687,8 @@ usage: build.py [-h] [-v] [-d] [--debug] [-n] [--feat FEAT] [--apply-fea-file]
                 [--infinite-arrow] [--remove-tag-liga]
                 [--line-height LINE_HEIGHT] [--width {default,narrow,slim}]
                 [--format FORMATS] [--least-styles] [--cache] [--archive]
-                [--nf | --no-nf] [--nf-mono] [--nf-propo] [--font-patcher]
+                [--nf | --no-nf] [--nf-mono] [--nf-propo] [--nf-variable]
+                [--font-patcher]
                 [--cjk CJK] [--cjk-format {static,variable}] [--cjk-narrow]
                 [--cjk-scale-factor CJK_SCALE_FACTOR]
                 [--cjk-hinted | --no-cjk-hinted] [--cjk-both]
@@ -742,6 +745,7 @@ Nerd Font Options:
   --nf-mono             Make Nerd Font icons' width fixed
   --nf-propo            Make Nerd Font icons' width variable, override `--nf-
                         mono`
+  --nf-variable         Build Nerd Font as a variable font
   --font-patcher        Force the use of Nerd Font Patcher to build NF format
 
 CJK Options:

@@ -47,6 +47,7 @@ class BuildPlanResolutionTest(unittest.TestCase):
                     required_base_formats=("variable", "ttf"),
                     build_woff2=False,
                     build_nerd_font=False,
+                    build_nerd_font_variable=False,
                     cjk_mode=None,
                     cleanup_base_static=False,
                     archive=False,
@@ -60,6 +61,7 @@ class BuildPlanResolutionTest(unittest.TestCase):
                     required_base_formats=("variable", "ttf"),
                     build_woff2=True,
                     build_nerd_font=False,
+                    build_nerd_font_variable=False,
                     cjk_mode=None,
                     cleanup_base_static=True,
                     archive=False,
@@ -73,6 +75,7 @@ class BuildPlanResolutionTest(unittest.TestCase):
                     required_base_formats=("variable", "otf"),
                     build_woff2=False,
                     build_nerd_font=False,
+                    build_nerd_font_variable=False,
                     cjk_mode=None,
                     cleanup_base_static=True,
                     archive=True,
@@ -86,6 +89,7 @@ class BuildPlanResolutionTest(unittest.TestCase):
                     required_base_formats=("variable", "ttf"),
                     build_woff2=False,
                     build_nerd_font=False,
+                    build_nerd_font_variable=False,
                     cjk_mode=None,
                     cleanup_base_static=False,
                     archive=False,
@@ -99,6 +103,7 @@ class BuildPlanResolutionTest(unittest.TestCase):
                     required_base_formats=("variable", "otf"),
                     build_woff2=False,
                     build_nerd_font=False,
+                    build_nerd_font_variable=False,
                     cjk_mode="variable",
                     cleanup_base_static=True,
                     archive=False,
@@ -110,6 +115,13 @@ class BuildPlanResolutionTest(unittest.TestCase):
                 plan = self.resolve_plan(args, config_data)
 
                 self.assertEqual(plan, expected)
+
+        variable_plan = self.resolve_plan(
+            ["--nf-variable", "--no-hinted", "--format", "otf"]
+        )
+        self.assertFalse(variable_plan.build_nerd_font)
+        self.assertTrue(variable_plan.build_nerd_font_variable)
+        self.assertEqual(variable_plan.required_base_formats, ("variable", "otf"))
 
 
 class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):

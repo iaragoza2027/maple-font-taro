@@ -222,6 +222,10 @@ class BuildConfigResolver:
                 config.nerd_font.propo = _require_bool(
                     nerd_font["propo"], "nerd_font.propo"
                 )
+            if "variable" in nerd_font:
+                config.nerd_font.variable = _require_bool(
+                    nerd_font["variable"], "nerd_font.variable"
+                )
             if "use_font_patcher" in nerd_font:
                 config.nerd_font.use_font_patcher = _require_bool(
                     nerd_font["use_font_patcher"], "nerd_font.use_font_patcher"
@@ -444,6 +448,9 @@ class BuildConfigResolver:
         if args.nf_propo:
             config.nerd_font.propo = True
             config.nerd_font.enable = True
+        if args.nf_variable:
+            config.nerd_font.variable = True
+            config.nerd_font.enable = True
         if args.nerd_font is not None:
             config.nerd_font.enable = bool(args.nerd_font)
         if args.font_patcher:
@@ -487,6 +494,12 @@ class BuildConfigResolver:
             config.cjk.locales,
             config.cjk.common_options,
         )
+
+        if config.nerd_font.enable and config.nerd_font.variable and config.cjk.entries:
+            if config.cjk_output_format != "variable":
+                raise ValueError(
+                    "nerd_font.variable requires cjk.format=variable when CJK is enabled"
+                )
 
     def _apply_identity(self, config: ResolvedConfig) -> None:
         version_tag = self.version_tag

@@ -51,6 +51,7 @@ class PipelineCachePolicyTest(unittest.TestCase):
             "ttf-autohint": TaskName.TTF_AUTOHINT,
             "woff2": TaskName.WOFF2,
             "nf": TaskName.NERD_FONT,
+            "nf-variable": TaskName.NERD_FONT,
         }
 
         manager = MagicMock()

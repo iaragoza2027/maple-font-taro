@@ -98,6 +98,7 @@ BASE_ARCHIVE_TARGETS = (
     "Woff2",
     "NF",
     "NF-unhinted",
+    "NF-VF",
 )
 CJK_ARCHIVE_TARGETS = (
     "NF-{locale}-VF",
@@ -211,6 +212,18 @@ def release_build_steps(
             [*common, "--format", "ttf,otf,woff2", "--hinted"],
             [
                 *common,
+                "--format",
+                "ttf,otf,woff2",
+                "--no-hinted",
+                "--cache",
+            ],
+            [
+                *extra_args,
+                "--archive",
+                "--nf-variable",
+                "--width",
+                task.width.value,
+                *task.profile.args,
                 "--format",
                 "ttf,otf,woff2",
                 "--no-hinted",

@@ -65,7 +65,11 @@ from scripts.pipeline.fontmake import (
     compile_fontmake_formats,
     prepare_fontmake_sources,
 )
-from scripts.pipeline.nerd_fonts import build_nerd_fonts
+from scripts.pipeline.nerd_fonts import (
+    build_nerd_font_variable_fonts,
+    build_nerd_fonts,
+    should_use_font_patcher,
+)
 
 
 _CACHE_STAGE_TASKS = {
@@ -75,6 +79,7 @@ _CACHE_STAGE_TASKS = {
     "ttf-autohint": TaskName.TTF_AUTOHINT,
     "woff2": TaskName.WOFF2,
     "nf": TaskName.NERD_FONT,
+    "nf-variable": TaskName.NERD_FONT,
 }
 
 
@@ -86,6 +91,7 @@ class BuildPlan:
     required_base_formats: tuple[Literal["variable", "ttf", "otf"], ...]
     build_woff2: bool
     build_nerd_font: bool
+    build_nerd_font_variable: bool
     cjk_mode: Literal["variable", "static"] | None
     cleanup_base_static: bool
     archive: bool
@@ -104,6 +110,7 @@ class BuildPlan:
             config.wants_format("ttf")
             or config.wants_format("woff2")
             or config.needs_hinted_ttf()
+            or config.needs_nerd_font_static_base()
         ):
             base_formats.append("ttf")
         if config.wants_format("otf") and not config.debug:
@@ -117,7 +124,10 @@ class BuildPlan:
             target_styles=target_styles,
             required_base_formats=tuple(base_formats),
             build_woff2=config.wants_format("woff2") and not config.debug,
-            build_nerd_font=config.nerd_font.enable,
+            build_nerd_font=config.nerd_font.enable and not config.nerd_font.variable,
+            build_nerd_font_variable=(
+                config.nerd_font.enable and config.nerd_font.variable
+            ),
             cjk_mode=cjk_mode,
             cleanup_base_static=not config.wants_format("ttf"),
             archive=config.archive,
@@ -287,6 +297,35 @@ class MapleBuildPipeline:
         else:
             set_log_task("nerd-font")
             logger.debug("Skip Nerd Font outputs because the stage is disabled")
+
+        if self.plan.build_nerd_font_variable:
+            if self._validate_recorded_stage("nf-variable"):
+                logger.info("Reuse cached variable NF outputs")
+            else:
+                self._invalidate_recorded_stage("nf-variable")
+                variable_paths = self._base_stage_expected_paths("variable")
+                static_source_paths = (
+                    hinted_paths if self.font_config.use_hinted else ttf_paths
+                )
+                build_nerd_font_variable_fonts(
+                    self.font_config,
+                    self.runtime_context,
+                    variable_paths,
+                    static_source_paths
+                    if should_use_font_patcher(self.font_config)
+                    else None,
+                    process_executor,
+                )
+                self._mark_stage_rebuilt(
+                    "nf-variable",
+                    self._nf_variable_stage_expected_paths(),
+                )
+            self.runtime_context.is_nf_built = True
+        else:
+            set_log_task("nerd-font")
+            logger.debug(
+                "Skip variable Nerd Font outputs because the stage is disabled"
+            )
 
     def _cjk_stage_targets(
         self,
@@ -681,10 +720,12 @@ class MapleBuildPipeline:
         if not isinstance(files, list) or not files:
             logger.info("Cache miss: stage=%s, reason=missing-output", stage)
             return False
-        if stage == "nf":
+        if stage in {"nf", "nf-variable"}:
             return self._validate_cached_stage_after_log(
                 stage,
-                self._nf_stage_expected_paths(),
+                self._nf_stage_expected_paths()
+                if stage == "nf"
+                else self._nf_variable_stage_expected_paths(),
             )
         root = Path(self.runtime_context.output_root)
         cjk_stages = {
@@ -737,6 +778,15 @@ class MapleBuildPipeline:
             for path in self._base_stage_expected_paths(upstream)
         ]
 
+    def _nf_variable_stage_expected_paths(self) -> list[Path]:
+        output_dir = Path(self.runtime_context.output_nf_variable)
+        symbol = self.font_config.get_nf_variant().symbol
+        prefix = f"{self.font_config.family_name_compact}-{symbol}"
+        return [
+            output_dir / f"{prefix}[wght].ttf",
+            output_dir / f"{prefix}-Italic[wght].ttf",
+        ]
+
     def _invalidate_recorded_stage(self, stage: str) -> None:
         self._validated_stage_records.pop(stage, None)
         self._rebuilt_stage_paths.pop(stage, None)
@@ -785,6 +835,16 @@ class MapleBuildPipeline:
         elif stage == "nf":
             upstream = "ttf-autohint" if self.font_config.use_hinted else "ttf"
             dependencies[upstream] = self._stage_cache_identity(upstream)
+            inputs = {
+                "nerd_font": record.get("nerd_font"),
+                "width": self.font_config.width,
+                "line_height": self.font_config.line_height,
+            }
+        elif stage == "nf-variable":
+            dependencies["variable"] = self._stage_cache_identity("variable")
+            if should_use_font_patcher(self.font_config):
+                upstream = "ttf-autohint" if self.font_config.use_hinted else "ttf"
+                dependencies[upstream] = self._stage_cache_identity(upstream)
             inputs = {
                 "nerd_font": record.get("nerd_font"),
                 "width": self.font_config.width,
@@ -892,6 +952,8 @@ class MapleBuildPipeline:
             stages.append("woff2")
         if self.plan.build_nerd_font:
             stages.append("nf")
+        if self.plan.build_nerd_font_variable:
+            stages.append("nf-variable")
         stages.extend(stage for stage, _entry, _locale in self._cjk_stage_targets())
         return stages
 

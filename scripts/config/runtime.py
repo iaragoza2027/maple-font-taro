@@ -122,6 +122,10 @@ class BuildRuntimeContext:
     def output_dir(self) -> str:
         return self.output_root
 
+    @property
+    def output_nf_variable(self) -> str:
+        return join_path(self.output_root, "Variable-NF")
+
     def feature_file_path(self, is_italic: bool, is_cjk: bool = False) -> str:
         return join_path(
             self.src_dir,
@@ -396,6 +400,7 @@ class BuildRuntimeContext:
 
     def to_dict(self, config: ResolvedConfig | None = None) -> dict[str, Any]:
         data = asdict(self)
+        data["output_nf_variable"] = self.output_nf_variable
         if config is not None:
             data["use_font_patcher"] = bool(
                 config.nerd_font.extra_args

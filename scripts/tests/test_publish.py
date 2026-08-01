@@ -184,7 +184,7 @@ class PublishTest(unittest.TestCase):
 
         self.assertIn("cjk", manifest)
         self.assertFalse(any(key.startswith("cjk_") for key in manifest))
-        self.assertEqual(len(archives), 228)
+        self.assertEqual(len(archives), 240)
         self.assertIn("MapleMonoNormalNLNR-NF-JP-VF.zip", archives)
         self.assertIn("MapleMonoSL-Woff2.zip", archives)
         self.assertFalse(
@@ -219,12 +219,14 @@ class PublishTest(unittest.TestCase):
     def test_release_task_owns_build_steps_and_archive_names(self) -> None:
         base = resolve_release_task("base-normal-narrow")
         base_steps = release_build_steps(base, ("--least-styles",))
-        self.assertEqual(len(base_steps), 2)
+        self.assertEqual(len(base_steps), 3)
         self.assertTrue(all("--least-styles" in step for step in base_steps))
         self.assertIn("--hinted", base_steps[0])
         self.assertIn("--no-hinted", base_steps[1])
-        self.assertEqual(len(base.archive_names()), 7)
+        self.assertIn("--nf-variable", base_steps[2])
+        self.assertEqual(len(base.archive_names()), 8)
         self.assertIn("MapleMonoNormalNR-VF.zip", base.archive_names())
+        self.assertIn("MapleMonoNormalNR-NF-VF.zip", base.archive_names())
 
         cjk = resolve_release_task("cjk-no-ligature-slim-jp")
         cjk_steps = release_build_steps(cjk)

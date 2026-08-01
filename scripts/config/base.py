@@ -262,9 +262,15 @@ class NerdFontBuildConfig:
     version: str = "3.2.1"
     mono: bool = False
     propo: bool = False
+    variable: bool = False
     use_font_patcher: bool = False
     glyphs: list[str] = field(default_factory=lambda: ["--complete"])
     extra_args: list[str] = field(default_factory=list)
+
+    def uses_font_patcher(self) -> bool:
+        return bool(
+            self.extra_args or self.use_font_patcher or self.glyphs != ["--complete"]
+        )
 
     def to_dict(self, *, include_enable: bool = True) -> dict[str, Any]:
         data = asdict(self)
@@ -535,7 +541,9 @@ class ResolvedConfig:
             return True
         if not self.use_hinted:
             return False
-        if self.nerd_font.enable:
+        if self.nerd_font.enable and (
+            not self.nerd_font.variable or self.nerd_font.uses_font_patcher()
+        ):
             return True
         if self.cjk_output_format != "static":
             return False
@@ -543,6 +551,12 @@ class ResolvedConfig:
             self.use_cjk_both
             or not (self.nerd_font.enable and entry.common_options.with_nerd_font)
             for entry in self.get_selected_cjk_entries()
+        )
+
+    def needs_nerd_font_static_base(self) -> bool:
+        """Return whether NF processing needs a static Maple base font."""
+        return self.nerd_font.enable and (
+            not self.nerd_font.variable or self.nerd_font.uses_font_patcher()
         )
 
     def get_nf_suffix_compact(self) -> str:

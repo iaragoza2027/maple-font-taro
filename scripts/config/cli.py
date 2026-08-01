@@ -167,6 +167,11 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
         help="Make Nerd Font icons' width variable, override `--nf-mono`",
     )
     nerd_font_group.add_argument(
+        "--nf-variable",
+        action="store_true",
+        help="Build Nerd Font as a variable font",
+    )
+    nerd_font_group.add_argument(
         "--font-patcher",
         action="store_true",
         help="Force the use of Nerd Font Patcher to build NF format",

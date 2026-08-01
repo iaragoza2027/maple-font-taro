@@ -35,20 +35,16 @@ from scripts.config.paths import (
 )
 from scripts.config.runtime import BuildRuntimeContext
 from scripts.font_ops.fonttools import (
-    TTFont,
     instantiate_variable_font,
     save_font_atomic,
 )
 from scripts.font_ops.glyph_transform import (
     reduce_glyph_side_bearings,
-    smart_change_width,
 )
 from scripts.font_ops.merge import merge_ttfonts
 from scripts.font_ops.names import update_font_names
-from scripts.font_ops.nerd_font import parse_codes_from_json
 from scripts.font_ops.opentype import add_weight_axis_values_to_stat
-from scripts.font_ops.subset import subset_to_codepoints
-from scripts.pipeline.nerd_fonts import should_use_font_patcher
+from scripts.pipeline.nerd_fonts import load_nerd_font_variable_source
 from scripts.utils.logging import (
     TaskName,
     log_task,
@@ -124,33 +120,6 @@ def ensure_cjk_variable_fonts(
     )
 
     return regular_path, italic_path
-
-
-def load_nerd_font_variable_source(
-    font_config: ResolvedConfig,
-    runtime_context: BuildRuntimeContext,
-) -> TTFont:
-    """Load the static Nerd Font glyph source used by CJK Variable outputs."""
-    variant = font_config.get_nf_variant()
-
-    if should_use_font_patcher(font_config):
-        source_path = variant.patched_style_path(
-            runtime_context.output_nf,
-            font_config.family_name_compact,
-        )
-        font = load_font_eager(source_path)
-        return subset_to_codepoints(font, parse_codes_from_json())
-
-    source_path = variant.base_path(runtime_context.src_dir)
-    font = load_font_eager(source_path)
-    if font_config.get_width_name():
-        smart_change_width(
-            font=font,
-            target_width=font_config.get_target_width(),
-            original_ref_width=font_config.glyph_width,
-            also_scale_y=True,
-        )
-    return font
 
 
 def build_cjk_extended_variable_fonts(

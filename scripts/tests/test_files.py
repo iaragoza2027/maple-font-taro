@@ -13,6 +13,7 @@ from scripts.utils.files import archive_fonts, archive_output_label
 class FontArchiveTest(unittest.TestCase):
     def test_variable_output_labels_use_vf_suffix(self) -> None:
         self.assertEqual(archive_output_label("Variable"), "VF")
+        self.assertEqual(archive_output_label("Variable-NF"), "NF-VF")
         self.assertEqual(archive_output_label("Variable-NF-CN"), "NF-CN-VF")
         self.assertEqual(archive_output_label("NF-CN"), "NF-CN")
 

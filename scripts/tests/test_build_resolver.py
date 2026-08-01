@@ -818,6 +818,7 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
                     "version": "3.4.0",
                     "mono": True,
                     "propo": False,
+                    "variable": True,
                     "use_font_patcher": True,
                     "glyphs": ["--codicons"],
                     "extra_args": ["--careful"],
@@ -851,6 +852,7 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
         self.assertEqual(font_config.nerd_font.version, "3.4.0")
         self.assertTrue(font_config.nerd_font.mono)
         self.assertFalse(font_config.nerd_font.propo)
+        self.assertTrue(font_config.nerd_font.variable)
         self.assertTrue(font_config.nerd_font.use_font_patcher)
         self.assertEqual(font_config.nerd_font.glyphs, ["--codicons"])
         self.assertEqual(font_config.nerd_font.extra_args, ["--careful"])
@@ -875,6 +877,7 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
                     "enable": False,
                     "mono": False,
                     "propo": False,
+                    "variable": False,
                     "use_font_patcher": False,
                 },
                 "cjk": {
@@ -904,6 +907,7 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
                 "--archive",
                 "--nf-mono",
                 "--nf-propo",
+                "--nf-variable",
                 "--font-patcher",
                 "--cjk",
                 "jp",
@@ -933,6 +937,7 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
         self.assertTrue(font_config.nerd_font.enable)
         self.assertTrue(font_config.nerd_font.mono)
         self.assertTrue(font_config.nerd_font.propo)
+        self.assertTrue(font_config.nerd_font.variable)
         self.assertTrue(font_config.nerd_font.use_font_patcher)
         self.assertEqual(font_config.cjk_output_format, "variable")
         self.assertEqual(font_config.cjk.locales.builtin_enabled_locales(), ["jp"])
@@ -956,6 +961,28 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
                     self._resolve_with_config(config_data)
 
                 self.assertIn(field, str(error.exception))
+
+    def test_variable_nerd_font_rejects_static_cjk_output(self) -> None:
+        with self.assertRaisesRegex(ValueError, "cjk.format=variable"):
+            self._resolve_with_config(
+                {
+                    "nerd_font": {"variable": True},
+                    "cjk": {"locales": {"jp": True}},
+                }
+            )
+
+    def test_variable_nerd_font_allows_variable_cjk_output(self) -> None:
+        config = self._resolve_with_config(
+            {
+                "nerd_font": {"variable": True},
+                "cjk": {
+                    "format": "variable",
+                    "locales": {"jp": True},
+                },
+            }
+        )
+        self.assertTrue(config.nerd_font.variable)
+        self.assertEqual(config.cjk_output_format, "variable")
 
     def test_rejects_non_object_config(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -986,6 +1013,7 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
             ({"nerd_font": {"enable": "false"}}, "nerd_font.enable"),
             ({"nerd_font": {"mono": 1}}, "nerd_font.mono"),
             ({"nerd_font": {"propo": None}}, "nerd_font.propo"),
+            ({"nerd_font": {"variable": "true"}}, "nerd_font.variable"),
             (
                 {"nerd_font": {"use_font_patcher": "true"}},
                 "nerd_font.use_font_patcher",

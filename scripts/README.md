@@ -46,6 +46,7 @@ This directory implements `build.py` and `task.py`. The build pipeline is determ
 | Output                        | Produced by                             | Reused by                                                    |
 | ----------------------------- | --------------------------------------- | ------------------------------------------------------------ |
 | `fonts/Variable/`             | Base Variable stage                     | Variable consumers and CJK variable merges.                  |
+| `fonts/Variable-NF/`          | Variable Nerd Font stage               | Base variable fonts with Nerd Font glyphs.                   |
 | `fonts/TTF/`, `fonts/OTF/`    | Base static stages                      | AutoHint, WOFF2, Nerd Font, CJK static merges, and archives. |
 | `fonts/TTF-AutoHint/`         | AutoHint stage                          | Nerd Font and hinted CJK static merges.                      |
 | `fonts/Woff2/`                | WOFF2 conversion stage                  | Web distribution and archives.                               |

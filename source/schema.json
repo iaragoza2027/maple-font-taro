@@ -479,6 +479,11 @@
           "description": "Whether to make icons' width variable, override \"mono\"",
           "default": false
         },
+        "variable": {
+          "type": "boolean",
+          "description": "Whether to build Nerd Font as a variable font",
+          "default": false
+        },
         "font_forge_bin": {
           "type": "string",
           "description": "Font Forge bin path. Default: \n Windows: C:/Program Files (x86)/FontForgeBuilds/bin/fontforge.exe \n MacOS: /Applications/FontForge.app/Contents/Resources/opt/local/bin/fontforge\" \n Linux: /usr/bin/fontforge"
@@ -511,6 +516,7 @@
         "enable",
         "version",
         "mono",
+        "variable",
         "use_font_patcher",
         "glyphs",
         "extra_args"

@@ -578,6 +578,8 @@ python build.py
 
 可変幅のアイコンを取得したいだけの場合は、`config.json` に `"nerd_font.propo": true` を設定するか、ビルドスクリプト引数に `--nf-propo` フラグを追加してください。
 
+可変 Nerd Font を取得する場合は、`config.json` に `"nerd_font.variable": true` を設定するか、ビルドスクリプト引数に `--nf-variable` を追加してください。このオプションは NF 出力を `Variable-NF` に切り替え、リリースアーカイブ名は `NF-VF` になります。
+
 カスタム `font-patcher` 引数には、`font-forge`（おそらく `python3-fontforge` も必要です）が必要です。
 
 [config.json](./config.json) で `"nerd_font.extra_args"` を変更する必要があるかもしれません。
@@ -674,7 +676,8 @@ usage: build.py [-h] [-v] [-d] [--debug] [-n] [--feat FEAT] [--apply-fea-file]
                 [--infinite-arrow] [--remove-tag-liga]
                 [--line-height LINE_HEIGHT] [--width {default,narrow,slim}]
                 [--format FORMATS] [--least-styles] [--cache] [--archive]
-                [--nf | --no-nf] [--nf-mono] [--nf-propo] [--font-patcher]
+                [--nf | --no-nf] [--nf-mono] [--nf-propo] [--nf-variable]
+                [--font-patcher]
                 [--cjk CJK] [--cjk-format {static,variable}] [--cjk-narrow]
                 [--cjk-scale-factor CJK_SCALE_FACTOR]
                 [--cjk-hinted | --no-cjk-hinted] [--cjk-both]
@@ -719,6 +722,7 @@ Nerd Font Options:
                         Nerd-Fontバージョンをビルドしない
   --nf-mono             Nerd Font アイコンの幅を固定
   --nf-propo            Nerd Font アイコンの幅を可変にし、`--nf-mono` を上書き
+  --nf-variable         Nerd Font を可変フォントとしてビルド
   --font-patcher        NF形式に Nerd Font Patcher の使用を強制
 
 CJK Options:

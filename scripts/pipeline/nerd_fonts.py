@@ -6,6 +6,12 @@ from os import makedirs, path, remove
 from pathlib import Path
 from typing import Callable
 
+from scripts.cjk.variable import (
+    drop_font_tables,
+    load_font_eager,
+    merge_masters_into_vf,
+    recalculate_font_metrics,
+)
 from scripts.config.base import ResolvedConfig
 from scripts.config.runtime import BuildRuntimeContext
 from scripts.font_ops.fonttools import TTFont, save_font_atomic
@@ -13,6 +19,12 @@ from scripts.font_ops.glyph_transform import smart_change_width
 from scripts.font_ops.merge import merge_ttfonts
 from scripts.font_ops.metrics import adjust_line_height, verify_glyph_width
 from scripts.font_ops.names import parse_style_name, update_font_names
+from scripts.font_ops.nerd_font import parse_codes_from_json
+from scripts.font_ops.opentype import (
+    add_ital_axis_to_stat,
+    add_weight_axis_values_to_stat,
+)
+from scripts.font_ops.subset import subset_to_codepoints
 from scripts.pipeline.artifacts import require_existing_files, require_unique_targets
 from scripts.utils.downloads import check_font_patcher
 from scripts.utils.errors import BuildDependencyError
@@ -35,12 +47,18 @@ class NerdFontBuildJob:
     runtime_context: BuildRuntimeContext
 
 
+@dataclass(frozen=True)
+class NerdFontVariableBuildJob:
+    variable_path: Path
+    static_source_path: Path | None
+    output_path: Path
+    is_italic: bool
+    font_config: ResolvedConfig
+    runtime_context: BuildRuntimeContext
+
+
 def should_use_font_patcher(config: ResolvedConfig) -> bool:
-    return bool(
-        config.nerd_font.extra_args
-        or config.nerd_font.use_font_patcher
-        or config.nerd_font.glyphs != ["--complete"]
-    )
+    return config.nerd_font.uses_font_patcher()
 
 
 def ensure_font_patcher_available(
@@ -101,19 +119,22 @@ def build_nf_by_font_patcher(
     font_path: Path,
     font_config: ResolvedConfig,
     runtime_context: BuildRuntimeContext,
+    output_dir: str | Path | None = None,
 ) -> TTFont:
     """Patch a base font with FontPatcher and return the generated font."""
     if runtime_context.font_forge_bin is None:
         raise BuildDependencyError(
             "FontForge bin is unavailable after dependency validation"
         )
+    patcher_output_dir = output_dir or runtime_context.output_nf
+    makedirs(patcher_output_dir, exist_ok=True)
     patcher_args = [
         runtime_context.font_forge_bin,
         "FontPatcher/font-patcher",
         "-l",
         "--careful",
         "--outputdir",
-        runtime_context.output_nf,
+        str(patcher_output_dir),
         *font_config.nerd_font.glyphs,
     ]
     if font_config.nerd_font.propo:
@@ -125,13 +146,50 @@ def build_nf_by_font_patcher(
     run_command(patcher_args)
 
     variant = font_config.get_nf_variant()
-    generated_path = str(
-        variant.patched_font_path(runtime_context.output_nf, font_path.name)
-    )
+    generated_path = str(variant.patched_font_path(patcher_output_dir, font_path.name))
     font = TTFont(generated_path)
     remove(generated_path)
     if "nonmarkingreturn" in font.getGlyphNames():
         font["hmtx"]["nonmarkingreturn"] = (600, 0)
+    return font
+
+
+def load_nerd_font_variable_source(
+    font_config: ResolvedConfig,
+    runtime_context: BuildRuntimeContext,
+    source_font_path: Path | None = None,
+) -> TTFont:
+    """Load the static glyph source used to add Nerd Font glyphs to a VF."""
+    variant = font_config.get_nf_variant()
+    if should_use_font_patcher(font_config):
+        patched_path = variant.patched_style_path(
+            runtime_context.output_nf,
+            font_config.family_name_compact,
+        )
+        if source_font_path is None and patched_path.is_file():
+            font = load_font_eager(patched_path)
+        else:
+            if source_font_path is None:
+                source_font_path = (
+                    Path(runtime_context.ttf_base_dir)
+                    / f"{font_config.family_name_compact}-Regular.ttf"
+                )
+            font = build_nf_by_font_patcher(
+                source_font_path,
+                font_config,
+                runtime_context,
+                output_dir=Path(runtime_context.output_root) / "temp" / "nf-patcher",
+            )
+        return subset_to_codepoints(font, parse_codes_from_json())
+
+    font = load_font_eager(variant.base_path(runtime_context.src_dir))
+    if font_config.get_width_name():
+        smart_change_width(
+            font=font,
+            target_width=font_config.get_target_width(),
+            original_ref_width=font_config.glyph_width,
+            also_scale_y=True,
+        )
     return font
 
 
@@ -207,6 +265,50 @@ def build_nf_job(job: NerdFontBuildJob) -> Path:
     )
 
 
+def build_nf_variable_job(job: NerdFontVariableBuildJob) -> Path:
+    set_log_task("nerd-font")
+    logger.debug(
+        "Build variable Nerd Font: source=%s, output=%s",
+        job.variable_path.name,
+        job.output_path,
+    )
+    font = load_font_eager(job.variable_path)
+    try:
+        source = load_nerd_font_variable_source(
+            font_config=job.font_config,
+            runtime_context=job.runtime_context,
+            source_font_path=job.static_source_path,
+        )
+        try:
+            merge_masters_into_vf(font, source, source, source)
+            drop_font_tables(font, ("HVAR", "VVAR"))
+            recalculate_font_metrics(font)
+
+            symbol = job.font_config.get_nf_variant().symbol
+            style_name = "Italic" if job.is_italic else "Regular"
+            postscript_prefix = f"{job.font_config.family_name_compact}-{symbol}"
+            update_font_names(
+                font=font,
+                font_config=job.font_config,
+                family_name=f"{job.font_config.family_name} {symbol}",
+                style_name=style_name,
+                full_name=f"{job.font_config.family_name} {symbol} {style_name}",
+                postscript_name=f"{postscript_prefix}-{style_name}",
+                is_skip_subfamily=True,
+                variable=True,
+            )
+            add_weight_axis_values_to_stat(font, italic=job.is_italic)
+            if job.is_italic:
+                add_ital_axis_to_stat(font)
+            save_font_atomic(font, job.output_path)
+            logger.info("Saved variable Nerd Font to %s", job.output_path)
+        finally:
+            source.close()
+    finally:
+        font.close()
+    return job.output_path
+
+
 def build_nerd_fonts(
     font_config: ResolvedConfig,
     runtime_context: BuildRuntimeContext,
@@ -251,5 +353,67 @@ def build_nerd_fonts(
         executor,
     )
     runtime_context.is_nf_built = True
+    log_task_complete(started_at, f"{len(output_paths)} fonts")
+    return output_paths
+
+
+def build_nerd_font_variable_fonts(
+    font_config: ResolvedConfig,
+    runtime_context: BuildRuntimeContext,
+    variable_paths: list[Path],
+    static_source_paths: list[Path] | None = None,
+    executor: Executor | None = None,
+) -> list[Path]:
+    """Build variable Nerd Font outputs by merging static icon glyph sources."""
+    if not font_config.nerd_font.enable or not font_config.nerd_font.variable:
+        return []
+
+    started_at = log_task(TaskName.NERD_FONT, "Build variable Nerd Font outputs")
+    require_existing_files(variable_paths, "variable Nerd Font")
+    resolved_static_source_paths: list[Path | None]
+    if should_use_font_patcher(font_config):
+        if static_source_paths is None:
+            raise ValueError("FontPatcher variable NF builds require static sources")
+        require_existing_files(static_source_paths, "variable Nerd Font patcher")
+        resolved_static_source_paths = list(static_source_paths)
+    else:
+        resolved_static_source_paths = (
+            list(static_source_paths)
+            if static_source_paths is not None
+            else [None] * len(variable_paths)
+        )
+
+    if len(variable_paths) != len(resolved_static_source_paths):
+        raise ValueError("Variable NF inputs and static sources must have equal length")
+
+    symbol = font_config.get_nf_variant().symbol
+    jobs = []
+    output_dir = Path(runtime_context.output_nf_variable)
+    for variable_path, static_source_path in zip(
+        variable_paths, resolved_static_source_paths
+    ):
+        is_italic = variable_path.name.endswith("-Italic[wght].ttf")
+        style_suffix = "-Italic" if is_italic else ""
+        jobs.append(
+            NerdFontVariableBuildJob(
+                variable_path=variable_path,
+                static_source_path=static_source_path,
+                output_path=output_dir
+                / f"{font_config.family_name_compact}-{symbol}{style_suffix}[wght].ttf",
+                is_italic=is_italic,
+                font_config=font_config,
+                runtime_context=runtime_context,
+            )
+        )
+    require_unique_targets([job.output_path for job in jobs], "variable Nerd Font")
+
+    ensure_font_patcher_available(font_config, runtime_context)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_paths = run_process_jobs(
+        font_config.pool_size,
+        build_nf_variable_job,
+        jobs,
+        executor,
+    )
     log_task_complete(started_at, f"{len(output_paths)} fonts")
     return output_paths

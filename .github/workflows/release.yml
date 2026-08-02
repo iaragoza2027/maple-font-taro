@@ -6,10 +6,9 @@ on:
       - v*
   workflow_dispatch:
     inputs:
-      build_args:
-        description: 'Args for build.py'
-        required: false
-        default: ''
+      release_tag:
+        description: 'Existing release tag to build and publish'
+        required: true
         type: string
 
 permissions:
@@ -23,6 +22,8 @@ jobs:
       cjk: ${{ steps.matrix.outputs.cjk }}
     steps:
     - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
     - uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
@@ -42,15 +43,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
+      with:
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
     - uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
         python-version: '3.12'
     - run: uv sync --locked --no-dev
     - name: Build release task
-      run: uv run task.py publish build "${{ matrix.task }}" --build-args="$BUILD_ARGS"
-      env:
-        BUILD_ARGS: ${{ github.event.inputs.build_args }}
+      run: uv run task.py publish build "${{ matrix.task }}"
     - uses: actions/upload-artifact@v4
       with:
         name: release-${{ matrix.task }}
@@ -67,15 +68,15 @@ jobs:
     timeout-minutes: 360
     steps:
     - uses: actions/checkout@v6
+      with:
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
     - uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
         python-version: '3.12'
     - run: uv sync --locked --no-dev
     - name: Build release task
-      run: uv run task.py publish build "${{ matrix.task }}" --build-args="$BUILD_ARGS"
-      env:
-        BUILD_ARGS: ${{ github.event.inputs.build_args }}
+      run: uv run task.py publish build "${{ matrix.task }}"
     - uses: actions/upload-artifact@v4
       with:
         name: release-${{ matrix.task }}
@@ -89,6 +90,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
     - uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
@@ -100,6 +102,7 @@ jobs:
         path: release
         merge-multiple: true
     - name: Release artifacts
-      run: uv run task.py publish release --tag "${{ github.ref_name }}"
+      run: uv run task.py publish release --tag "$RELEASE_TAG"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}

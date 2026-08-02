@@ -11,6 +11,7 @@ from typing import Any, Literal
 
 from scripts.utils.logging import logger
 from scripts.utils.process import is_ci
+from scripts.utils.version import version_tag
 
 
 ReleaseTaskKind = Literal["base", "cjk"]
@@ -337,12 +338,19 @@ def resolve_release_tags(tag: str | None) -> tuple[str, str]:
             )
         tag = tags[0]
 
-    prev_tag = get_output(["git", "describe", "--tags", "--abbrev=0", f"{tag}^"])
+    prev_tag = get_output(
+        ["git", "describe", "--tags", "--match", "v*", "--abbrev=0", f"{tag}^"]
+    )
     return prev_tag, tag
 
 
 def publish(write: bool, tag: str | None = None, dry: bool = not is_ci()):
     prev_tag, tag = resolve_release_tags(tag)
+    expected_tag = version_tag()
+    if tag != expected_tag:
+        raise ValueError(
+            f"Release tag {tag} does not match the project version tag {expected_tag}"
+        )
     logger.info("Publish release: previous_tag=%s, tag=%s", prev_tag, tag)
 
     changelog = get_output(

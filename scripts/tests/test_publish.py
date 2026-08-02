@@ -35,7 +35,17 @@ class ResolveReleaseTagsTest(unittest.TestCase):
             get_output.call_args_list,
             [
                 call(["git", "rev-parse", "--verify", "refs/tags/v7.9"]),
-                call(["git", "describe", "--tags", "--abbrev=0", "v7.9^"]),
+                call(
+                    [
+                        "git",
+                        "describe",
+                        "--tags",
+                        "--match",
+                        "v*",
+                        "--abbrev=0",
+                        "v7.9^",
+                    ]
+                ),
             ],
         )
 
@@ -49,7 +59,17 @@ class ResolveReleaseTagsTest(unittest.TestCase):
             get_output.call_args_list,
             [
                 call(["git", "tag", "--points-at", "HEAD"]),
-                call(["git", "describe", "--tags", "--abbrev=0", "v7.9^"]),
+                call(
+                    [
+                        "git",
+                        "describe",
+                        "--tags",
+                        "--match",
+                        "v*",
+                        "--abbrev=0",
+                        "v7.9^",
+                    ]
+                ),
             ],
         )
 
@@ -92,7 +112,17 @@ class ResolveReleaseTagsTest(unittest.TestCase):
             get_output.call_args_list,
             [
                 call(["git", "rev-parse", "--verify", "refs/tags/v1.0"]),
-                call(["git", "describe", "--tags", "--abbrev=0", "v1.0^"]),
+                call(
+                    [
+                        "git",
+                        "describe",
+                        "--tags",
+                        "--match",
+                        "v*",
+                        "--abbrev=0",
+                        "v1.0^",
+                    ]
+                ),
             ],
         )
 
@@ -110,8 +140,9 @@ class PublishTest(unittest.TestCase):
         get_output.side_effect = ["commit-id", "v7.8", "Change summary"]
         output = StringIO()
 
-        with redirect_stdout(output):
-            publish(write=False, tag="v7.9", dry=True)
+        with patch("scripts.task.publish.version_tag", return_value="v7.9"):
+            with redirect_stdout(output):
+                publish(write=False, tag="v7.9", dry=True)
 
         self.assertIn("changelog:\nChange summary", output.getvalue())
         self.assertIn("gh release create v7.9", output.getvalue())
@@ -119,7 +150,17 @@ class PublishTest(unittest.TestCase):
             get_output.call_args_list,
             [
                 call(["git", "rev-parse", "--verify", "refs/tags/v7.9"]),
-                call(["git", "describe", "--tags", "--abbrev=0", "v7.9^"]),
+                call(
+                    [
+                        "git",
+                        "describe",
+                        "--tags",
+                        "--match",
+                        "v*",
+                        "--abbrev=0",
+                        "v7.9^",
+                    ]
+                ),
                 call(
                     [
                         "git",
@@ -146,7 +187,8 @@ class PublishTest(unittest.TestCase):
     ) -> None:
         get_output.side_effect = ["commit-id", "v7.8", "Change summary"]
 
-        publish(write=False, tag="v7.9", dry=False)
+        with patch("scripts.task.publish.version_tag", return_value="v7.9"):
+            publish(write=False, tag="v7.9", dry=False)
 
         run.assert_called_once_with(
             [
@@ -177,6 +219,16 @@ class PublishTest(unittest.TestCase):
             publish(write=False, tag="v7.9", dry=False)
 
         run.assert_not_called()
+
+    @patch("scripts.task.publish.version_tag", return_value="v8.0")
+    @patch("scripts.task.publish.get_output")
+    def test_project_version_must_match_release_tag(self, get_output, version_tag):
+        get_output.side_effect = ["commit-id", "v7.8"]
+
+        with self.assertRaisesRegex(ValueError, "does not match the project version"):
+            publish(write=False, tag="v7.9", dry=True)
+
+        version_tag.assert_called_once_with()
 
     def test_release_manifest_expands_complete_grouped_matrix(self) -> None:
         manifest = release_manifest()

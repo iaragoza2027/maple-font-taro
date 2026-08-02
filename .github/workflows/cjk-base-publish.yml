@@ -1,0 +1,97 @@
+name: Publish CJK Base Fonts
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: "Successful run ID from Build CJK Base Fonts"
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: cjk-base-publish-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          prune-cache: false
+          python-version: "3.12"
+      - run: uv sync --locked --no-dev
+      - name: Download candidate artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_RUN_ID: ${{ inputs.build_run_id }}
+        run: |
+          run_json="$(gh run view "$BUILD_RUN_ID" --repo "$GITHUB_REPOSITORY" --json workflowName,status,conclusion)"
+          test "$(jq -r '.workflowName' <<< "$run_json")" = "Build CJK Base Fonts"
+          test "$(jq -r '.status' <<< "$run_json")" = "completed"
+          test "$(jq -r '.conclusion' <<< "$run_json")" = "success"
+          gh run download "$BUILD_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name cjk-base-candidate \
+            --dir cjk-base-candidate
+      - name: Verify candidate against merged hashes and inputs
+        run: uv run task.py cjk-base verify --candidate cjk-base-candidate
+      - name: Verify candidate baseline is current
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          expected="$(jq -r '.baseline_manifest_sha256 // ""' cjk-base-candidate/manifest.json)"
+          if gh release view cjk-base --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            mkdir -p cjk-base-current
+            gh release download cjk-base \
+              --repo "$GITHUB_REPOSITORY" \
+              --pattern cjk-base-manifest.json \
+              --dir cjk-base-current
+            actual="$(sha256sum cjk-base-current/cjk-base-manifest.json | awk '{print $1}')"
+            test "$expected" = "$actual"
+          else
+            test -z "$expected"
+          fi
+      - name: Render release description
+        run: |
+          cp cjk-base-candidate/manifest.json cjk-base-candidate/cjk-base-manifest.json
+          uv run task.py cjk-base notes \
+            --manifest cjk-base-candidate/manifest.json \
+            --output cjk-base-notes.md
+      - name: Create or update cjk-base release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view cjk-base --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            assets="$(gh release view cjk-base --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
+            for locale in cn tc jp kr; do
+              grep -Fxq "${locale}-base-static.zip" <<< "$assets"
+            done
+            gh release upload cjk-base \
+              --repo "$GITHUB_REPOSITORY" \
+              cjk-base-candidate/assets/*.zip \
+              cjk-base-candidate/cjk-base-manifest.json \
+              --clobber
+            gh release edit cjk-base \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "CJK Base Fonts" \
+              --notes-file cjk-base-notes.md
+          else
+            gh release create cjk-base \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "${{ github.event.repository.default_branch }}" \
+              --title "CJK Base Fonts" \
+              --notes-file cjk-base-notes.md \
+              cjk-base-candidate/assets/*.zip \
+              cjk-base-candidate/cjk-base-manifest.json
+          fi

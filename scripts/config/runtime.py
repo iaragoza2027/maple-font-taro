@@ -137,7 +137,7 @@ class BuildRuntimeContext:
         return preset_config.output.dir / preset_config.output.static_dir
 
     def cjk_static_archive_name(self, locale: BuiltinCJKLocaleId) -> str:
-        return f"{locale}-static.zip"
+        return f"{locale}-base-static.zip"
 
     def cjk_static_download_url(self, locale: BuiltinCJKLocaleId) -> str:
         archive_name = self.cjk_static_archive_name(locale)

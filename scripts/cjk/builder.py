@@ -72,7 +72,11 @@ from scripts.utils.downloads import resolve_cached_download
 from scripts.utils.errors import CJKSourceUnavailable
 from scripts.utils.files import archive
 from scripts.utils.logging import logger, set_log_task
-from scripts.utils.process import SynchronousExecutor, create_process_executor
+from scripts.utils.process import (
+    SynchronousExecutor,
+    create_process_executor,
+    run_process_jobs,
+)
 
 RESERVED_NAME_IDS = {1, 2, 4, 6, 16, 17, 25}
 CFF_GLYPH_CHUNK_SIZE = 256
@@ -110,6 +114,12 @@ class StaticInstanceJob:
     is_italic: bool
     config: CJKBuildConfig
     font_config: FontNameConfig
+
+
+@dataclass(frozen=True)
+class AutoHintJob:
+    input_path: str
+    params: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -175,6 +185,9 @@ def get_ttfautohint_options(params: dict[str, Any]) -> dict[str, Any]:
 def autohint_static_fonts(
     input_path: str | Path,
     params: dict[str, Any],
+    *,
+    pool_size: int = 1,
+    executor: Executor | None = None,
 ) -> None:
     """Autohint a TTF file or every TTF in a flat directory."""
     path = Path(input_path)
@@ -182,23 +195,28 @@ def autohint_static_fonts(
     if not font_paths:
         raise FileNotFoundError(f"No TrueType fonts found in {path}")
 
-    for font_path in font_paths:
-        font = TTFont(font_path, recalcTimestamp=False)
-        try:
-            if "glyf" not in font:
-                raise ValueError(f"Autohinting requires a TrueType font: {font_path}")
-            buffer = BytesIO()
-            font.save(buffer, reorderTables=None)
-        finally:
-            font.close()
+    jobs = [AutoHintJob(str(font_path), dict(params)) for font_path in font_paths]
+    run_process_jobs(pool_size, autohint_static_font_job, jobs, executor)
 
-        options = {
-            "in_buffer": buffer.getvalue(),
-            "out_file": str(font_path),
-            "no_info": True,
-        }
-        options.update(get_ttfautohint_options(params))
-        ttfautohint(**options)
+
+def autohint_static_font_job(job: AutoHintJob) -> None:
+    font_path = Path(job.input_path)
+    font = TTFont(font_path, recalcTimestamp=False)
+    try:
+        if "glyf" not in font:
+            raise ValueError(f"Autohinting requires a TrueType font: {font_path}")
+        buffer = BytesIO()
+        font.save(buffer, reorderTables=None)
+    finally:
+        font.close()
+
+    options = {
+        "in_buffer": buffer.getvalue(),
+        "out_file": str(font_path),
+        "no_info": True,
+    }
+    options.update(get_ttfautohint_options(job.params))
+    ttfautohint(**options)
 
 
 def _stem_width_mode(mode: str) -> StemWidthMode:

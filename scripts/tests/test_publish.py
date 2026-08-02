@@ -274,6 +274,9 @@ class PublishTest(unittest.TestCase):
         self.assertEqual(len(base_steps), 3)
         self.assertTrue(all("--least-styles" in step for step in base_steps))
         self.assertIn("--hinted", base_steps[0])
+        self.assertNotIn("--archive", base_steps[0])
+        self.assertNotIn("--archive", base_steps[1])
+        self.assertIn("--archive", base_steps[2])
         self.assertIn("--no-hinted", base_steps[1])
         self.assertIn("--nf-variable", base_steps[2])
         self.assertEqual(len(base.archive_names()), 8)
@@ -313,10 +316,12 @@ class PublishTest(unittest.TestCase):
             )
 
     @patch("scripts.task.publish.collect_release_task_archives")
+    @patch("scripts.task.publish.archive_overwritten_release_output")
     @patch("scripts.pipeline.main")
     def test_build_release_task_runs_internal_steps(
         self,
         build_main,
+        archive_overwritten,
         collect_archives,
     ) -> None:
         task = resolve_release_task("base-default-slim")
@@ -328,6 +333,7 @@ class PublishTest(unittest.TestCase):
             build_main.call_args_list,
             [call(step) for step in expected_steps],
         )
+        archive_overwritten.assert_called_once_with(task)
         collect_archives.assert_called_once_with(task)
 
 

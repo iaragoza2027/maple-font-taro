@@ -11,6 +11,7 @@ from typing import Any, Literal
 
 from scripts.utils.logging import logger
 from scripts.utils.process import is_ci
+from scripts.utils.files import archive_fonts
 from scripts.utils.version import version_tag
 
 
@@ -202,7 +203,6 @@ def release_build_steps(
 ) -> tuple[list[str], ...]:
     common = [
         *extra_args,
-        "--archive",
         "--nf",
         "--width",
         task.width.value,
@@ -279,12 +279,39 @@ def collect_release_task_archives(
         shutil.copy2(archive_dir / archive_name, output_dir / archive_name)
 
 
+def archive_overwritten_release_output(task: ReleaseTask) -> None:
+    """Snapshot the hinted NF archive before later steps replace its files."""
+    if task.kind == "base":
+        folder = "NF"
+    else:
+        if task.locale is None:
+            raise ValueError("CJK release task requires a locale")
+        folder = f"NF-{task.locale.name}"
+    source_dir = BUILD_ARCHIVE_DIR.parent / folder
+    if not source_dir.is_dir():
+        raise FileNotFoundError(
+            f"Release task output directory is missing: {source_dir}"
+        )
+    BUILD_ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
+    archive_fonts(
+        source_dir,
+        str(BUILD_ARCHIVE_DIR),
+        task.family_name,
+        "",
+        str(BUILD_ARCHIVE_DIR.parent / "build-config.json"),
+    )
+
+
 def build_release_task(task_id: str, build_args: str = "") -> None:
     from scripts.pipeline import main as build_main
 
     task = resolve_release_task(task_id)
-    for build_step in release_build_steps(task, tuple(shlex.split(build_args))):
+    for index, build_step in enumerate(
+        release_build_steps(task, tuple(shlex.split(build_args)))
+    ):
         build_main(build_step)
+        if index == 0:
+            archive_overwritten_release_output(task)
     collect_release_task_archives(task)
 
 

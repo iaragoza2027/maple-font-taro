@@ -647,6 +647,30 @@ class PipelineCachePolicyTest(unittest.TestCase):
                 unchanged_key,
             )
 
+    def test_base_cache_identity_ignores_hinting_but_downstream_does_not(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime_context = make_runtime_context(Path(tmp))
+            hinted = make_font_config()
+            hinted.feature.hinted = True
+            unhinted = make_font_config()
+            unhinted.feature.hinted = False
+
+            hinted_pipeline = MapleBuildPipeline(hinted, runtime_context)
+            unhinted_pipeline = MapleBuildPipeline(unhinted, runtime_context)
+
+            self.assertEqual(
+                hinted_pipeline._stage_cache_identity("variable"),
+                unhinted_pipeline._stage_cache_identity("variable"),
+            )
+            self.assertEqual(
+                hinted_pipeline._stage_cache_identity("ttf"),
+                unhinted_pipeline._stage_cache_identity("ttf"),
+            )
+            self.assertNotEqual(
+                hinted_pipeline._stage_cache_identity("ttf-autohint"),
+                unhinted_pipeline._stage_cache_identity("ttf-autohint"),
+            )
+
     def test_cache_record_excludes_archive_outputs(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)

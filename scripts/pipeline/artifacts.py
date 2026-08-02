@@ -123,6 +123,11 @@ def base_cache_identity(
     if isinstance(behavior, dict):
         for key in ("formats", "archive", "cache", "cjk_output_format", "use_cjk_both"):
             behavior.pop(key, None)
+    feature = record.get("feature")
+    if isinstance(feature, dict):
+        # Hinting is applied after the base Variable/TTF/OTF stages. It belongs
+        # to the downstream ttf-autohint and NF identities, not the base font.
+        feature.pop("hinted", None)
     metrics = record.get("metrics")
     if isinstance(metrics, dict):
         for key in ("pool_size", "github_mirror"):

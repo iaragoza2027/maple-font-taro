@@ -1,0 +1,170 @@
+name: Build CJK Base Fonts
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_all:
+        description: "Rebuild all CJK locales instead of checking the manifest"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: cjk-base-build-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      has_changes: ${{ steps.plan.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          prune-cache: false
+          python-version: "3.12"
+      - run: uv sync --locked --no-dev
+      - name: Load published CJK base manifest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p cjk-base-state
+          gh release download cjk-base \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern cjk-base-manifest.json \
+            --dir cjk-base-state || true
+      - id: plan
+        name: Choose changed locales
+        run: |
+          force_args=""
+          if [ "${{ inputs.force_all }}" = "true" ]; then
+            force_args="--force-all"
+          fi
+          matrix="$(uv run task.py cjk-base matrix \
+            --manifest cjk-base-state/cjk-base-manifest.json \
+            $force_args)"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          if [ "$(jq '.include | length' <<< "$matrix")" -gt 0 ]; then
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: detect
+    if: needs.detect.outputs.has_changes == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.detect.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          prune-cache: false
+          python-version: "3.12"
+      - run: uv sync --locked --no-dev
+      - name: Build CJK base
+        run: uv run task.py cjk-base build "${{ matrix.locale }}" --output cjk-base-artifacts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cjk-base-${{ matrix.locale }}
+          path: cjk-base-artifacts
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+  prepare:
+    needs: [detect, build]
+    if: needs.detect.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          prune-cache: false
+          python-version: "3.12"
+      - run: uv sync --locked --no-dev
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cjk-base-*
+          path: cjk-base-artifacts
+          merge-multiple: true
+      - name: Load published CJK base manifest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p cjk-base-state
+          gh release download cjk-base \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern cjk-base-manifest.json \
+            --dir cjk-base-state || true
+      - name: Assemble candidate
+        run: |
+          uv run task.py cjk-base assemble \
+            --baseline cjk-base-state/cjk-base-manifest.json \
+            --artifacts cjk-base-artifacts \
+            --output cjk-base-candidate
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cjk-base-candidate
+          path: cjk-base-candidate
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+      - name: Create hash update pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          while IFS= read -r hash_file; do
+            locale="$(basename "$hash_file" | sed -E 's/^static-(.*)\.sha256$/\1/')"
+            cp "$hash_file" "source/cjk/$locale/static-$locale.sha256"
+          done < <(find cjk-base-candidate/hashes -type f -name '*.sha256' | sort)
+
+          if git diff --quiet -- source/cjk/*/static-*.sha256; then
+            echo "No tracked CJK hash changed; no pull request is needed."
+            exit 0
+          fi
+
+          branch="codex/cjk-base-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch --create "$branch"
+          git add source/cjk/*/static-*.sha256
+          git commit -m "update CJK base hashes"
+          git push --set-upstream origin "$branch"
+
+          locales="$(jq -r '.locales | join(", ")' cjk-base-candidate/changed.json)"
+          cat > cjk-base-pr-body.md <<EOF
+          ## CJK Base Update
+
+          Locales: $locales
+
+          Build run: $GITHUB_RUN_ID
+
+          The matching ZIP assets are stored in the cjk-base-candidate workflow artifact. Run the separate CJK Base Publish workflow with this run ID after merging this PR.
+          EOF
+          gh pr create \
+            --base "${{ github.event.repository.default_branch }}" \
+            --head "$branch" \
+            --title "Update CJK base hashes" \
+            --body-file cjk-base-pr-body.md

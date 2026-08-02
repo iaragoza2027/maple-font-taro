@@ -9,6 +9,15 @@ The CJK subsystem converts a source CJK variable font into reusable Maple bases 
 
 The standalone CJK artifacts under `source/cjk/` are independent from the main pipeline cache under `fonts/`. This document covers CJK decisions and fallback; the global stage lifecycle is in [`../pipeline/README.md`](../pipeline/README.md).
 
+## CJK base release maintenance
+
+The reusable static base archives are maintained through two manual workflows:
+
+1. `Build CJK Base Fonts` checks the configured preset inputs against the published `cjk-base-manifest.json`, builds only changed locales in parallel, uploads a 30-day candidate artifact, and opens a pull request for changed `static-<locale>.sha256` files.
+2. After merging that pull request, `Publish CJK Base Fonts` accepts the build run ID, verifies the candidate against the merged inputs and hashes, then creates or updates the `cjk-base` release.
+
+The source URLs in the preset JSON files are intentionally maintained manually. The release manifest records those URLs, their version/ref segments, input fingerprints, static hashes, archive digests, and build dates. Static archive names are `<locale>-base-static.zip`, matching the main pipeline download path.
+
 ## Static and variable output modes
 
 The main pipeline's `cjk.format` / `--cjk-format` selects the release shape:

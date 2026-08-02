@@ -21,6 +21,7 @@ from scripts.cjk.outlines import (
 )
 from scripts.cjk.builder import (
     CJKBuilder,
+    autohint_static_fonts,
     create_font_executor,
     instantiate_cjk_static_from_variable,
 )
@@ -46,6 +47,29 @@ def make_config(output_dir: Path) -> CJKBuildConfig:
 
 
 class CJKExecutorOwnershipTest(unittest.TestCase):
+    def test_static_autohint_uses_the_caller_executor(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "Regular.ttf").write_bytes(b"font")
+            (root / "Bold.ttf").write_bytes(b"font")
+            executor = cast(Executor, MagicMock())
+
+            with patch("scripts.cjk.builder.run_process_jobs") as run_jobs:
+                autohint_static_fonts(
+                    root,
+                    {},
+                    pool_size=4,
+                    executor=executor,
+                )
+
+            run_jobs.assert_called_once()
+            self.assertIs(run_jobs.call_args.args[3], executor)
+            jobs = run_jobs.call_args.args[2]
+            self.assertEqual(
+                [Path(job.input_path).name for job in jobs],
+                ["Bold.ttf", "Regular.ttf"],
+            )
+
     def test_static_instantiation_filters_compact_styles(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             config = make_config(Path(tmp))

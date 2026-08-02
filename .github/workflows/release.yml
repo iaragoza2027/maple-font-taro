@@ -27,8 +27,28 @@ jobs:
     - uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
+        prune-cache: false
         python-version: '3.12'
     - run: uv sync --locked --no-dev
+    - name: Verify CJK base release assets
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        assets="$(gh release view cjk-base --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
+        for locale in cn tc jp kr; do
+          expected="${locale}-base-static.zip"
+          grep -Fxq "$expected" <<< "$assets"
+        done
+        mkdir -p cjk-base-state
+        gh release download cjk-base \
+          --repo "$GITHUB_REPOSITORY" \
+          --pattern cjk-base-manifest.json \
+          --dir cjk-base-state
+        for locale in cn tc jp kr; do
+          expected="$(tr -d '[:space:]' < "source/cjk/$locale/static-$locale.sha256")"
+          actual="$(jq -r ".locales.$locale.static_sha256" cjk-base-state/cjk-base-manifest.json)"
+          test "$expected" = "$actual"
+        done
     - id: matrix
       name: Generate release task matrices
       run: |
@@ -48,6 +68,7 @@ jobs:
     - uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
+        prune-cache: false
         python-version: '3.12'
     - run: uv sync --locked --no-dev
     - name: Build release task
@@ -57,12 +78,14 @@ jobs:
         name: release-${{ matrix.task }}
         path: release-task/*.zip
         if-no-files-found: error
+        compression-level: 0
+        retention-days: 1
 
   build-cjk:
     needs: prepare-matrix
     strategy:
       fail-fast: false
-      max-parallel: 4
+      max-parallel: 8
       matrix: ${{ fromJSON(needs.prepare-matrix.outputs.cjk) }}
     runs-on: ubuntu-latest
     timeout-minutes: 360
@@ -73,6 +96,7 @@ jobs:
     - uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
+        prune-cache: false
         python-version: '3.12'
     - run: uv sync --locked --no-dev
     - name: Build release task
@@ -82,6 +106,8 @@ jobs:
         name: release-${{ matrix.task }}
         path: release-task/*.zip
         if-no-files-found: error
+        compression-level: 0
+        retention-days: 1
 
   create-release:
     needs: [build-base, build-cjk]
@@ -94,6 +120,7 @@ jobs:
     - uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
+        prune-cache: false
         python-version: '3.12'
     - run: uv sync --locked --no-dev
     - uses: actions/download-artifact@v4

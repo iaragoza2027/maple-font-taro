@@ -190,7 +190,7 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
             )
             self.assertEqual(
                 download.call_args.kwargs["url"],
-                "https://github.com/subframe7536/maple-font/releases/download/cjk-base/cn-static.zip",
+                "https://github.com/subframe7536/maple-font/releases/download/cjk-base/cn-base-static.zip",
             )
 
     def test_variable_fallback_uses_effective_github_mirror(self) -> None:

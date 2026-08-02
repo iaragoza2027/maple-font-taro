@@ -349,7 +349,12 @@ def instantiate_cjk_extended_static_fonts(
 
     if entry.common_options.use_hinted:
         logger.debug("Auto-hint CJK static fonts: locale=%s", entry.display_name)
-        autohint_static_fonts(output_dir, font_config.ttfautohint_param)
+        autohint_static_fonts(
+            output_dir,
+            font_config.ttfautohint_param,
+            pool_size=font_config.pool_size,
+            executor=executor,
+        )
 
     return output_dir
 
@@ -530,6 +535,8 @@ def build_cjk_extended_static_fonts_from_cache(
                     profile.output_locale,
                 ),
                 font_config.ttfautohint_param,
+                pool_size=font_config.pool_size,
+                executor=executor,
             )
 
     return True

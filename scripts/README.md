@@ -1,6 +1,6 @@
 # Maple Mono Build System
 
-This directory implements `build.py` and `task.py`. The build pipeline is deterministic only when its source inputs, generated feature files, and resolved configuration are kept in sync, so use the ownership map below before changing an input or a stage.
+This directory implements `build.py` and `task.py`. The build pipeline is deterministic only when its source inputs, generated feature files, and resolved configuration are kept in sync, so use the ownership map below before changing an input or a stage. For source updates, CJK base maintenance, validation, and releases, follow [`maintenance.md`](maintenance.md).
 
 ## Start here
 
@@ -11,6 +11,7 @@ This directory implements `build.py` and `task.py`. The build pipeline is determ
 | Build a focused format     | `uv run build.py --format ttf --debug`     | Selects a requested base format and the debug style/output policy.                                                             |
 | Build CJK base assets      | `uv run task.py cjk --preset cn`           | Rebuilds the standalone CJK variable bases, then static bases unless `--vf-only` is set.                                       |
 | Run a repository task      | `uv run task.py <name>`                    | Dispatches feature, designspace, Nerd Font, page, release, and publish workflows.                                              |
+| Follow maintenance steps   | [`maintenance.md`](maintenance.md)         | Covers source updates, generated files, CJK base refreshes, validation, and release procedures.                                |
 | Trace pipeline state       | [`pipeline/README.md`](pipeline/README.md) | Documents stage selection, cache transitions, failure state, and executor ownership.                                           |
 
 `build.py` owns final outputs under `fonts/`. `task.py cjk` owns reusable CJK inputs under `source/cjk/`; its cache is independent of
@@ -18,19 +19,19 @@ This directory implements `build.py` and `task.py`. The build pipeline is determ
 
 ## Ownership map
 
-| Area                         | Source of truth                                         | Responsibility                                                                                                                                                |
-| ---------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Configuration                | `config/base.py`, `config/resolver.py`, `config/cli.py` | Parse JSON and CLI values, normalize defaults, validate selections, and derive the resolved build model.                                                      |
-| Runtime decisions            | `config/runtime.py`, `config/paths.py`                  | Resolve output paths, CJK base fallback, downloads, and runtime flags.                                                                                        |
-| Build orchestration          | [`pipeline/orchestrator.py`](pipeline/orchestrator.py) | Select stages, coordinate dependencies, manage cache state, and archive outputs.                                                                            |
-| Fontmake base build          | `pipeline/fontmake.py`                                 | Prepare Designspace/UFO sources, compile Fontmake branches, and post-process base Variable/TTF/OTF fonts.                                                    |
-| Derived base outputs         | `pipeline/base_fonts.py`                                | Apply AutoHint to static TTFs and convert static TTFs to WOFF2. It does not compile or post-process Fontmake base fonts.                                      |
-| Nerd Font                    | `pipeline/nerd_fonts.py`, `font_ops/nerd_font.py`       | Build from prebuilt Nerd Font assets or Font Patcher, then apply Maple naming and metrics.                                                                    |
-| CJK integration              | `pipeline/cjk_outputs.py`, `cjk/`                       | Resolve CJK bases, merge them with Maple or NF fonts, and publish static or variable profiles.                                                                |
-| Shared font operations       | `font_ops/`                                             | Keep naming, metrics, glyph transforms, OpenType edits, merging, subsetting, and FontTools boundaries reusable.                                               |
-| OpenType features            | `feature/`                                              | Generate and apply rules; checked-in `.fea` files live under `source/features/`.                                                                              |
-| Task adapters                | `task/`                                                 | Keep repository maintenance workflows thin and separate from the release pipeline.                                                                            |
-| Infrastructure               | `utils/`                                                | Provide filesystem, process, archive, download, logging, error, and version helpers.                                                                          |
+| Area                   | Source of truth                                         | Responsibility                                                                                                           |
+| ---------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Configuration          | `config/base.py`, `config/resolver.py`, `config/cli.py` | Parse JSON and CLI values, normalize defaults, validate selections, and derive the resolved build model.                 |
+| Runtime decisions      | `config/runtime.py`, `config/paths.py`                  | Resolve output paths, CJK base fallback, downloads, and runtime flags.                                                   |
+| Build orchestration    | [`pipeline/orchestrator.py`](pipeline/orchestrator.py)  | Select stages, coordinate dependencies, manage cache state, and archive outputs.                                         |
+| Fontmake base build    | `pipeline/fontmake.py`                                  | Prepare Designspace/UFO sources, compile Fontmake branches, and post-process base Variable/TTF/OTF fonts.                |
+| Derived base outputs   | `pipeline/base_fonts.py`                                | Apply AutoHint to static TTFs and convert static TTFs to WOFF2. It does not compile or post-process Fontmake base fonts. |
+| Nerd Font              | `pipeline/nerd_fonts.py`, `font_ops/nerd_font.py`       | Build from prebuilt Nerd Font assets or Font Patcher, then apply Maple naming and metrics.                               |
+| CJK integration        | `pipeline/cjk_outputs.py`, `cjk/`                       | Resolve CJK bases, merge them with Maple or NF fonts, and publish static or variable profiles.                           |
+| Shared font operations | `font_ops/`                                             | Keep naming, metrics, glyph transforms, OpenType edits, merging, subsetting, and FontTools boundaries reusable.          |
+| OpenType features      | `feature/`                                              | Generate and apply rules; checked-in `.fea` files live under `source/features/`.                                         |
+| Task adapters          | `task/`                                                 | Keep repository maintenance workflows thin and separate from the release pipeline.                                       |
+| Infrastructure         | `utils/`                                                | Provide filesystem, process, archive, download, logging, error, and version helpers.                                     |
 
 ## Build lifecycle
 
@@ -46,7 +47,7 @@ This directory implements `build.py` and `task.py`. The build pipeline is determ
 | Output                        | Produced by                             | Reused by                                                    |
 | ----------------------------- | --------------------------------------- | ------------------------------------------------------------ |
 | `fonts/Variable/`             | Base Variable stage                     | Variable consumers and CJK variable merges.                  |
-| `fonts/Variable-NF/`          | Variable Nerd Font stage               | Base variable fonts with Nerd Font glyphs.                   |
+| `fonts/Variable-NF/`          | Variable Nerd Font stage                | Base variable fonts with Nerd Font glyphs.                   |
 | `fonts/TTF/`, `fonts/OTF/`    | Base static stages                      | AutoHint, WOFF2, Nerd Font, CJK static merges, and archives. |
 | `fonts/TTF-AutoHint/`         | AutoHint stage                          | Nerd Font and hinted CJK static merges.                      |
 | `fonts/Woff2/`                | WOFF2 conversion stage                  | Web distribution and archives.                               |
@@ -67,15 +68,3 @@ The main cache is opt-in and lives at `fonts/build-cache.json`. A cache hit requ
 Stage identities contain only the related resolved configuration, target styles, the regular and italic Designspace dimension dictionaries, the generated feature file fingerprint, and upstream stage identities. They do not include generator source code, dependency versions, UFO outline contents, or CJK base contents. After changing any of those untracked identity inputs, run without `--cache` so the result cannot be mistaken for a valid cached build.
 
 The CJK base cache under `source/cjk/` is separate. `build.py --cache` controls final outputs under `fonts/`; `cjk.clean_cache` controls reuse of CJK variable or source fallback work, but it does not delete files and does not bypass a valid static directory digest.
-
-## Maintenance recipes
-
-| Change                        | Edit                                                                     | Validate                                                                    |
-| ----------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
-| Build flags or defaults       | `config/cli.py`, `config/base.py`, `config/resolver.py`                  | `uv run build.py --dry`, then CLI contract tests.                           |
-| Fontmake source or base output | `pipeline/fontmake.py`                                             | Fontmake pipeline tests and a focused debug build.                         |
-| Stage order or cache behavior  | `pipeline/orchestrator.py`, `pipeline/cache.py`, `pipeline/artifacts.py` | `uv run build.py --dry`, pipeline/cache tests, and the focused build tests. |
-| FontTools operation           | Relevant module in `font_ops/`                                           | `uv run pyrefly check` plus focused unit tests.                             |
-| OpenType feature rule         | `feature/` or generated `source/features/`                               | Run `uv run task.py fea`, inspect every generated diff, then feature tests. |
-| CJK source or merge behavior  | `cjk/`, `config/runtime.py`, or `pipeline/cjk_outputs.py`                | Follow [`cjk/README.md`](cjk/README.md), then CJK config/cache tests.       |
-| Designspace/UFO source        | FontLab `.vfc` plus local `.glyphs` export                               | `uv run task.py designspace`, inspect `fonts/source-issues.json`.           |

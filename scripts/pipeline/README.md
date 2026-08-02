@@ -2,7 +2,7 @@
 
 [`orchestrator.py`](orchestrator.py) coordinates stage selection, cache transitions, cleanup, and archiving. [`fontmake.py`](fontmake.py) owns source preparation, Fontmake compilation, and base Variable/TTF/OTF post-processing. [`base_fonts.py`](base_fonts.py) produces AutoHint TTFs and WOFF2 files from the already-published static TTF outputs.
 
-Read this document with [`scripts/README.md`](../README.md), which defines the package ownership and output layout.
+Read this document with [`scripts/README.md`](../README.md), which defines package ownership and output layout. Follow [`scripts/maintenance.md`](../maintenance.md) for source, generated-file, CJK, and release procedures.
 
 ## Entry points and state
 

@@ -7,16 +7,7 @@ The CJK subsystem converts a source CJK variable font into reusable Maple bases 
 | Build reusable bases | `uv run task.py cjk --preset cn` | Writes `source/cjk/<locale>/` variable bases, optional static instances, a static digest, and an archive. The standalone task always rebuilds the regular and italic variable bases.        |
 | Build release fonts  | `uv run build.py --cjk cn`       | Merges selected profiles under `fonts/<LOCALE>/`, `fonts/NF-<LOCALE>/`, `fonts/Variable-<LOCALE>/`, or `fonts/Variable-NF-<LOCALE>/`, and records each profile in `fonts/build-cache.json`. |
 
-The standalone CJK artifacts under `source/cjk/` are independent from the main pipeline cache under `fonts/`. This document covers CJK decisions and fallback; the global stage lifecycle is in [`../pipeline/README.md`](../pipeline/README.md).
-
-## CJK base release maintenance
-
-The reusable static base archives are maintained through two manual workflows:
-
-1. `Build CJK Base Fonts` checks the configured preset inputs against the published `cjk-base-manifest.json`, builds only changed locales in parallel, uploads a 30-day candidate artifact, and opens a pull request for changed `static-<locale>.sha256` files.
-2. After merging that pull request, `Publish CJK Base Fonts` accepts the build run ID, verifies the candidate against the merged inputs and hashes, then creates or updates the `cjk-base` release.
-
-The source URLs in the preset JSON files are intentionally maintained manually. The release manifest records those URLs, their version/ref segments, input fingerprints, static hashes, archive digests, and build dates. Static archive names are `<locale>-base-static.zip`, matching the main pipeline download path.
+The standalone CJK artifacts under `source/cjk/` are independent from the main pipeline cache under `fonts/`. This document covers CJK decisions and fallback; the global stage lifecycle is in [`../pipeline/README.md`](../pipeline/README.md), and the update/publish procedure is in [`../maintenance.md`](../maintenance.md).
 
 ## Static and variable output modes
 
@@ -130,12 +121,4 @@ The build phases are source resolution, Unicode subsetting, 100/400/800 master p
 | TC     | `source/cjk/tc/config-tc.json` | `glyf`         | `source/cjk/tc`  |
 | KR     | `source/cjk/kr/config-kr.json` | `glyf`         | `source/cjk/kr`  |
 
-Use focused checks before any download or large build:
-
-```sh
-uv run task.py cjk --help
-uv run build.py --dry
-uv run python -m unittest scripts.tests.test_cjk_config scripts.tests.test_cjk_cache scripts.tests.test_cjk_executor
-```
-
-Avoid a full CJK build unless source download, outline conversion, or generated artifacts are part of the requested change. Inspect `source/cjk/` and `fonts/` after any source-affecting task.
+For focused checks and the CJK base update procedure, see [`../maintenance.md`](../maintenance.md). Avoid a full CJK build unless source download, outline conversion, or generated artifacts are part of the requested change.

@@ -777,34 +777,7 @@ Deprecated CN Options:
 
 ## Development
 
-### Design
-
-Edit the tracked `.vfc` sources with [FontLab](https://www.fontlab.com/) and export matching `.glyphs` files into `source/`. Then refresh the committed Designspace/UFO build sources:
-
-```sh
-uv run task.py designspace
-```
-
-The exported `.glyphs` files are local intermediates and are not tracked.
-
-### Build
-
-```sh
-# Init project
-uv sync
-# Dev
-uv run build.py --format ttf --cjk cn --debug
-# Update nerd font
-uv run task.py nf
-# Update fea file
-uv run task.py fea
-# Update Designspace and UFO sources
-uv run task.py designspace
-# Update landing page info
-uv run task.py page --sync
-# Release
-uv run task.py release minor
-```
+Maintainers should follow [`scripts/maintenance.md`](scripts/maintenance.md) for source updates, generated files, CJK base refreshes, validation, and releases.
 
 ## Credit
 

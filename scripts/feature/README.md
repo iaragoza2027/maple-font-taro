@@ -114,18 +114,4 @@ Use `tag_custom` in the same module for multiple trigger/replacement pairs. A cu
 
 ## Generated files and synchronization
 
-Run:
-
-```sh
-uv run task.py fea
-```
-
-The task writes these five feature files:
-
-- `source/features/regular.fea`
-- `source/features/italic.fea`
-- `source/features/cn.fea`
-- `source/features/regular_cn.fea`
-- `source/features/italic_cn.fea`
-
-It also refreshes `source/features/README.md`, `source/schema.json`, the feature freeze section in `config.json`, the generated feature sections in `README.md`, `README_CN.md`, and `README_JA.md`, and `scripts/in_browser.py`'s moving-rule list. Before and after running the task, inspect the complete diff of every listed output; generated changes outside the intended feature update must not be kept.
+Run `uv run task.py fea` to refresh the committed feature files and related documentation. The complete generated-file list and the required diff review are maintained in [`../maintenance.md`](../maintenance.md).

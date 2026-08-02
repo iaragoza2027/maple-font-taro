@@ -21,7 +21,9 @@
   <a href="https://font.subf.dev">Website</a> |
   English |
   <a href="./README_CN.md">中文</a> |
-  <a href="./README_JA.md">日本語</a>
+  <a href="./README_JP.md">日本語</a> |
+  <a href="./README_TC.md">繁中</a> |
+  <a href="./README_KR.md">한국어</a>
 </p>
 
 # Maple Mono
@@ -30,21 +32,43 @@ Maple Mono is an open source monospace font focused on smoothing your coding flo
 
 I created it to enhance my working experience, and hope that it can be useful to others.
 
-V7 is a completely remade version, providing variable font format and source files of the font project, redesigning more than half of the glyphs, and offering smarter ligatures. You can checkout V6 [here](https://github.com/subframe7536/maple-font/tree/main)
+V8 is the next development version of Maple Mono. It expands the CJK build from one CN profile to CN, TC, JP, and KR profiles, adds more Unicode coverage, and will merge into the `variable` branch before release. V7.9 remains the current stable release.
+
+> [!WARNING]
+> V8 is still under development and has not been released yet. The latest GitHub release and all current package-manager and CDN packages provide **v7.9**. Use the installation commands below for the stable version; use the source-build instructions only when you want to test V8. Output names and build options may change before V8 is released.
 
 ## Features
 
-- ✨ Variable - Infinity font weights with fine-grained italic glyphs.
-- ☁️ Smooth - Round corner, brand-new glyph of `@ $ % & Q ->` and cursive `f i j k l x y` in italic style.
-- 💪 Useful - Large amount of smart ligatures, see in [`features/`](./source/features/README.md)
-- 🎨 Icon - First-Class [Nerd-Font](https://github.com/ryanoasis/nerd-fonts) support, make your terminal more vivid.
-- 🔨 Customize - Enable or disable font features as you want, just make your own font.
+### Typography
 
-### Simplified Chinese, Traditional Chinese, and Japanese
+- Variable weight axis with fine-grained italic glyphs.
+- Rounded shapes, redesigned `@ $ % & Q ->`, and cursive italic `f i j k l x y`.
+- Three Latin width presets: default, narrow, and slim.
 
-CN version based on [Resource Han Rounded](https://github.com/CyanoHao/Resource-Han-Rounded) provides complete character set support for Chinese development environments, including Simplified Chinese, Traditional Chinese, and Japanese. Meanwhile, the characteristic of perfect 2:1 alignment between Chinese and English allows this font to achieve a neat, uniform, beautiful, and comfortable appearance in scenarios such as multilingual display and Markdown tables. However, the spacing of Chinese characters is larger compared to other popular Chinese fonts. See details in [release notes](https://github.com/subframe7536/maple-font/releases/tag/cn-base) and [this issue](https://github.com/subframe7536/maple-font/issues/211).
+### Ligatures and character variants
 
-- No variable format support in CN version
+- Smart programming ligatures, including status labels such as `[DEBUG]`, `[TODO]`, and `[SUCCESS]`, plus infinite arrow ligatures.
+- Character variants and stylistic sets cover common coding preferences, including the tailless `u`, longer `|`, and Bulgarian/Serbian Cyrillic variants (`cv12`, `cv45`, `cv67`, `ss12`, `ss13`).
+- Full feature descriptions and previews are in [`source/features/README.md`](./source/features/README.md).
+
+### Unicode and integrations
+
+- Broad mathematical coverage (U+2200–U+22FF), superscripts and subscripts, chess and card symbols, and terminal progress/status symbols.
+- First-class [Nerd Font](https://github.com/ryanoasis/nerd-fonts) output for terminal icons.
+- Feature freezing and custom OpenType generation for reproducible builds.
+
+### CJK extended fonts
+
+V8 can merge Maple Mono with four locale-specific CJK bases. Every locale supports both static and variable output, and the default CJK glyphs use a 2:1 CJK-to-Latin advance width for aligned multilingual text and Markdown tables.
+
+| Locale | Coverage | CJK source | Build output |
+| --- | --- | --- | --- |
+| CN | Simplified Chinese, with common Traditional Chinese and Japanese ranges | [WenYuan Rounded SC](https://github.com/takushun-wu/WenYuanFonts) | `CN` |
+| TC | Traditional Chinese | [Chiron Go Round TC](https://github.com/chiron-fonts/chiron-go-round-tc) | `TC` |
+| JP | Japanese | [Resource Han Rounded JP](https://github.com/CyanoHao/Resource-Han-Rounded) | `JP` |
+| KR | Korean | [Chiron Go Round TC](https://github.com/chiron-fonts/chiron-go-round-tc), filtered to KR ranges | `KR` |
+
+The CJK build is disabled by default. Use the [CJK build instructions](#cjk-extended-version) to select locales, static or variable output, and optional narrow spacing.
 
 ![2-1.png](./resources/2-1.png)
 
@@ -58,7 +82,14 @@ CN version based on [Resource Han Rounded](https://github.com/CyanoHao/Resource-
 
 ## Download
 
-You can download all the font archives from [Releases](https://github.com/subframe7536/maple-font/releases).
+Choose the stable v7.9 package that matches your editor or terminal. You can download the same v7.9 archives from [GitHub Releases](https://github.com/subframe7536/maple-font/releases), or use one of the package managers below. These package-manager and CDN commands do **not** install the unreleased V8 CJK profiles.
+
+| Need | Recommended package |
+| --- | --- |
+| General coding | Maple Mono TTF (hinted for low-resolution screens, unhinted for high-resolution screens) |
+| Terminal icons | Maple Mono NF |
+| Chinese/Japanese glyphs | Maple Mono CN or Maple Mono NF CN |
+| Continuous weight axis | Maple Mono Variable; V8 CJK variable builds require the source build described below |
 
 ### Scoop (Windows)
 
@@ -469,12 +500,14 @@ fonts.packages = with pkgs; [
 
 ## CDN
 
+The CDN links below distribute the stable **v7.9** fonts. They do not provide the unreleased V8 CJK profiles.
+
 ### Maple Mono
 
 - [fontsource](https://fontsource.org/fonts/maple-mono)
 - [ZeoSeven Fonts](https://fonts.zeoseven.com/items/443/)
 
-### Maple Mono CN
+### Maple Mono CN (v7.9)
 
 - [The Chinese Web Fonts Plan (中文网字计划)](https://chinese-font.netlify.app/zh-cn/fonts/maple-mono-cn/MapleMono-CN-Regular)
 - [ZeoSeven Fonts](https://fonts.zeoseven.com/items/442/)
@@ -499,8 +532,9 @@ See in [document](./source/features/README.md) or try it in [Playground](https:/
 - **OTF**: Minimal version, otf format
 - **WOFF2**: Minimal version, woff2 format, for small size on web pages
 - **NF**: Nerd-Font patched version, add icons for terminal (With `-NF` suffix)
-- **CN**: Chinese version, embed with Chinese and Japanese glyphs (With `-CN` suffix)
-- **NF-CN**: Full version, embed with icons, Chinese and Japanese glyphs (With `-NF-CN` suffix)
+- **CN / TC / JP / KR**: V8 CJK profiles for Simplified Chinese, Traditional Chinese, Japanese, and Korean (with the corresponding suffix)
+- **NF-CN / NF-TC / NF-JP / NF-KR**: CJK profiles with Nerd Font icons
+- **VF**: Variable-font archive suffix used by release packages; a CJK variable output directory uses `Variable-<LOCALE>`
 
 ### Font Hint
 
@@ -513,9 +547,9 @@ See in [document](./source/features/README.md) or try it in [Playground](https:/
 
 ## Custom Build
 
-The [`config.json`](./config.json) file is used to configure the build process. Checkout the [schema](./source/schema.json) or [document](./source/features/README.md) for more details.
+The [`config.json`](./config.json) file configures the build process. Check the [schema](./source/schema.json) and [feature documentation](./source/features/README.md) for the complete configuration surface.
 
-There are also some [command line options](#build-script-usage) for customizing the build process. CLI options have a higher priority than options in `config.json`.
+CLI options override `config.json`. Run `python build.py --help` after installing dependencies to see the current options.
 
 ### Build Methods
 
@@ -545,12 +579,13 @@ docker build -t maple-font .
 docker run -v "$(pwd)/fonts:/app/fonts" -e BUILD_ARGS="--normal" maple-font
 ```
 
-#### 4. Local Build
+#### 4. Local Build (V8 development)
 
-Clone the repo and run it on your local machine. Make sure you have `python3` and `pip` installed.
+V8 is currently available from the `variable` branch. Make sure you have Python 3.10+ and `pip` installed.
 
 ```shell
 git clone https://github.com/subframe7536/maple-font --depth 1 -b variable
+cd maple-font
 pip install -r requirements.txt
 python build.py
 ```
@@ -559,6 +594,8 @@ python build.py
 > For `Ubuntu` or `Debian`, maybe `python-is-python3` is needed as well.
 >
 > If you have trouble installing the dependencies, just create a new GitHub Codespace and run the commands there.
+
+The commands above build the development version and write generated fonts under `fonts/`. They do not replace the v7.9 packages already installed by Scoop, Homebrew, Arch, Nix, or a CDN.
 
 ### Narrow Glyph Width
 
@@ -620,7 +657,7 @@ If you would like to modify the feature file instead, run `build.py` with `--app
 
 ### Infinite Arrow Ligatures
 
-Inspired by Fira Code, the font enables infinite arrow ligatures by default from v7.3. For some reason, the ligatures are misaligned when using a hinted font, so they are removed in the hinted version by default from v7.4.
+Inspired by Fira Code, the font enables infinite arrow ligatures by default. They can be misaligned in hinted fonts, so hinted output disables them by default; use `infinite_arrow` or `--infinite-arrow` to force them on.
 
 You can set `"infinite_arrow": true` in `config.json` or add `--infinite-arrow` as a cli flag to force enabling the feature. See more details in [#508](https://github.com/subframe7536/maple-font/issues/508)
 
@@ -661,13 +698,29 @@ aliases remain enabled and cannot be overridden.
 
 ### CJK-extended version
 
-CJK-extended builds are disabled by default. Run `python build.py --cjk cn` to generate Maple Mono + CN static fonts. The default output mode is `--cjk-format static`, while `--cjk-format variable` persists merged Maple Mono + locale variable fonts only. The legacy `--cn` flag is still accepted as a compatibility alias for selecting the `cn` locale.
+CJK-extended builds are disabled by default. Select one or more locales with `--cjk`; values can be repeated or comma-separated:
 
-Use `cjk.locales.cn|jp|tc|kr` in [config.json](./config.json) to enable built-in locales in config-driven builds. Add extra custom CJK entries to `cjk.locales.custom`, and set `enable: true` on each entry you want `build.py` to merge automatically.
+```shell
+# Static Maple Mono + Simplified Chinese (default output mode)
+python build.py --cjk cn
 
-#### Narrow spacing in CN glyphs
+# Static Maple Mono + Traditional Chinese + Japanese
+python build.py --cjk tc,jp
 
-If you think that **CN glyph spacing is TOOOOOO large**, use the shared `cjk.narrow` config option or the CLI flag `--cjk-narrow`. This will make the font no longer be recognized as monospaced. You can see the effect in [#249](https://github.com/subframe7536/maple-font/issues/249#issuecomment-2871260476).
+# Variable Maple Mono + Japanese
+python build.py --cjk jp --cjk-format variable
+
+# Build both plain CJK and Nerd Font CJK outputs
+python build.py --cjk cn --cjk-both
+```
+
+The resulting directories are `fonts/CN/`, `fonts/TC/`, `fonts/JP/`, and `fonts/KR/` for plain static output; `fonts/NF-<LOCALE>/` for Nerd Font static output; and `fonts/Variable-<LOCALE>/` or `fonts/Variable-NF-<LOCALE>/` for variable output. The legacy `--cn` flag is still accepted as a compatibility alias for `--cjk cn`.
+
+Use `cjk.locales.cn|jp|tc|kr` in [config.json](./config.json) to enable built-in locales in config-driven builds. Add extra custom CJK entries to `cjk.locales.custom`, and set `enable: true` on each entry you want `build.py` to merge automatically. The full source, fallback order, cache behavior, and standalone base-font workflow are documented in [`scripts/cjk/README.md`](./scripts/cjk/README.md).
+
+#### Narrow CJK spacing
+
+If the CJK glyphs are too wide for your layout, use the shared `cjk.narrow` config option or the CLI flag `--cjk-narrow`. This reduces the CJK advance width and means the result is no longer strictly monospaced. You can see the effect in [#249](https://github.com/subframe7536/maple-font/issues/249#issuecomment-2871260476).
 
 And if you want to change the Latin letters' width as well, use [`--width` option](#narrow-glyph-width)
 
@@ -677,107 +730,37 @@ The build script will auto-download required assets from GitHub. If you have tro
 
 #### Traditional Chinese Punctuation Support
 
-By enabling `cv99`, all Chinese punctuation marks will be centred. See more details in [#150](https://github.com/subframe7536/maple-font/issues/150)
+By enabling `cv99`, Chinese punctuation marks are centred. See more details in [#150](https://github.com/subframe7536/maple-font/issues/150).
 
 ### Build Script Usage
 
-```
-usage: build.py [-h] [-v] [-d] [--debug] [-n] [--feat FEAT] [--apply-fea-file]
-                [--hinted | --no-hinted] [--liga | --no-liga]
-                [--infinite-arrow] [--remove-tag-liga]
-                [--line-height LINE_HEIGHT] [--width {default,narrow,slim}]
-                [--format FORMATS] [--least-styles] [--cache] [--archive]
-                [--nf | --no-nf] [--nf-mono] [--nf-propo] [--nf-variable]
-                [--font-patcher]
-                [--cjk CJK] [--cjk-format {static,variable}] [--cjk-narrow]
-                [--cjk-scale-factor CJK_SCALE_FACTOR]
-                [--cjk-hinted | --no-cjk-hinted] [--cjk-both]
-                [--cn | --no-cn] [--cn-narrow]
-                [--cn-scale-factor CN_SCALE_FACTOR] [--cn-both]
+Use `python build.py --help` for the complete, versioned CLI reference. These are the options most users need:
 
-Builder and optimizer for Maple Mono
+| Option | Effect |
+| --- | --- |
+| `--format ttf,otf,woff2` | Select base output formats; the variable base is always built. |
+| `--nf` / `--no-nf` | Enable or disable Nerd Font output. NF is enabled by default. |
+| `--nf-variable` | Build a variable Nerd Font output. |
+| `--hinted` / `--no-hinted` | Select the static base used by NF and static CJK merges. |
+| `--width {default,narrow,slim}` | Set Latin glyph width to 600, 550, or 500 units. |
+| `--feat zero,cv01,ss07` | Freeze selected OpenType features into the build. |
+| `--cache` | Reuse validated stages under `fonts/`. |
+| `--debug` | Build a small Regular/Italic test output without OTF, WOFF2, or NF. |
 
-options:
-  -h, --help            show this help message and exit
-  -v, --version         show program's version number and exit
-  -d, --dry             Output config and exit
-  --debug               Use a fast debug build: add `Debug`, enable debug
-                        logging, build Regular/Italic only, and skip
-                        OTF/WOFF2/Nerd Font outputs
-
-Feature Options:
-  -n, --normal          Use normal preset, just like `JetBrains Mono` with
-                        slashed zero
-  --feat FEAT           Enable and freeze the listed features, split by `,`
-                        (e.g. `--feat zero,cv01,ss07,ss08`); contextual rules
-                        are enabled through `calt`
-  --apply-fea-file      Apply matching
-                        `source/features/{regular,italic}{_cn,}.fea` to static
-                        and variable fonts
-  --hinted              Use hinted font as base font in NF / CJK / NF-CJK
-                        (default)
-  --no-hinted           Use unhinted font as base font in NF / CJK / NF-CJK
-  --liga                Preserve all the ligatures (default)
-  --no-liga             Remove all the ligatures
-  --infinite-arrow      Enable infinite arrow ligatures (Disabled in hinted
-                        font by default)
-  --remove-tag-liga     Remove plain text tag ligatures like `[TODO]`
-  --line-height LINE_HEIGHT
-                        Scale factor for line height (e.g., 1.1)
-  --width {default,narrow,slim}
-                        Set glyph width: default (600), narrow (550), slim
-                        (500)
-
-Build Options:
-  --format FORMATS      Select requested base output formats as a comma-
-                        separated list: ttf,otf,woff2; the variable base is
-                        always built
-  --least-styles        Only build Regular / Bold / Italic / BoldItalic style
-  --cache               Reuse valid cached pipeline stages under `fonts/` and
-                        preserve existing unrelated outputs
-  --archive             Archive each existing non-JSON output directory with
-                        config and license
-
-Nerd Font Options:
-  --nf, --nerd-font     Build Nerd-Font version (default)
-  --no-nf, --no-nerd-font
-                        Do not build the Nerd-Font version
-  --nf-mono             Make Nerd Font icons' width fixed
-  --nf-propo            Make Nerd Font icons' width variable, override `--nf-
-                        mono`
-  --nf-variable         Build Nerd Font as a variable font
-  --font-patcher        Force the use of Nerd Font Patcher to build NF format
-
-CJK Options:
-  --cjk CJK             Build Maple Mono + CJK extended fonts for locales: cn,
-                        jp, tc, kr. Repeat or use comma-separated values.
-  --cjk-format {static,variable}
-                        Persist CJK-extended output as static fonts (default)
-                        or merged variable fonts.
-  --cjk-narrow          Apply narrow CJK spacing to the selected locales.
-  --cjk-scale-factor CJK_SCALE_FACTOR
-                        Scale factor for selected CJK locales. Format:
-                        <factor> or <width_factor>,<height_factor>.
-  --cjk-hinted          Auto-hint final static CJK fonts.
-  --no-cjk-hinted       Do not auto-hint final static CJK fonts (default).
-  --cjk-both            When Nerd Font is enabled, build both NF CJK and non-
-                        NF CJK outputs.
-
-Deprecated CN Options:
-  --cn                  Deprecated alias for `--cjk cn`.
-  --no-cn               Deprecated alias for removing `cn` from the selected
-                        CJK locales.
-  --cn-narrow           Deprecated alias for `--cjk-narrow` when targeting
-                        `cn`.
-  --cn-scale-factor CN_SCALE_FACTOR
-                        Deprecated alias for `--cjk-scale-factor` when
-                        targeting `cn`.
-  --cn-both             Deprecated alias for `--cjk-both`.
-```
+For CJK, use `--cjk <locale>` and combine it with `--cjk-format static|variable`, `--cjk-narrow`, `--cjk-hinted`, or `--cjk-both` as shown above. The old `--cn` options remain compatibility aliases and should not be used in new scripts.
 
 ## Development
 
-Maintainers should follow [`scripts/maintenance.md`](scripts/maintenance.md) for source updates, generated files, CJK base refreshes, validation, and releases.
+Maintainers and coding agents should start with [`AGENTS.md`](./AGENTS.md), then use the focused guides below:
+
+| Task | Source of truth | Generated output |
+| --- | --- | --- |
+| Build configuration and pipeline | [`scripts/README.md`](./scripts/README.md) | `fonts/` |
+| CJK locale or base-font work | [`scripts/cjk/README.md`](./scripts/cjk/README.md), `source/cjk/<locale>/config-*.json` | `source/cjk/<locale>/`, then `fonts/<LOCALE>/` |
+| OpenType features | [`source/features/README.md`](./source/features/README.md), `scripts/feature/` | `source/features/*.fea` |
+| Maintenance, validation, and releases | [`scripts/maintenance.md`](./scripts/maintenance.md) | Release archives and manifests |
+
+Do not edit generated fonts, archives, `fonts/`, or generated feature files by hand. For a quick configuration check, run `uv run build.py --dry`; for the repository validation baseline, run `uv run ruff format --check .`, `uv run ruff check .`, `uv run pyrefly check`, and `uv run python -m unittest discover -s scripts/tests`.
 
 ## Credit
 

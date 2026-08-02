@@ -100,7 +100,7 @@ def build_fea(output: str) -> None:
     logger.info("Synchronized feature configuration: path=config.json")
 
     feat_str = ", ".join(normal_enabled_features)
-    for readme_path in ["README.md", "README_CN.md", "README_JA.md"]:
+    for readme_path in ["README.md", "README_CN.md"]:
         replace_section(readme_path, "<!-- NORMAL -->", f"```\n{feat_str}\n```")
         logger.info("Synchronized feature documentation: path=%s", readme_path)
 

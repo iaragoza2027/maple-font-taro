@@ -22,7 +22,9 @@
   <a href="https://font.subf.dev">网站</a> |
   <a href="./README.md">English</a> |
   中文 |
-  <a href="./README_JA.md">日本語</a>
+  <a href="./README_JP.md">日本語</a> |
+  <a href="./README_TC.md">繁中</a> |
+  <a href="./README_KR.md">한국어</a>
 </p>
 
 # Maple Mono
@@ -31,21 +33,36 @@ Maple Mono 是一款开源等宽字体，专注于优化您的编码体验。
 
 我制作它是为了提升自己的工作效率，希望它也能对其他人有所帮助。
 
-V7 是一个完全重制版本，提供了可变字体格式和字体工程源文件，重新设计了超过一半的字形，并提供更智能的连字。您可以[在这里](https://github.com/subframe7536/maple-font/tree/main)查看 V6 版本。
+V8 是 Maple Mono 的下一个开发版本。它将原来的 CN CJK 构建扩展为 CN、TC、JP、KR 四个 locale，并增加更多 Unicode 覆盖；V8 发布前会合并到 `variable` 分支。当前稳定版本仍然是 V7.9。
+
+> [!WARNING]
+> V8 仍在开发中，尚未正式发布。GitHub 最新 Release、包管理器和 CDN 当前提供的都是 **V7.9**。下面的安装命令用于稳定版；如果要测试 V8，请使用源码构建。正式发布前，输出名称和构建选项可能变化。
 
 ## 特性
 
-- ✨ 可变 - 无限的字体粗细，以及手工微调的斜体字形。
-- ☁️ 丝滑 - **圆角**，独特的 `@ $ % & Q ->` 字形，以及手写风格的斜体 `f i j k l x y`。
-- 💪 实用 - 大量的智能连字，详见 [`features/`](./source/features/README.md)。
-- 🎨 图标 - 提供 [Nerd-Font](https://github.com/ryanoasis/nerd-fonts) 嵌入的版本，添加图标支持。
-- 🔨 定制 - 自由开关或者构建 OpenType 字体特性，打造您专属的字体。
+### 字体与连字
 
-### 简体中文、繁体中文和日文
+- 可变字重轴、细致调整的斜体字形，以及 default、narrow、slim 三种拉丁字宽。
+- 智能编程连字包括 `[DEBUG]`、`[TODO]`、`[SUCCESS]` 等状态标签和无限箭头连字。
+- 字符变体与 stylistic set 覆盖常见编码偏好，包括无尾 `u`、更长的 `|`，以及保加利亚/塞尔维亚西里尔字形（`cv12`、`cv45`、`cv67`、`ss12`、`ss13`）。完整说明见 [`source/features/README.md`](./source/features/README.md)。
 
-CN 版本基于[资源圆体](https://github.com/CyanoHao/Resource-Han-Rounded)提供了完整的中文开发环境的字符集支持，包括简体中文、繁体中文和日文。同时，中英文 2:1 完美对齐的特性，使得本字体在多语言显示、Markdown 表格等场景可以做到整齐划一、美观舒适。但是中文的间距相比其他流行的中文字体更大，详情请参阅[发行版说明](https://github.com/subframe7536/maple-font/releases/tag/cn-base)和[这个议题](https://github.com/subframe7536/maple-font/issues/211)。
+### Unicode 与集成
 
-- CN 版本暂时不支持可变字体格式
+- 覆盖 U+2200–U+22FF 数学符号、上下标、棋子/扑克牌符号以及终端进度和状态符号。
+- 提供 [Nerd Font](https://github.com/ryanoasis/nerd-fonts) 图标版本，并支持冻结 OpenType 特性和自定义构建。
+
+### CJK 扩展字体
+
+V8 支持将 Maple Mono 与四个 locale 的 CJK 基础字体合并。每个 locale 都支持静态和可变输出；默认 CJK 字形使用中英文 2:1 宽度，适合多语言文本和 Markdown 表格。
+
+| Locale | 覆盖范围 | CJK 来源 | 输出后缀 |
+| --- | --- | --- | --- |
+| CN | 简体中文，以及常用繁体中文和日文范围 | [WenYuan Rounded SC](https://github.com/takushun-wu/WenYuanFonts) | `CN` |
+| TC | 繁体中文 | [Chiron Go Round TC](https://github.com/chiron-fonts/chiron-go-round-tc) | `TC` |
+| JP | 日文 | [Resource Han Rounded JP](https://github.com/CyanoHao/Resource-Han-Rounded) | `JP` |
+| KR | 韩文 | [Chiron Go Round TC](https://github.com/chiron-fonts/chiron-go-round-tc)，再按 KR 范围筛选 | `KR` |
+
+默认不会构建 CJK 扩展字体。请参阅[下面的 CJK 构建说明](#cjk-扩展版本)选择 locale、静态或可变输出，以及可选的窄间距。
 
 ![2-1.png](./resources/2-1.png)
 
@@ -59,7 +76,14 @@ CN 版本基于[资源圆体](https://github.com/CyanoHao/Resource-Han-Rounded)�
 
 ## 下载
 
-您可以从 [Releases](https://github.com/subframe7536/maple-font/releases) 下载所有字体压缩包。
+请选择适合编辑器或终端的稳定版 V7.9。您可以从 [GitHub Releases](https://github.com/subframe7536/maple-font/releases) 下载，也可以使用下面的包管理器。当前包管理器和 CDN 不会提供尚未发布的 V8 CJK 扩展版本。
+
+| 需求 | 推荐包 |
+| --- | --- |
+| 日常编程 | Maple Mono TTF（低分辨率屏幕选 hinted，高分辨率屏幕选 unhinted） |
+| 终端图标 | Maple Mono NF |
+| 中日韩字形 | Maple Mono CN 或 Maple Mono NF CN（V7.9 稳定包） |
+| 连续字重 | Maple Mono Variable；V8 CJK 可变版本需要按下方说明源码构建 |
 
 ### Scoop (Windows)
 
@@ -470,12 +494,14 @@ fonts.packages = with pkgs; [
 
 ## CDN
 
+下面的 CDN 链接提供稳定版 **V7.9**，不提供尚未发布的 V8 CJK 扩展版本。
+
 ### Maple Mono
 
 - [fontsource](https://fontsource.org/fonts/maple-mono)
 - [ZeoSeven Fonts](https://fonts.zeoseven.com/items/443/)
 
-### Maple Mono CN
+### Maple Mono CN (V7.9)
 
 - [The Chinese Web Fonts Plan (中文网字计划)](https://chinese-font.netlify.app/zh-cn/fonts/maple-mono-cn/MapleMono-CN-Regular)
 - [ZeoSeven Fonts](https://fonts.zeoseven.com/items/442/)
@@ -503,8 +529,9 @@ fonts.packages = with pkgs; [
 - **OTF**: 最小版本，otf 格式
 - **WOFF2**: 最小版本，woff2 格式，多用于网页加载
 - **NF**: 嵌入 Nerd-Font 的版本，为终端添加图标 (带有 `-NF` 后缀)
-- **CN**: 中文版本，嵌入中文和日文字形 (带有 `-CN` 后缀)
-- **NF-CN**: 完整版本，嵌入图标、中文和日文字形 (带有 `-NF-CN` 后缀)
+- **CN / TC / JP / KR**: V8 CJK locale，分别对应简体中文、繁体中文、日文和韩文（使用对应后缀）
+- **NF-CN / NF-TC / NF-JP / NF-KR**: 带 Nerd Font 图标的 CJK 版本
+- **VF**: 发布包中的可变字体后缀；CJK 可变输出目录使用 `Variable-<LOCALE>`
 
 ### 字体微调
 
@@ -520,7 +547,7 @@ fonts.packages = with pkgs; [
 
 [`config.json`](./config.json) 文件用于配置构建过程。查看 [schema](./source/schema.json) 或 [文档](./source/features/README.md) 了解更多详情。
 
-还有一些 [命令行选项](#构建脚本用法) 用于自定义构建过程。命令行选项的优先级高于 `config.json` 中的选项。
+命令行选项会覆盖 `config.json`。安装依赖后运行 `python build.py --help` 查看当前 CLI。
 
 ### 构建方法
 
@@ -550,12 +577,13 @@ docker build -t maple-font .
 docker run -v "$(pwd)/fonts:/app/fonts" -e BUILD_ARGS="--normal" maple-font
 ```
 
-#### 4. 本地构建
+#### 4. 本地构建（V8 开发版）
 
-克隆仓库并在您的本地机器上运行。确保您已安装 `python3` 和 `pip`
+V8 将合并到 `variable` 分支。请确保已安装 Python 3.10+ 和 `pip`。
 
 ```shell
 git clone https://github.com/subframe7536/maple-font --depth 1 -b variable
+cd maple-font
 pip install -r requirements.txt
 python build.py
 ```
@@ -564,6 +592,8 @@ python build.py
 > 对于 `Ubuntu` 或 `Debian`，可能还需要 `python-is-python3`
 >
 > 如果您在安装依赖项时遇到问题，只需创建一个新的 GitHub Codespace 并在那里运行命令
+
+上述命令构建的是开发版，生成字体位于 `fonts/`，不会替换 Scoop、Homebrew、Arch、Nix 或 CDN 中已有的 V7.9 稳定包。
 
 ### 窄字符
 
@@ -627,7 +657,7 @@ OpenType 特性可以控制字体的内置变体和连字。您可以通过修�
 
 ### 无限箭头连字
 
-受 Fira Code 的启发，从 v7.3 开始，该字体默认启用无限箭头连字。由于某种原因，在使用 Hinted 字体时连字会错位，因此在 v7.4 的 Hinted 版本中默认将其移除。
+受 Fira Code 的启发，本字体默认启用无限箭头连字。由于 Hinted 字体中的连字可能错位，Hinted 输出默认会关闭它；如需强制开启，请使用 `infinite_arrow` 或 `--infinite-arrow`。
 
 您可以在 `config.json` 中设置 `"infinite_arrow": true`，或在命令行标志中添加 `--infinite-arrow`。详情见 [#508](https://github.com/subframe7536/maple-font/issues/508)
 
@@ -654,13 +684,29 @@ OpenType 特性可以控制字体的内置变体和连字。您可以通过修�
 
 ### CJK 扩展版本
 
-默认情况下不会生成 CJK 扩展字体。运行 `python build.py --cjk cn` 会生成 Maple Mono + 中文的静态字体。默认输出模式是 `--cjk-format static`，如果使用 `--cjk-format variable`，则只保留 Maple Mono + locale 的合并可变字体。旧的 `--cn` 仍然作为选择 `cn` locale 的兼容别名保留。
+默认情况下不会生成 CJK 扩展字体。使用 `--cjk` 选择一个或多个 locale；可以重复参数或用逗号分隔：
 
-如果您想通过配置启用一个或多个 CJK locale，请在 [config.json](./config.json) 中使用 `cjk.enabled_locales`，可选值包括 `cn`、`jp`、`tc`、`kr`。
+```shell
+# Maple Mono + 简体中文静态字体（默认）
+python build.py --cjk cn
 
-#### 缩小中文字体的间距
+# Maple Mono + 繁体中文 + 日文静态字体
+python build.py --cjk tc,jp
 
-如果您觉得中文字符的间距**过大**，有一个构建选项 `cn.narrow` 或 命令行参数 `--cn-narrow` 可以缩小间距，但是这将让字体无法被识别为等宽字体。
+# Maple Mono + 日文可变字体
+python build.py --cjk jp --cjk-format variable
+
+# 同时构建普通 CJK 和 Nerd Font CJK
+python build.py --cjk cn --cjk-both
+```
+
+普通静态输出目录为 `fonts/CN/`、`fonts/TC/`、`fonts/JP/`、`fonts/KR/`；Nerd Font 静态输出使用 `fonts/NF-<LOCALE>/`；可变输出使用 `fonts/Variable-<LOCALE>/` 或 `fonts/Variable-NF-<LOCALE>/`。旧的 `--cn` 仍作为 `--cjk cn` 的兼容别名保留。
+
+如果您想通过配置启用一个或多个 CJK locale，请在 [config.json](./config.json) 中使用 `cjk.locales.cn|jp|tc|kr`。完整的来源、回退顺序、缓存行为和独立基础字体构建流程请参阅 [`scripts/cjk/README.md`](./scripts/cjk/README.md)。
+
+#### 缩小 CJK 字体的间距
+
+如果您觉得 CJK 字符的间距**过大**，可以使用共享配置项 `cjk.narrow` 或命令行参数 `--cjk-narrow` 缩小间距，但是这将让字体无法被识别为严格等宽字体。
 
 您可以在 [#249](https://github.com/subframe7536/maple-font/issues/249#issuecomment-2871260476) 中查看效果。
 
@@ -676,79 +722,24 @@ OpenType 特性可以控制字体的内置变体和连字。您可以通过修�
 
 ### 构建脚本用法
 
-```
-usage: build.py [-h] [-v] [-d] [--debug] [-n] [--feat FEAT] [--apply-fea-file]
-                [--hinted | --no-hinted] [--liga | --no-liga]
-                [--infinite-arrow] [--remove-tag-liga]
-                [--line-height LINE_HEIGHT] [--width {default,narrow,slim}]
-                [--format FORMATS] [--least-styles] [--cache] [--archive]
-                [--nf | --no-nf] [--nf-mono] [--nf-propo] [--nf-variable]
-                [--font-patcher]
-                [--cjk CJK] [--cjk-format {static,variable}] [--cjk-narrow]
-                [--cjk-scale-factor CJK_SCALE_FACTOR]
-                [--cjk-hinted | --no-cjk-hinted] [--cjk-both]
-                [--cn | --no-cn] [--cn-narrow]
-                [--cn-scale-factor CN_SCALE_FACTOR] [--cn-both]
+使用 `python build.py --help` 查看完整 CLI。常用选项如下：
 
-Builder and optimizer for Maple Mono
+| 选项 | 作用 |
+| --- | --- |
+| `--format ttf,otf,woff2` | 选择基础输出格式；可变基础字体始终构建。 |
+| `--nf` / `--no-nf` | 开启或关闭 Nerd Font 输出，默认开启。 |
+| `--nf-variable` | 构建可变 Nerd Font。 |
+| `--hinted` / `--no-hinted` | 选择 NF 和静态 CJK 合并使用的基础字体。 |
+| `--width {default,narrow,slim}` | 将拉丁字宽设置为 600、550 或 500 units。 |
+| `--feat zero,cv01,ss07` | 将指定 OpenType 特性冻结到构建结果中。 |
+| `--cache` | 重用 `fonts/` 下已验证的阶段。 |
+| `--debug` | 只构建较小的常规/斜体测试输出，不构建 OTF、WOFF2 或 NF。 |
 
-options:
-  -h, --help            显示此帮助信息并退出
-  -v, --version         显示程序版本号并退出
-  -d, --dry             输出配置并退出
-  --debug               使用快速调试构建：添加 `Debug`，启用调试日志，仅构建常规/斜体，
-                        并跳过 OTF/WOFF2/Nerd Font 输出
+CJK 使用 `--cjk <locale>`，并按需组合 `--cjk-format static|variable`、`--cjk-narrow`、`--cjk-hinted` 或 `--cjk-both`。旧的 `--cn` 系列仅作为兼容别名，新脚本请使用 `--cjk`。
 
-Feature Options:
-  -n, --normal          使用 normal 预设，就像带斜杠零的 `JetBrains Mono`
-  --feat FEAT           启用并冻结列出的字体特性，用 `,` 分隔（例如 `--feat
-                        zero,cv01,ss07,ss08`）；上下文规则通过 `calt` 启用
-  --apply-fea-file      应用匹配的 `source/features/{regular,italic}{_cn,}.fea` 到静态和可变字体
-  --hinted              在 NF / CJK / NF-CJK 中使用 hinted 字体作为基础字体（默认）
-  --no-hinted           在 NF / CJK / NF-CJK 中使用 unhinted 字体作为基础字体
-  --liga                保留所有连字（默认）
-  --no-liga             删除所有连字
-  --infinite-arrow      开启无限箭头连字（默认在 hinted 字体中禁用）
-  --remove-tag-liga     移除纯文本标签连字，例如 `[TODO]`
-  --line-height LINE_HEIGHT
-                        行高的缩放因子 (例如 1.1)
-  --width {default,narrow,slim}
-                        设置字形宽度: default (600), narrow (550), slim (500)
+## 开发与维护
 
-Build Options:
-  --format FORMATS      选择请求的基础输出格式，用逗号分隔：ttf,otf,woff2；可变基础字体始终构建
-  --least-styles        仅构建 常规 / 粗体 / 斜体 / 粗斜体 样式
-  --cache               重用 `fonts/` 下有效的 pipeline 阶段，并保留无关的现有输出
-  --archive             将当时存在的每个非 JSON 输出目录连同配置和许可打包
-
-Nerd Font Options:
-  --nf, --nerd-font     构建 Nerd-Font 版本（默认）
-  --no-nf, --no-nerd-font
-                        不构建 Nerd-Font 版本
-  --nf-mono             使 Nerd Font 图标的宽度固定
-  --nf-propo            使 Nerd Font 图标的宽度可变，覆盖 `--nf-mono`
-  --nf-variable         将 Nerd Font 构建为可变字体
-  --font-patcher        强制使用 Nerd Font Patcher 构建 NF 格式
-
-CJK Options:
-  --cjk CJK             为 cn、jp、tc、kr locale 构建 Maple Mono + CJK 扩展字体；可重复或用逗号分隔
-  --cjk-format {static,variable}
-                        将 CJK 扩展输出保存为静态字体（默认）或合并的可变字体
-  --cjk-narrow          对选定 locale 应用窄 CJK 间距
-  --cjk-scale-factor CJK_SCALE_FACTOR
-                        选定 locale 的缩放因子。格式：<因子> 或 <宽度因子>,<高度因子>
-  --cjk-hinted          对最终静态 CJK 字体执行自动 hinting
-  --no-cjk-hinted       不对最终静态 CJK 字体执行自动 hinting（默认）
-  --cjk-both            Nerd Font 启用时，同时构建 NF CJK 和普通 CJK 输出
-
-Deprecated CN Options:
-  --cn                  `--cjk cn` 的弃用别名
-  --no-cn               从选定 CJK locale 中移除 `cn` 的弃用别名
-  --cn-narrow           面向 `cn` 的 `--cjk-narrow` 弃用别名
-  --cn-scale-factor CN_SCALE_FACTOR
-                        面向 `cn` 的 `--cjk-scale-factor` 弃用别名
-  --cn-both             `--cjk-both` 的弃用别名
-```
+维护者和 coding agent 请先阅读 [`AGENTS.md`](./AGENTS.md)，再根据任务使用 [`scripts/README.md`](./scripts/README.md)、[`scripts/cjk/README.md`](./scripts/cjk/README.md) 和 [`scripts/maintenance.md`](./scripts/maintenance.md)。`fonts/`、CJK 字体、压缩包和生成的 `.fea` 文件都不能手工编辑；配置检查可运行 `uv run build.py --dry`。
 
 ## 我个人在用的其他中文字体资源
 

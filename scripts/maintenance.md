@@ -67,16 +67,16 @@ The four source URLs are maintained manually. Update the `source.download.url` v
 | JP     | `source/cjk/jp/config-jp.json` |
 | KR     | `source/cjk/kr/config-kr.json` |
 
-Keep the URL pinned to the intended upstream release or ref. The workflow does not look up a latest release; it records the URL, the version/ref segment, the input fingerprint, the static-font hash, the ZIP digest, and the build date in `cjk-base-manifest.json`.
+Keep the URL pinned to the intended upstream release or ref. The committed static hash is the source of truth for the generated archive contents; CI does not look up a latest release or store a separate manifest.
 
 ### Published update (recommended)
 
-1. Run the manual **Build CJK Base Fonts** workflow. Leave `force_all` disabled for a normal refresh; the workflow compares each preset and tracked `static-<locale>.sha256` file with the published manifest, then builds only changed locales in parallel. Enable `force_all` when bootstrapping the release or deliberately rebuilding every locale.
-2. Review the candidate artifact and any hash update pull request created by the workflow. If a PR was opened, merge it so the changed `source/cjk/<locale>/static-<locale>.sha256` files are on the default branch. A PR is not needed when an input change produces the same static hash. The matching ZIPs stay in the 30-day `cjk-base-candidate` artifact until publishing.
-3. Run the manual **Publish CJK Base Fonts** workflow with the successful Build workflow run ID after any required hash PR is merged. It verifies the candidate against the merged source URLs, input fingerprints, and hashes, then creates or updates the `cjk-base` release.
-4. Confirm the release contains all four assets named `cn-base-static.zip`, `tc-base-static.zip`, `jp-base-static.zip`, and `kr-base-static.zip`, plus `cjk-base-manifest.json`. The generated release description includes the source version/ref, source URL, static hash, build timestamp, and current UTC update date.
+1. Update the `source.download.url` value in the relevant preset and run `uv run task.py cjk --preset <locale>` locally. Review the generated fonts, then commit the config and matching `source/cjk/<locale>/static-<locale>.sha256` together.
+2. Pushing one or more static hash files triggers **Update CJK Base Fonts**. The workflow rebuilds the selected locales and verifies each generated ZIP by extracting it and comparing its directory hash with the committed hash.
+3. For a rebuild without a hash change, run the workflow manually and choose `all`, `cn`, `tc`, `jp`, or `kr`. Use `all` when bootstrapping a missing release or repairing an incomplete release.
+4. The workflow deletes and replaces only the changed locale archives. After upload it downloads the published ZIPs again and repeats the committed-hash validation.
 
-The main release workflow checks those four assets and compares the published manifest hashes with the merged repository hashes. A stale or missing `cjk-base` release therefore blocks the normal release instead of silently producing incomplete CJK assets.
+The main release workflow downloads all four `cjk-base` ZIPs and validates them against the committed hashes before building the normal release. A stale, missing, or corrupt CJK archive blocks the normal release.
 
 ### Local check or rebuild
 
@@ -87,7 +87,7 @@ uv run task.py cjk --help
 uv run task.py cjk --preset cn
 ```
 
-The task rebuilds the regular and italic variable bases and the static instances unless `--vf-only` is selected. Generated CJK fonts, temporary source files, and ZIPs under `source/cjk/` are disposable; the tracked `static-<locale>.sha256` files are updated through the Build workflow's hash pull request and should not be hand-edited. Avoid a full CJK build unless the source URL, outline conversion, or generated base artifacts are part of the requested change.
+The task rebuilds the regular and italic variable bases and the static instances unless `--vf-only` is selected. Generated CJK fonts, temporary source files, and ZIPs under `source/cjk/` are disposable; the tracked `static-<locale>.sha256` files are updated by the local task and committed with the matching config, so do not hand-edit the digest. Avoid a full CJK build unless the source URL, outline conversion, or generated base artifacts are part of the requested change.
 
 ## Create a Maple Mono release
 

@@ -34,20 +34,26 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        set -euo pipefail
         assets="$(gh release view cjk-base --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
+        mkdir -p cjk-base-verify
         for locale in cn tc jp kr; do
           expected="${locale}-base-static.zip"
           grep -Fxq "$expected" <<< "$assets"
-        done
-        mkdir -p cjk-base-state
-        gh release download cjk-base \
-          --repo "$GITHUB_REPOSITORY" \
-          --pattern cjk-base-manifest.json \
-          --dir cjk-base-state
-        for locale in cn tc jp kr; do
-          expected="$(tr -d '[:space:]' < "source/cjk/$locale/static-$locale.sha256")"
-          actual="$(jq -r ".locales.$locale.static_sha256" cjk-base-state/cjk-base-manifest.json)"
-          test "$expected" = "$actual"
+          mkdir -p "cjk-base-verify/$locale"
+          gh release download cjk-base \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$expected" \
+            --dir "cjk-base-verify/$locale" \
+            --clobber
+          ARCHIVE="cjk-base-verify/$locale/$expected" \
+            HASH_FILE="source/cjk/$locale/static-$locale.sha256" \
+            uv run python -c '
+          import os
+          from pathlib import Path
+          from scripts.cjk.cache import verify_static_archive
+          verify_static_archive(Path(os.environ["ARCHIVE"]), Path(os.environ["HASH_FILE"]))
+          '
         done
     - id: matrix
       name: Generate release task matrices

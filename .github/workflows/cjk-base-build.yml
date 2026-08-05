@@ -1,20 +1,30 @@
-name: Build CJK Base Fonts
+name: Update CJK Base Fonts
 
 on:
+  push:
+    branches:
+      - v8
+    paths:
+      - "source/cjk/*/static-*.sha256"
   workflow_dispatch:
     inputs:
-      force_all:
-        description: "Rebuild all CJK locales instead of checking the manifest"
-        required: false
-        default: false
-        type: boolean
+      locale:
+        description: "Locale to rebuild"
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - cn
+          - tc
+          - jp
+          - kr
 
 permissions:
   contents: write
-  pull-requests: write
 
 concurrency:
-  group: cjk-base-build-${{ github.repository }}
+  group: cjk-base-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
@@ -26,35 +36,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.repository.default_branch }}
-          fetch-depth: 1
-      - uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: true
-          prune-cache: false
-          python-version: "3.12"
-      - run: uv sync --locked --no-dev
-      - name: Load published CJK base manifest
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          mkdir -p cjk-base-state
-          gh release download cjk-base \
-            --repo "$GITHUB_REPOSITORY" \
-            --pattern cjk-base-manifest.json \
-            --dir cjk-base-state || true
+          ref: ${{ github.event_name == 'push' && github.sha || github.event.repository.default_branch }}
+          fetch-depth: 0
       - id: plan
-        name: Choose changed locales
+        name: Choose locale matrix
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          EVENT_SHA: ${{ github.sha }}
+          MANUAL_LOCALE: ${{ inputs.locale }}
         run: |
-          force_args=""
-          if [ "${{ inputs.force_all }}" = "true" ]; then
-            force_args="--force-all"
+          set -euo pipefail
+          locales=()
+          if [ "$EVENT_NAME" = "push" ]; then
+            if [ "$EVENT_BEFORE" = "0000000000000000000000000000000000000000" ]; then
+              changed_files="$(git ls-files 'source/cjk/*/static-*.sha256')"
+            else
+              changed_files="$(git diff --name-only "$EVENT_BEFORE" "$EVENT_SHA")"
+            fi
+            for locale in cn jp tc kr; do
+              path="source/cjk/$locale/static-$locale.sha256"
+              if grep -Fqx "$path" <<< "$changed_files"; then
+                locales+=("$locale")
+              fi
+            done
+          else
+            case "$MANUAL_LOCALE" in
+              all) locales=(cn jp tc kr) ;;
+              cn|jp|tc|kr) locales=("$MANUAL_LOCALE") ;;
+              *) echo "Unsupported locale: $MANUAL_LOCALE" >&2; exit 1 ;;
+            esac
           fi
-          matrix="$(uv run task.py cjk-base matrix \
-            --manifest cjk-base-state/cjk-base-manifest.json \
-            $force_args)"
+          matrix="$(printf '%s\n' "${locales[@]}" | jq -Rsc \
+            'split("\n") | map(select(length > 0)) | {include: map({locale: .})}')"
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
-          if [ "$(jq '.include | length' <<< "$matrix")" -gt 0 ]; then
+          if [ "${#locales[@]}" -gt 0 ]; then
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
@@ -72,32 +88,55 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.repository.default_branch }}
+          ref: ${{ github.event_name == 'push' && github.sha || github.event.repository.default_branch }}
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
           prune-cache: false
           python-version: "3.12"
       - run: uv sync --locked --no-dev
-      - name: Build CJK base
-        run: uv run task.py cjk-base build "${{ matrix.locale }}" --output cjk-base-artifacts
+      - name: Build and validate CJK base
+        env:
+          LOCALE: ${{ matrix.locale }}
+        run: |
+          set -euo pipefail
+          hash_file="source/cjk/$LOCALE/static-$LOCALE.sha256"
+          archive="source/cjk/$LOCALE/${LOCALE}-base-static.zip"
+          expected_hash="$(tr -d '[:space:]' < "$hash_file")"
+          expected_hash_file="$RUNNER_TEMP/static-$LOCALE.sha256"
+          printf '%s\n' "$expected_hash" > "$expected_hash_file"
+          uv run task.py cjk --preset "$LOCALE"
+          test "$(tr -d '[:space:]' < "$hash_file")" = "$expected_hash"
+          git diff --exit-code -- "$hash_file"
+          test -f "$archive"
+          ARCHIVE="$archive" HASH_FILE="$expected_hash_file" uv run python -c '
+          import os
+          from pathlib import Path
+          from scripts.cjk.cache import verify_static_archive
+          verify_static_archive(Path(os.environ["ARCHIVE"]), Path(os.environ["HASH_FILE"]))
+          '
+          mkdir -p cjk-base-artifacts
+          cp "$archive" "cjk-base-artifacts/${LOCALE}-base-static.zip"
       - uses: actions/upload-artifact@v4
         with:
           name: cjk-base-${{ matrix.locale }}
           path: cjk-base-artifacts
           if-no-files-found: error
           compression-level: 0
-          retention-days: 30
+          retention-days: 1
 
-  prepare:
+  publish:
     needs: [detect, build]
     if: needs.detect.outputs.has_changes == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      LOCALES_JSON: ${{ needs.detect.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.repository.default_branch }}
-          fetch-depth: 1
+          ref: ${{ github.event_name == 'push' && github.sha || github.event.repository.default_branch }}
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
@@ -109,62 +148,97 @@ jobs:
           pattern: cjk-base-*
           path: cjk-base-artifacts
           merge-multiple: true
-      - name: Load published CJK base manifest
+      - name: Validate built ZIP artifacts
+        run: |
+          set -euo pipefail
+          while IFS= read -r locale; do
+            archive="cjk-base-artifacts/${locale}-base-static.zip"
+            hash_file="source/cjk/$locale/static-$locale.sha256"
+            test -f "$archive"
+            ARCHIVE="$archive" HASH_FILE="$hash_file" uv run python -c '
+            import os
+            from pathlib import Path
+            from scripts.cjk.cache import verify_static_archive
+            verify_static_archive(Path(os.environ["ARCHIVE"]), Path(os.environ["HASH_FILE"]))
+            '
+          done < <(jq -r '.include[].locale' <<< "$LOCALES_JSON")
+      - name: Render release notes
+        env:
+          RELEASE_URL: https://github.com/${{ github.repository }}/releases/download/cjk-base
+        run: |
+          UPDATE_TIME="$(date -u +'%Y-%m-%d %H:%M UTC')"
+          sed \
+            -e "s|https://<url>|$RELEASE_URL|g" \
+            -e "s|<time>|$UPDATE_TIME|g" \
+            .github/cjk_base_template.md > cjk-base-notes.md
+      - name: Replace CJK base release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mkdir -p cjk-base-state
-          gh release download cjk-base \
-            --repo "$GITHUB_REPOSITORY" \
-            --pattern cjk-base-manifest.json \
-            --dir cjk-base-state || true
-      - name: Assemble candidate
-        run: |
-          uv run task.py cjk-base assemble \
-            --baseline cjk-base-state/cjk-base-manifest.json \
-            --artifacts cjk-base-artifacts \
-            --output cjk-base-candidate
-      - uses: actions/upload-artifact@v4
-        with:
-          name: cjk-base-candidate
-          path: cjk-base-candidate
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 30
-      - name: Create hash update pull request
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          while IFS= read -r hash_file; do
-            locale="$(basename "$hash_file" | sed -E 's/^static-(.*)\.sha256$/\1/')"
-            cp "$hash_file" "source/cjk/$locale/static-$locale.sha256"
-          done < <(find cjk-base-candidate/hashes -type f -name '*.sha256' | sort)
-
-          if git diff --quiet -- source/cjk/*/static-*.sha256; then
-            echo "No tracked CJK hash changed; no pull request is needed."
-            exit 0
+          set -euo pipefail
+          mapfile -t locales < <(jq -r '.include[].locale' <<< "$LOCALES_JSON")
+          upload_args=()
+          for locale in "${locales[@]}"; do
+            upload_args+=("cjk-base-artifacts/${locale}-base-static.zip")
+          done
+          if gh release view cjk-base --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            assets="$(gh release view cjk-base --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
+            for locale in cn tc jp kr; do
+              grep -Fxq "${locale}-base-static.zip" <<< "$assets"
+            done
+            while IFS= read -r asset; do
+              case "$asset" in
+                cn-base-static.zip|tc-base-static.zip|jp-base-static.zip|kr-base-static.zip)
+                  ;;
+                *)
+                  gh release delete-asset cjk-base "$asset" \
+                    --repo "$GITHUB_REPOSITORY" --yes
+                  ;;
+              esac
+            done <<< "$assets"
+            for locale in "${locales[@]}"; do
+              asset="${locale}-base-static.zip"
+              gh release delete-asset cjk-base "$asset" \
+                --repo "$GITHUB_REPOSITORY" --yes
+            done
+            gh release upload cjk-base \
+              --repo "$GITHUB_REPOSITORY" \
+              "${upload_args[@]}"
+            gh release edit cjk-base \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "CJK Base Fonts" \
+              --notes-file cjk-base-notes.md
+          else
+            test "${#locales[@]}" -eq 4
+            gh release create cjk-base \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$DEFAULT_BRANCH" \
+              --title "CJK Base Fonts" \
+              --notes-file cjk-base-notes.md \
+              "${upload_args[@]}"
           fi
-
-          branch="codex/cjk-base-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git switch --create "$branch"
-          git add source/cjk/*/static-*.sha256
-          git commit -m "update CJK base hashes"
-          git push --set-upstream origin "$branch"
-
-          locales="$(jq -r '.locales | join(", ")' cjk-base-candidate/changed.json)"
-          cat > cjk-base-pr-body.md <<EOF
-          ## CJK Base Update
-
-          Locales: $locales
-
-          Build run: $GITHUB_RUN_ID
-
-          The matching ZIP assets are stored in the cjk-base-candidate workflow artifact. Run the separate CJK Base Publish workflow with this run ID after merging this PR.
-          EOF
-          gh pr create \
-            --base "${{ github.event.repository.default_branch }}" \
-            --head "$branch" \
-            --title "Update CJK base hashes" \
-            --body-file cjk-base-pr-body.md
+      - name: Validate published ZIP assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p cjk-base-remote
+          while IFS= read -r locale; do
+            archive="cjk-base-remote/${locale}/${locale}-base-static.zip"
+            mkdir -p "$(dirname "$archive")"
+            gh release download cjk-base \
+              --repo "$GITHUB_REPOSITORY" \
+              --pattern "${locale}-base-static.zip" \
+              --dir "$(dirname "$archive")" \
+              --clobber
+            ARCHIVE="$archive" HASH_FILE="source/cjk/$locale/static-$locale.sha256" uv run python -c '
+            import os
+            from pathlib import Path
+            from scripts.cjk.cache import verify_static_archive
+            verify_static_archive(Path(os.environ["ARCHIVE"]), Path(os.environ["HASH_FILE"]))
+            '
+          done < <(jq -r '.include[].locale' <<< "$LOCALES_JSON")
+          assets="$(gh release view cjk-base --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
+          for locale in cn tc jp kr; do
+            grep -Fxq "${locale}-base-static.zip" <<< "$assets"
+          done

@@ -12,6 +12,33 @@ from scripts.task import cjk, nf
 
 
 class TaskDownloadMirrorTest(unittest.TestCase):
+    def test_cjk_task_builds_comma_separated_presets_independently(self) -> None:
+        parser = argparse.ArgumentParser()
+        subparsers = parser.add_subparsers(dest="command")
+        cjk.register_parser(subparsers)
+        args = parser.parse_args(["cjk", "--preset", "cn,tc,jp,kr", "--vf-only"])
+
+        with (
+            patch(
+                "scripts.task.cjk.github_mirror_from_config",
+                return_value="mirror.example.com/github.com",
+            ),
+            patch("scripts.task.cjk.build_cjk_fonts") as build,
+        ):
+            cjk.run(args)
+
+        self.assertEqual(
+            [call.args[0].locale_name for call in build.call_args_list],
+            ["CN", "TC", "JP", "KR"],
+        )
+        self.assertTrue(all(call.args[2] for call in build.call_args_list))
+        self.assertTrue(
+            all(
+                call.kwargs["github_mirror"] == "mirror.example.com/github.com"
+                for call in build.call_args_list
+            )
+        )
+
     def test_cjk_task_passes_configured_mirror_to_builder(self) -> None:
         parser = argparse.ArgumentParser()
         subparsers = parser.add_subparsers(dest="command")

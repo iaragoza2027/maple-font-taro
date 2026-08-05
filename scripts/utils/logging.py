@@ -30,7 +30,6 @@ class TaskName(str, Enum):
     WOFF2 = "woff2"
     NERD_FONT = "nerd-font"
     CJK = "cjk"
-    CJK_BASE = "cjk-base"
     ARCHIVE = "archive"
     DESIGNSPACE = "designspace"
     FEA = "fea"

@@ -32,6 +32,7 @@ from scripts.config.base import (
 from scripts.feature.compiler import normal_enabled_features
 from scripts.font_ops.opentype import DEFAULT_COMPAT_ALIASES
 from scripts.utils.logging import logger
+from scripts.utils.version import font_version_for_core, parse_font_version
 
 
 from scripts.config.runtime import BuildRuntimeContext
@@ -119,6 +120,15 @@ class BuildConfigResolver:
     ) -> None:
         if "family_name" in data:
             config.identity.base_family_name = str(data["family_name"])
+        if "font_version" in data:
+            font_version = data["font_version"]
+            if not isinstance(font_version, str):
+                raise ValueError("font_version must be a string")
+            try:
+                parse_font_version(font_version)
+            except ValueError as error:
+                raise ValueError(f"Invalid font_version: {font_version}") from error
+            config.identity.font_version = font_version
 
     def _apply_metrics_json_config(
         self,
@@ -517,20 +527,20 @@ class BuildConfigResolver:
         if config.debug:
             name_parts.append("Debug")
 
-        version_core = version_tag
+        version_core = version_tag.removeprefix("v").split("-", 1)[0]
+        major, minor = version_core.split(".")
+        if config.identity.font_version is None:
+            config.identity.font_version = font_version_for_core(version_core)
+
         beta = None
         if "-" in version_tag:
-            version_core, beta = version_tag.split("-", 1)
-
-        major, minor = version_core.split(".")
-        if major.startswith("v"):
-            major = major[1:]
+            beta = version_tag.split("-", 1)[1]
 
         config.identity.family_name = " ".join(name_parts)
         config.identity.family_name_compact = "".join(name_parts)
         config.identity.version_tag = version_tag
         config.identity.version = f"{major}.{minor}"
-        config.identity.version_str = f"Version {major}.{minor:03}"
+        config.identity.version_str = f"Version {config.identity.font_version}"
         config.identity.beta = beta
 
 

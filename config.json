@@ -1,6 +1,7 @@
 {
   "$schema": "./source/schema.json",
   "family_name": "Maple Mono",
+  "font_version": "7.900",
   "formats": ["ttf", "otf", "woff2"],
   "use_hinted": true,
   "pool_size": 4,

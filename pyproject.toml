@@ -9,15 +9,16 @@ dependencies = [
     "fonttools[woff]~=4.63",
     "glyphsLib~=6.13",
     "py7zr~=1.1",
-    "python-minifier~=3.2",
     "skia-pathops~=0.9",
     "ttfautohint-py~=0.6",
 ]
 
 [dependency-groups]
 dev = [
-    "pyrefly==1.1.1",
-    "ruff==0.15.22",
+    "pyrefly~=1.1",
+    "python-minifier~=3.2",
+    "questionary~=2.1",
+    "ruff~=0.15",
 ]
 
 [tool.ruff]

@@ -94,21 +94,21 @@ The task rebuilds the regular and italic variable bases and the static instances
 ### Prepare and tag locally
 
 1. Finish source, feature, page, and CJK updates, then run the validation baseline below. Make sure the `cjk-base` release is current and its four hashes match the repository.
-2. Preview the next version without changing files:
+2. Preview the next version without changing files. The release task uses the development-only `questionary` menu with arrow-key navigation; each option includes its target tag and embedded font version, and `minor` is selected by default:
 
    ```sh
-   uv run task.py release minor --dry
-   # or
-   uv run task.py release major --dry
+   uv run task.py release --dry
    ```
 
-3. When the preview is correct, run the matching command and confirm the prompt:
+3. When the preview is correct, run the release task and confirm the prompt:
 
    ```sh
-   uv run task.py release minor
+   uv run task.py release
    ```
 
-   The task bumps the project version, builds the release inputs, regenerates Fontsource and variable WOFF2 assets, exports `requirements.txt`, copies CN assets, commits the intended release files, pushes the commit, and pushes the new `vX.Y` tag. Use `major` only for a planned major release.
+   Choose `minor`, `major`, `pre-minor`, or `pre-major`. The task updates the PEP 440 project version in `pyproject.toml`, updates the three-digit embedded version in `config.json`, builds the release inputs, regenerates Fontsource and variable WOFF2 assets, exports `requirements.txt`, copies CN assets, commits the intended release files, pushes the commit, and pushes the new tag.
+
+   Pre-releases use tags such as `v8.0-beta.1` and embedded versions such as `Version 8.001`. Repeating `pre-major` creates `v8.0-beta.2` and `Version 8.002`; choosing `major` while on that release line finalizes `v8.0` with the next embedded version, `Version 8.003`.
 
 ### Build and publish GitHub release assets
 

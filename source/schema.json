@@ -96,6 +96,12 @@
       "description": "The font family name",
       "default": "Maple Mono"
     },
+    "font_version": {
+      "type": "string",
+      "description": "The three-digit version embedded in generated fonts",
+      "pattern": "^\\d+\\.\\d{3}$",
+      "default": "7.900"
+    },
     "weight_mapping": {
       "type": "object",
       "properties": {

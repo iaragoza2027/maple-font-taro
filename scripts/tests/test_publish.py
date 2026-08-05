@@ -230,6 +230,17 @@ class PublishTest(unittest.TestCase):
 
         version_tag.assert_called_once_with()
 
+    @patch("scripts.task.publish.version_tag", return_value="v8.0-beta.36")
+    @patch("scripts.task.publish.get_output")
+    def test_legacy_beta_tag_matches_current_project_version(
+        self, get_output, version_tag
+    ):
+        get_output.side_effect = ["commit-id", "v7.9", "Change summary"]
+
+        publish(write=False, tag="v8.0-beta36", dry=True)
+
+        version_tag.assert_called_once_with()
+
     def test_release_manifest_expands_complete_grouped_matrix(self) -> None:
         manifest = release_manifest()
         archives = expected_release_archives()

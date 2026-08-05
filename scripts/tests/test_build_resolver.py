@@ -67,6 +67,33 @@ class ProjectConfigResolutionTest(unittest.TestCase):
         self.assertEqual(config.family_name, "Maple Mono")
         self.assertEqual(config.formats, ["ttf", "otf", "woff2"])
 
+    def test_project_config_loads_the_embedded_font_version(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "config.json").write_text(
+                json.dumps({"family_name": "Fixture Mono", "font_version": "8.001"}),
+                encoding="utf-8",
+            )
+
+            config = BuildConfigResolver(
+                project_root=root,
+                version_tag="v8.0-beta.1",
+            ).resolve_project_config()
+
+            self.assertEqual(config.font_version, "8.001")
+            self.assertEqual(config.version_str, "Version 8.001")
+
+    def test_project_config_rejects_an_invalid_embedded_font_version(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "config.json").write_text(
+                json.dumps({"font_version": "8.01"}),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "Invalid font_version"):
+                BuildConfigResolver(project_root=root).resolve_project_config()
+
 
 def make_preset(tmp_path: Path, locale_name: str = "CN") -> CJKBuildConfig:
     locale_dir = tmp_path / locale_name.lower()

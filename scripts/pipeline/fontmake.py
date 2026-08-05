@@ -140,7 +140,7 @@ def postprocess_static_font(
     )
 
     if not is_ttf:
-        font["CFF "].cff.topDictIndex[0].version = font_config.version
+        font["CFF "].cff.topDictIndex[0].version = font_config.font_version
 
     target_dir = Path(output_dir)
     target_dir.mkdir(parents=True, exist_ok=True)

@@ -12,7 +12,7 @@ from typing import Any, Literal
 from scripts.utils.logging import logger
 from scripts.utils.process import is_ci
 from scripts.utils.files import archive_fonts
-from scripts.utils.version import version_tag
+from scripts.utils.version import parse_version_tag, version_tag
 
 
 ReleaseTaskKind = Literal["base", "cjk"]
@@ -368,7 +368,11 @@ def resolve_release_tags(tag: str | None) -> tuple[str, str]:
 def publish(write: bool, tag: str | None = None, dry: bool = not is_ci()):
     prev_tag, tag = resolve_release_tags(tag)
     expected_tag = version_tag()
-    if tag != expected_tag:
+    try:
+        tags_match = parse_version_tag(tag) == parse_version_tag(expected_tag)
+    except ValueError:
+        tags_match = False
+    if not tags_match:
         raise ValueError(
             f"Release tag {tag} does not match the project version tag {expected_tag}"
         )

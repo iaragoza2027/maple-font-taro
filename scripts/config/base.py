@@ -372,6 +372,7 @@ class BuildIdentityConfig:
     version_tag: str = "v7.9"
     version: str = "7.9"
     version_str: str = "Version 7.900"
+    font_version: str | None = None
     beta: str | None = None
 
 
@@ -448,6 +449,12 @@ class ResolvedConfig:
     @property
     def version_str(self) -> str:
         return self.identity.version_str
+
+    @property
+    def font_version(self) -> str:
+        if self.identity.font_version is None:
+            raise ValueError("Font version has not been resolved")
+        return self.identity.font_version
 
     @property
     def version_tag(self) -> str:
@@ -616,6 +623,7 @@ class ResolvedConfig:
     def to_build_record(self) -> dict[str, Any]:
         return {
             "version": self.version_tag,
+            "font_version": self.font_version,
             "family_name": self.family_name,
             "line_height": self.line_height,
             "width": self.width,

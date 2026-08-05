@@ -106,7 +106,7 @@ The task rebuilds the regular and italic variable bases and the static instances
    uv run task.py release
    ```
 
-   Choose `minor`, `major`, `pre-minor`, or `pre-major`. The task updates the PEP 440 project version in `pyproject.toml`, updates the three-digit embedded version in `config.json`, builds the release inputs, regenerates Fontsource and variable WOFF2 assets, exports `requirements.txt`, copies CN assets, commits the intended release files, pushes the commit, and pushes the new tag.
+   Choose `minor`, `major`, `pre-minor`, or `pre-major`. The task updates the PEP 440 project version in `pyproject.toml`, updates the three-digit embedded version in `config.json`, builds the release inputs, regenerates Fontsource and default, Narrow, and Slim variable WOFF2 assets under `woff2/variable/`, exports `requirements.txt`, copies CN assets, commits the intended release files, pushes the commit, and pushes the new tag.
 
    Pre-releases use tags such as `v8.0-beta.1` and embedded versions such as `Version 8.001`. Repeating `pre-major` creates `v8.0-beta.2` and `Version 8.002`; choosing `major` while on that release line finalizes `v8.0` with the next embedded version, `Version 8.003`.
 

@@ -1,19 +1,20 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
 import json
 import os
 import re
 import shutil
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Literal, cast
+from typing import Callable, Literal
 
-from scripts.pipeline import main as build_main
-from scripts.font_ops.conversion import convert_to_web
-from scripts.utils.files import join_path
-from scripts.utils.process import run as run_command
 from scripts.font_ops.constant import INSTANCE_WEIGHT_MAPPING
+from scripts.font_ops.conversion import convert_to_web
+from scripts.pipeline import main as build_main
+from scripts.utils.files import join_path
+from scripts.utils.logging import logger
+from scripts.utils.process import run as run_command
 from scripts.utils.version import (
     font_version_for_core,
     parse_font_version,
@@ -21,16 +22,16 @@ from scripts.utils.version import (
     project_version,
     version_tag,
 )
-from scripts.utils.logging import logger
-
 
 ReleaseBump = Literal["minor", "major", "pre-minor", "pre-major"]
+ReleaseWidth = Literal["default", "narrow", "slim"]
 RELEASE_BUMPS: tuple[ReleaseBump, ...] = (
     "minor",
     "major",
     "pre-minor",
     "pre-major",
 )
+RELEASE_VARIABLE_WIDTHS: tuple[ReleaseWidth, ...] = ("default", "narrow", "slim")
 
 
 @dataclass(frozen=True)
@@ -39,7 +40,7 @@ class ReleasePlan:
     build_args: tuple[str, ...]
     fontsource_dir: str = "cdn/fontsource"
     requirements_file: str = "requirements.txt"
-    variable_woff2_dir: str = "woff2/var"
+    variable_woff2_dir: str = "woff2/variable"
     project_version: str = ""
     font_version: str = ""
 
@@ -221,7 +222,7 @@ def select_release_bump(
         return None
     if answer not in RELEASE_BUMPS:
         raise ValueError(f"Unsupported release selection: {answer}")
-    return cast(ReleaseBump, answer)
+    return answer
 
 
 def git_release_commit(tag, files):
@@ -282,8 +283,13 @@ def generate_release_assets(plan: ReleasePlan) -> None:
     logger.info("Generated CN files")
 
     shutil.rmtree(plan.variable_woff2_dir, ignore_errors=True)
-    convert_to_web("./fonts/Variable", plan.variable_woff2_dir, flavor="woff2")
-    rename_woff_files(plan.variable_woff2_dir, format_woff2_name)
+    for width in RELEASE_VARIABLE_WIDTHS:
+        if width != "default":
+            build_args = [arg for arg in plan.build_args if arg != "--cn"]
+            build_main([*build_args, "--width", width], plan.tag)
+        convert_to_web("./fonts/Variable", plan.variable_woff2_dir, flavor="woff2")
+        rename_woff_files(plan.variable_woff2_dir, format_woff2_name)
+        logger.info("Generated %s variable WOFF2 files", width)
 
 
 def publish_release(plan: ReleasePlan) -> None:
@@ -309,11 +315,12 @@ def release(bump: ReleaseBump | None, dry: bool) -> None:
         plan = plans[bump]
     else:
         plan = create_release_plan(bump)
-    if dry:
-        print(plan.describe())
-        return
 
     print(plan.describe())
+
+    if dry:
+        return
+
     choose = input("Create this release? (Y or n) ")
     if choose != "" and choose.lower() != "y":
         logger.info("Release aborted")

@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stdout
 from io import StringIO
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from scripts.task.release import (
     ReleaseBump,
@@ -156,7 +156,7 @@ class ReleaseAssetTest(unittest.TestCase):
             ):
                 root = Path(tmp)
                 (root / "fonts" / "CN").mkdir(parents=True)
-                variable_output = root / "woff2" / "var"
+                variable_output = root / "woff2" / "variable"
                 if starts_with_output:
                     variable_output.mkdir(parents=True)
                     (variable_output / "stale.woff2").write_bytes(b"stale")
@@ -165,7 +165,7 @@ class ReleaseAssetTest(unittest.TestCase):
                     tag="v0.0",
                     build_args=(),
                     fontsource_dir="cdn/fontsource",
-                    variable_woff2_dir="woff2/var",
+                    variable_woff2_dir="woff2/variable",
                 )
 
                 def convert(_input_path, output_dir, **_kwargs):
@@ -195,3 +195,30 @@ class ReleaseAssetTest(unittest.TestCase):
                     [path.name for path in variable_output.iterdir()],
                     ["generated.woff2"],
                 )
+
+    def test_variable_woff2_builds_default_narrow_and_slim_widths(self) -> None:
+        plan = ReleasePlan(tag="v0.0", build_args=("--build",))
+        with (
+            patch("scripts.task.release.build_main") as build,
+            patch("scripts.task.release.convert_to_web"),
+            patch("scripts.task.release.rename_woff_files"),
+            patch("scripts.task.release.run_command"),
+        ):
+            with tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                (root / "fonts" / "CN").mkdir(parents=True)
+                previous_cwd = Path.cwd()
+                try:
+                    os.chdir(root)
+                    generate_release_assets(plan)
+                finally:
+                    os.chdir(previous_cwd)
+
+        self.assertEqual(
+            build.call_args_list,
+            [
+                call(["--build"], "v0.0"),
+                call(["--build", "--width", "narrow"], "v0.0"),
+                call(["--build", "--width", "slim"], "v0.0"),
+            ],
+        )

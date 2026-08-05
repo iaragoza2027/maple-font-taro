@@ -53,8 +53,8 @@ class PipelineFontmakeTest(unittest.TestCase):
             self.assertEqual(
                 {job.feature_file_path for job in jobs},
                 {
-                    "source/features/regular.fea",
-                    "source/features/italic.fea",
+                    runtime_context.feature_file_path(False),
+                    runtime_context.feature_file_path(True),
                 },
             )
             self.assertTrue(all(job.font_config is font_config for job in jobs))

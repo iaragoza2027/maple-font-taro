@@ -96,7 +96,7 @@ class BuildPlanResolutionTest(unittest.TestCase):
                 ),
             ),
             (
-                ["--cjk", "jp", "--cjk-format", "variable", "--no-nf"],
+                ["--cjk", "jp", "--cjk-variable", "--no-nf"],
                 {"formats": ["otf"]},
                 BuildPlan(
                     target_styles=None,

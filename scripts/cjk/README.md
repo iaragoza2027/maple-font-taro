@@ -11,7 +11,7 @@ The standalone CJK artifacts under `source/cjk/` are independent from the main p
 
 ## Static and variable output modes
 
-The main pipeline's `cjk.format` / `--cjk-format` selects the release shape:
+The main pipeline's `cjk.variable` / `--cjk-variable` selects the release shape:
 
 | Mode               | Per profile                                                                                        | Directory                                                             | Use it when                                                                                   |
 | ------------------ | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |

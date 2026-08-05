@@ -196,9 +196,10 @@ class BuildConfigResolver:
         if "formats" in data:
             config.behavior.formats = normalize_build_formats(data["formats"])
         raw_cjk = data.get("cjk")
-        if isinstance(raw_cjk, dict) and "format" in raw_cjk:
+        if isinstance(raw_cjk, dict) and "variable" in raw_cjk:
+            cjk_variable = _require_bool(raw_cjk["variable"], "cjk.variable")
             config.behavior.cjk_output_format = normalize_cjk_output_format(
-                raw_cjk["format"]
+                "variable" if cjk_variable else "static"
             )
 
     def _apply_nerd_font_json_config(
@@ -400,8 +401,8 @@ class BuildConfigResolver:
         config.behavior.cache = bool(args.cache)
         config.behavior.least_styles = bool(args.least_styles)
         config.behavior.apply_fea_file = bool(args.apply_fea_file)
-        if args.cjk_format is not None:
-            config.behavior.cjk_output_format = args.cjk_format
+        if args.cjk_variable:
+            config.behavior.cjk_output_format = "variable"
         config.behavior.use_cjk_both = bool(args.cjk_both or args.cn_both)
 
         if args.cn_both:
@@ -498,7 +499,7 @@ class BuildConfigResolver:
         if config.nerd_font.enable and config.nerd_font.variable and config.cjk.entries:
             if config.cjk_output_format != "variable":
                 raise ValueError(
-                    "nerd_font.variable requires cjk.format=variable when CJK is enabled"
+                    "nerd_font.variable requires cjk.variable=true when CJK is enabled"
                 )
 
     def _apply_identity(self, config: ResolvedConfig) -> None:

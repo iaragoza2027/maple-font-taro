@@ -139,8 +139,8 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
     )
 
     nerd_font_group = parser.add_argument_group("Nerd Font Options")
-    nf_group = nerd_font_group.add_mutually_exclusive_group()
-    nf_group.add_argument(
+    nerd_font_enable_group = nerd_font_group.add_mutually_exclusive_group()
+    nerd_font_enable_group.add_argument(
         "--nf",
         "--nerd-font",
         dest="nerd_font",
@@ -148,7 +148,7 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
         action="store_true",
         help="Build Nerd-Font version (default)",
     )
-    nf_group.add_argument(
+    nerd_font_enable_group.add_argument(
         "--no-nf",
         "--no-nerd-font",
         dest="nerd_font",
@@ -184,10 +184,10 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
         help="Build Maple Mono + CJK extended fonts for locales: cn, jp, tc, kr. Repeat or use comma-separated values.",
     )
     cjk_group.add_argument(
-        "--cjk-format",
-        choices=("static", "variable"),
+        "--cjk-variable",
+        action="store_true",
         default=None,
-        help="Persist CJK-extended output as static fonts (default) or merged variable fonts.",
+        help="Persist CJK-extended output as merged variable fonts.",
     )
     cjk_group.add_argument(
         "--cjk-narrow",
@@ -198,6 +198,11 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
         "--cjk-scale-factor",
         type=parse_scale_factor,
         help="Scale factor for selected CJK locales. Format: <factor> or <width_factor>,<height_factor>.",
+    )
+    cjk_group.add_argument(
+        "--cjk-both",
+        action="store_true",
+        help="When Nerd Font is enabled, build both NF CJK and non-NF CJK outputs.",
     )
     cjk_hint_group = cjk_group.add_mutually_exclusive_group()
     cjk_hint_group.add_argument(
@@ -213,11 +218,6 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
         default=None,
         action="store_false",
         help="Do not auto-hint final static CJK fonts (default).",
-    )
-    cjk_group.add_argument(
-        "--cjk-both",
-        action="store_true",
-        help="When Nerd Font is enabled, build both NF CJK and non-NF CJK outputs.",
     )
 
     deprecated_cn_group = parser.add_argument_group("Deprecated CN Options")

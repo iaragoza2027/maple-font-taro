@@ -237,23 +237,17 @@ def release_build_steps(
     return (
         [
             *cjk,
-            "--cjk-format",
-            "static",
             "--hinted",
-            "--cjk-hinted",
         ],
         [
             *cjk,
-            "--cjk-format",
-            "static",
             "--no-hinted",
             "--no-cjk-hinted",
             "--cache",
         ],
         [
             *cjk,
-            "--cjk-format",
-            "variable",
+            "--cjk-variable",
             "--no-hinted",
             "--no-cjk-hinted",
             "--cache",

@@ -708,7 +708,7 @@ python build.py --cjk cn
 python build.py --cjk tc,jp
 
 # Variable Maple Mono + Japanese
-python build.py --cjk jp --cjk-format variable
+python build.py --cjk jp --cjk-variable
 
 # Build both plain CJK and Nerd Font CJK outputs
 python build.py --cjk cn --cjk-both
@@ -747,7 +747,7 @@ Use `python build.py --help` for the complete, versioned CLI reference. These ar
 | `--cache` | Reuse validated stages under `fonts/`. |
 | `--debug` | Build a small Regular/Italic test output without OTF, WOFF2, or NF. |
 
-For CJK, use `--cjk <locale>` and combine it with `--cjk-format static|variable`, `--cjk-narrow`, `--cjk-hinted`, or `--cjk-both` as shown above. The old `--cn` options remain compatibility aliases and should not be used in new scripts.
+For CJK, use `--cjk <locale>` and combine it with `--cjk-variable`, `--cjk-narrow`, `--cjk-hinted`, or `--cjk-both` as shown above. The old `--cn` options remain compatibility aliases and should not be used in new scripts.
 
 ## Development
 

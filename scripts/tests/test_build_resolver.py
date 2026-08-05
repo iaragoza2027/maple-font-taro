@@ -825,7 +825,7 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
                 },
                 "formats": ["otf"],
                 "cjk": {
-                    "format": "variable",
+                    "variable": True,
                     "locales": {"jp": True},
                     "with_nerd_font": False,
                     "narrow": True,
@@ -881,7 +881,7 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
                     "use_font_patcher": False,
                 },
                 "cjk": {
-                    "format": "static",
+                    "variable": False,
                     "locales": {"cn": False, "jp": False},
                     "narrow": False,
                     "scale_factor": 1.0,
@@ -911,8 +911,7 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
                 "--font-patcher",
                 "--cjk",
                 "jp",
-                "--cjk-format",
-                "variable",
+                "--cjk-variable",
                 "--cjk-narrow",
                 "--cjk-scale-factor",
                 "1.2",
@@ -963,7 +962,7 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
                 self.assertIn(field, str(error.exception))
 
     def test_variable_nerd_font_rejects_static_cjk_output(self) -> None:
-        with self.assertRaisesRegex(ValueError, "cjk.format=variable"):
+        with self.assertRaisesRegex(ValueError, "cjk.variable=true"):
             self._resolve_with_config(
                 {
                     "nerd_font": {"variable": True},
@@ -976,7 +975,7 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
             {
                 "nerd_font": {"variable": True},
                 "cjk": {
-                    "format": "variable",
+                    "variable": True,
                     "locales": {"jp": True},
                 },
             }
@@ -1136,11 +1135,11 @@ class BuildConfigResolverCJKEntryTest(unittest.TestCase):
             ["cn", "tc"],
         )
 
-    def test_cjk_format_resolves_from_project_config(self) -> None:
+    def test_cjk_variable_resolves_from_project_config(self) -> None:
         font_config = self._resolve_with_config(
             {
                 "cjk": {
-                    "format": "variable",
+                    "variable": True,
                     "locales": {},
                 }
             }
@@ -1148,25 +1147,25 @@ class BuildConfigResolverCJKEntryTest(unittest.TestCase):
 
         self.assertEqual(font_config.cjk_output_format, "variable")
 
-    def test_cjk_format_cli_override_takes_precedence(self) -> None:
+    def test_cjk_variable_cli_override_takes_precedence(self) -> None:
         font_config = self._resolve_with_config(
             {
                 "cjk": {
-                    "format": "variable",
+                    "variable": False,
                     "locales": {},
                 }
             },
-            ["--cjk-format", "static"],
+            ["--cjk-variable"],
         )
 
-        self.assertEqual(font_config.cjk_output_format, "static")
+        self.assertEqual(font_config.cjk_output_format, "variable")
 
-    def test_rejects_unsupported_cjk_format(self) -> None:
-        with self.assertRaisesRegex(ValueError, "Unsupported CJK output format"):
+    def test_rejects_non_boolean_cjk_variable(self) -> None:
+        with self.assertRaisesRegex(ValueError, "cjk.variable must be a boolean"):
             self._resolve_with_config(
                 {
                     "cjk": {
-                        "format": "woff2",
+                        "variable": "yes",
                         "locales": {},
                     }
                 }

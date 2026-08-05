@@ -694,7 +694,7 @@ python build.py --cjk cn
 python build.py --cjk tc,jp
 
 # Maple Mono + 日文可变字体
-python build.py --cjk jp --cjk-format variable
+python build.py --cjk jp --cjk-variable
 
 # 同时构建普通 CJK 和 Nerd Font CJK
 python build.py --cjk cn --cjk-both
@@ -735,7 +735,7 @@ python build.py --cjk cn --cjk-both
 | `--cache` | 重用 `fonts/` 下已验证的阶段。 |
 | `--debug` | 只构建较小的常规/斜体测试输出，不构建 OTF、WOFF2 或 NF。 |
 
-CJK 使用 `--cjk <locale>`，并按需组合 `--cjk-format static|variable`、`--cjk-narrow`、`--cjk-hinted` 或 `--cjk-both`。旧的 `--cn` 系列仅作为兼容别名，新脚本请使用 `--cjk`。
+CJK 使用 `--cjk <locale>`，并按需组合 `--cjk-variable`、`--cjk-narrow`、`--cjk-hinted` 或 `--cjk-both`。旧的 `--cn` 系列仅作为兼容别名，新脚本请使用 `--cjk`。
 
 ## 开发与维护
 

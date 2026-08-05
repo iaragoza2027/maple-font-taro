@@ -286,8 +286,9 @@ class PublishTest(unittest.TestCase):
         cjk = resolve_release_task("cjk-no-ligature-slim-jp")
         cjk_steps = release_build_steps(cjk)
         self.assertEqual(len(cjk_steps), 3)
-        self.assertIn("--cjk-hinted", cjk_steps[0])
-        self.assertIn("variable", cjk_steps[2])
+        self.assertIn("--hinted", cjk_steps[0])
+        self.assertNotIn("--cjk-hinted", cjk_steps[0])
+        self.assertIn("--cjk-variable", cjk_steps[2])
         self.assertEqual(
             cjk.archive_names(),
             (

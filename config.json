@@ -1,6 +1,7 @@
 {
   "$schema": "./source/schema.json",
   "family_name": "Maple Mono",
+  "formats": ["ttf", "otf", "woff2"],
   "use_hinted": true,
   "pool_size": 4,
   "ttfautohint_param": {},
@@ -76,23 +77,16 @@
   },
   "nerd_font": {
     "enable": true,
-    "version": "3.4.0",
+    "version": "3.5.0",
     "mono": false,
     "propo": false,
     "variable": false,
     "use_font_patcher": false,
-    "glyphs": [
-      "--complete"
-    ],
+    "glyphs": ["--complete"],
     "extra_args": []
   },
-  "formats": [
-    "ttf",
-    "otf",
-    "woff2"
-  ],
   "cjk": {
-    "format": "static",
+    "variable": false,
     "locales": {
       "cn": false,
       "jp": false,
@@ -105,9 +99,6 @@
     "clean_cache": false,
     "narrow": false,
     "use_hinted": false,
-    "scale_factor": [
-      1.0,
-      1.0
-    ]
+    "scale_factor": [1.0, 1.0]
   }
 }

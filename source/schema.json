@@ -529,14 +529,10 @@
       "type": "object",
       "description": "Config for merged Maple Mono + CJK outputs",
       "properties": {
-        "format": {
-          "type": "string",
-          "enum": [
-            "static",
-            "variable"
-          ],
-          "default": "static",
-          "description": "Persist CJK-extended output as static or variable fonts"
+        "variable": {
+          "type": "boolean",
+          "default": false,
+          "description": "Persist CJK-extended output as variable fonts"
         },
         "locales": {
           "type": "object",
@@ -594,7 +590,7 @@
         }
       ],
       "required": [
-        "format",
+        "variable",
         "locales"
       ]
     },

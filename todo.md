@@ -70,3 +70,6 @@
     - 400 -> 620
     - 800 -> 900
 - [x] Resource Han Sans JP as JP part
+- [ ] cjk meta table language correction
+- [ ] figure out why maplemono-nf-tc-vf size is too large
+- [ ] cjk hint effect test

@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
-
 UnicodePreset = Literal["cn", "jp", "tc", "kr"]
 CJK_MASTER_WEIGHTS = (100, 400, 800)
 CJKMasterLocations = dict[int, dict[str, float]]
@@ -47,6 +46,7 @@ DEFAULT_CJK_RANGES: tuple[tuple[int, int], ...] = (
     (0x3100, 0x312F),
     (0x31A0, 0x31EF),
     (0x3200, 0x33FF),
+    (0x3400, 0x4DBF),
     (0x4E00, 0x9FFF),
     (0xF900, 0xFAFF),
     (0xFE30, 0xFE6F),

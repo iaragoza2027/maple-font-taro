@@ -26,8 +26,8 @@ _PRESETS: dict[CJKPresetId, CJKPresetSpec] = {
         "cn",
         "Simplified Chinese",
         DEFAULT_PRESET_ROOT / "cn" / "config-cn.json",
-        "Latn, Hans, Hant, Jpan",
-        1 << 0 | 1 << 17 | 1 << 18 | 1 << 20,
+        "Latn, Hans",
+        1 << 0 | 1 << 18,
     ),
     "jp": CJKPresetSpec(
         "jp",

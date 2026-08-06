@@ -952,6 +952,7 @@
       <string>paragraph</string>
       <string>section</string>
       <string>copyright</string>
+      <string>copyleftsymbol</string>
       <string>registered</string>
       <string>trademark</string>
       <string>degree</string>
@@ -1670,6 +1671,8 @@
       <string>greater_colon.liga</string>
       <string>less_colon_less.liga</string>
       <string>greater_colon_greater.liga</string>
+      <string>colon_less_colon.liga</string>
+      <string>colon_greater_colon.liga</string>
       <string>semicolon_semicolon.liga</string>
       <string>semicolon_semicolon_semicolon.liga</string>
       <string>exclam_exclam.liga</string>
@@ -2032,6 +2035,7 @@
       <string>bar_hyphen.mid.seq.cv67</string>
       <string>bar_hyphen.end.seq.cv67</string>
       <string>bar_lines.decorator.cv67</string>
+      <string>equal_equal_equal.liga.cv68</string>
       <string>equal_equal.liga.ss01</string>
       <string>equal_equal_equal.liga.ss01</string>
       <string>exclam_equal.liga.ss01</string>
@@ -2368,6 +2372,10 @@
       <string>greaterbutnotequivalent</string>
       <string>precedesbutnotequivalent</string>
       <string>succeedsbutnotequivalent</string>
+      <string>notnormalsubgroup</string>
+      <string>doesnotcontainasnormalsubgroup</string>
+      <string>notnormalsubgroorequalup</string>
+      <string>doesnotcontainasnormalsubgroorequalup</string>
       <string>ellipsisvertical</string>
       <string>ellipsismidhorizontal</string>
       <string>ellipsisdiagonalupright</string>
@@ -2386,10 +2394,6 @@
       <string>containsoverbar</string>
       <string>containsoverbarsmall</string>
       <string>znotationbagmembership</string>
-      <string>notnormalsubgroup</string>
-      <string>doesnotcontainasnormalsubgroup</string>
-      <string>notnormalsubgroorequalup</string>
-      <string>doesnotcontainasnormalsubgroorequalup</string>
       <string>less_math.decorator</string>
       <string>quarter_cirle.decorator</string>
       <string>geo.decorator</string>
@@ -3337,6 +3341,8 @@
       <string>uni22FB</string>
       <key>coproductarray</key>
       <string>uni2210</string>
+      <key>copyleftsymbol</key>
+      <string>u1F12F</string>
       <key>corresponds</key>
       <string>uni2258</string>
       <key>cuberoot-math</key>

@@ -2,8 +2,6 @@
 <glyph name="integralcontouranticlockwise" format="2">
   <advance width="600"/>
   <unicode hex="2233"/>
-  <anchor x="300" y="-83" name="m.uni1DCA"/>
-  <anchor x="300" y="791" name="m.uni1DDB_1"/>
   <outline>
     <contour>
       <point x="485" y="435" type="line"/>

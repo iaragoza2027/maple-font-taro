@@ -2,7 +2,11 @@
   "$schema": "./source/schema.json",
   "family_name": "Maple Mono",
   "font_version": "7.900",
-  "formats": ["ttf", "otf", "woff2"],
+  "formats": [
+    "ttf",
+    "otf",
+    "woff2"
+  ],
   "use_hinted": true,
   "pool_size": 4,
   "ttfautohint_param": {},
@@ -57,6 +61,7 @@
     "cv65": "ignore",
     "cv66": "ignore",
     "cv67": "ignore",
+    "cv68": "ignore",
     "cv96": "ignore",
     "cv97": "ignore",
     "cv98": "ignore",
@@ -83,7 +88,9 @@
     "propo": false,
     "variable": false,
     "use_font_patcher": false,
-    "glyphs": ["--complete"],
+    "glyphs": [
+      "--complete"
+    ],
     "extra_args": []
   },
   "cjk": {
@@ -100,6 +107,9 @@
     "clean_cache": false,
     "narrow": false,
     "use_hinted": false,
-    "scale_factor": [1.0, 1.0]
+    "scale_factor": [
+      1.0,
+      1.0
+    ]
   }
 }

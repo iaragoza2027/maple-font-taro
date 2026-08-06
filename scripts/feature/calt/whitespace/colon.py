@@ -80,6 +80,16 @@ def get_lookup(options: InfiniteOptions):
             ),
         ),
         ast.subst_liga(
+            ":>:",
+            ign_prefix=cls_ign_colon,
+            ign_suffix=cls_ign_colon,
+        ),
+        ast.subst_liga(
+            ":<:",
+            ign_prefix=cls_ign_colon,
+            ign_suffix=cls_ign_colon,
+        ),
+        ast.subst_liga(
             "<:",
             ign_prefix="<",
             ign_suffix=cls_ign_colon,
@@ -93,6 +103,11 @@ def get_lookup(options: InfiniteOptions):
             ":<",
             ign_prefix=cls_ign_colon,
             ign_suffix=cls_ign_markup,
+        ),
+        ast.subst_liga(
+            ">:",
+            ign_prefix=cls_ign_markup,
+            ign_suffix=cls_ign_colon,
         ),
         ast.subst_liga(
             "<:<",  # scala / haskell

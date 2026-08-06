@@ -3,7 +3,7 @@
 ## Ligatures
 
 - [x] `[erro]` / `[dbug]` / `[crit]` / `[alert]` / `[success]` / `[tracing]` / `[critical]` #767 #777
-- [ ] add missing `>:` / `:>:` / `:<:`
+- [x] add missing `>:` / `:>:` / `:<:`
 
 ## Character Variant
 
@@ -11,7 +11,7 @@
 - [x] cv67: longer bar (`|`), top + 50, bottom - 100 #732
   - [x] relative ligatures
 - [x] ss12 / ss13: like monaspace cv12 / cv13 #782
-- [ ] cv68: `===` become 2 bars
+- [x] cv68: `===` become 2 bars
 
 ## Unicode
 
@@ -32,8 +32,8 @@
 - [x] fill ALL sub and sup glyphs, fix wrong unicodes #789
   - [x] pass verify_sup_sub.md visual page
 - [x] more decorators #792 : U+2AA7, U+2A7A, U+2ABC, U+2AF8, U+15D9, U+15D3, U+1440, U+27A4, U+1368, U+1360, U+0FC7, U+232C, U+23E3, U+2732, U+2734, U+2735, U+2737, U+2738, U+2739, U+273A, U+273C, U+273E, U+273F, U+2740, U+2741, U+2742, U+2743, U+2744, U+2745, U+2746, U+2747, U+2748, U+2749, U+274A, U+274B, U+2626, U+2628, U+2670, U+2671, U+271D, U+2629, U+05D0
-- [ ] `🄯` (copyleft)
-- [ ] validate u+229e and other math symbols
+- [x] `🄯` (copyleft)
+- [x] validate u+229e and other math symbols
 
 ### CN
 
@@ -70,6 +70,6 @@
     - 400 -> 620
     - 800 -> 900
 - [x] Resource Han Sans JP as JP part
-- [ ] cjk meta table language correction
-- [ ] figure out why maplemono-nf-tc-vf size is too large
+- [x] cjk meta table language correction
+- [x] figure out why maplemono-nf-tc-vf size is too large
 - [ ] cjk hint effect test

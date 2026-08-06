@@ -36,6 +36,7 @@ from scripts.feature.cv import (
     cv65,
     cv66,
     cv67,
+    cv68,
 )
 from scripts.feature.ss import (
     ss01,
@@ -161,6 +162,7 @@ def cv_list_regular(
             cv65.cv65_feat,
             cv66.cv66_feat,
             cv67.cv67_feat,
+            cv68.cv68_feat,
         ],
         full,
     )

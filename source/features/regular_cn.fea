@@ -443,6 +443,24 @@ feature calt {
   @IgnoreColon = [less colon greater equal];
   @IgnoreMarkup = [less slash greater];
 
+  # :>:
+  lookup colon_greater_colon.liga {
+    ignore sub @IgnoreColon colon' greater colon;
+    ignore sub colon' greater colon @IgnoreColon;
+    sub SPC SPC colon' by colon_greater_colon.liga;
+    sub SPC greater' colon by SPC;
+    sub colon' greater colon by SPC;
+  } colon_greater_colon.liga;
+
+  # :<:
+  lookup colon_less_colon.liga {
+    ignore sub @IgnoreColon colon' less colon;
+    ignore sub colon' less colon @IgnoreColon;
+    sub SPC SPC colon' by colon_less_colon.liga;
+    sub SPC less' colon by SPC;
+    sub colon' less colon by SPC;
+  } colon_less_colon.liga;
+
   # <:
   lookup less_colon.liga {
     ignore sub less less' colon;
@@ -466,6 +484,14 @@ feature calt {
     sub SPC less' by colon_less.liga;
     sub colon' less by SPC;
   } colon_less.liga;
+
+  # >:
+  lookup greater_colon.liga {
+    ignore sub @IgnoreMarkup greater' colon;
+    ignore sub greater' colon @IgnoreColon;
+    sub SPC colon' by greater_colon.liga;
+    sub greater' colon by SPC;
+  } greater_colon.liga;
 
   # <:<
   lookup less_colon_less.liga {
@@ -2326,6 +2352,18 @@ feature cv67 {
   sub bar_lines.decorator by bar_lines.decorator.cv67;
 
 } cv67;
+
+feature cv68 {
+
+  cvParameters {
+    FeatUILabelNameID {
+      name "CV68: Alternative === with 2 bars";
+    };
+  };
+
+  sub equal_equal_equal.liga by equal_equal_equal.liga.cv68;
+
+} cv68;
 
 feature cv96 {
 

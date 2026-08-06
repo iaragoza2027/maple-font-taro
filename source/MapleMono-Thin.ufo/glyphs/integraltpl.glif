@@ -2,8 +2,6 @@
 <glyph name="integraltpl" format="2">
   <advance width="600"/>
   <unicode hex="222D"/>
-  <anchor x="300" y="-81" name="m.uni1DCA"/>
-  <anchor x="300" y="790" name="m.uni1DDB_1"/>
   <outline>
     <contour>
       <point x="111" y="66" type="qcurve" smooth="yes"/>

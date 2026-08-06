@@ -2,8 +2,6 @@
 <glyph name="integralvolume" format="2">
   <advance width="600"/>
   <unicode hex="2230"/>
-  <anchor x="291" y="-81" name="m.uni1DCA"/>
-  <anchor x="291" y="790" name="m.uni1DDB_1"/>
   <outline>
     <contour>
       <point x="171" y="505" type="qcurve"/>

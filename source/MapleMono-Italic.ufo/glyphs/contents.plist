@@ -1620,8 +1620,12 @@
     <string>colon_equal_colon.liga.glif</string>
     <key>colon_greater.liga</key>
     <string>colon_greater.liga.glif</string>
+    <key>colon_greater_colon.liga</key>
+    <string>colon_greater_colon.liga.glif</string>
     <key>colon_less.liga</key>
     <string>colon_less.liga.glif</string>
+    <key>colon_less_colon.liga</key>
+    <string>colon_less_colon.liga.glif</string>
     <key>colon_question.liga</key>
     <string>colon_question.liga.glif</string>
     <key>colon_question.liga.cv62</key>
@@ -1676,6 +1680,8 @@
     <string>containsverticalbarhorizontalstroke.glif</string>
     <key>coproductarray</key>
     <string>coproductarray.glif</string>
+    <key>copyleftsymbol</key>
+    <string>copyleftsymbol.glif</string>
     <key>copyright</key>
     <string>copyright.glif</string>
     <key>corresponds</key>
@@ -1990,6 +1996,8 @@
     <string>equal_equal.liga.ss01.glif</string>
     <key>equal_equal_equal.liga</key>
     <string>equal_equal_equal.liga.glif</string>
+    <key>equal_equal_equal.liga.cv68</key>
+    <string>equal_equal_equal.liga.cv68.glif</string>
     <key>equal_equal_equal.liga.ss01</key>
     <string>equal_equal_equal.liga.ss01.glif</string>
     <key>equal_equal_greater.liga</key>

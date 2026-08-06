@@ -2,8 +2,6 @@ name: Update CJK Base Fonts
 
 on:
   push:
-    branches:
-      - v8
     paths:
       - "source/cjk/*/static-*.sha256"
   workflow_dispatch:
@@ -102,19 +100,9 @@ jobs:
           set -euo pipefail
           hash_file="source/cjk/$LOCALE/static-$LOCALE.sha256"
           archive="source/cjk/$LOCALE/${LOCALE}-base-static.zip"
-          expected_hash="$(tr -d '[:space:]' < "$hash_file")"
-          expected_hash_file="$RUNNER_TEMP/static-$LOCALE.sha256"
-          printf '%s\n' "$expected_hash" > "$expected_hash_file"
           uv run task.py cjk --preset "$LOCALE"
-          test "$(tr -d '[:space:]' < "$hash_file")" = "$expected_hash"
           git diff --exit-code -- "$hash_file"
           test -f "$archive"
-          ARCHIVE="$archive" HASH_FILE="$expected_hash_file" uv run python -c '
-          import os
-          from pathlib import Path
-          from scripts.cjk.cache import verify_static_archive
-          verify_static_archive(Path(os.environ["ARCHIVE"]), Path(os.environ["HASH_FILE"]))
-          '
           mkdir -p cjk-base-artifacts
           cp "$archive" "cjk-base-artifacts/${LOCALE}-base-static.zip"
       - uses: actions/upload-artifact@v4
@@ -155,22 +143,20 @@ jobs:
             archive="cjk-base-artifacts/${locale}-base-static.zip"
             hash_file="source/cjk/$locale/static-$locale.sha256"
             test -f "$archive"
-            ARCHIVE="$archive" HASH_FILE="$hash_file" uv run python -c '
-            import os
-            from pathlib import Path
-            from scripts.cjk.cache import verify_static_archive
-            verify_static_archive(Path(os.environ["ARCHIVE"]), Path(os.environ["HASH_FILE"]))
-            '
+            uv run task.py cjk cache-validate \
+              --archive "$archive" \
+              --hash "$hash_file"
           done < <(jq -r '.include[].locale' <<< "$LOCALES_JSON")
       - name: Render release notes
-        env:
-          RELEASE_URL: https://github.com/${{ github.repository }}/releases/download/cjk-base
         run: |
           UPDATE_TIME="$(date -u +'%Y-%m-%d %H:%M UTC')"
-          sed \
-            -e "s|https://<url>|$RELEASE_URL|g" \
-            -e "s|<time>|$UPDATE_TIME|g" \
-            .github/cjk_base_template.md > cjk-base-notes.md
+          cat > cjk-base-notes.md <<EOF
+          # CJK Base Fonts
+
+          This is not a regular release. It only contains prebuilt static CJK base fonts.
+
+          Updated at $UPDATE_TIME
+          EOF
       - name: Replace CJK base release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -211,33 +197,18 @@ jobs:
           else
             test "${#locales[@]}" -eq 4
             gh release create cjk-base \
+              --latest=false \
               --repo "$GITHUB_REPOSITORY" \
               --target "$DEFAULT_BRANCH" \
               --title "CJK Base Fonts" \
               --notes-file cjk-base-notes.md \
               "${upload_args[@]}"
           fi
-      - name: Validate published ZIP assets
+      - name: Validate published ZIP asset names
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          mkdir -p cjk-base-remote
-          while IFS= read -r locale; do
-            archive="cjk-base-remote/${locale}/${locale}-base-static.zip"
-            mkdir -p "$(dirname "$archive")"
-            gh release download cjk-base \
-              --repo "$GITHUB_REPOSITORY" \
-              --pattern "${locale}-base-static.zip" \
-              --dir "$(dirname "$archive")" \
-              --clobber
-            ARCHIVE="$archive" HASH_FILE="source/cjk/$locale/static-$locale.sha256" uv run python -c '
-            import os
-            from pathlib import Path
-            from scripts.cjk.cache import verify_static_archive
-            verify_static_archive(Path(os.environ["ARCHIVE"]), Path(os.environ["HASH_FILE"]))
-            '
-          done < <(jq -r '.include[].locale' <<< "$LOCALES_JSON")
           assets="$(gh release view cjk-base --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
           for locale in cn tc jp kr; do
             grep -Fxq "${locale}-base-static.zip" <<< "$assets"

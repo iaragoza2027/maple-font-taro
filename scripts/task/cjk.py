@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 from typing import cast
 
 from scripts.cjk.builder import build_cjk_fonts
+from scripts.cjk.cache import verify_static_archive
 from scripts.cjk.presets import CJKPresetId, build_preset_config, list_presets
 from scripts.cjk.resolver import (
     add_cjk_arguments,
@@ -32,6 +34,12 @@ def parse_preset_ids(value: str) -> tuple[CJKPresetId, ...]:
 
 def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):
     parser = subparsers.add_parser("cjk", help="Build preset or custom CJK base font")
+    actions = parser.add_subparsers(dest="cjk_action")
+    validate_parser = actions.add_parser(
+        "cache-validate", help="Validate a static CJK archive against its hash"
+    )
+    validate_parser.add_argument("--archive", type=Path, required=True)
+    validate_parser.add_argument("--hash", dest="hash_file", type=Path, required=True)
     parser.add_argument(
         "--preset",
         type=parse_preset_ids,
@@ -43,6 +51,10 @@ def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
 
 
 def run(args: argparse.Namespace) -> None:
+    if args.cjk_action == "cache-validate":
+        verify_static_archive(args.archive, args.hash_file)
+        return
+
     github_mirror = github_mirror_from_config()
     if args.preset:
         for preset_id in args.preset:

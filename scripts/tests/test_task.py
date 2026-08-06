@@ -12,6 +12,26 @@ from scripts.task import cjk, nf
 
 
 class TaskDownloadMirrorTest(unittest.TestCase):
+    def test_cjk_cache_validate_task_verifies_archive_and_hash(self) -> None:
+        parser = argparse.ArgumentParser()
+        subparsers = parser.add_subparsers(dest="command")
+        cjk.register_parser(subparsers)
+        args = parser.parse_args(
+            [
+                "cjk",
+                "cache-validate",
+                "--archive",
+                "archive.zip",
+                "--hash",
+                "static.sha256",
+            ]
+        )
+
+        with patch("scripts.task.cjk.verify_static_archive") as verify:
+            cjk.run(args)
+
+        verify.assert_called_once_with(Path("archive.zip"), Path("static.sha256"))
+
     def test_cjk_task_builds_comma_separated_presets_independently(self) -> None:
         parser = argparse.ArgumentParser()
         subparsers = parser.add_subparsers(dest="command")

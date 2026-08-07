@@ -928,7 +928,7 @@ class CJKBuilder:
                 logger.debug("Skip CJK static font generation because --vf-only is set")
                 return
 
-            logger.debug("Instantiate CJK static fonts")
+            logger.info(f"Instantiate {self.config.locale_name} static fonts")
             static_dir = self._build_static_fonts(
                 (
                     self.config.output.regular_variable,
@@ -1018,7 +1018,7 @@ class CJKBuilder:
         )
 
     def _build_regular_variable_font(self) -> tuple[TTFont, SourceBuildState]:
-        logger.debug("Build regular CJK variable font")
+        logger.info("Build regular CJK variable font")
         feature_font = load_feature_variable_font(self.config.feature_font_path)
         try:
             source_state, protected_glyphs = self._prepare_source_build_state(
@@ -1046,7 +1046,7 @@ class CJKBuilder:
             raise
 
     def _build_italic_variable_font(self, source_state: SourceBuildState) -> TTFont:
-        logger.debug("Build italic CJK variable font")
+        logger.info("Build italic CJK variable font")
         feature_font = load_feature_variable_font(self.config.feature_font_path)
         try:
             protected_glyphs = set(get_unicode_cmap(feature_font).values())
@@ -1326,7 +1326,7 @@ def finalize_static_font_instance(
     drop_font_tables(instance, ("kern", "GPOS"))
     remove_mac_name_records(instance)
     instance.save(output_path)
-    logger.info("Saved CJK static font to %s", output_path)
+    logger.info("Instantiate CJK base static font to %s", output_path)
 
 
 def get_static_worker_font(input_path: str) -> TTFont:

@@ -10,7 +10,7 @@ from scripts.config.base import ResolvedConfig
 from scripts.config.runtime import BuildRuntimeContext
 from fontTools.designspaceLib import DesignSpaceDocument
 from scripts.font_ops.constant import DEFAULT_NAMING_MAPPING
-from scripts.font_ops.fonttools import TTFont
+from scripts.font_ops.fonttools import load_font
 
 
 FONT_ARTIFACT_SUFFIXES = {".otf", ".ttf", ".woff", ".woff2", ".zip"}
@@ -159,7 +159,7 @@ def ensure_base_output_dirs(runtime_context: BuildRuntimeContext) -> None:
 
 
 def read_font_vertical_metric(font_path: str | Path) -> tuple[int, int]:
-    font = TTFont(font_path)
+    font = load_font(font_path)
     try:
         return (font["hhea"].ascender, font["hhea"].descender)
     finally:

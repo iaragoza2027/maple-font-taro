@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from fontTools.merge import Merger
 from scripts.font_ops.cmap import merge_cmap_entries
-from scripts.font_ops.fonttools import TTFont, adapt_ttfont
+from scripts.font_ops.fonttools import TTFont, adapt_ttfont, load_font
 
 from scripts.utils.logging import logger
 
@@ -17,8 +17,8 @@ def merge_ttfonts(
     base_font: TTFont | None = None
     extra_font: TTFont | None = None
     try:
-        base_font = TTFont(base_font_path)
-        extra_font = TTFont(extra_font_path)
+        base_font = load_font(base_font_path)
+        extra_font = load_font(extra_font_path)
         base_glyf = base_font["glyf"]
         extra_glyf = extra_font["glyf"]
         base_glyph_order = base_font.getGlyphOrder()

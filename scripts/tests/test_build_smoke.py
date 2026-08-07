@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.font_ops.fonttools import TTFont
+from scripts.font_ops.fonttools import load_font
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -86,7 +86,7 @@ class ProductionBuildSmokeTest(unittest.TestCase):
         variable: bool,
         hinted: bool = False,
     ) -> None:
-        font = TTFont(path)
+        font = load_font(path)
         try:
             self.assertIn("glyf", font)
             if variable:

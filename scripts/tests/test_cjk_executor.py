@@ -102,7 +102,7 @@ class CJKExecutorOwnershipTest(unittest.TestCase):
                     return_value=feature_font,
                 ),
                 patch(
-                    "scripts.cjk.builder.load_font_eager",
+                    "scripts.cjk.builder.load_font",
                     side_effect=(regular_font, italic_font),
                 ),
                 patch("scripts.cjk.builder.weight_axis", return_value=axis),
@@ -154,7 +154,7 @@ class CJKExecutorOwnershipTest(unittest.TestCase):
                     return_value=MagicMock(),
                 ),
                 patch(
-                    "scripts.cjk.builder.load_font_eager",
+                    "scripts.cjk.builder.load_font",
                     side_effect=(MagicMock(), MagicMock()),
                 ),
                 patch("scripts.cjk.builder.weight_axis", return_value=axis),

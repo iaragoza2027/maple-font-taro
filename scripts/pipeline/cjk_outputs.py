@@ -22,7 +22,6 @@ from scripts.cjk.static import (
 )
 from scripts.cjk.variable import (
     drop_font_tables,
-    load_font_eager,
     merge_masters_into_vf,
     merge_vf,
     recalculate_font_metrics,
@@ -36,6 +35,7 @@ from scripts.config.paths import (
 from scripts.config.runtime import BuildRuntimeContext
 from scripts.font_ops.fonttools import (
     instantiate_variable_font,
+    load_font,
     save_font_atomic,
 )
 from scripts.font_ops.glyph_transform import (
@@ -168,7 +168,7 @@ def build_cjk_extended_variable_fonts(
             if not extra_path.exists():
                 raise FileNotFoundError(f"CJK variable font not found: {extra_path}")
 
-            merged_font = load_font_eager(base_path)
+            merged_font = load_font(base_path, decompile=True)
             try:
                 nf_added_glyphs = 0
                 nf_added_codepoints = 0
@@ -316,7 +316,7 @@ def instantiate_cjk_extended_static_fonts(
 
     jobs: list[CJKStaticInstanceJob] = []
     for is_italic, merged_path in ((False, merged_paths[0]), (True, merged_paths[1])):
-        var_font = load_font_eager(merged_path)
+        var_font = load_font(merged_path, decompile=True)
         try:
             instances = feature_weight_instances(var_font)
             for instance in instances:

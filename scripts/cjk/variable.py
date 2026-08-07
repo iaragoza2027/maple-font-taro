@@ -3,13 +3,12 @@ from __future__ import annotations
 
 from concurrent.futures import Executor
 from copy import deepcopy
-from io import BytesIO
 import math
 from pathlib import Path
 from typing import Any, Iterable, cast
 
 from scripts.font_ops.cmap import merge_cmap_entries
-from scripts.font_ops.fonttools import TTFont
+from scripts.font_ops.fonttools import TTFont, load_font
 from fontTools.ttLib.tables._g_l_y_f import GlyphCoordinates
 from fontTools.ttLib.tables.TupleVariation import TupleVariation
 from fontTools.varLib.instancer import otRound
@@ -24,19 +23,6 @@ MIN_WEIGHT_SUPPORT = (-1.0, -1.0, 0.0)
 MAX_WEIGHT_SUPPORT = (0.0, 1.0, 1.0)
 CORE_GLYF_TABLES = ("glyf", "hmtx")
 VARIABLE_GLYF_TABLES = (*CORE_GLYF_TABLES, "gvar")
-
-
-def load_font_eager(font_path: str | Path) -> TTFont:
-    """Load a font without keeping lazy table reads tied to the source file."""
-    font = TTFont(
-        BytesIO(Path(font_path).read_bytes()),
-        lazy=False,
-        recalcTimestamp=False,
-    )
-    ensure_decompiled = getattr(font, "ensureDecompiled", None)
-    if ensure_decompiled:
-        ensure_decompiled()
-    return font
 
 
 def drop_font_tables(font: TTFont, table_tags: Iterable[str]) -> bool:
@@ -56,12 +42,12 @@ def merge_vf(
     if isinstance(base_font, TTFont):
         base, should_close_base = base_font, False
     else:
-        base, should_close_base = load_font_eager(base_font), True
+        base, should_close_base = load_font(base_font, decompile=True), True
     extra: TTFont
     if isinstance(extra_font, TTFont):
         extra, should_close_extra = extra_font, False
     else:
-        extra, should_close_extra = load_font_eager(extra_font), True
+        extra, should_close_extra = load_font(extra_font, decompile=True), True
 
     try:
         _validate_merge_inputs(base, extra)
@@ -274,7 +260,7 @@ def make_italic_master_file(
     drop_table_tags: tuple[str, ...] = (),
 ) -> None:
     """Load a prepared static master, skew it, and save an italic copy."""
-    font = load_font_eager(input_path)
+    font = load_font(input_path, decompile=True)
     try:
         if drop_table_tags:
             drop_font_tables(font, drop_table_tags)
@@ -364,7 +350,7 @@ def rebuild_weight_masters_from_paths(
     masters: list[TTFont] = []
     try:
         for master_path in master_paths:
-            masters.append(load_font_eager(master_path))
+            masters.append(load_font(master_path, decompile=True))
         rebuild_weight_masters_with_regular_default(
             font, masters[0], masters[1], masters[2]
         )

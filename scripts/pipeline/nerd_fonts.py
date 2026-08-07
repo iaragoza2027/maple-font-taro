@@ -8,13 +8,12 @@ from typing import Callable
 
 from scripts.cjk.variable import (
     drop_font_tables,
-    load_font_eager,
     merge_masters_into_vf,
     recalculate_font_metrics,
 )
 from scripts.config.base import ResolvedConfig
 from scripts.config.runtime import BuildRuntimeContext
-from scripts.font_ops.fonttools import TTFont, save_font_atomic
+from scripts.font_ops.fonttools import TTFont, load_font, save_font_atomic
 from scripts.font_ops.glyph_transform import smart_change_width
 from scripts.font_ops.merge import merge_ttfonts
 from scripts.font_ops.metrics import adjust_line_height, verify_glyph_width
@@ -92,7 +91,7 @@ def build_nf_by_prebuild_nerd_font(
     nf_base_font_path = str(variant.base_path(runtime_context.src_dir))
     temporary_path = None
     if font_config.get_width_name():
-        temporary_font = TTFont(nf_base_font_path)
+        temporary_font = load_font(nf_base_font_path)
         try:
             smart_change_width(
                 font=temporary_font,
@@ -147,7 +146,7 @@ def build_nf_by_font_patcher(
 
     variant = font_config.get_nf_variant()
     generated_path = str(variant.patched_font_path(patcher_output_dir, font_path.name))
-    font = TTFont(generated_path)
+    font = load_font(generated_path)
     remove(generated_path)
     if "nonmarkingreturn" in font.getGlyphNames():
         font["hmtx"]["nonmarkingreturn"] = (600, 0)
@@ -167,7 +166,7 @@ def load_nerd_font_variable_source(
             font_config.family_name_compact,
         )
         if source_font_path is None and patched_path.is_file():
-            font = load_font_eager(patched_path)
+            font = load_font(patched_path, decompile=True)
         else:
             if source_font_path is None:
                 source_font_path = (
@@ -182,7 +181,7 @@ def load_nerd_font_variable_source(
             )
         return subset_to_codepoints(font, parse_codes_from_json())
 
-    font = load_font_eager(variant.base_path(runtime_context.src_dir))
+    font = load_font(variant.base_path(runtime_context.src_dir), decompile=True)
     if font_config.get_width_name():
         smart_change_width(
             font=font,
@@ -272,7 +271,7 @@ def build_nf_variable_job(job: NerdFontVariableBuildJob) -> Path:
         job.variable_path.name,
         job.output_path,
     )
-    font = load_font_eager(job.variable_path)
+    font = load_font(job.variable_path, decompile=True)
     try:
         source = load_nerd_font_variable_source(
             font_config=job.font_config,

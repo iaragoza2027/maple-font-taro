@@ -37,7 +37,7 @@ class FontMergeOwnershipTest(unittest.TestCase):
         extra_font.getGlyphOrder.return_value = [".notdef"]
 
         with patch(
-            "scripts.font_ops.merge.TTFont",
+            "scripts.font_ops.merge.load_font",
             side_effect=(base_font, extra_font),
         ):
             result = merge_ttfonts("base.ttf", "extra.ttf")
@@ -51,7 +51,7 @@ class FontMergeOwnershipTest(unittest.TestCase):
 
         with (
             patch(
-                "scripts.font_ops.merge.TTFont",
+                "scripts.font_ops.merge.load_font",
                 side_effect=(base_font, RuntimeError("open failed")),
             ),
             self.assertRaisesRegex(RuntimeError, "open failed"),

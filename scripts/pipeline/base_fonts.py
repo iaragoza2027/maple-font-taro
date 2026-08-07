@@ -12,7 +12,7 @@ from scripts.config.base import ResolvedConfig
 from scripts.config.runtime import BuildRuntimeContext
 from scripts.feature.apply import apply_binary_features
 from scripts.font_ops.conversion import convert_to_web
-from scripts.font_ops.fonttools import TTFont
+from scripts.font_ops.fonttools import load_font
 from scripts.pipeline.artifacts import require_existing_files, require_unique_targets
 from scripts.utils.logging import (
     TaskName,
@@ -43,7 +43,7 @@ def build_mono_autohint(
     style_compact = font_path.stem.rsplit("-", 1)[-1]
     logger.debug("Auto-hint font: %s", output_path.name)
 
-    font = TTFont(font_path)
+    font = load_font(font_path)
     try:
         is_italic = "Italic" in style_compact
         apply_binary_features(

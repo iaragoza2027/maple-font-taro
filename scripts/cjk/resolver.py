@@ -23,7 +23,8 @@ from scripts.cjk.config import (
     DEFAULT_CJK_RANGES,
     UNICODE_PRESETS,
 )
-from scripts.cjk.variable import load_font_eager, weight_axis
+from scripts.cjk.variable import weight_axis
+from scripts.font_ops.fonttools import load_font
 from scripts.utils.downloads import validate_archive_path
 
 
@@ -266,7 +267,7 @@ def infer_weight_values(
     wght_max: float | None = None,
 ) -> tuple[float, float, float]:
     """Infer missing weight coordinates from a source variable font."""
-    font = load_font_eager(source_path)
+    font = load_font(source_path, decompile=True)
     try:
         if "fvar" not in font:
             raise ValueError(f"Source font must be variable: {source_path}")

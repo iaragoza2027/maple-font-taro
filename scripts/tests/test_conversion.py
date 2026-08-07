@@ -64,7 +64,7 @@ class WebFontConversionTest(unittest.TestCase):
 
             with (
                 patch(
-                    "scripts.font_ops.conversion.TTFont",
+                    "scripts.font_ops.conversion.load_font",
                     return_value=font,
                 ) as ttfont,
                 patch("scripts.font_ops.conversion.logger.info") as log_info,
@@ -74,7 +74,7 @@ class WebFontConversionTest(unittest.TestCase):
                 )
 
             target = output_dir / "MapleMono-Regular.ttf.woff2"
-            ttfont.assert_called_once_with(source, recalcTimestamp=False)
+            ttfont.assert_called_once_with(source)
             self.assertEqual(font.flavor, "woff2")
             font.save.assert_called_once_with(target, reorderTables=False)
             font.close.assert_called_once()

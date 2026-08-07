@@ -10,7 +10,7 @@ from typing import Literal
 from scripts.config.base import ResolvedConfig
 from scripts.config.runtime import BuildRuntimeContext
 from scripts.feature.apply import prepare_designspace_features
-from scripts.font_ops.fonttools import TTFont
+from scripts.font_ops.fonttools import load_font
 from scripts.font_ops.glyphs import (
     FontmakeBranchJob,
     SourceStyle,
@@ -96,7 +96,7 @@ def postprocess_static_font(
 ) -> Path:
     source_path = Path(input_path)
     logger.debug("Postprocess static font: source=%s", source_path.name)
-    font = TTFont(source_path, recalcTimestamp=False)
+    font = load_font(source_path)
     is_ttf = source_path.suffix.lower() == ".ttf"
     fix_italic_metadata(font)
     set_monospace_metadata(font)
@@ -305,7 +305,7 @@ def postprocess_variable_font_job(job: VariablePostprocessJob) -> Path:
     if is_italic:
         file_name += "-Italic"
     output_name = f"{file_name}[wght].ttf"
-    font = TTFont(raw_path)
+    font = load_font(raw_path)
     try:
         style_name = "Italic" if is_italic else "Regular"
         postscript_name = f"{job.font_config.family_name_compact}-{style_name}"

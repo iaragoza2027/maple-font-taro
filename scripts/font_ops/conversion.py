@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Sequence
 
-from scripts.font_ops.fonttools import TTFont
+from scripts.font_ops.fonttools import load_font
 
 from scripts.utils.logging import logger, set_log_task
 from scripts.utils.process import create_process_executor, run_jobs
@@ -26,7 +26,7 @@ def _convert_font_to_web(
 ) -> Path:
     set_log_task(job.flavor)
     target_path = job.target_dir / f"{job.font_path.name}.{job.flavor}"
-    font = TTFont(job.font_path, recalcTimestamp=False)
+    font = load_font(job.font_path)
     try:
         font.flavor = job.flavor
         font.save(target_path, reorderTables=False)

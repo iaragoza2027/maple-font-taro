@@ -164,6 +164,18 @@ class TTFont(FontToolsTTFont):
         return super().__getitem__(tag)
 
 
+def load_font(font_path: str | Path, *, decompile: bool = False) -> TTFont:
+    """Load a font into memory without retaining a source-file handle."""
+    font = TTFont(font_path, lazy=False, recalcTimestamp=False)
+    try:
+        if decompile:
+            font.ensureDecompiled()
+    except Exception:
+        font.close()
+        raise
+    return font
+
+
 def adapt_ttfont(font: FontToolsTTFont) -> TTFont:
     """Promote a FontTools font to the stateless typed wrapper."""
     if isinstance(font, TTFont):

@@ -7,7 +7,7 @@ from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.ttLib.tables.TupleVariation import TupleVariation
 
-from scripts.font_ops.fonttools import TTFont
+from scripts.font_ops.fonttools import TTFont, load_font
 
 
 GLYPH_ORDER = [".notdef", "box", "box.component", "cjk"]
@@ -72,7 +72,7 @@ def build_test_font(
     path.parent.mkdir(parents=True, exist_ok=True)
     builder.font.recalcTimestamp = False
     builder.save(path)
-    return TTFont(path, lazy=False, recalcTimestamp=False)
+    return load_font(path)
 
 
 def roundtrip_font(font: TTFont, path: Path) -> TTFont:
@@ -80,7 +80,7 @@ def roundtrip_font(font: TTFont, path: Path) -> TTFont:
     font.recalcTimestamp = False
     font.save(path)
     font.close()
-    return TTFont(path, lazy=False, recalcTimestamp=False)
+    return load_font(path)
 
 
 def glyph_coordinates(font: TTFont, glyph_name: str) -> list[tuple[int, int]]:

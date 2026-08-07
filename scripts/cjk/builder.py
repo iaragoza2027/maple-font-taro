@@ -21,6 +21,7 @@ from ttfautohint import StemWidthMode, ttfautohint
 from scripts.font_ops.fonttools import (
     TTFont,
     instantiate_variable_font,
+    load_font,
     save_font_atomic,
 )
 
@@ -54,7 +55,6 @@ from scripts.cjk.variable import (
     drop_font_tables,
     get_cmap_codepoints,
     get_unicode_cmap,
-    load_font_eager,
     make_italic_master_file,
     make_italic_variable_font,
     merge_masters_into_vf,
@@ -147,7 +147,7 @@ class StaticFontCache:
         cache_key = (input_path, threading.get_ident())
         font = cls._fonts.get(cache_key)
         if font is None:
-            font = load_font_eager(input_path)
+            font = load_font(input_path, decompile=True)
             drop_font_tables(font, ("STAT",))
             cls._fonts[cache_key] = font
         return font
@@ -201,7 +201,7 @@ def autohint_static_fonts(
 
 def autohint_static_font_job(job: AutoHintJob) -> None:
     font_path = Path(job.input_path)
-    font = TTFont(font_path, recalcTimestamp=False)
+    font = load_font(font_path)
     try:
         if "glyf" not in font:
             raise ValueError(f"Autohinting requires a TrueType font: {font_path}")
@@ -253,7 +253,7 @@ def instantiate_variable_font_file(
 ) -> None:
     """Instantiate a variable font from disk and save it to disk."""
     set_log_task(transform_config.locale_name.lower() if transform_config else "cjk")
-    font = load_font_eager(input_path)
+    font = load_font(input_path, decompile=True)
     try:
         logger.debug("Instantiate variable font: path=%s, axes=%s", input_path, axes)
         instance = instantiate_variable_font(
@@ -352,7 +352,7 @@ def instantiate_italic_master_file(
 ) -> None:
     """Instantiate one static master from a VF, skew it, and save it."""
     set_log_task(task)
-    font = load_font_eager(input_path)
+    font = load_font(input_path, decompile=True)
     try:
         logger.debug("Instantiate italic font: path=%s, axes=%s", input_path, axes)
         instance = instantiate_variable_font(
@@ -447,7 +447,7 @@ def prepare_source_subset(
     out_path: Path,
 ) -> int:
     """Subset the CJK source to configured codepoints not already in the feature font."""
-    font = load_font_eager(source_path)
+    font = load_font(source_path, decompile=True)
     try:
         drop_font_tables(font, config.source.drop_tables)
         filtered_codepoints = (
@@ -645,7 +645,7 @@ def convert_cff_master_files_to_glyf(
         glyph_order,
         executor,
     )
-    fonts = [load_font_eager(path) for path in input_paths]
+    fonts = [load_font(path, decompile=True) for path in input_paths]
     try:
         install_existing_glyf_tables(fonts, glyf_tables)
         for font, output_path in zip(fonts, output_paths):
@@ -682,7 +682,7 @@ def recalculate_font(font: TTFont, config: CJKBuildConfig) -> None:
 def load_feature_variable_font(input_path: Path) -> TTFont:
     """Load and validate the Maple feature variable font used as merge base."""
     logger.debug("Load feature variable font: path=%s", input_path)
-    font = load_font_eager(input_path)
+    font = load_font(input_path, decompile=True)
     if "fvar" not in font:
         raise ValueError(f"Font is missing fvar table: {input_path}")
     axis = weight_axis(font)
@@ -954,7 +954,7 @@ class CJKBuilder:
         base_codepoints = get_cmap_codepoints(feature_font)
         protected_glyphs = set(get_unicode_cmap(feature_font).values())
 
-        source_font = load_font_eager(self.config.source.path)
+        source_font = load_font(self.config.source.path, decompile=True)
         try:
             if "fvar" not in source_font:
                 raise ValueError(
@@ -1138,7 +1138,9 @@ class CJKBuilder:
         base_font: TTFont,
         master_paths: tuple[Path, Path, Path],
     ) -> BuildStats:
-        masters = [load_font_eager(master_path) for master_path in master_paths]
+        masters = [
+            load_font(master_path, decompile=True) for master_path in master_paths
+        ]
         try:
             added, added_codepoints = merge_masters_into_vf(
                 base_font,
@@ -1194,7 +1196,7 @@ class CJKBuilder:
             for font_name in var_font_names:
                 is_italic = "Italic" in font_name
                 input_path = self.config.output.dir / font_name
-                var_font = load_font_eager(input_path)
+                var_font = load_font(input_path, decompile=True)
                 try:
                     var_axis = weight_axis(var_font)
                     if var_axis is None:

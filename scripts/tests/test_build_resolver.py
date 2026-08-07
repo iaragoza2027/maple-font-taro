@@ -711,7 +711,7 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
                     return_value=MagicMock(),
                 ),
                 patch(
-                    "scripts.cjk.builder.load_font_eager",
+                    "scripts.cjk.builder.load_font",
                     return_value=MagicMock(),
                 ),
                 patch("scripts.cjk.builder.weight_axis", return_value=axis),

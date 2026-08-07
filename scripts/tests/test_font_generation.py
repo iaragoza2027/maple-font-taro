@@ -23,7 +23,7 @@ from glyphsLib.classes import (
     GSPath,
 )
 from ufoLib2 import Font as UFOFont
-from scripts.font_ops.fonttools import TTFont, instantiate_variable_font
+from scripts.font_ops.fonttools import instantiate_variable_font, load_font
 
 from scripts.config.base import ResolvedConfig
 from scripts.feature.apply import apply_binary_features
@@ -316,7 +316,7 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
                 [FontmakeBranchJob(designspace_path, "variable", output_path)]
             )
 
-            generated = TTFont(output_path)
+            generated = load_font(output_path)
             instances = {
                 generated["name"].getDebugName(item.subfamilyNameID): item
                 for item in generated["fvar"].instances
@@ -368,7 +368,7 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
                 },
             )
             compile_fixture(source_path, "regular", output_path)
-            font = TTFont(output_path)
+            font = load_font(output_path)
             try:
                 alias_codepoints(font, {0xE000: 0x004B})
                 cmap = font.getBestCmap()
@@ -599,7 +599,7 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
             font.save(source_path)
 
             compile_fixture(source_path, "regular", output_path)
-            generated = TTFont(output_path)
+            generated = load_font(output_path)
             axis = generated["fvar"].axes[0]
             self.assertEqual(
                 (axis.axisTag, axis.minValue, axis.defaultValue, axis.maxValue),
@@ -653,8 +653,8 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
                     ),
                 ]
             )
-            ttf = TTFont(root / "ttf" / "Fixture-Regular.ttf")
-            otf = TTFont(root / "otf" / "Fixture-Regular.otf")
+            ttf = load_font(root / "ttf" / "Fixture-Regular.ttf")
+            otf = load_font(root / "otf" / "Fixture-Regular.otf")
             self.assertIn("glyf", ttf.keys())
             self.assertNotIn("CFF ", ttf.keys())
             self.assertEqual(ttf["gasp"].gaspRange, {65535: 15})
@@ -773,7 +773,7 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
                 sorted(path.name for path in (root / "ttf").glob("*.ttf")),
                 ["Fixture-Regular.ttf"],
             )
-            variable_font = TTFont(root / "variable.ttf")
+            variable_font = load_font(root / "variable.ttf")
             try:
                 instance_names = {
                     variable_font["name"].getDebugName(instance.subfamilyNameID)
@@ -830,7 +830,7 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
                 ]
             )
 
-            variable_font = TTFont(output_path)
+            variable_font = load_font(output_path)
             try:
                 self.assertEqual(len(variable_font["fvar"].instances), 8)
                 add_weight_axis_values_to_stat(variable_font)
@@ -877,7 +877,7 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
                 {".notdef": ("Thin", "Regular", "ExtraBold")},
             )
             compile_fixture(source_path, "italic", output_path)
-            generated = TTFont(output_path)
+            generated = load_font(output_path)
 
             self.assertIsNone(generated["STAT"].table.AxisValueArray)
             ensure_variable_instance_names(generated, italic=True)

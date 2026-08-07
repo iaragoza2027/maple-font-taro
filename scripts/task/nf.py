@@ -5,7 +5,7 @@ import json
 from os import path, remove
 from pathlib import Path
 
-from scripts.font_ops.fonttools import TTFont
+from scripts.font_ops.fonttools import load_font
 from scripts.font_ops.nerd_font import NerdFontVariant, parse_codes_from_json
 from scripts.font_ops.subset import subset_to_codepoints
 
@@ -124,7 +124,7 @@ def build_nf(mono: bool, propo: bool = False):
     output_path = variant.patched_font_path(
         ".", f"{FAMILY_NAME.replace(' ', '')}-{style_name}.ttf"
     )
-    nf_font = TTFont(output_path)
+    nf_font = load_font(output_path)
     remove(output_path)
 
     full_family_name = f"{FAMILY_NAME} NF Base{f' {suffix}' if suffix else ''}"

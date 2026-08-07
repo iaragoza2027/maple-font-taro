@@ -15,9 +15,8 @@ from fontTools.ttLib.tables.DefaultTable import DefaultTable
 from scripts.cjk.variable import (
     drop_font_tables,
     get_unicode_cmap,
-    load_font_eager,
 )
-from scripts.font_ops.fonttools import GlyfTable, TTFont, newTable
+from scripts.font_ops.fonttools import GlyfTable, TTFont, load_font, newTable
 from scripts.utils.logging import configure_logging
 
 
@@ -85,7 +84,7 @@ class CFFChunkWorkerState:
 
         fonts = cast(
             tuple[TTFont, TTFont, TTFont],
-            tuple(load_font_eager(path) for path in input_paths),
+            tuple(load_font(path, decompile=True) for path in input_paths),
         )
         labels = glyph_labels(fonts[0], fonts[0].getGlyphOrder())
         cls._states[worker_id] = (input_paths, fonts, labels)
@@ -345,7 +344,7 @@ def cff_master_glyph_order(input_paths: tuple[str, str, str]) -> list[str]:
     """Read and validate shared glyph order from CFF master files."""
     expected_order: list[str] | None = None
     for path in input_paths:
-        font = load_font_eager(path)
+        font = load_font(path, decompile=True)
         try:
             if "CFF " not in font:
                 return []

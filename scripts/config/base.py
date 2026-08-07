@@ -259,7 +259,7 @@ class FeatureBuildConfig:
 @dataclass(slots=True)
 class NerdFontBuildConfig:
     enable: bool = True
-    version: str = "3.2.1"
+    version: str = "3.5.0"
     mono: bool = False
     propo: bool = False
     variable: bool = False

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import argparse
 import os
 import shutil
 import subprocess
 import sys
+from typing import TYPE_CHECKING
 
 from python_minifier import minify
 
@@ -23,8 +23,11 @@ from scripts.utils.files import (
     write_json,
     write_text,
 )
-from scripts.utils.process import run as run_command
 from scripts.utils.logging import logger
+from scripts.utils.process import run as run_command
+
+if TYPE_CHECKING:
+    import argparse
 
 
 def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):

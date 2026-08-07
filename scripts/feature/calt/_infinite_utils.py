@@ -1,7 +1,7 @@
-import scripts.feature.ast as ast
 from dataclasses import dataclass
 from typing import TypeVar
 
+import scripts.feature.ast as ast
 
 _T = TypeVar("_T")
 
@@ -25,8 +25,10 @@ def infinite_rules(
     glyph: str,
     cls_start: ast.Clazz,
     symbols: list[str],
-    extra_rules: list[ast.Line] = [],
+    extra_rules: list[ast.Line] | None = None,
 ):
+    if extra_rules is None:
+        extra_rules = []
     prefix = []
 
     for s in symbols:

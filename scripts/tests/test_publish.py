@@ -17,8 +17,8 @@ from scripts.task.publish import (
     release_build_steps,
     release_manifest,
     release_matrix,
-    resolve_release_task,
     resolve_release_tags,
+    resolve_release_task,
 )
 
 
@@ -140,7 +140,7 @@ class PublishTest(unittest.TestCase):
         get_output.side_effect = ["commit-id", "v7.8", "Change summary"]
         output = StringIO()
 
-        with patch("scripts.task.publish.version_tag", return_value="v7.9"):
+        with patch("scripts.task.publish.version_tag", return_value="v7.9"):  # noqa: SIM117
             with redirect_stdout(output):
                 publish(write=False, tag="v7.9", dry=True)
 

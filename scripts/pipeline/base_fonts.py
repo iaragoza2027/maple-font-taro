@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from concurrent.futures import Executor
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ttfautohint import ttfautohint
 
 from scripts.cjk.builder import get_ttfautohint_options
-from scripts.config.base import ResolvedConfig
-from scripts.config.runtime import BuildRuntimeContext
 from scripts.feature.apply import apply_binary_features
 from scripts.font_ops.conversion import convert_to_web
 from scripts.font_ops.fonttools import load_font
@@ -17,11 +15,17 @@ from scripts.pipeline.artifacts import require_existing_files, require_unique_ta
 from scripts.utils.logging import (
     TaskName,
     log_task,
-    logger,
     log_task_complete,
+    logger,
     set_log_task,
 )
 from scripts.utils.process import run_process_jobs
+
+if TYPE_CHECKING:
+    from concurrent.futures import Executor
+
+    from scripts.config.base import ResolvedConfig
+    from scripts.config.runtime import BuildRuntimeContext
 
 
 @dataclass(frozen=True)

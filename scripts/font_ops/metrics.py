@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-
-from scripts.font_ops.fonttools import TTFont
+from typing import TYPE_CHECKING
 
 from scripts.utils.logging import logger
+
+if TYPE_CHECKING:
+    from scripts.font_ops.fonttools import TTFont
 
 
 def verify_glyph_width(

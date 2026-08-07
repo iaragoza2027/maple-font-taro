@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import tempfile
+import unittest
 from copy import deepcopy
 from pathlib import Path
-import tempfile
-from typing import Iterable, cast
-import unittest
+from typing import TYPE_CHECKING, cast
 
 from fontTools.pens.cu2quPen import Cu2QuMultiPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
@@ -22,6 +22,9 @@ from scripts.tests.cjk_font_fixtures import (
     glyph_coordinates,
     roundtrip_font,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 class CJKOutlineOperationsTest(unittest.TestCase):
@@ -44,12 +47,12 @@ class CJKOutlineOperationsTest(unittest.TestCase):
             )
             converted = [pen.glyph() for pen in pens]
 
-            for font, glyph in zip(fonts, converted):
+            for font, glyph in zip(fonts, converted, strict=False):
                 coordinates, _, _ = glyph.getCoordinates(font["glyf"])
                 self.assertEqual(
                     [
                         (round(x), round(y))
-                        for x, y in cast(Iterable[tuple[float, float]], coordinates)
+                        for x, y in cast("Iterable[tuple[float, float]]", coordinates)
                     ],
                     glyph_coordinates(font, "box"),
                 )

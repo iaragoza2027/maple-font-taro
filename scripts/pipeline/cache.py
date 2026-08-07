@@ -8,7 +8,6 @@ from typing import Any
 
 from scripts.utils.logging import logger
 
-
 CACHE_SCHEMA = 3
 CACHE_FILE_NAME = "build-cache.json"
 

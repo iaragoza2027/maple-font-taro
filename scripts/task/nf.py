@@ -1,27 +1,29 @@
 from __future__ import annotations
 
-import argparse
 import json
 from os import path, remove
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from scripts.font_ops.fonttools import load_font
-from scripts.font_ops.nerd_font import NerdFontVariant, parse_codes_from_json
-from scripts.font_ops.subset import subset_to_codepoints
-
-from scripts.utils.downloads import (
-    check_font_patcher,
-    download_json,
-    github_mirror_from_config,
-)
-from scripts.utils.process import get_font_forge_bin, run as run_command
 from scripts.font_ops.metadata import set_monospace_metadata
 from scripts.font_ops.names import (
     del_font_name,
     set_font_name,
 )
+from scripts.font_ops.nerd_font import NerdFontVariant, parse_codes_from_json
+from scripts.font_ops.subset import subset_to_codepoints
+from scripts.utils.downloads import (
+    check_font_patcher,
+    download_json,
+    github_mirror_from_config,
+)
 from scripts.utils.logging import logger
+from scripts.utils.process import get_font_forge_bin
+from scripts.utils.process import run as run_command
 
+if TYPE_CHECKING:
+    import argparse
 
 BASE_FONT_PATH = "fonts/TTF/MapleMono-Regular.ttf"
 FAMILY_NAME = "Maple Mono"
@@ -63,7 +65,7 @@ def update_config_json(config_path: str, version: str) -> None:
 
 def check_update(config_path: str = "config.json") -> None:
     github_mirror = github_mirror_from_config()
-    with open(config_path, "r", encoding="utf-8") as file:
+    with open(config_path, encoding="utf-8") as file:
         data = json.load(file)
     current_version = data["nerd_font"]["version"]
 
@@ -120,7 +122,7 @@ def build_nf(mono: bool, propo: bool = False):
 
     style_name = "Regular"
 
-    run_command(nf_args + [BASE_FONT_PATH])
+    run_command([*nf_args, BASE_FONT_PATH])
     output_path = variant.patched_font_path(
         ".", f"{FAMILY_NAME.replace(' ', '')}-{style_name}.ttf"
     )

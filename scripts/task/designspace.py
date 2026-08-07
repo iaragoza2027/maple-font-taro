@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import argparse
-from dataclasses import dataclass
 import os
-from pathlib import Path
 import tempfile
-from typing import Any, Literal
+from dataclasses import dataclass
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Literal
 
 from fontmake.compatibility import CompatibilityChecker
 from fontTools.designspaceLib import AxisDescriptor, DesignSpaceDocument
@@ -14,6 +13,8 @@ from glyphsLib import load, to_designspace
 from scripts.utils.files import write_json
 from scripts.utils.logging import TaskName, log_task, logger
 
+if TYPE_CHECKING:
+    import argparse
 
 SourceStyle = Literal["regular", "italic"]
 SOURCE_ISSUE_REPORT = Path("fonts/source-issues.json")

@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-from concurrent.futures import Executor
 from dataclasses import asdict, dataclass
 from os import environ, listdir, path
-from pathlib import Path
-from typing import Any, Callable, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
+from scripts.cjk.builder import instantiate_cjk_static_from_variable
 from scripts.cjk.cache import (
     has_valid_cjk_static_cache,
     write_static_hash,
 )
-from scripts.cjk.builder import instantiate_cjk_static_from_variable
-from scripts.cjk.config import CJKBuildConfig
 from scripts.config.base import (
     BUILTIN_CJK_LOCALES,
     BuiltinCJKLocaleId,
@@ -19,10 +16,17 @@ from scripts.config.base import (
     ResolvedConfig,
 )
 from scripts.utils.downloads import download_zip_and_extract
+from scripts.utils.errors import CJKBaseUnavailable
 from scripts.utils.files import join_path
 from scripts.utils.logging import logger
-from scripts.utils.errors import CJKBaseUnavailable
 from scripts.utils.process import get_font_forge_bin
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from concurrent.futures import Executor
+    from pathlib import Path
+
+    from scripts.cjk.config import CJKBuildConfig
 
 
 def check_file_count(
@@ -231,7 +235,7 @@ class BuildRuntimeContext:
 
     def _resolve_local_cjk_static_base(
         self,
-        clean_cache: bool,
+        _clean_cache: bool,
         preset_config: CJKBuildConfig,
         static_dir: Path,
         static_file_prefix: str,

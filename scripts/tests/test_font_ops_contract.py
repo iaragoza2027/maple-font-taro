@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, patch
 
 from scripts.font_ops.merge import merge_ttfonts
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 

@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from pathlib import Path
-from pathlib import PurePosixPath
 import re
 import tempfile
+from pathlib import Path, PurePosixPath
+from typing import TYPE_CHECKING
 from zipfile import BadZipFile, ZipFile
 
-from scripts.cjk.config import CJKBuildConfig
 from scripts.utils.files import get_directory_hash
 
+if TYPE_CHECKING:
+    from scripts.cjk.config import CJKBuildConfig
 
 HASH_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 

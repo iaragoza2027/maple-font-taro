@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from contextvars import ContextVar
-from enum import Enum
 import logging
 import os
 import time
+from contextvars import ContextVar
+from enum import Enum
 from typing import Any
-
 
 ENVIRONMENT_VARIABLE = "MAPLE_LOG_LEVEL"
 DEFAULT_LEVEL_NAME = "INFO"

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import argparse
 import re
+from typing import TYPE_CHECKING
 
 from scripts.feature.compiler import (
     generate_fea_string,
@@ -24,6 +24,9 @@ from scripts.utils.files import (
 )
 from scripts.utils.logging import TaskName, log_task, logger
 
+if TYPE_CHECKING:
+    import argparse
+
 
 def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):
     parser = subparsers.add_parser("fea", help="Build fea files")
@@ -44,7 +47,7 @@ def replace_section(md_path: str, border: str, content: str) -> None:
 
 def update_feature_freeze(file_path: str, features: dict[str, str]) -> None:
     config = read_json(file_path)
-    config["feature_freeze"] = {tag: "ignore" for tag in features}
+    config["feature_freeze"] = dict.fromkeys(features, "ignore")
     write_json(file_path, config)
 
 

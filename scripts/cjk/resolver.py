@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-import argparse
 import json
 import math
 import re
 from dataclasses import replace
 from pathlib import Path
-from typing import Any, Iterable
+from typing import TYPE_CHECKING, Any
 
 from fontTools.subset import parse_unicodes
 
 from scripts.cjk.config import (
     CJK_MASTER_WEIGHTS,
+    DEFAULT_CJK_RANGES,
+    UNICODE_PRESETS,
     CJKBuildConfig,
     CJKDownloadConfig,
     CJKMasterLocations,
@@ -20,13 +21,14 @@ from scripts.cjk.config import (
     CJKSourceConfig,
     CJKTransformConfig,
     CJKUnicodeConfig,
-    DEFAULT_CJK_RANGES,
-    UNICODE_PRESETS,
 )
 from scripts.cjk.variable import weight_axis
 from scripts.font_ops.fonttools import load_font
 from scripts.utils.downloads import validate_archive_path
 
+if TYPE_CHECKING:
+    import argparse
+    from collections.abc import Iterable
 
 LOCALE_NAME_PATTERN = re.compile(r"^[A-Za-z0-9]+$")
 AXIS_TAG_PATTERN = re.compile(r"^[ -~]{1,4}$")

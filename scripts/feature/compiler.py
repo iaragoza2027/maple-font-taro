@@ -1,7 +1,7 @@
-from copy import deepcopy
-from html import escape
 import json
 import re
+from copy import deepcopy
+from html import escape
 from typing import cast
 
 from scripts.feature import ast
@@ -10,17 +10,17 @@ from scripts.feature.base.lang import get_lang_list
 from scripts.feature.calt import get_calt, get_calt_lookup
 from scripts.feature.calt._infinite_utils import InfiniteOptions
 from scripts.feature.catalog import CJK_FEATURES, NORMAL_ENABLED_FEATURES
-from scripts.feature.regular import (
-    cls_var,
-    cls_hex_letter,
-    class_list_regular,
-    cv_list_regular,
-    ss_list_regular,
-)
 from scripts.feature.italic import (
     class_list_italic,
     cv_list_italic,
     ss_list_italic,
+)
+from scripts.feature.regular import (
+    class_list_regular,
+    cls_hex_letter,
+    cls_var,
+    cv_list_regular,
+    ss_list_regular,
 )
 from scripts.utils.logging import logger
 
@@ -88,7 +88,7 @@ def generate_fea_string(
     # Add placeholder to calt if empty, to prevent fonttools warning
     if not calt_feat.content:
         calt_feat.content = cast(
-            list[ast.Lookup | ast.Clazz | ast.Line], ast.EMPTY_FEAT_CONTENT
+            "list[ast.Lookup | ast.Clazz | ast.Line]", ast.EMPTY_FEAT_CONTENT
         )
 
     return ast.create(

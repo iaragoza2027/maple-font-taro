@@ -121,10 +121,11 @@ class_list_regular = [
 ]
 
 italic_prefix = "[Italic Only]"
+_DEFAULT_INFINITE_OPTIONS = InfiniteOptions()
 
 
 def cv_list_regular(
-    full: bool = False, infinite_options: InfiniteOptions = InfiniteOptions()
+    full: bool = False, infinite_options: InfiniteOptions = _DEFAULT_INFINITE_OPTIONS
 ):
     return ast.filter_empty(
         [

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+import json
 import tempfile
 import unittest
-import json
 from pathlib import Path
 from threading import Barrier, current_thread
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 from fontmake.font_project import CFFOptimization, FontProject
@@ -23,10 +23,12 @@ from glyphsLib.classes import (
     GSPath,
 )
 from ufoLib2 import Font as UFOFont
-from scripts.font_ops.fonttools import instantiate_variable_font, load_font
 
 from scripts.config.base import ResolvedConfig
 from scripts.feature.apply import apply_binary_features
+from scripts.font_ops.constant import INSTANCE_WEIGHT_MAPPING
+from scripts.font_ops.fonttools import instantiate_variable_font, load_font
+from scripts.font_ops.glyph_transform import SmartWidthThickenFilter
 from scripts.font_ops.glyphs import (
     FontmakeBranchJob,
     SourceStyle,
@@ -35,8 +37,6 @@ from scripts.font_ops.glyphs import (
     materialize_prepared_source,
     prepare_designspace_source,
 )
-from scripts.font_ops.glyph_transform import SmartWidthThickenFilter
-from scripts.font_ops.constant import INSTANCE_WEIGHT_MAPPING
 from scripts.font_ops.names import ensure_variable_instance_names
 from scripts.font_ops.opentype import (
     add_ital_axis_to_stat,
@@ -51,6 +51,9 @@ from scripts.task.designspace import (
     write_designspace_source,
     write_source_issue_report,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 def write_glyphs_fixture(

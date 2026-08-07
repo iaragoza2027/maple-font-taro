@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-from array import array
-from concurrent.futures import Executor
-from dataclasses import dataclass
-from pathlib import Path
 import threading
-from typing import Any, Literal, Sequence, TypeVar, cast
+from array import array
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypeVar, cast
 
 from fontTools.pens.cu2quPen import Cu2QuMultiPen
 from fontTools.pens.recordingPen import RecordingPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
-from fontTools.ttLib.tables.DefaultTable import DefaultTable
 
 from scripts.cjk.variable import (
     drop_font_tables,
@@ -19,6 +16,12 @@ from scripts.cjk.variable import (
 from scripts.font_ops.fonttools import GlyfTable, TTFont, load_font, newTable
 from scripts.utils.logging import configure_logging
 
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from concurrent.futures import Executor
+    from pathlib import Path
+
+    from fontTools.ttLib.tables.DefaultTable import DefaultTable
 
 CFF_GLYPH_CHUNK_SIZE = 256
 _T = TypeVar("_T")
@@ -60,13 +63,15 @@ def detect_outline_format(
 class CFFChunkWorkerState:
     """Lazily cache CFF masters per worker thread and input path set."""
 
-    _states: dict[
-        int,
-        tuple[
-            tuple[str, str, str],
-            tuple[TTFont, TTFont, TTFont],
-            dict[str, str],
-        ],
+    _states: ClassVar[
+        dict[
+            int,
+            tuple[
+                tuple[str, str, str],
+                tuple[TTFont, TTFont, TTFont],
+                dict[str, str],
+            ],
+        ]
     ] = {}
 
     @classmethod
@@ -83,7 +88,7 @@ class CFFChunkWorkerState:
                 font.close()
 
         fonts = cast(
-            tuple[TTFont, TTFont, TTFont],
+            "tuple[TTFont, TTFont, TTFont]",
             tuple(load_font(path, decompile=True) for path in input_paths),
         )
         labels = glyph_labels(fonts[0], fonts[0].getGlyphOrder())
@@ -94,7 +99,7 @@ class CFFChunkWorkerState:
 def build_glyf_table(glyph_order: list[str]) -> DefaultTable:
     """Create an empty glyf table for the provided glyph order."""
     table = newTable("glyf")
-    glyf = cast(GlyfTable, table)
+    glyf = cast("GlyfTable", table)
     glyf.glyphs = {}
     glyf.setGlyphOrder(glyph_order)
     return table
@@ -102,7 +107,7 @@ def build_glyf_table(glyph_order: list[str]) -> DefaultTable:
 
 def as_fonttools_glyph_mapping(glyph_set: Any) -> dict[str, Any]:
     """Adapt FontTools' runtime glyph-set mapping to its narrower pen stub type."""
-    return cast(dict[str, Any], glyph_set)
+    return cast("dict[str, Any]", glyph_set)
 
 
 def chunked(items: Sequence[_T], chunk_size: int) -> tuple[tuple[_T, ...], ...]:
@@ -134,7 +139,7 @@ def glyph_labels(font: TTFont, glyph_names: Sequence[str]) -> dict[str, str]:
     return labels
 
 
-def reverse_ttglyph_contours(glyph_name: str, glyph):
+def reverse_ttglyph_contours(_glyph_name: str, glyph):
     """Reverse a quadratic glyph's contour direction without changing point count."""
     if getattr(glyph, "numberOfContours", 0) == 0:
         return glyph
@@ -186,7 +191,7 @@ def validate_compatible_glyph_commands(
                 f"(master index 0 vs {master_index})"
             )
         for op_index, ((ref_op, ref_args), (op, args)) in enumerate(
-            zip(reference, recording)
+            zip(reference, recording, strict=False)
         ):
             if op != ref_op or len(args) != len(ref_args):
                 raise ValueError(
@@ -209,7 +214,7 @@ def replay_multi_glyph_commands(
 ) -> None:
     """Replay recorded glyph commands into a multi-master cu2qu pen."""
     validate_compatible_glyph_commands(glyph_name, recordings)
-    for commands in zip(*recordings):
+    for commands in zip(*recordings, strict=False):
         operation = commands[0][0]
         args_list = [args for _, args in commands]
         if operation == "moveTo":
@@ -291,15 +296,15 @@ def install_glyf_tables(
     glyf_tables = [build_glyf_table(glyph_order) for _ in fonts]
     for glyph_name in glyph_order:
         glyphs = converted_glyphs[glyph_name]
-        for glyph, table in zip(glyphs, glyf_tables):
-            glyf = cast(GlyfTable, table)
+        for glyph, table in zip(glyphs, glyf_tables, strict=False):
+            glyf = cast("GlyfTable", table)
             glyf.glyphs[glyph_name] = glyph
             if getattr(glyph, "numberOfContours", 0) > 0:
                 glyph.recalcBounds(glyf)
             else:
                 glyph.xMin = glyph.yMin = glyph.xMax = glyph.yMax = 0
 
-    for font, table in zip(fonts, glyf_tables):
+    for font, table in zip(fonts, glyf_tables, strict=False):
         font["glyf"] = table
         font["loca"] = newTable("loca")
         drop_font_tables(font, ("CFF ", "CFF2", "VORG", "VVAR", "vhea", "vmtx"))
@@ -311,7 +316,7 @@ def install_existing_glyf_tables(
     glyf_tables: Sequence[Any],
 ) -> None:
     """Install already-built glyf tables into fonts."""
-    for font, glyf in zip(fonts, glyf_tables):
+    for font, glyf in zip(fonts, glyf_tables, strict=False):
         font["glyf"] = glyf
         font["loca"] = newTable("loca")
         drop_font_tables(font, ("CFF ", "CFF2", "VORG", "VVAR", "vhea", "vmtx"))
@@ -366,7 +371,7 @@ def add_converted_glyphs_to_glyf_tables(
 ) -> None:
     """Append one converted chunk into output glyf tables."""
     for glyph_name, glyphs in converted_glyphs.items():
-        for glyph, glyf in zip(glyphs, glyf_tables):
+        for glyph, glyf in zip(glyphs, glyf_tables, strict=False):
             glyf.glyphs[glyph_name] = glyph
             if getattr(glyph, "numberOfContours", 0) > 0:
                 glyph.recalcBounds(glyf)
@@ -383,7 +388,7 @@ def convert_cff_master_files_to_glyf_tables_parallel(
     """Convert compatible CFF masters into glyf tables with glyph chunks."""
     if not glyph_order:
         return cast(
-            tuple[Any, Any, Any], tuple(build_glyf_table([]) for _ in input_paths)
+            "tuple[Any, Any, Any]", tuple(build_glyf_table([]) for _ in input_paths)
         )
 
     chunks = chunked(tuple(glyph_order), chunk_size)
@@ -398,7 +403,7 @@ def convert_cff_master_files_to_glyf_tables_parallel(
     for future in futures:
         add_converted_glyphs_to_glyf_tables(glyf_tables, future.result())
 
-    return cast(tuple[Any, Any, Any], tuple(glyf_tables))
+    return cast("tuple[Any, Any, Any]", tuple(glyf_tables))
 
 
 def convert_cff_static_to_glyf(font: TTFont) -> None:

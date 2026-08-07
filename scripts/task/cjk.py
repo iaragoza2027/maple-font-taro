@@ -29,7 +29,7 @@ def parse_preset_ids(value: str) -> tuple[CJKPresetId, ...]:
         raise argparse.ArgumentTypeError(
             f"invalid CJK preset(s): {invalid}; choose from: {valid}"
         )
-    return tuple(cast(CJKPresetId, preset_id) for preset_id in preset_ids)
+    return tuple(cast("CJKPresetId", preset_id) for preset_id in preset_ids)
 
 
 def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):

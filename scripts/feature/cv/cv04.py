@@ -1,5 +1,5 @@
 from scripts.feature import ast
-from scripts.feature.cv._common import GLYPHS_L, GLYPHS_1
+from scripts.feature.cv._common import GLYPHS_1, GLYPHS_L
 
 
 def cv04_subst_regular():

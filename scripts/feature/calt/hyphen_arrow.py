@@ -17,23 +17,7 @@ def infinite_hyphens(cls_var: ast.Clazz, options: InfiniteOptions):
 
     return ast.Lookup(
         "infinite_hyphen",
-        " ".join(
-            [
-                "<->",
-                "<-->",
-                "->",
-                "<-",
-                "-->",
-                "<--",
-                ">->",
-                "<-<",
-                "|->",
-                "<-|",
-                "-------",
-                ">--",
-                "--<",
-            ]
-        ),
+        "<-> <--> -> <- --> <-- >-> <-< |-> <-| ------- >-- --<",
         [
             cls_start.state(),
             ast.ign(None, "<", [ast.cls("!", "#"), "-", "-"]),

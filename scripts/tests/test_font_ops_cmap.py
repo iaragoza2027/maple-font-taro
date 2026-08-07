@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import unittest
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 
 from scripts.font_ops.cmap import merge_cmap_entries
-from scripts.font_ops.fonttools import TTFont
+
+if TYPE_CHECKING:
+    from scripts.font_ops.fonttools import TTFont
 
 
 def build_cmap_font(cmap: dict[int, str]) -> TTFont:
@@ -16,13 +18,13 @@ def build_cmap_font(cmap: dict[int, str]) -> TTFont:
     builder.setupGlyphOrder(glyph_order)
     builder.setupCharacterMap(cmap)
     builder.setupGlyf({name: TTGlyphPen(None).glyph() for name in glyph_order})
-    builder.setupHorizontalMetrics({name: (600, 0) for name in glyph_order})
+    builder.setupHorizontalMetrics(dict.fromkeys(glyph_order, (600, 0)))
     builder.setupHorizontalHeader(ascent=800, descent=-200)
     builder.setupNameTable({"familyName": "Test", "styleName": "Regular"})
     builder.setupOS2()
     builder.setupPost()
     builder.setupMaxp()
-    return cast(TTFont, builder.font)
+    return cast("TTFont", builder.font)
 
 
 class FontOpsCmapTest(unittest.TestCase):

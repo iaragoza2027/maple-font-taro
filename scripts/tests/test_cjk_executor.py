@@ -1,13 +1,18 @@
 from __future__ import annotations
 
-from concurrent.futures import Executor
 import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock, patch
 
+from scripts.cjk.builder import (
+    CJKBuilder,
+    autohint_static_fonts,
+    create_font_executor,
+    instantiate_cjk_static_from_variable,
+)
 from scripts.cjk.config import (
     CJKBuildConfig,
     CJKDownloadConfig,
@@ -19,15 +24,13 @@ from scripts.cjk.outlines import (
     convert_cff_master_files_to_glyf_tables_parallel,
     detect_outline_format,
 )
-from scripts.cjk.builder import (
-    CJKBuilder,
-    autohint_static_fonts,
-    create_font_executor,
-    instantiate_cjk_static_from_variable,
-)
 from scripts.config.resolver import BuildConfigResolver
-from scripts.font_ops.fonttools import TTFont
 from scripts.utils.errors import CJKSourceUnavailable
+
+if TYPE_CHECKING:
+    from concurrent.futures import Executor
+
+    from scripts.font_ops.fonttools import TTFont
 
 
 def make_config(output_dir: Path) -> CJKBuildConfig:
@@ -52,7 +55,7 @@ class CJKExecutorOwnershipTest(unittest.TestCase):
             root = Path(tmp)
             (root / "Regular.ttf").write_bytes(b"font")
             (root / "Bold.ttf").write_bytes(b"font")
-            executor = cast(Executor, MagicMock())
+            executor = cast("Executor", MagicMock())
 
             with patch("scripts.cjk.builder.run_process_jobs") as run_jobs:
                 autohint_static_fonts(
@@ -85,13 +88,13 @@ class CJKExecutorOwnershipTest(unittest.TestCase):
             unrelated_font.write_bytes(b"unrelated")
             marker = static_dir / "existing-cache-marker"
             marker.write_text("preserve", encoding="utf-8")
-            executor = cast(Executor, MagicMock())
+            executor = cast("Executor", MagicMock())
             feature_font = MagicMock()
             regular_font = MagicMock()
             italic_font = MagicMock()
             axis = SimpleNamespace(minValue=100, defaultValue=400, maxValue=700)
             completed_future = MagicMock()
-            cast(MagicMock, executor).submit.return_value = completed_future
+            cast("MagicMock", executor).submit.return_value = completed_future
 
             def assert_jobs_completed(*_args) -> None:
                 self.assertEqual(completed_future.result.call_count, 2)
@@ -126,7 +129,8 @@ class CJKExecutorOwnershipTest(unittest.TestCase):
                 )
 
             jobs = [
-                call.args[1] for call in cast(MagicMock, executor).submit.call_args_list
+                call.args[1]
+                for call in cast("MagicMock", executor).submit.call_args_list
             ]
             self.assertEqual(
                 [Path(job.output_path).stem for job in jobs],
@@ -140,12 +144,12 @@ class CJKExecutorOwnershipTest(unittest.TestCase):
             self.assertEqual(unrelated_font.read_bytes(), b"unrelated")
             self.assertEqual(marker.read_text(encoding="utf-8"), "preserve")
             write_hash.assert_called_once_with(config, static_dir)
-            cast(MagicMock, executor).shutdown.assert_not_called()
+            cast("MagicMock", executor).shutdown.assert_not_called()
 
     def test_static_instantiation_without_filter_schedules_all_styles(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             config = make_config(Path(tmp))
-            executor = cast(Executor, MagicMock())
+            executor = cast("Executor", MagicMock())
             axis = SimpleNamespace(minValue=100, defaultValue=400, maxValue=700)
 
             with (
@@ -174,7 +178,8 @@ class CJKExecutorOwnershipTest(unittest.TestCase):
                 )
 
             jobs = [
-                call.args[1] for call in cast(MagicMock, executor).submit.call_args_list
+                call.args[1]
+                for call in cast("MagicMock", executor).submit.call_args_list
             ]
             self.assertEqual(
                 [Path(job.output_path).stem for job in jobs],
@@ -205,7 +210,7 @@ class CJKExecutorOwnershipTest(unittest.TestCase):
                 result = instantiate_cjk_static_from_variable(
                     config,
                     BuildConfigResolver().load_defaults(),
-                    cast(Executor, MagicMock()),
+                    cast("Executor", MagicMock()),
                 )
 
             self.assertEqual(result, static_dir)
@@ -248,7 +253,7 @@ class CJKExecutorOwnershipTest(unittest.TestCase):
 
     def test_builder_does_not_close_a_caller_owned_executor(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            executor = cast(Executor, MagicMock())
+            executor = cast("Executor", MagicMock())
             builder = CJKBuilder(
                 make_config(Path(tmp)),
                 BuildConfigResolver().load_defaults(),
@@ -265,7 +270,7 @@ class CJKExecutorOwnershipTest(unittest.TestCase):
             ):
                 builder.build()
 
-            cast(MagicMock, executor).shutdown.assert_not_called()
+            cast("MagicMock", executor).shutdown.assert_not_called()
 
     def test_builder_closes_an_executor_it_creates(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -293,10 +298,10 @@ class CJKExecutorOwnershipTest(unittest.TestCase):
             )
 
     def test_cff_chunks_reuse_the_caller_owned_executor(self) -> None:
-        executor = cast(Executor, MagicMock())
+        executor = cast("Executor", MagicMock())
         future = MagicMock()
         future.result.return_value = {}
-        cast(MagicMock, executor).submit.return_value = future
+        cast("MagicMock", executor).submit.return_value = future
 
         with patch(
             "scripts.cjk.outlines.build_glyf_table",
@@ -309,12 +314,12 @@ class CJKExecutorOwnershipTest(unittest.TestCase):
             )
 
         self.assertEqual(len(tables), 3)
-        cast(MagicMock, executor).submit.assert_called_once()
+        cast("MagicMock", executor).submit.assert_called_once()
 
 
 class CJKOutlineDetectionTest(unittest.TestCase):
     def make_font(self, *tables: str) -> TTFont:
-        return cast(TTFont, {table: object() for table in tables})
+        return cast("TTFont", {table: object() for table in tables})
 
     def test_detects_glyf_outline(self) -> None:
         self.assertEqual(

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from contextlib import redirect_stderr
-from io import StringIO
 import logging
 import os
 import unittest
+from contextlib import redirect_stderr
+from io import StringIO
 from unittest.mock import patch
 
 from scripts.utils.logging import (

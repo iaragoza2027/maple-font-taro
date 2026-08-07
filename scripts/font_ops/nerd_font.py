@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
 
 NerdFontSuffix = Literal["Mono", "Propo", ""]
 
@@ -24,7 +25,7 @@ class NerdFontVariant:
         extra_args: Iterable[str] = (),
         *,
         reject_conflict: bool = False,
-    ) -> "NerdFontVariant":
+    ) -> NerdFontVariant:
         args = set(extra_args)
         if reject_conflict and mono and propo:
             raise ValueError(

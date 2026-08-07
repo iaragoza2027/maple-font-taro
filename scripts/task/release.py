@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import argparse
 import json
 import os
 import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Literal
+from typing import TYPE_CHECKING, Literal
 
 from scripts.font_ops.constant import INSTANCE_WEIGHT_MAPPING
 from scripts.font_ops.conversion import convert_to_web
@@ -22,6 +21,10 @@ from scripts.utils.version import (
     project_version,
     version_tag,
 )
+
+if TYPE_CHECKING:
+    import argparse
+    from collections.abc import Callable
 
 ReleaseBump = Literal["minor", "major", "pre-minor", "pre-major"]
 ReleaseWidth = Literal["default", "narrow", "slim"]
@@ -70,10 +73,7 @@ def format_fontsource_name(filename: str):
         return None
 
     style = match.group(1)
-    if style.endswith("Italic") and style != "Italic":
-        base_style = style[:-6]
-    else:
-        base_style = style
+    base_style = style[:-6] if style.endswith("Italic") and style != "Italic" else style
 
     weight = INSTANCE_WEIGHT_MAPPING.get(
         base_style.lower(), INSTANCE_WEIGHT_MAPPING.get("regular", 400)
@@ -158,10 +158,8 @@ def next_font_version(
         )
 
     base = font_version_for_core(target.core)
-    if (
-        target.beta is not None
-        or current.beta is not None
-        and target.core == current.core
+    if target.beta is not None or (
+        current.beta is not None and target.core == current.core
     ):
         next_minor = (
             minor + 1

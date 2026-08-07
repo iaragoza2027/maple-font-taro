@@ -1,18 +1,21 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Iterable, Mapping
-from typing import Any, List, Tuple
+from typing import TYPE_CHECKING, Any
 
 from fontTools.misc.transform import Transform
 from fontTools.ttLib.tables._g_l_y_f import Glyph, GlyphCoordinates
 from ufo2ft.filters import BaseFilter
-from ufoLib2 import Font as UFOFont
 
-from scripts.font_ops.fonttools import TTFont
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
+
+    from ufoLib2 import Font as UFOFont
+
+    from scripts.font_ops.fonttools import TTFont
 
 # Type aliases
-Coordinate = Tuple[float, float]
+Coordinate = tuple[float, float]
 
 
 def reduce_glyph_side_bearings(
@@ -34,7 +37,7 @@ def reduce_glyph_side_bearings(
     for glyph_name, target_width in target_widths.items():
         glyph = glyf[glyph_name]
         advance, lsb = hmtx.metrics[glyph_name]
-        shift_x = int(round((target_width - advance) / 2))
+        shift_x = round((target_width - advance) / 2)
 
         if glyph.isComposite():
             for component in glyph.components:
@@ -85,7 +88,7 @@ def _calculate_normal(
     return (vx / length, vy / length) if length > 0 else (0.0, 0.0)
 
 
-def _apply_smart_thicken(coords: List[Coordinate], strength: float) -> List[Coordinate]:
+def _apply_smart_thicken(coords: list[Coordinate], strength: float) -> list[Coordinate]:
     """
     Apply intelligent thickening to a specific contour.
     internal logic for _process_glyph_geometry.
@@ -169,7 +172,7 @@ def _process_glyph_geometry(
         for component in glyph.components:
             # Scale the offset position (x)
             if hasattr(component, "x"):
-                component.x = int(round(component.x * scale_x))
+                component.x = round(component.x * scale_x)
 
         # Composites need bounds recalc after component shift
         glyph.recalcBounds(glyf_table)
@@ -262,7 +265,7 @@ def _change_glyph_width(
     # If the glyph was empty or composite, new_lsb comes from calculation
     # or scaling the old lsb
     if glyf[glyph_name].numberOfContours == 0 and not glyf[glyph_name].isComposite():
-        final_lsb = int(round(old_lsb * scale_x))
+        final_lsb = round(old_lsb * scale_x)
     else:
         final_lsb = new_lsb
 
@@ -387,7 +390,7 @@ def change_glyph_width_or_scale(
     match_width: int,
     target_width: int,
     scale_factor: tuple[float, float],
-    special_names: list[str] = [],
+    special_names: list[str] | None = None,
 ):
     """
     Adjusts the width or scales the glyphs in a font based on the specified parameters.
@@ -413,6 +416,8 @@ def change_glyph_width_or_scale(
         - The scaling and translation are applied to the glyph coordinates, and the
           bounding box values are recalculated.
     """
+    if special_names is None:
+        special_names = []
     font["hhea"].advanceWidthMax = target_width
     glyf: Any = font["glyf"]
     hmtx: Any = font["hmtx"]
@@ -469,7 +474,7 @@ def change_glyph_width_or_scale(
             glyph.coordinates.calcIntBounds()
         )
 
-        scaled_width = int(round(width * scale_w))
+        scaled_width = round(width * scale_w)
         delta = (target_width - scaled_width) / 2
 
         glyph.coordinates.translate((delta, 0))

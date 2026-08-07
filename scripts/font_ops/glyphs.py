@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from concurrent.futures import Executor
 from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from fontmake.font_project import CFFOptimization, FontProject
 from fontTools.designspaceLib import AxisDescriptor, DesignSpaceDocument
-from ufoLib2 import Font as UFOFont
 from ufo2ft.filters import DecomposeTransformedComponentsFilter
+from ufoLib2 import Font as UFOFont
 
 from scripts.font_ops.glyph_transform import (
     SmartWidthThickenFilter,
@@ -23,6 +22,8 @@ from scripts.utils.process import (
     run_jobs,
 )
 
+if TYPE_CHECKING:
+    from concurrent.futures import Executor
 
 SourceStyle = Literal["regular", "italic"]
 FontmakeOutput = Literal["variable", "ttf", "otf"]
@@ -175,7 +176,7 @@ def prepare_designspace_source(
             descender = info.descender
         if ascender is None or descender is None:
             raise ValueError("UFO source is missing vertical metrics")
-        vertical_metric = int(round(ascender)), int(round(descender))
+        vertical_metric = round(ascender), round(descender)
         target_vertical_metric = (
             calculate_line_height_metrics(line_height, vertical_metric)
             if line_height != 1

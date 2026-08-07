@@ -4,18 +4,20 @@ from copy import deepcopy
 from dataclasses import dataclass
 from io import StringIO
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from fontTools.designspaceLib import DesignSpaceDocument
 from fontTools.feaLib import ast as fea_ast
 from fontTools.feaLib.builder import addOpenTypeFeaturesFromString
 from fontTools.feaLib.parser import Parser
-from ufoLib2.objects.glyph import Glyph
 
 from scripts.config.base import ResolvedConfig, normalize_feature_freeze
 from scripts.feature.compiler import generate_fea_string, get_freeze_moving_rules
 from scripts.font_ops.fonttools import TTFont
 from scripts.utils.logging import logger
+
+if TYPE_CHECKING:
+    from fontTools.designspaceLib import DesignSpaceDocument
+    from ufoLib2.objects.glyph import Glyph
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,11 +123,10 @@ def _moving_statements(statements: list[Any]) -> list[Any]:
     for statement in statements:
         if isinstance(statement, fea_ast.LookupBlock):
             result.append(fea_ast.LookupReferenceStatement(statement))
-        elif isinstance(statement, fea_ast.LookupReferenceStatement):
-            result.append(deepcopy(statement))
         elif isinstance(
             statement,
             (
+                fea_ast.LookupReferenceStatement,
                 fea_ast.AlternateSubstStatement,
                 fea_ast.ChainContextSubstStatement,
                 fea_ast.IgnoreSubstStatement,

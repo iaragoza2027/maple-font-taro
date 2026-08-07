@@ -1,19 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from fontTools.ttLib.tables._m_e_t_a import table__m_e_t_a
 
-from scripts.config.base import (
-    CJKCommonBuildOptions,
-    ResolvedCJKBuildEntry,
-    ResolvedConfig,
-)
-from scripts.config.runtime import BuildRuntimeContext
 from scripts.feature.apply import apply_binary_features
 from scripts.feature.catalog import CJK_FEATURES
-from scripts.font_ops.fonttools import MetaTable, TTFont
 from scripts.font_ops.glyph_transform import (
     change_glyph_width_or_scale,
     smart_change_width,
@@ -25,6 +18,15 @@ from scripts.font_ops.names import (
 )
 from scripts.font_ops.opentype import remove_target_glyph
 from scripts.utils.logging import logger
+
+if TYPE_CHECKING:
+    from scripts.config.base import (
+        CJKCommonBuildOptions,
+        ResolvedCJKBuildEntry,
+        ResolvedConfig,
+    )
+    from scripts.config.runtime import BuildRuntimeContext
+    from scripts.font_ops.fonttools import MetaTable, TTFont
 
 
 def build_cjk_family_name(font_config: ResolvedConfig, locale_suffix: str) -> str:
@@ -49,7 +51,7 @@ def apply_cjk_meta_table(
 ) -> None:
     font.table("OS/2").ulCodePageRange1 = code_page_range1
     meta = table__m_e_t_a("meta")
-    cast(MetaTable, meta).data = {
+    cast("MetaTable", meta).data = {
         "dlng": language_tag,
         "slng": language_tag,
     }

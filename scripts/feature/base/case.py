@@ -1,6 +1,5 @@
 import scripts.feature.ast as ast
 
-
 case_glyphs = [
     "colon",
     "periodcentered.loclCAT",

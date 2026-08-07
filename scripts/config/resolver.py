@@ -24,18 +24,16 @@ from scripts.config.base import (
     default_feature_freeze,
     default_weight_mapping,
     normalize_build_formats,
-    normalize_cjk_output_format,
     normalize_cjk_locale_list,
+    normalize_cjk_output_format,
     parse_codepoint_alias,
     parse_scale_factor,
 )
+from scripts.config.runtime import BuildRuntimeContext
 from scripts.feature.compiler import normal_enabled_features
 from scripts.font_ops.opentype import DEFAULT_COMPAT_ALIASES
 from scripts.utils.logging import logger
 from scripts.utils.version import font_version_for_core, parse_font_version
-
-
-from scripts.config.runtime import BuildRuntimeContext
 
 
 def _require_bool(value: Any, field: str) -> bool:
@@ -332,9 +330,8 @@ class BuildConfigResolver:
         if not isinstance(legacy_cn, dict):
             return
 
-        if "enable" in legacy_cn:
-            if _require_bool(legacy_cn["enable"], "cn.enable"):
-                selection.locales.cn = True
+        if "enable" in legacy_cn and _require_bool(legacy_cn["enable"], "cn.enable"):
+            selection.locales.cn = True
         for key in (
             "with_nerd_font",
             "fix_meta_table",
@@ -506,11 +503,15 @@ class BuildConfigResolver:
             config.cjk.common_options,
         )
 
-        if config.nerd_font.enable and config.nerd_font.variable and config.cjk.entries:
-            if config.cjk_output_format != "variable":
-                raise ValueError(
-                    "nerd_font.variable requires cjk.variable=true when CJK is enabled"
-                )
+        if (
+            config.nerd_font.enable
+            and config.nerd_font.variable
+            and config.cjk.entries
+            and config.cjk_output_format != "variable"
+        ):
+            raise ValueError(
+                "nerd_font.variable requires cjk.variable=true when CJK is enabled"
+            )
 
     def _apply_identity(self, config: ResolvedConfig) -> None:
         version_tag = self.version_tag

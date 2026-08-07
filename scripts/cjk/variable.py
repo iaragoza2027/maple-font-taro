@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from concurrent.futures import Executor
-from copy import deepcopy
 import math
+from copy import deepcopy
 from pathlib import Path
-from typing import Any, Iterable, cast
+from typing import TYPE_CHECKING, Any, cast
 
-from scripts.font_ops.cmap import merge_cmap_entries
-from scripts.font_ops.fonttools import TTFont, load_font
 from fontTools.ttLib.tables._g_l_y_f import GlyphCoordinates
 from fontTools.ttLib.tables.TupleVariation import TupleVariation
 from fontTools.varLib.instancer import otRound
 
+from scripts.font_ops.cmap import merge_cmap_entries
+from scripts.font_ops.fonttools import TTFont, load_font
 from scripts.utils.logging import logger
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from concurrent.futures import Executor
 
 FontInput = str | Path | TTFont
 
@@ -299,7 +301,7 @@ def make_italic_master_files(
             italic_angle_deg,
             drop_table_tags,
         )
-        for source_path, output_path in zip(source_paths, output_paths)
+        for source_path, output_path in zip(source_paths, output_paths, strict=False)
     ]
     for future in futures:
         future.result()
@@ -349,8 +351,9 @@ def rebuild_weight_masters_from_paths(
     """Replace a variable font's weight masters from static master files."""
     masters: list[TTFont] = []
     try:
-        for master_path in master_paths:
-            masters.append(load_font(master_path, decompile=True))
+        masters.extend(
+            load_font(master_path, decompile=True) for master_path in master_paths
+        )
         rebuild_weight_masters_with_regular_default(
             font, masters[0], masters[1], masters[2]
         )
@@ -442,16 +445,18 @@ def _build_weight_variations(
     min_delta = [
         (otRound(to_x - from_x), otRound(to_y - from_y))
         for (from_x, from_y), (to_x, to_y) in zip(
-            cast(Iterable[tuple[float, float]], default_coordinates),
-            cast(Iterable[tuple[float, float]], min_coordinates),
+            cast("Iterable[tuple[float, float]]", default_coordinates),
+            cast("Iterable[tuple[float, float]]", min_coordinates),
+            strict=False,
         )
     ]
 
     max_delta = [
         (otRound(to_x - from_x), otRound(to_y - from_y))
         for (from_x, from_y), (to_x, to_y) in zip(
-            cast(Iterable[tuple[float, float]], default_coordinates),
-            cast(Iterable[tuple[float, float]], max_coordinates),
+            cast("Iterable[tuple[float, float]]", default_coordinates),
+            cast("Iterable[tuple[float, float]]", max_coordinates),
+            strict=False,
         )
     ]
 

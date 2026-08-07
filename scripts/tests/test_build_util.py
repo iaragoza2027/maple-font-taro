@@ -4,20 +4,19 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from scripts.font_ops.fonttools import TTFont
-
+from scripts.cjk.config import CJKBuildConfig, CJKSourceConfig
+from scripts.cjk.presets import build_preset_config, get_preset
+from scripts.cjk.static import (
+    apply_cjk_width_transform,
+    postprocess_cjk_extended_static_font,
+)
 from scripts.config.base import (
     CJKCommonBuildOptions,
     ResolvedCJKBuildEntry,
 )
 from scripts.config.resolver import BuildConfigResolver, BuildRuntimeContext
-from scripts.cjk.static import (
-    apply_cjk_width_transform,
-    postprocess_cjk_extended_static_font,
-)
-from scripts.cjk.config import CJKBuildConfig, CJKSourceConfig
-from scripts.cjk.presets import build_preset_config, get_preset
 from scripts.feature.catalog import CJK_FEATURES
+from scripts.font_ops.fonttools import TTFont
 
 
 def make_runtime_context() -> BuildRuntimeContext:

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 from typing import cast
 from unittest.mock import patch
 
@@ -28,7 +28,7 @@ class PipelineCacheTest(unittest.TestCase):
             output.write_bytes(b"font")
 
             snapshot = output_snapshot(root, "ttf", [output])
-            files = cast(list[str], snapshot["files"])
+            files = cast("list[str]", snapshot["files"])
 
             self.assertEqual(files, ["TTF/MapleMono-Regular.ttf"])
             self.assertNotIn("\\", files[0])
@@ -79,11 +79,11 @@ class PipelineCacheTest(unittest.TestCase):
                 identity,
                 [output],
             )
-            cast(dict[str, object], stage_record["snapshot"])["digest"] = "changed"
+            stage_record["snapshot"]["digest"] = "changed"
 
             self.assertIsNotNone(validated)
             self.assertNotEqual(
-                cast(dict[str, object], validated)["snapshot"],
+                validated["snapshot"],
                 stage_record["snapshot"],
             )
 

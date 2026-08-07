@@ -4,12 +4,11 @@ from __future__ import annotations
 import argparse
 import sys
 import threading
-from concurrent.futures import Executor
 from dataclasses import dataclass
 from io import BytesIO
 from os import cpu_count, makedirs
 from pathlib import Path
-from typing import Any, Collection, Iterable, Literal, TypeVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypeVar, cast
 
 from fontTools.misc.transform import Transform
 from fontTools.pens.t2CharStringPen import T2CharStringPen
@@ -28,20 +27,12 @@ from scripts.font_ops.fonttools import (
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from scripts.cjk.cache import write_static_hash
 from scripts.cjk.config import (
     CJKBuildConfig,
     CJKMasterLocations,
     CJKTransformConfig,
     CJKWeightInstance,
-)
-from scripts.cjk.cache import write_static_hash
-from scripts.cjk.resolver import (
-    add_cjk_arguments,
-    apply_cli_overrides,
-    apply_unicode_override,
-    config_from_cli,
-    config_from_json,
-    ordered_master_locations,
 )
 from scripts.cjk.outlines import (
     as_fonttools_glyph_mapping,
@@ -50,6 +41,14 @@ from scripts.cjk.outlines import (
     convert_cff_static_to_glyf,
     detect_outline_format,
     install_existing_glyf_tables,
+)
+from scripts.cjk.resolver import (
+    add_cjk_arguments,
+    apply_cli_overrides,
+    apply_unicode_override,
+    config_from_cli,
+    config_from_json,
+    ordered_master_locations,
 )
 from scripts.cjk.variable import (
     drop_font_tables,
@@ -77,6 +76,10 @@ from scripts.utils.process import (
     create_process_executor,
     run_process_jobs,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Collection, Iterable
+    from concurrent.futures import Executor
 
 RESERVED_NAME_IDS = {1, 2, 4, 6, 16, 17, 25}
 CFF_GLYPH_CHUNK_SIZE = 256
@@ -140,7 +143,7 @@ class BuildStats:
 class StaticFontCache:
     """Worker-local cache for repeated variable font instantiation."""
 
-    _fonts: dict[tuple[str, int], TTFont] = {}
+    _fonts: ClassVar[dict[tuple[str, int], TTFont]] = {}
 
     @classmethod
     def get(cls, input_path: str) -> TTFont:
@@ -340,7 +343,7 @@ def instantiate_masters_from_vf(
     for future in futures:
         future.result()
     logger.debug("CJK masters ready: output_dir=%s", output_dir)
-    return cast(tuple[Path, Path, Path], tuple(paths))
+    return cast("tuple[Path, Path, Path]", tuple(paths))
 
 
 def instantiate_italic_master_file(
@@ -416,7 +419,7 @@ def instantiate_italic_masters_from_vf(
     for future in futures:
         future.result()
     logger.debug("Italic CJK masters ready: output_dir=%s", output_dir)
-    return cast(tuple[Path, Path, Path], tuple(paths))
+    return cast("tuple[Path, Path, Path]", tuple(paths))
 
 
 def get_allowed_codepoints(source_font: TTFont, config: CJKBuildConfig) -> set[int]:
@@ -461,7 +464,7 @@ def prepare_source_subset(
             for glyph_name in font.getGlyphOrder():
                 if glyph_name not in variations:
                     variations[glyph_name] = []
-        options = cast(SubsetOptions, Options())
+        options = cast("SubsetOptions", Options())
         options.layout_features = []
         options.name_IDs = ["*"]
         options.name_legacy = True
@@ -648,7 +651,7 @@ def convert_cff_master_files_to_glyf(
     fonts = [load_font(path, decompile=True) for path in input_paths]
     try:
         install_existing_glyf_tables(fonts, glyf_tables)
-        for font, output_path in zip(fonts, output_paths):
+        for font, output_path in zip(fonts, output_paths, strict=False):
             if transform_config is not None:
                 apply_source_master_transform(font, transform_config)
                 normalize_widths(font, transform_config)
@@ -1119,7 +1122,9 @@ class CJKBuilder:
             italic_master_dir / "source-italic-max-master.ttf",
         )
         futures = []
-        for source_path, output_path in zip(source_master_paths, italic_master_paths):
+        for source_path, output_path in zip(
+            source_master_paths, italic_master_paths, strict=False
+        ):
             futures.append(
                 self._require_process_pool().submit(
                     make_italic_master_file,

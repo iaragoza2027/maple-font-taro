@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
 from fontTools.ttLib import newTable
 
@@ -12,8 +12,8 @@ from scripts.cjk.variable import (
     rebuild_weight_masters_with_regular_default,
     skew_glyphs,
 )
-from scripts.font_ops.glyph_transform import reduce_glyph_side_bearings
 from scripts.font_ops.fonttools import instantiate_variable_font
+from scripts.font_ops.glyph_transform import reduce_glyph_side_bearings
 from scripts.tests.cjk_font_fixtures import (
     CMAP,
     GLYPH_ORDER,
@@ -158,7 +158,7 @@ class CJKVariableOperationsTest(unittest.TestCase):
             self.assertNotIn("HVAR", rebuilt)
             self.assertNotIn("MVAR", rebuilt)
             self.assertNotIn("avar", rebuilt)
-            for weight, master in zip((100, 400, 900), masters):
+            for weight, master in zip((100, 400, 900), masters, strict=False):
                 instance = instantiate_variable_font(
                     rebuilt, {"wght": weight}, static=True
                 )

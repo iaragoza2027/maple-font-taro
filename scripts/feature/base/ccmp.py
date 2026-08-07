@@ -1,7 +1,6 @@
 import scripts.feature.ast as ast
 from scripts.feature.base.clazz import cls_uppercase
 
-
 comb_top_acc = ast.Clazz(
     "CombiningTopAccents",
     [
@@ -186,9 +185,6 @@ __ccmp = [
 
 
 def get_ccmp_feature(cn: bool, cn_only: bool = False):
-    if cn:
-        content = ccmp_jp if cn_only else [__ccmp, ccmp_jp]
-    else:
-        content = __ccmp
+    content = (ccmp_jp if cn_only else [__ccmp, ccmp_jp]) if cn else __ccmp
 
     return ast.Feature("ccmp", content, "7.0")

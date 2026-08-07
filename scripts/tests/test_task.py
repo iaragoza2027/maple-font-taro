@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import unittest
 from pathlib import Path
 from stat import S_IMODE
 from tempfile import TemporaryDirectory
-import unittest
 from unittest.mock import patch
 
 from scripts.task import cjk, nf

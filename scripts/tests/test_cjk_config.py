@@ -8,6 +8,8 @@ from dataclasses import fields
 from pathlib import Path
 from typing import Any, cast
 
+from scripts.cjk.config import CJKSourceConfig
+from scripts.cjk.presets import build_preset_config, get_preset
 from scripts.cjk.resolver import (
     add_cjk_arguments,
     apply_cli_overrides,
@@ -15,8 +17,6 @@ from scripts.cjk.resolver import (
     config_from_json,
     serialize_cjk_build_config,
 )
-from scripts.cjk.config import CJKSourceConfig
-from scripts.cjk.presets import build_preset_config, get_preset
 
 
 def custom_config_data() -> dict[str, Any]:
@@ -44,7 +44,7 @@ class CJKConfigSurfaceTest(unittest.TestCase):
                 self.subTest(field=field),
                 self.assertRaisesRegex(ValueError, rf"{message} must be an object"),
             ):
-                config_from_data(cast(Any, data))
+                config_from_data(cast("Any", data))
 
     def test_rejects_invalid_master_axes_and_coordinates(self) -> None:
         for axis, coordinate, message in (

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import unittest
 from concurrent.futures import Future, ThreadPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
-import unittest
 from unittest.mock import MagicMock, patch
 
 from scripts.utils.process import (

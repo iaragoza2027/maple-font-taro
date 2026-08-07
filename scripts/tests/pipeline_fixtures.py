@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.ttGlyphPen import TTGlyphPen
@@ -11,8 +12,9 @@ from scripts.config.base import CJKCommonBuildOptions, ResolvedCJKBuildEntry
 from scripts.config.resolver import BuildConfigResolver
 from scripts.config.runtime import BuildRuntimeContext
 from scripts.pipeline.cache import output_snapshot
-from scripts.pipeline.orchestrator import MapleBuildPipeline
 
+if TYPE_CHECKING:
+    from scripts.pipeline.orchestrator import MapleBuildPipeline
 
 TEST_STYLES = (
     "Thin",

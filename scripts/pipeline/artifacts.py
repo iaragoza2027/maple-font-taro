@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 import hashlib
+import shutil
 from os import makedirs
 from pathlib import Path
-import shutil
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from scripts.config.base import ResolvedConfig
-from scripts.config.runtime import BuildRuntimeContext
 from fontTools.designspaceLib import DesignSpaceDocument
+
 from scripts.font_ops.constant import DEFAULT_NAMING_MAPPING
 from scripts.font_ops.fonttools import load_font
 
+if TYPE_CHECKING:
+    from scripts.config.base import ResolvedConfig
+    from scripts.config.runtime import BuildRuntimeContext
 
 FONT_ARTIFACT_SUFFIXES = {".otf", ".ttf", ".woff", ".woff2", ".zip"}
 IGNORED_OUTPUT_DIRS = {".cjk-temp", "temp"}
@@ -22,8 +24,7 @@ def is_target_style_file(file_name: str, target_styles: list[str] | None) -> boo
         return True
     stem = file_name
     for suffix in (".woff2", ".ttf", ".otf"):
-        if stem.endswith(suffix):
-            stem = stem[: -len(suffix)]
+        stem = stem.removesuffix(suffix)
     return stem.rsplit("-", 1)[-1] in target_styles
 
 

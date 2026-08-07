@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.ttGlyphPen import TTGlyphPen
@@ -9,6 +8,8 @@ from fontTools.ttLib.tables.TupleVariation import TupleVariation
 
 from scripts.font_ops.fonttools import TTFont, load_font
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
 GLYPH_ORDER = [".notdef", "box", "box.component", "cjk"]
 CMAP = {0x0041: "box", 0x0042: "box.component", 0x4E00: "cjk"}

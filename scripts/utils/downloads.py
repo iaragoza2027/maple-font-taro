@@ -4,9 +4,7 @@ import json
 import os
 import shutil
 import tempfile
-from pathlib import Path
-from pathlib import PureWindowsPath
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 from urllib.request import Request, urlopen
@@ -15,7 +13,6 @@ from zipfile import ZipFile
 import py7zr
 
 from scripts.utils.logging import log_progress, logger
-
 
 GITHUB_HOST = "github.com"
 GITHUB_RAW_HOST = "raw.githubusercontent.com"

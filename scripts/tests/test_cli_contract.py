@@ -14,7 +14,6 @@ from scripts.config import cli
 from scripts.config.cli import parse_args
 from scripts.pipeline import main as run_build_cli
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 

@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from scripts.cjk.resolver import config_from_json
-from scripts.cjk.config import CJKBuildConfig
 
+if TYPE_CHECKING:
+    from scripts.cjk.config import CJKBuildConfig
 
 CJKPresetId = Literal["cn", "jp", "tc", "kr"]
 DEFAULT_PRESET_ROOT = Path("source/cjk")

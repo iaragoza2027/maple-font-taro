@@ -3,9 +3,8 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
-from concurrent.futures import Executor
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock, patch
 
 from scripts.config.cli import parse_args
@@ -20,6 +19,9 @@ from scripts.tests.pipeline_fixtures import (
     make_font_config,
     make_runtime_context,
 )
+
+if TYPE_CHECKING:
+    from concurrent.futures import Executor
 
 
 class BuildPlanResolutionTest(unittest.TestCase):
@@ -283,7 +285,7 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             output_ttf.mkdir(parents=True)
             (output_ttf / "MapleMono-Regular.ttf").touch()
 
-            executor = cast(Executor, MagicMock())
+            executor = cast("Executor", MagicMock())
             with patch("scripts.pipeline.base_fonts.convert_to_web") as convert:
                 build_woff2_fonts(
                     [output_ttf / "MapleMono-Regular.ttf"],
@@ -316,7 +318,7 @@ class MapleBuildPipelineDecisionTreeTest(unittest.TestCase):
             stale_path.parent.mkdir(parents=True)
             stale_path.touch()
 
-            executor = cast(Executor, MagicMock())
+            executor = cast("Executor", MagicMock())
             with (
                 patch(
                     "scripts.pipeline.orchestrator.build_base_fonts",
@@ -385,7 +387,7 @@ class DerivedOutputValidationTest(unittest.TestCase):
             runtime_context = make_runtime_context(Path(tmp))
             font_config = make_font_config()
             missing = Path(runtime_context.output_ttf) / "MapleMono-Regular.ttf"
-            executor = cast(Executor, MagicMock())
+            executor = cast("Executor", MagicMock())
 
             with (
                 patch("scripts.pipeline.base_fonts.run_process_jobs") as run_jobs,
@@ -414,7 +416,7 @@ class DerivedOutputValidationTest(unittest.TestCase):
             stale.parent.mkdir()
             current.touch()
             stale.touch()
-            executor = cast(Executor, MagicMock())
+            executor = cast("Executor", MagicMock())
 
             with (
                 patch("scripts.pipeline.base_fonts.run_process_jobs") as run_jobs,

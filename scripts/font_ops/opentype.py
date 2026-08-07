@@ -1,11 +1,20 @@
 from __future__ import annotations
-from collections.abc import Callable
-from typing import Any, cast
 
-from scripts.font_ops.fonttools import SubsetOptions, TTFont
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from scripts.font_ops.names import set_font_name
 from scripts.utils.logging import logger
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from scripts.font_ops.fonttools import SubsetOptions, TTFont
+
+
+class _OTTables(Protocol):
+    AxisRecord: Callable[[], Any]
+    AxisValue: Callable[[], Any]
+    AxisValueArray: Callable[[], Any]
 
 
 def add_ital_axis_to_stat(font: TTFont):
@@ -13,12 +22,13 @@ def add_ital_axis_to_stat(font: TTFont):
     logger.debug("Add italic STAT axis")
     from fontTools.ttLib.tables import otTables as ot
 
+    ot_tables = cast("_OTTables", ot)
     name = font["name"]
     stat_table = font["STAT"].table
     name_id = name._findUnusedNameID()
     set_font_name(font, "Italic", name_id, True)
 
-    axis_factory = cast(Callable[[], Any], getattr(ot, "AxisRecord"))
+    axis_factory = ot_tables.AxisRecord
     axis = axis_factory()
     axis.AxisTag = "ital"
     axis.AxisOrdering = len(stat_table.DesignAxisRecord.Axis)
@@ -26,7 +36,7 @@ def add_ital_axis_to_stat(font: TTFont):
     stat_table.DesignAxisRecord.Axis.append(axis)
     stat_table.DesignAxisCount += 1
 
-    axis_value_factory = cast(Callable[[], Any], getattr(ot, "AxisValue"))
+    axis_value_factory = ot_tables.AxisValue
     axis_value = axis_value_factory()
     axis_value.AxisIndex = axis.AxisOrdering
     axis_value.Flags = 0
@@ -34,9 +44,7 @@ def add_ital_axis_to_stat(font: TTFont):
     axis_value.ValueNameID = name_id
     axis_value.Value = 1.0
     if stat_table.AxisValueArray is None:
-        axis_value_array_factory = cast(
-            Callable[[], Any], getattr(ot, "AxisValueArray")
-        )
+        axis_value_array_factory = ot_tables.AxisValueArray
         stat_table.AxisValueArray = axis_value_array_factory()
         stat_table.AxisValueArray.AxisValue = []
         stat_table.AxisValueCount = 0
@@ -59,10 +67,10 @@ def add_weight_axis_values_to_stat(font: TTFont, italic: bool = False) -> None:
 
     from fontTools.ttLib.tables import otTables as ot
 
+    ot_tables = cast("_OTTables", ot)
+
     if stat_table.AxisValueArray is None:
-        axis_value_array_factory = cast(
-            Callable[[], Any], getattr(ot, "AxisValueArray")
-        )
+        axis_value_array_factory = ot_tables.AxisValueArray
         stat_table.AxisValueArray = axis_value_array_factory()
         stat_table.AxisValueArray.AxisValue = []
 
@@ -89,7 +97,7 @@ def add_weight_axis_values_to_stat(font: TTFont, italic: bool = False) -> None:
                 2 if weight == default_weight else 0
             )
             continue
-        axis_value_factory = cast(Callable[[], Any], getattr(ot, "AxisValue"))
+        axis_value_factory = ot_tables.AxisValue
         value = axis_value_factory()
         value.Format = 1
         value.AxisIndex = weight_axis_index
@@ -106,7 +114,7 @@ def _find_or_add_name_id(font: TTFont, value: str) -> int:
         try:
             if record.toUnicode() == value:
                 return int(record.nameID)
-        except UnicodeDecodeError:
+        except UnicodeDecodeError:  # noqa: PERF203
             continue
     name_id = font["name"]._findUnusedNameID()
     set_font_name(font, value, name_id)
@@ -126,7 +134,7 @@ def remove_target_glyph(font: TTFont, glyph_name_suffix: str):
     subset_to_glyphs(
         font,
         keep_glyphs,
-        options=cast(SubsetOptions, Options(hinting=False)),
+        options=cast("SubsetOptions", Options(hinting=False)),
     )
 
 

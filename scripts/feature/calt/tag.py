@@ -1,5 +1,5 @@
 from scripts.feature import ast
-from scripts.feature.base.clazz import cls_space, cls_comma
+from scripts.feature.base.clazz import cls_comma, cls_space
 from scripts.utils.logging import logger
 
 built_in_tag_text = [

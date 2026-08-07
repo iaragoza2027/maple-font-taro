@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import math
+from typing import TYPE_CHECKING
 
 from fontTools.misc.roundTools import otRound
 from fontTools.pens.statisticsPen import StatisticsPen
-from scripts.font_ops.fonttools import TTFont
 
+if TYPE_CHECKING:
+    from scripts.font_ops.fonttools import TTFont
 
 ITALIC_BIT = 0
 BOLD_BIT = 5

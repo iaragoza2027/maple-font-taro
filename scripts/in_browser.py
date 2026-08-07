@@ -1,6 +1,7 @@
 import io
 import json
 from zipfile import ZipFile
+
 from fontTools.ttLib import TTFont
 
 MOVING_RULES = ["ss03", "ss07", "ss08", "ss09", "ss10", "ss11"]
@@ -11,7 +12,7 @@ def get_freeze_config_str(config):
     for k, v in sorted(config.items()):
         if v == "1":
             result += f"+{k};"
-        if v == "0" and k == "calt" or v == "-1":
+        if (v == "0" and k == "calt") or v == "-1":
             result += f"-{k};"
     return result
 
@@ -75,14 +76,14 @@ def freeze_feature(font, moving_rules, config):
         feature_list.FeatureRecord[index].Feature.LookupListIndex = []
 
 
-def set_font_name(font, name: str, id: int):
-    font["name"].setName(name, nameID=id, platformID=3, platEncID=1, langID=0x409)
+def set_font_name(font, name: str, name_id: int):
+    font["name"].setName(name, nameID=name_id, platformID=3, platEncID=1, langID=0x409)
 
 
-def get_font_name(font, id: int) -> str:
+def get_font_name(font, name_id: int) -> str:
     return (
         font["name"]
-        .getName(nameID=id, platformID=3, platEncID=1, langID=0x409)
+        .getName(nameID=name_id, platformID=3, platEncID=1, langID=0x409)
         .__str__()
     )
 

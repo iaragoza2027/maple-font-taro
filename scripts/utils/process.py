@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+import os
+import shutil
+import subprocess
+import sys
 from concurrent.futures import (
     Executor,
     Future,
@@ -9,15 +12,13 @@ from concurrent.futures import (
     as_completed,
 )
 from concurrent.futures.process import BrokenProcessPool
-import os
-import shutil
-import subprocess
-import sys
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from scripts.utils.logging import configure_logging, logger
 
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
 
 CI_ENVIRONMENTS = (
     "JENKINS_HOME",
@@ -59,7 +60,7 @@ class SynchronousExecutor(Executor):
         *,
         cancel_futures: bool = False,
     ) -> None:
-        return None
+        del wait, cancel_futures
 
 
 def is_ci() -> bool:

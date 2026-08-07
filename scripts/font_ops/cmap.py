@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
-from scripts.font_ops.fonttools import TTFont
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from scripts.font_ops.fonttools import TTFont
 
 
 def _supports_codepoint(table_format: int, codepoint: int) -> bool:

@@ -7,10 +7,10 @@ from unittest.mock import patch
 
 from fontTools.designspaceLib import AxisDescriptor, DesignSpaceDocument
 
+from scripts.font_ops.constant import INSTANCE_WEIGHT_MAPPING
 from scripts.font_ops.glyphs import (
     prepare_designspace_source,
 )
-from scripts.font_ops.constant import INSTANCE_WEIGHT_MAPPING
 from scripts.task.designspace import (
     SourceCompatibilityError,
     convert_glyphs_source,

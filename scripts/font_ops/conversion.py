@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from concurrent.futures import Executor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Sequence
+from typing import TYPE_CHECKING, Literal
 
 from scripts.font_ops.fonttools import load_font
-
 from scripts.utils.logging import logger, set_log_task
 from scripts.utils.process import create_process_executor, run_jobs
 
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from concurrent.futures import Executor
 
 WebFontFlavor = Literal["woff", "woff2"]
 

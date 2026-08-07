@@ -1,26 +1,60 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from concurrent.futures import Executor
-from copy import deepcopy
-from dataclasses import dataclass
 import json
-from pathlib import Path
 import shutil
 import time
+from copy import deepcopy
+from dataclasses import dataclass
 from os import environ, makedirs
-from typing import Any, Literal
-from scripts.config.base import ResolvedCJKBuildEntry, ResolvedConfig
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Literal
+
 from scripts.cjk.resolver import serialize_cjk_build_config
 from scripts.config.paths import (
     merged_variable_name,
     static_output_dir,
     variable_output_dir,
 )
-from scripts.utils.errors import BuildDependencyError
 from scripts.config.resolver import BuildConfigResolver
 from scripts.config.runtime import BuildRuntimeContext
-from scripts.pipeline.cache import relative_cache_path
+from scripts.pipeline.artifacts import (
+    IGNORED_OUTPUT_DIRS,
+    base_cache_identity,
+    cleanup_unselected_base_formats,
+    ensure_base_output_dirs,
+    expected_static_font_paths,
+    expected_static_styles,
+    read_font_vertical_metric,
+)
+from scripts.pipeline.base_fonts import build_base_fonts, build_woff2_fonts
+from scripts.pipeline.cache import (
+    CACHE_SCHEMA,
+    output_snapshot,
+    read_cache_record,
+    relative_cache_path,
+    stage_identity,
+    validated_stage_record,
+)
+from scripts.pipeline.cache import (
+    write_cache_record as persist_cache_record,
+)
+from scripts.pipeline.cjk_outputs import (
+    build_cjk_extended_static_outputs,
+    build_cjk_extended_variable_outputs,
+)
+from scripts.pipeline.fontmake import (
+    build_static_fonts,
+    build_variable_fonts,
+    compile_fontmake_formats,
+    prepare_fontmake_sources,
+)
+from scripts.pipeline.nerd_fonts import (
+    build_nerd_font_variable_fonts,
+    build_nerd_fonts,
+    should_use_font_patcher,
+)
+from scripts.utils.errors import BuildDependencyError
 from scripts.utils.files import archive_fonts, join_path
 from scripts.utils.logging import (
     ENVIRONMENT_VARIABLE,
@@ -37,40 +71,11 @@ from scripts.utils.process import (
     is_ci,
 )
 from scripts.utils.version import version_tag
-from scripts.pipeline.artifacts import (
-    IGNORED_OUTPUT_DIRS,
-    base_cache_identity,
-    cleanup_unselected_base_formats,
-    ensure_base_output_dirs,
-    expected_static_font_paths,
-    expected_static_styles,
-    read_font_vertical_metric,
-)
-from scripts.pipeline.cache import (
-    CACHE_SCHEMA,
-    output_snapshot,
-    read_cache_record,
-    stage_identity,
-    validated_stage_record,
-    write_cache_record as persist_cache_record,
-)
-from scripts.pipeline.base_fonts import build_base_fonts, build_woff2_fonts
-from scripts.pipeline.cjk_outputs import (
-    build_cjk_extended_static_outputs,
-    build_cjk_extended_variable_outputs,
-)
-from scripts.pipeline.fontmake import (
-    build_static_fonts,
-    build_variable_fonts,
-    compile_fontmake_formats,
-    prepare_fontmake_sources,
-)
-from scripts.pipeline.nerd_fonts import (
-    build_nerd_font_variable_fonts,
-    build_nerd_fonts,
-    should_use_font_patcher,
-)
 
+if TYPE_CHECKING:
+    from concurrent.futures import Executor
+
+    from scripts.config.base import ResolvedCJKBuildEntry, ResolvedConfig
 
 _CACHE_STAGE_TASKS = {
     "variable": TaskName.VARIABLE,
@@ -370,9 +375,7 @@ class MapleBuildPipeline:
                 self.runtime_context.output_dir,
                 output_locale,
             )
-            locale_name = (
-                output_locale[3:] if output_locale.startswith("NF-") else output_locale
-            )
+            locale_name = output_locale.removeprefix("NF-")
             prefix = f"{self.font_config.family_name_compact}-{locale_name}"
             if output_locale.startswith("NF-"):
                 prefix = (
@@ -384,9 +387,7 @@ class MapleBuildPipeline:
                 for italic in (False, True)
             ]
         directory = static_output_dir(self.runtime_context.output_dir, output_locale)
-        locale_name = (
-            output_locale[3:] if output_locale.startswith("NF-") else output_locale
-        )
+        locale_name = output_locale.removeprefix("NF-")
         prefix = f"{self.font_config.family_name_compact}-{locale_name}"
         if output_locale.startswith("NF-"):
             prefix = (
@@ -481,7 +482,7 @@ class MapleBuildPipeline:
                             stage,
                             self._cjk_stage_expected_paths(output_locale),
                         )
-                    except FileNotFoundError as error:
+                    except FileNotFoundError as error:  # noqa: PERF203
                         if output_error is None:
                             output_error = error
                 if output_error is not None:
@@ -739,7 +740,7 @@ class MapleBuildPipeline:
                 paths = [root / Path(relative) for relative in sorted(files)]
                 if any(
                     relative_cache_path(root, path) != relative
-                    for relative, path in zip(sorted(files), paths)
+                    for relative, path in zip(sorted(files), paths, strict=False)
                 ):
                     raise ValueError("cache path is outside the output root")
             except ValueError:
@@ -1018,9 +1019,11 @@ class MapleBuildPipeline:
             nf_cjk_archive_dirs = {
                 f"NF-{locale_name}".upper() for locale_name in cjk_locale_names
             }
-            if file_name in {"NF", *cjk_archive_dirs, *nf_cjk_archive_dirs}:
-                if not self.font_config.use_hinted:
-                    suffix = "-unhinted"
+            if (
+                file_name in {"NF", *cjk_archive_dirs, *nf_cjk_archive_dirs}
+                and not self.font_config.use_hinted
+            ):
+                suffix = "-unhinted"
 
             _, zip_file_name_without_ext = archive_fonts(
                 family_name_compact=self.font_config.family_name_compact,

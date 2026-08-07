@@ -1,25 +1,19 @@
 from __future__ import annotations
 
-from contextlib import redirect_stdout
-from concurrent.futures import Executor
-from io import StringIO
 import json
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 from types import SimpleNamespace
+from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import MagicMock, patch
-from typing import Any, cast
 
 from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 
 from scripts.cjk.cache import write_static_hash
-from scripts.config.cli import parse_args
-from scripts.config.base import CJKCommonBuildOptions, ResolvedCJKBuildEntry
-from scripts.utils.errors import BuildDependencyError
-from scripts.config.resolver import BuildConfigResolver
-from scripts.config.runtime import BuildRuntimeContext
 from scripts.cjk.config import (
     CJKBuildConfig,
     CJKNamingConfig,
@@ -28,12 +22,20 @@ from scripts.cjk.config import (
     CJKWeightInstance,
 )
 from scripts.cjk.presets import CJKPresetId, get_preset
+from scripts.config.base import CJKCommonBuildOptions, ResolvedCJKBuildEntry
+from scripts.config.cli import parse_args
+from scripts.config.resolver import BuildConfigResolver
+from scripts.config.runtime import BuildRuntimeContext
 from scripts.pipeline.nerd_fonts import (
     ensure_font_patcher_available,
     should_use_font_patcher,
 )
+from scripts.utils.errors import BuildDependencyError
 from scripts.utils.files import get_directory_hash
 from scripts.utils.process import SynchronousExecutor
+
+if TYPE_CHECKING:
+    from concurrent.futures import Executor
 
 
 def make_runtime_context(tmp_path: Path) -> BuildRuntimeContext:
@@ -247,7 +249,7 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
             runtime_context = make_runtime_context(tmp_path)
             entry = make_entry(tmp_path)
             write_variable_fonts(entry.build_config)
-            executor = cast(Executor, MagicMock())
+            executor = cast("Executor", MagicMock())
 
             def fake_instantiate(
                 config: CJKBuildConfig,
@@ -294,7 +296,7 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
             tmp_path = Path(tmp)
             runtime_context = make_runtime_context(tmp_path)
             entry = make_entry(tmp_path)
-            executor = cast(Executor, MagicMock())
+            executor = cast("Executor", MagicMock())
             variable_builder = MagicMock(
                 side_effect=lambda config, _font_config, **_kwargs: (
                     write_variable_fonts(config)
@@ -531,7 +533,7 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
 
             def fake_download(
                 self: BuildRuntimeContext,
-                locale: str,
+                _locale: str,
                 config: CJKBuildConfig,
             ) -> bool:
                 write_static_fonts(
@@ -565,7 +567,7 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
             entry = make_entry(tmp_path, locale_name="HK", preset_id=None)
 
             def fake_build(
-                self: BuildRuntimeContext,
+                _self: BuildRuntimeContext,
                 config: CJKBuildConfig,
                 *_args,
             ) -> None:
@@ -584,21 +586,23 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
                 )
                 write_static_hash(config, static_dir)
 
-            with patch.object(
-                BuildRuntimeContext,
-                "download_cjk_static_base",
-                return_value=True,
-            ) as download_mock:
-                with patch.object(
+            with (
+                patch.object(
+                    BuildRuntimeContext,
+                    "download_cjk_static_base",
+                    return_value=True,
+                ) as download_mock,
+                patch.object(
                     BuildRuntimeContext,
                     "build_cjk_static_base_from_variable",
                     fake_build,
-                ):
-                    with patch(
-                        "scripts.config.runtime.instantiate_cjk_static_from_variable",
-                        fake_instantiate,
-                    ):
-                        result = resolve_quietly(runtime_context, entry, ["Regular"])
+                ),
+                patch(
+                    "scripts.config.runtime.instantiate_cjk_static_from_variable",
+                    fake_instantiate,
+                ),
+            ):
+                result = resolve_quietly(runtime_context, entry, ["Regular"])
 
             download_mock.assert_not_called()
             self.assertEqual(result.source_kind, "remote-variable")
@@ -631,7 +635,7 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
             entry = make_entry(tmp_path)
 
             def fake_build(
-                self: BuildRuntimeContext,
+                _self: BuildRuntimeContext,
                 config: CJKBuildConfig,
                 *_args,
             ) -> None:
@@ -650,21 +654,23 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
                 )
                 write_static_hash(config, static_dir)
 
-            with patch.object(
-                BuildRuntimeContext,
-                "download_cjk_static_base",
-                return_value=False,
-            ):
-                with patch.object(
+            with (
+                patch.object(
+                    BuildRuntimeContext,
+                    "download_cjk_static_base",
+                    return_value=False,
+                ),
+                patch.object(
                     BuildRuntimeContext,
                     "build_cjk_static_base_from_variable",
                     fake_build,
-                ):
-                    with patch(
-                        "scripts.config.runtime.instantiate_cjk_static_from_variable",
-                        fake_instantiate,
-                    ):
-                        result = resolve_quietly(runtime_context, entry, ["Regular"])
+                ),
+                patch(
+                    "scripts.config.runtime.instantiate_cjk_static_from_variable",
+                    fake_instantiate,
+                ),
+            ):
+                result = resolve_quietly(runtime_context, entry, ["Regular"])
 
             self.assertEqual(result.source_kind, "remote-variable")
             self.assertTrue(
@@ -797,18 +803,20 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
             runtime_context = make_runtime_context(tmp_path)
             entry = make_entry(tmp_path)
 
-            with patch.object(
-                BuildRuntimeContext,
-                "download_cjk_static_base",
-                return_value=False,
-            ):
-                with patch.object(
+            with (
+                patch.object(
+                    BuildRuntimeContext,
+                    "download_cjk_static_base",
+                    return_value=False,
+                ),
+                patch.object(
                     BuildRuntimeContext,
                     "build_cjk_static_base_from_variable",
                     return_value=None,
-                ):
-                    with self.assertRaisesRegex(Exception, "Unable to resolve"):
-                        resolve_quietly(runtime_context, entry, ["Regular"])
+                ),
+                self.assertRaisesRegex(Exception, "Unable to resolve"),
+            ):
+                resolve_quietly(runtime_context, entry, ["Regular"])
 
 
 class BuildConfigResolverJsonTest(unittest.TestCase):
@@ -1348,15 +1356,17 @@ class NerdFontDependencyTest(unittest.TestCase):
             font_config = make_font_config()
             font_config.nerd_font.use_font_patcher = True
 
-            with patch(
-                "scripts.pipeline.nerd_fonts.check_font_patcher",
-                return_value=False,
-            ):
-                with self.assertRaisesRegex(
+            with (
+                patch(
+                    "scripts.pipeline.nerd_fonts.check_font_patcher",
+                    return_value=False,
+                ),
+                self.assertRaisesRegex(
                     BuildDependencyError,
                     "Nerd Font Patcher assets",
-                ):
-                    ensure_font_patcher_available(font_config, runtime_context)
+                ),
+            ):
+                ensure_font_patcher_available(font_config, runtime_context)
 
 
 class BuildRuntimeContextCacheTest(unittest.TestCase):

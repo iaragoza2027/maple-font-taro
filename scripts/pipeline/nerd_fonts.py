@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-from concurrent.futures import Executor
 from dataclasses import dataclass
 from os import makedirs, path, remove
 from pathlib import Path
-from typing import Callable
+from typing import TYPE_CHECKING
 
 from scripts.cjk.variable import (
     drop_font_tables,
     merge_masters_into_vf,
     recalculate_font_metrics,
 )
-from scripts.config.base import ResolvedConfig
-from scripts.config.runtime import BuildRuntimeContext
 from scripts.font_ops.fonttools import TTFont, load_font, save_font_atomic
 from scripts.font_ops.glyph_transform import smart_change_width
 from scripts.font_ops.merge import merge_ttfonts
@@ -30,11 +27,19 @@ from scripts.utils.errors import BuildDependencyError
 from scripts.utils.logging import (
     TaskName,
     log_task,
-    logger,
     log_task_complete,
+    logger,
     set_log_task,
 )
-from scripts.utils.process import run as run_command, run_process_jobs
+from scripts.utils.process import run as run_command
+from scripts.utils.process import run_process_jobs
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from concurrent.futures import Executor
+
+    from scripts.config.base import ResolvedConfig
+    from scripts.config.runtime import BuildRuntimeContext
 
 
 @dataclass(frozen=True)
@@ -389,7 +394,7 @@ def build_nerd_font_variable_fonts(
     jobs = []
     output_dir = Path(runtime_context.output_nf_variable)
     for variable_path, static_source_path in zip(
-        variable_paths, resolved_static_source_paths
+        variable_paths, resolved_static_source_paths, strict=False
     ):
         is_italic = variable_path.name.endswith("-Italic[wght].ttf")
         style_suffix = "-Italic" if is_italic else ""

@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-from concurrent.futures import Executor
-from dataclasses import dataclass
-from pathlib import Path
 import re
 import shutil
-from typing import Literal
+from dataclasses import dataclass
+from pathlib import Path
+from typing import TYPE_CHECKING, Literal
 
-from scripts.config.base import ResolvedConfig
-from scripts.config.runtime import BuildRuntimeContext
 from scripts.feature.apply import prepare_designspace_features
 from scripts.font_ops.fonttools import load_font
 from scripts.font_ops.glyphs import (
@@ -39,6 +36,12 @@ from scripts.utils.logging import (
     set_log_task,
 )
 from scripts.utils.process import create_process_executor, run_process_jobs
+
+if TYPE_CHECKING:
+    from concurrent.futures import Executor
+
+    from scripts.config.base import ResolvedConfig
+    from scripts.config.runtime import BuildRuntimeContext
 
 
 @dataclass(frozen=True)

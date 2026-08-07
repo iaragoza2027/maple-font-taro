@@ -1,10 +1,10 @@
-from collections.abc import Sequence
 import re
+from collections.abc import Sequence
 from typing import Literal, TypeAlias
 
 
 class Line:
-    __slots__ = ("text", "level")
+    __slots__ = ("level", "text")
 
     def __init__(self, text: str, level=0) -> None:
         self.text = text
@@ -15,9 +15,13 @@ class Line:
 
 
 class Clazz:
-    __slots__ = ("name", "glyphs")
+    __slots__ = ("glyphs", "name")
 
-    def __init__(self, name: str, glyphs: "Sequence[str | Clazz]" = []) -> None:
+    def __init__(
+        self, name: str, glyphs: "Sequence[str | Clazz] | None" = None
+    ) -> None:
+        if glyphs is None:
+            glyphs = []
         self.name = name
         self.glyphs = tuple(glyphs)
 
@@ -32,7 +36,7 @@ GlyphContext = str | Clazz | Sequence[str | Clazz] | None
 
 
 class Lookup:
-    __slots__ = ("name", "desc", "content")
+    __slots__ = ("content", "desc", "name")
 
     def __init__(self, name: str, desc: str | None, content: list) -> None:
         self.name = name
@@ -50,8 +54,7 @@ class Lookup:
 
         arr.append(Line(f"lookup {self.name} {{"))
 
-        for c in flatten_to_lines(self.content):
-            arr.append(c.indent())
+        arr.extend(c.indent() for c in flatten_to_lines(self.content))
 
         arr.append(Line(f"}} {self.name};"))
         return arr
@@ -61,7 +64,7 @@ FeatureContent: TypeAlias = Clazz | Lookup | Line | Sequence["FeatureContent"] |
 
 
 class Feature:
-    __slots__ = ("tag", "content", "has_lookup", "version")
+    __slots__ = ("content", "has_lookup", "tag", "version")
 
     def __init__(self, tag: str, content: Clazz | Lookup | Line | list, version):
         self.tag = tag
@@ -86,9 +89,9 @@ class Feature:
         return []
 
     def state(self) -> list[Line]:
-        target = []
-        for c in self.get_name_lines() + flatten_to_lines(self.content):
-            target.append(c.indent())
+        target = [
+            c.indent() for c in self.get_name_lines() + flatten_to_lines(self.content)
+        ]
 
         return [
             Line(f"feature {self.tag} {{"),
@@ -103,11 +106,11 @@ REGEXP = r"\(.*\)"
 
 
 class FeatureWithDocs(Feature):
-    __slots__ = ("id", "desc", "example")
+    __slots__ = ("desc", "example", "id")
 
     def __init__(
         self,
-        id: int,
+        id: int,  # noqa: A002
         tag: str,
         desc: str,
         content: Clazz | Lookup | Line | list,
@@ -126,7 +129,7 @@ class FeatureWithDocs(Feature):
 class CharacterVariant(FeatureWithDocs):
     def __init__(
         self,
-        id: int,
+        id: int,  # noqa: A002
         desc: str,
         content: Clazz | Lookup | Line | list,
         version: str,
@@ -163,7 +166,7 @@ class CharacterVariant(FeatureWithDocs):
 class StylisticSet(FeatureWithDocs):
     def __init__(
         self,
-        id: int,
+        id: int,  # noqa: A002
         desc: str,
         content: Clazz | Lookup | Line | list,
         version: str,
@@ -277,8 +280,7 @@ def __subst(source: str, target: str) -> Line:
 def __parse_glyph(g: str | Clazz):
     if isinstance(g, str) and len(g) > 1 and g[0] in __PUNCTUATION_MAP:
         return "_".join(map(__gly, list(g))) + ".liga"
-    else:
-        return __gly(g)
+    return __gly(g)
 
 
 SPC = "SPC"
@@ -333,7 +335,7 @@ def cls_states(*cls: Clazz) -> list[Line]:
     """
     Declare classes with prefix empty line.
     """
-    return [Line("")] + flatten_to_lines(cls)
+    return [Line(""), *flatten_to_lines(cls)]
 
 
 def create(content: list, indent=2) -> str:
@@ -344,13 +346,17 @@ def create(content: list, indent=2) -> str:
             continue
 
         # Add spacing before features and lookups
-        if lines and lines[-1].text and not lines[-1].text.startswith("#"):
-            if (
+        if (
+            lines
+            and lines[-1].text
+            and not lines[-1].text.startswith("#")
+            and (
                 line.text.startswith("#")
                 or (line.text.startswith("lookup") and not line.text.endswith(";"))
                 or (line.text.startswith("feature ") and line.text.endswith("{"))
-            ):
-                lines.append(Line(""))
+            )
+        ):
+            lines.append(Line(""))
 
         lines.append(line)
 
@@ -422,7 +428,7 @@ def subst_liga(
     target: str | None = None,
     lookup_name: str | None = None,
     desc: str | None = None,
-    surround: list[tuple[GlyphContext, GlyphContext]] = [],
+    surround: list[tuple[GlyphContext, GlyphContext]] | None = None,
     ign_prefix: str | Clazz | None = None,
     ign_suffix: str | Clazz | None = None,
     extra_rules: list[Line] | None = None,
@@ -471,6 +477,8 @@ def subst_liga(
             Line("} lookup exclam_equal.liga;")
         ]
     """
+    if surround is None:
+        surround = []
     source_arr = list(source)
     if not target:
         target = gly(source)
@@ -484,17 +492,16 @@ def subst_liga(
     def to_list(item):
         if item is None:
             return []
-        elif isinstance(item, (str, Clazz)):
+        if isinstance(item, (str, Clazz)):
             return [item]
-        else:
-            return list(item)
+        return list(item)
 
     generated_ignores = []
     if ign_prefix:
         generated_ignores.append(ign(ign_prefix, source_arr[0], source_arr[1:]))
     if ign_suffix:
         generated_ignores.append(
-            ign(None, source_arr[0], source_arr[1:] + [ign_suffix])
+            ign(None, source_arr[0], [*source_arr[1:], ign_suffix])
         )
 
     subst_rules = []
@@ -553,7 +560,7 @@ def flatten_to_lines(
     for item in recursive_iterate(data):
         if not item:
             continue
-        elif isinstance(item, Clazz):
+        if isinstance(item, Clazz):
             result.append(item.state())
         elif isinstance(item, Line):
             result.append(item)

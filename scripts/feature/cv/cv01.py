@@ -1,6 +1,7 @@
 import scripts.feature.ast as ast
 from scripts.feature.calt._infinite_utils import InfiniteOptions
 
+_DEFAULT_INFINITE_OPTIONS = InfiniteOptions()
 
 sfx = ".cv01"
 
@@ -64,7 +65,7 @@ def cv01_subst(options: InfiniteOptions):
     ]
 
 
-def cv01_feat(options: InfiniteOptions = InfiniteOptions()):
+def cv01_feat(options: InfiniteOptions = _DEFAULT_INFINITE_OPTIONS):
     cv01_desc = "Normalize special symbols (`@ $ & % Q => ->`)"
     return ast.CharacterVariant(
         id=1, desc=cv01_desc, content=cv01_subst(options), version="7.0", example="@$&"

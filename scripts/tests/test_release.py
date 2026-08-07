@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 import tempfile
 import unittest
 from contextlib import redirect_stdout
 from io import StringIO
+from pathlib import Path
 from unittest.mock import call, patch
 
 from scripts.task.release import (
     ReleaseBump,
     ReleasePlan,
     generate_release_assets,
-    next_version,
     next_font_version,
+    next_version,
     release,
     select_release_bump,
 )
@@ -107,7 +107,7 @@ class ReleaseVersionTest(unittest.TestCase):
     def test_cancelled_menu_does_not_mutate_or_publish(
         self,
         create_plans,
-        select,
+        _select,
         prompt,
         run,
         generate,
@@ -198,7 +198,7 @@ class ReleaseAssetTest(unittest.TestCase):
 
     def test_variable_woff2_builds_default_narrow_and_slim_widths(self) -> None:
         plan = ReleasePlan(tag="v0.0", build_args=("--build",))
-        with (
+        with (  # noqa: SIM117
             patch("scripts.task.release.build_main") as build,
             patch("scripts.task.release.convert_to_web"),
             patch("scripts.task.release.rename_woff_files"),

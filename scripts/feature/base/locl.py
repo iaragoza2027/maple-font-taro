@@ -1,6 +1,5 @@
 import scripts.feature.ast as ast
 
-
 i_acc = ast.__subst("i", "idotaccent")
 locl_0 = ast.Lookup(
     "locl_latn_0",

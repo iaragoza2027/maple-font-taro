@@ -3,27 +3,25 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
-from concurrent.futures import Executor
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock, call, patch
 
-
-from scripts.pipeline.orchestrator import BuildPlan, MapleBuildPipeline
-from scripts.pipeline.cjk_outputs import (
-    build_cjk_extended_static_fonts_from_cache,
-    build_cjk_extended_variable_outputs,
-    cjk_static_base_profiles,
-    ensure_cjk_variable_fonts,
-)
+from scripts.cjk.config import CJKBuildConfig, CJKOutputConfig
+from scripts.config.runtime import BuildRuntimeContext, CJKStaticBaseResolution
 from scripts.pipeline.cache import (
     CACHE_SCHEMA,
     output_snapshot,
     stage_digest,
     write_cache_record,
 )
-from scripts.cjk.config import CJKBuildConfig, CJKOutputConfig
-from scripts.config.runtime import BuildRuntimeContext, CJKStaticBaseResolution
+from scripts.pipeline.cjk_outputs import (
+    build_cjk_extended_static_fonts_from_cache,
+    build_cjk_extended_variable_outputs,
+    cjk_static_base_profiles,
+    ensure_cjk_variable_fonts,
+)
+from scripts.pipeline.orchestrator import BuildPlan, MapleBuildPipeline
 from scripts.tests.pipeline_fixtures import (
     make_builtin_entry,
     make_custom_entry,
@@ -34,6 +32,9 @@ from scripts.tests.pipeline_fixtures import (
     write_test_font,
 )
 from scripts.utils.logging import TaskName
+
+if TYPE_CHECKING:
+    from concurrent.futures import Executor
 
 
 class PipelineCJKOutputsTest(unittest.TestCase):
@@ -52,7 +53,7 @@ class PipelineCJKOutputsTest(unittest.TestCase):
                 self.assertEqual(target_styles, expected_styles)
                 entry = make_custom_entry("JP")
                 runtime_context = make_runtime_context(tmp_path)
-                executor = cast(Executor, MagicMock())
+                executor = cast("Executor", MagicMock())
                 profiles = cjk_static_base_profiles(
                     font_config,
                     runtime_context,
@@ -117,7 +118,7 @@ class PipelineCJKOutputsTest(unittest.TestCase):
                 patch("scripts.pipeline.orchestrator.log_task", manager.log_task),
                 patch("scripts.pipeline.orchestrator.logger.info", manager.info),
             ):
-                pipeline._build_cjk_outputs(cast(Executor, MagicMock()))
+                pipeline._build_cjk_outputs(cast("Executor", MagicMock()))
 
             self.assertEqual(
                 manager.mock_calls,
@@ -171,7 +172,7 @@ class PipelineCJKOutputsTest(unittest.TestCase):
                 ),
                 patch("scripts.pipeline.orchestrator.logger.info", manager.info),
             ):
-                pipeline._build_cjk_outputs(cast(Executor, MagicMock()))
+                pipeline._build_cjk_outputs(cast("Executor", MagicMock()))
 
             build_cjk.assert_called_once()
             self.assertEqual(build_cjk.call_args.args[4], {"NF-CN", "CN"})
@@ -241,7 +242,7 @@ class PipelineCJKOutputsTest(unittest.TestCase):
                     _args[4],
                 ),
             ) as build_cjk:
-                pipeline._build_cjk_outputs(cast(Executor, MagicMock()))
+                pipeline._build_cjk_outputs(cast("Executor", MagicMock()))
 
             build_cjk.assert_called_once()
             self.assertEqual(build_cjk.call_args.args[4], {"NF-CN"})
@@ -265,7 +266,7 @@ class PipelineCJKOutputsTest(unittest.TestCase):
                     _args[4],
                 ),
             ) as build_cjk:
-                pipeline._build_cjk_outputs(cast(Executor, MagicMock()))
+                pipeline._build_cjk_outputs(cast("Executor", MagicMock()))
 
             self.assertEqual(
                 [call.args[4] for call in build_cjk.call_args_list],
@@ -301,7 +302,7 @@ class PipelineCJKOutputsTest(unittest.TestCase):
                     "Stage nf-cn-static did not produce all expected output files",
                 ),
             ):
-                pipeline._build_cjk_outputs(cast(Executor, MagicMock()))
+                pipeline._build_cjk_outputs(cast("Executor", MagicMock()))
 
             build_cjk.assert_called_once()
             self.assertEqual(build_cjk.call_args.args[4], {"NF-CN", "CN"})
@@ -549,7 +550,7 @@ class PipelineCJKOutputsTest(unittest.TestCase):
 
             with patch(
                 "scripts.pipeline.cjk_outputs.build_cjk_extended_variable_fonts",
-                side_effect=lambda entry, *_args, **kwargs: (
+                side_effect=lambda _entry, *_args, **kwargs: (
                     captured_output_dirs.append(kwargs["output_locale"])
                     or (Path("regular"), Path("italic"))
                 ),
@@ -568,7 +569,7 @@ class PipelineCJKOutputsTest(unittest.TestCase):
 
             with patch(
                 "scripts.pipeline.cjk_outputs.build_cjk_extended_variable_fonts",
-                side_effect=lambda entry, *_args, **kwargs: (
+                side_effect=lambda _entry, *_args, **kwargs: (
                     captured_profiles.append(
                         (kwargs["output_locale"], kwargs["include_nerd_font"])
                     )

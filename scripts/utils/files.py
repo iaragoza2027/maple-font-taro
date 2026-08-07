@@ -1,19 +1,20 @@
 from __future__ import annotations
 
-import json
-from collections.abc import Callable
-from datetime import datetime, timezone
 import hashlib
-from os import environ, path, walk
-from pathlib import Path
+import json
 import shutil
 import stat
-from typing import Any
+from datetime import datetime, timezone
+from os import environ, path, walk
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 from zipfile import ZIP_BZIP2, ZIP_DEFLATED, ZipFile, ZipInfo
 
 from scripts.utils.logging import logger
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 SOURCE_DATE_EPOCH = "SOURCE_DATE_EPOCH"
 ZIP_MIN_EPOCH = 315_532_800
@@ -223,6 +224,6 @@ def get_directory_hash(dir_path: str) -> str:
                 with open(file_path, "rb") as file:
                     while data := file.read(4096):
                         hasher.update(data)
-            except (IOError, OSError) as error:
+            except OSError as error:
                 raise Exception(f"Error reading file: {file_path} - {error}") from error
     return hasher.hexdigest()

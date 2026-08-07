@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, cast
 
 from fontTools.merge import Merger
+
 from scripts.font_ops.cmap import merge_cmap_entries
 from scripts.font_ops.fonttools import TTFont, adapt_ttfont, load_font
-
 from scripts.utils.logging import logger
+
+if TYPE_CHECKING:
+    from scripts.font_ops.fonttools import MetricsTable
 
 
 def merge_ttfonts(
@@ -23,8 +27,8 @@ def merge_ttfonts(
         extra_glyf = extra_font["glyf"]
         base_glyph_order = base_font.getGlyphOrder()
         extra_glyph_order = extra_font.getGlyphOrder()
-        base_hmtx = base_font["hmtx"] if "hmtx" in base_font else None
-        extra_hmtx = extra_font["hmtx"] if "hmtx" in extra_font else None
+        base_hmtx = cast("MetricsTable | None", base_font.get("hmtx", None))
+        extra_hmtx = cast("MetricsTable | None", extra_font.get("hmtx", None))
         base_glyph_names = set(base_glyph_order)
         glyphs_to_add: list[str] = []
 

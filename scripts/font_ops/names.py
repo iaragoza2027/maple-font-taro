@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from scripts.font_ops.constant import INSTANCE_WEIGHT_MAPPING
-from scripts.font_ops.fonttools import TTFont
 from scripts.utils.logging import logger
+
+if TYPE_CHECKING:
+    from scripts.font_ops.fonttools import TTFont
 
 RESERVED_NAME_IDS = {1, 2, 3, 4, 5, 6, 16, 17, 25}
 
@@ -28,22 +30,24 @@ class FontNameConfig(Protocol):
     def freeze_config_str(self) -> str: ...
 
 
-def set_font_name(font: TTFont, name: str, id: int, mac: bool | None = None):
-    font["name"].setName(name, nameID=id, platformID=3, platEncID=1, langID=0x409)
+def set_font_name(font: TTFont, name: str, name_id: int, mac: bool | None = None):
+    font["name"].setName(name, nameID=name_id, platformID=3, platEncID=1, langID=0x409)
     if mac:
-        font["name"].setName(name, nameID=id, platformID=1, platEncID=0, langID=0x0)
+        font["name"].setName(
+            name, nameID=name_id, platformID=1, platEncID=0, langID=0x0
+        )
 
 
-def get_font_name(font: TTFont, id: int) -> str:
+def get_font_name(font: TTFont, name_id: int) -> str:
     return (
         font["name"]
-        .getName(nameID=id, platformID=3, platEncID=1, langID=0x409)
+        .getName(nameID=name_id, platformID=3, platEncID=1, langID=0x409)
         .__str__()
     )
 
 
-def del_font_name(font: TTFont, id: int):
-    font["name"].removeNames(nameID=id)
+def del_font_name(font: TTFont, name_id: int):
+    font["name"].removeNames(nameID=name_id)
 
 
 def parse_style_name(style_name_compact: str):
@@ -137,7 +141,7 @@ def ensure_variable_instance_names(
     instance_names: set[str] = set()
 
     for instance_index, instance in enumerate(font["fvar"].instances, start=1):
-        weight = int(round(float(instance.coordinates.get("wght", 400))))
+        weight = round(float(instance.coordinates.get("wght", 400)))
         fallback_name = weight_names.get(weight, str(weight))
         if italic:
             fallback_name = (

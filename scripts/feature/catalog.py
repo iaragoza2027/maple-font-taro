@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from scripts.feature import ast
+from typing import TYPE_CHECKING
+
 from scripts.feature.cv import cv96, cv97, cv98, cv99
 
+if TYPE_CHECKING:
+    from scripts.feature import ast
 
 NORMAL_ENABLED_FEATURES = (
     "cv01",

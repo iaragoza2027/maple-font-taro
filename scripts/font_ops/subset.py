@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 from fontTools.subset import Subsetter
 
-from scripts.font_ops.fonttools import SubsetOptions, TTFont
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from scripts.font_ops.fonttools import SubsetOptions, TTFont
 
 
 def subset_to_codepoints(

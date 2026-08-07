@@ -2,11 +2,9 @@ from __future__ import annotations
 
 import tempfile
 import unittest
-from concurrent.futures import Executor
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock, patch
-
 
 from scripts.pipeline.fontmake import (
     FontmakeBuildContext,
@@ -18,6 +16,9 @@ from scripts.tests.pipeline_fixtures import (
     make_font_config,
     make_runtime_context,
 )
+
+if TYPE_CHECKING:
+    from concurrent.futures import Executor
 
 
 class PipelineFontmakeTest(unittest.TestCase):
@@ -44,7 +45,7 @@ class PipelineFontmakeTest(unittest.TestCase):
             context = prepare_fontmake_sources(
                 font_config,
                 runtime_context,
-                cast(Executor, executor_mock),
+                cast("Executor", executor_mock),
             )
 
             self.assertEqual(runtime_context.resolved_vertical_metric, (1100, -300))
@@ -79,7 +80,7 @@ class PipelineFontmakeTest(unittest.TestCase):
             ),
             (500, 600),
         )
-        executor = cast(Executor, MagicMock())
+        executor = cast("Executor", MagicMock())
 
         with patch(
             "scripts.pipeline.fontmake.compile_fontmake_branches"

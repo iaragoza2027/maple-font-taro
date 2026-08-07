@@ -6,7 +6,6 @@ from collections.abc import Callable
 from scripts.task import cjk, designspace, fea, nf, page, publish, release
 from scripts.utils.logging import TaskName, configure_logging, log_task
 
-
 CommandHandler = Callable[[argparse.Namespace], None]
 
 

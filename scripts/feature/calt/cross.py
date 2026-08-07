@@ -1,5 +1,5 @@
 from scripts.feature import ast
-from scripts.feature.base.clazz import cls_zero, cls_digit
+from scripts.feature.base.clazz import cls_digit, cls_zero
 
 
 def get_lookup(cls_hex_letter: ast.Clazz):

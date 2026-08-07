@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from io import BytesIO
 import json
 import os
 import tempfile
 import unittest
+from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
 from zipfile import ZipFile
@@ -308,9 +308,9 @@ class CachedDownloadTest(unittest.TestCase):
             target = Path(tmp) / "font.ttf"
 
             def fail_download(
-                url: str,
+                _url: str,
                 temporary_path: str | Path,
-                github_mirror: str,
+                _github_mirror: str,
             ) -> None:
                 Path(temporary_path).write_bytes(b"partial")
                 raise OSError("network unavailable")

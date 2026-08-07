@@ -4,10 +4,8 @@ import argparse
 from dataclasses import asdict, dataclass, field
 from os import getenv
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
-from scripts.cjk.config import CJKBuildConfig
-from scripts.cjk.presets import CJKPresetSpec
 from scripts.cjk.resolver import (
     config_from_data,
     serialize_cjk_build_config,
@@ -18,6 +16,10 @@ from scripts.feature.compiler import (
 from scripts.font_ops.constant import INSTANCE_WEIGHT_MAPPING
 from scripts.font_ops.nerd_font import NerdFontVariant
 from scripts.in_browser import get_freeze_config_str as get_browser_freeze_config_str
+
+if TYPE_CHECKING:
+    from scripts.cjk.config import CJKBuildConfig
+    from scripts.cjk.presets import CJKPresetSpec
 
 BuiltinCJKLocaleId = Literal["cn", "jp", "tc", "kr"]
 BUILTIN_CJK_LOCALES: tuple[BuiltinCJKLocaleId, ...] = ("cn", "jp", "tc", "kr")
@@ -719,17 +721,17 @@ __all__ = [
     "CustomCJKEntryConfig",
     "FeatureBuildConfig",
     "NerdFontBuildConfig",
-    "ResolvedConfig",
     "ResolvedCJKBuildEntry",
+    "ResolvedConfig",
     "default_feature_freeze",
     "default_weight_mapping",
+    "normal_enabled_features",
     "normalize_build_formats",
-    "normalize_cjk_output_format",
     "normalize_cjk_config",
     "normalize_cjk_locale_list",
+    "normalize_cjk_output_format",
     "normalize_feature_freeze",
     "parse_codepoint_alias",
     "parse_scale_factor",
     "serialize_codepoint_alias",
-    "normal_enabled_features",
 ]

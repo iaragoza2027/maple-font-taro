@@ -4,23 +4,19 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock, call, patch
 
-
-from scripts.config.base import (
-    BuildFormatId,
-)
-from scripts.pipeline.fontmake import (
-    FontmakeBuildContext,
-)
-from scripts.pipeline.orchestrator import MapleBuildPipeline
+from scripts.cjk.config import CJKBuildConfig, CJKOutputConfig
 from scripts.pipeline.cache import (
     CACHE_SCHEMA,
     stage_digest,
     write_cache_record,
 )
-from scripts.cjk.config import CJKBuildConfig, CJKOutputConfig
+from scripts.pipeline.fontmake import (
+    FontmakeBuildContext,
+)
+from scripts.pipeline.orchestrator import MapleBuildPipeline
 from scripts.tests.pipeline_fixtures import (
     TEST_STYLES,
     make_builtin_entry,
@@ -31,6 +27,11 @@ from scripts.tests.pipeline_fixtures import (
     write_test_font,
 )
 from scripts.utils.logging import TaskName
+
+if TYPE_CHECKING:
+    from scripts.config.base import (
+        BuildFormatId,
+    )
 
 
 class PipelineCachePolicyTest(unittest.TestCase):
@@ -184,7 +185,7 @@ class PipelineCachePolicyTest(unittest.TestCase):
                 cjk_format=cjk_format,
                 cjk=bool(entries),
             ):
-                font_config.behavior.formats = cast(list[BuildFormatId], formats)
+                font_config.behavior.formats = cast("list[BuildFormatId]", formats)
                 font_config.feature.hinted = hinted
                 font_config.behavior.cjk_output_format = cjk_format
                 font_config.cjk.entries = entries
@@ -285,7 +286,7 @@ class PipelineCachePolicyTest(unittest.TestCase):
                     pipeline._base_stage_expected_paths(stage),
                 )
             pipeline.write_build_record()
-            with patch.object(
+            with patch.object(  # noqa: SIM117
                 MapleBuildPipeline,
                 "prepare_output_root",
                 side_effect=lambda: events.append("prepare"),

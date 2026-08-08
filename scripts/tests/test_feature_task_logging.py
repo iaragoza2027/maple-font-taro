@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import unittest
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from scripts.task.fea import build_fea
 from scripts.utils.files import join_path
@@ -23,7 +23,7 @@ class FeatureTaskLoggingTest(unittest.TestCase):
             patch("scripts.task.fea.get_freeze_moving_rules", return_value=[]),
             patch("scripts.task.fea.read_text", return_value="MOVING_RULES = []"),
             patch("scripts.task.fea.write_text"),
-            patch("scripts.task.fea.replace_section"),
+            patch("scripts.task.fea.replace_section") as replace_section,
             patch("scripts.task.fea.update_schema"),
             patch("scripts.task.fea.update_feature_freeze"),
         ):
@@ -48,6 +48,17 @@ class FeatureTaskLoggingTest(unittest.TestCase):
             messages,
         )
         self.assertIn("Synchronized feature configuration: path=config.json", messages)
+        for border in [
+            "<!-- CALT -->",
+            "<!-- CV -->",
+            "<!-- CV-IT -->",
+            "<!-- CV-CN -->",
+            "<!-- SS -->",
+        ]:
+            self.assertIn(
+                call(join_path("docs", "opentype-features.md"), border, ""),
+                replace_section.call_args_list,
+            )
         self.assertIn(
             "Synchronized browser feature rules: "
             f"path={join_path('scripts', 'in_browser.py')}",

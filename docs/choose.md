@@ -1,29 +1,63 @@
 # Naming and Choosing Fonts
 
-<!--todo)) 用表格的方式。v8新增了宽度，需要添加-->
+Maple Mono release packages are split by font features, character width, font format, and character set. The examples below use the default base name `MapleMono`; if you customize the base name, the other components follow the same rules.
 
-### 字体特性
+## Quick Selection
 
-- **Ligature**: 带有连字的默认版本 (`Maple Mono`)
-- **No-Ligature**: 没有连字的默认版本 (`Maple Mono NL`)
-- **Normal-Ligature**: 带有连字的 [`--normal` 预设](#预设) (`Maple Mono Normal`)
-- **Normal-No-Ligature**: 没有连字的 [`--normal` 预设](#预设) (`Maple Mono Normal NL`)
+| Use case                     | Recommended choice                    | Why                                                                                                    |
+| ---------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| General coding               | `TTF` or `OTF`                        | TTF has the broadest compatibility; OTF or unhinted TTF can be preferable on high-resolution displays. |
+| Low-resolution displays      | `TTF-AutoHint`                        | Autohinting improves small-size TrueType rasterization.                                                |
+| Web pages                    | `WOFF2`                               | The compressed format is smaller and works well with CSS font loading.                                 |
+| Terminal icons               | `NF`                                  | Includes Nerd Font icons; configure the terminal to use the corresponding NF font.                     |
+| Icons and CJK together       | `NF-CN`, `NF-TC`, `NF-JP`, or `NF-KR` | Includes Nerd Font icons and the selected CJK locale.                                                  |
+| Continuous weight adjustment | `Variable`                            | Use the `wght` axis to select a weight without installing multiple static files.                       |
 
-### 字体格式和字符集
+## Filename Components
 
-- **Variable**: 最小版本，通过字体的可变轴改变字体粗细
-- **TTF**: 最小版本，ttf 格式 [推荐！]
-- **OTF**: 最小版本，otf 格式
-- **WOFF2**: 最小版本，woff2 格式，多用于网页加载
-- **NF**: 嵌入 Nerd-Font 的版本，为终端添加图标 (带有 `-NF` 后缀)
-- **CN**: 中文版本，嵌入中文和日文字形 (带有 `-CN` 后缀)
-- **NF-CN**: 完整版本，嵌入图标、中文和日文字形 (带有 `-NF-CN` 后缀)
+### Features and Character Widths
 
-### 字体微调
+Filename components are combined in this order: base name, feature preset, width, and style. Feature and width suffixes are compact, so they are not separated by additional hyphens.
 
-- **Hinted 字体** 用于低分辨率屏幕，以获得更好的渲染效果。根据我个人的经验，如果您的屏幕分辨率低于或等于 1080P，建议使用 "hinted 字体"。使用 "unhinted 字体" 会导致文本错位或粗细不均。
-  - 在这种情况下，您可以选择 `MapleMono-TTF-AutoHint` / `MapleMono-NF` / `MapleMono-NF-CN` 等。
-- **Unhinted 字体** 用于高分辨率屏幕（例如 MacBook）。使用 "hinted 字体" 会使您的文本模糊或看起来很奇怪。
-  - 在这种情况下，您可以选择 `MapleMono-OTF` / `MapleMono-TTF` / `MapleMono-NF-unhinted` / `MapleMono-NF-CN-unhinted` 等。
-- 为什么存在 `-AutoHint` 和 `-unhinted` 后缀？
-  - 为了向后兼容，我保留了原始命名方案。`-AutoHint` 仅用于 `TTF` 格式。
+| Configuration                      | Suffix     | Example family name    | Description                                                                                                                  |
+| ---------------------------------- | ---------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Default ligatures                  | None       | `Maple Mono`           | The default glyph design and ligature behavior.                                                                              |
+| Ligatures disabled                 | `NL`       | `Maple Mono NL`        | Disables the default ligatures; for example, `MapleMonoNL-Regular.ttf`.                                                      |
+| `--normal` preset                  | `Normal`   | `Maple Mono Normal`    | Uses glyph designs closer to common programming fonts; see the [`--normal` preset in README.md](../README.md#normal-preset). |
+| `--normal` with ligatures disabled | `NormalNL` | `Maple Mono Normal NL` | Applies both `Normal` and `NL`.                                                                                              |
+| Default width                      | None       | `Maple Mono`           | Latin glyph target width is 600.                                                                                             |
+| Narrow width                       | `NR`       | `Maple Mono NR`        | The `narrow` mode, with a Latin glyph target width of 550.                                                                   |
+| Slim width                         | `SL`       | `Maple Mono SL`        | The `slim` mode, with a Latin glyph target width of 500.                                                                     |
+
+For example, `--normal --no-liga --width narrow` produces `MapleMonoNormalNLNR-Regular.ttf`. Width settings also apply to Variable, NF, and CJK outputs.
+
+### Font Formats
+
+| Format or marker | Example                       | Description                                                                                         |
+| ---------------- | ----------------------------- | --------------------------------------------------------------------------------------------------- |
+| `Variable`       | `MapleMono[wght].ttf`         | A variable font whose weight is controlled through the `wght` axis. Italic files include `-Italic`. |
+| `TTF`            | `MapleMono-Regular.ttf`       | A static TrueType font with broad application compatibility.                                        |
+| `OTF`            | `MapleMono-Regular.otf`       | A static OpenType font for desktop applications with OpenType support.                              |
+| `WOFF2`          | `MapleMono-Regular.ttf.woff2` | A compressed WOFF2 font intended mainly for web pages.                                              |
+| `NF`             | `MapleMono-NF-Regular.ttf`    | Includes Nerd Font icons; `NF` can also be combined with feature and width suffixes.                |
+
+### CJK Character Sets
+
+CJK outputs use a locale suffix. Regular CJK and NF-CJK fonts are written to `fonts/<LOCALE>/` and `fonts/NF-<LOCALE>/`; Variable outputs use the corresponding `Variable-<LOCALE>` and `Variable-NF-<LOCALE>` directories.
+
+| Locale | Coverage                                                                | Regular CJK example        | NF-CJK example                |
+| ------ | ----------------------------------------------------------------------- | -------------------------- | ----------------------------- |
+| `CN`   | Simplified Chinese, with common Traditional Chinese and Japanese ranges | `MapleMono-CN-Regular.ttf` | `MapleMono-NF-CN-Regular.ttf` |
+| `TC`   | Traditional Chinese                                                     | `MapleMono-TC-Regular.ttf` | `MapleMono-NF-TC-Regular.ttf` |
+| `JP`   | Japanese                                                                | `MapleMono-JP-Regular.ttf` | `MapleMono-NF-JP-Regular.ttf` |
+| `KR`   | Korean                                                                  | `MapleMono-KR-Regular.ttf` | `MapleMono-NF-KR-Regular.ttf` |
+
+Locales can be combined with feature and width settings. For example, `--cjk jp --nf --width slim` produces the static file `MapleMonoSL-NF-JP-Regular.ttf`. CJK builds are disabled by default; see the [build guide](build.md) for configuration details.
+
+## Hinted and Unhinted Fonts
+
+Hinted fonts include TrueType rasterization instructions and are suited to low-resolution displays and small font sizes. Choose `TTF-AutoHint`, or use the default hinted `NF` and `NF-CJK` outputs.
+
+Unhinted fonts omit those instructions and are suited to high-resolution displays such as modern MacBooks. Choose `OTF`, regular `TTF`, or an `NF` / CJK release package whose name includes `-unhinted`; on low-resolution displays, unhinted fonts may look blurry, misaligned, or uneven in weight.
+
+`-AutoHint` and `-unhinted` identify release packages or output directories; they are not OpenType features. `-AutoHint` is used only for automatically hinted TTF output, and both suffixes are retained for compatibility with existing installation workflows and naming conventions.

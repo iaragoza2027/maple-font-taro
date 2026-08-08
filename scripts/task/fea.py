@@ -14,7 +14,6 @@ from scripts.feature.compiler import (
     get_freeze_moving_rules,
     get_ss_desc,
     get_total_feat_dict,
-    normal_enabled_features,
 )
 from scripts.utils.files import (
     join_path,
@@ -94,7 +93,7 @@ def build_fea(output: str) -> None:
         write_text(fea_path, f"# {banner}\n\n{content}")
         logger.info("Saved feature file to %s", fea_path)
 
-    md_path = join_path(output, "README.md")
+    md_path = join_path("docs", "opentype-features.md")
     sections = {
         "<!-- CALT -->": get_all_calt_text(),
         "<!-- CV -->": get_cv_desc(),
@@ -113,11 +112,6 @@ def build_fea(output: str) -> None:
         "Synchronized feature schema: path=%s", join_path("source", "schema.json")
     )
     logger.info("Synchronized feature configuration: path=config.json")
-
-    feat_str = ", ".join(normal_enabled_features)
-    for readme_path in ["README.md", "README_CN.md"]:
-        replace_section(readme_path, "<!-- NORMAL -->", f"```\n{feat_str}\n```")
-        logger.info("Synchronized feature documentation: path=%s", readme_path)
 
     script_path = join_path("scripts", "in_browser.py")
     in_browser_script = read_text(script_path)

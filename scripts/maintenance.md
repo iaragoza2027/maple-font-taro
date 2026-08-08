@@ -47,9 +47,8 @@ Feature generation updates these tracked outputs:
 - `source/features/cn.fea`
 - `source/features/regular_cn.fea`
 - `source/features/italic_cn.fea`
-- `source/features/README.md` and `source/features/README_CN.md`
+- `docs/opentype-features.md`
 - `source/schema.json` and the feature-freeze section in `config.json`
-- Generated feature sections in `README.md` and `README_CN.md`
 - The moving-rule list in `scripts/in_browser.py`
 
 For landing-page data, run `uv run task.py page` only when those generated files are part of the change. Use `--woff2` to regenerate web fonts; reserve `--sync` for an intentional remote submodule update and commit.

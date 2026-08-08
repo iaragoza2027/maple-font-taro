@@ -138,15 +138,6 @@ Maple Mono provides many fine-grained OpenType features. To reduce configuration
 
 Maple Mono's default glyph design is distinctive and personalized, which may not suit every taste or use case. The `--normal` build preset provides glyphs similar to `JetBrains Mono` (`0` has a slash in the middle instead of a dot).
 
-`--normal` enables the following features:
-<!-- NORMAL -->
-
-```
-cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
-```
-
-<!-- NORMAL -->
-
 [Preview#todo]()
 
 #### Custom OpenType Features, Such as Status-Label Ligatures

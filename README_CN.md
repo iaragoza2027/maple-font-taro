@@ -139,15 +139,6 @@ Maple Mono 提供大量细粒度的 OpenType 特性。为了减少配置成本�
 
 Maple Mono 的默认字形设计偏向独特和个性化，可能不适合所有人的审美或使用场景。为此，Maple Mono 提供了 `--normal` 构建预设，生成类似 `JetBrains Mono` 的字形（`0` 的中间为斜线，而不是圆点）。
 
-`--normal` 会启用以下特性：
-<!-- NORMAL -->
-
-```
-cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
-```
-
-<!-- NORMAL -->
-
 [预览#todo]()
 
 #### 自定义 OpenType 特性（如添加标签连字内容）

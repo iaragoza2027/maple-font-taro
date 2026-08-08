@@ -3,11 +3,13 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock, call, patch
 
 from scripts.cjk.config import CJKBuildConfig, CJKOutputConfig
+from scripts.cjk.static import postprocess_cjk_extended_static_font
 from scripts.config.runtime import BuildRuntimeContext, CJKStaticBaseResolution
 from scripts.pipeline.cache import (
     CACHE_SCHEMA,
@@ -38,6 +40,39 @@ if TYPE_CHECKING:
 
 
 class PipelineCJKOutputsTest(unittest.TestCase):
+    def test_cjk_freeze_feature_applies_only_to_static_locale_output(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            entry = make_custom_entry("TC")
+            entry.build_config = replace(entry.build_config, freeze_feature="cv99")
+            font_config = make_font_config()
+            runtime_context = make_runtime_context(Path(tmp))
+
+            with (
+                patch("scripts.cjk.static.remove_target_glyph"),
+                patch(
+                    "scripts.cjk.static.apply_cjk_names",
+                    return_value="MapleMono-TC-Regular",
+                ),
+                patch(
+                    "scripts.cjk.static.apply_cjk_width_transform",
+                    return_value=False,
+                ),
+                patch("scripts.cjk.static.apply_cjk_metrics"),
+                patch("scripts.cjk.static.apply_binary_features") as apply_features,
+                patch("scripts.cjk.static.verify_cjk_widths"),
+            ):
+                postprocess_cjk_extended_static_font(
+                    MagicMock(),
+                    entry,
+                    font_config,
+                    runtime_context,
+                    "Regular",
+                )
+
+            effective_config = apply_features.call_args.kwargs["config"]
+            self.assertEqual(effective_config.feature_freeze["cv99"], "enable")
+            self.assertEqual(font_config.feature_freeze["cv99"], "ignore")
+
     def test_static_cache_resolution_receives_target_styles_and_executor(self) -> None:
         for mode, expected_styles in (
             ("debug", ["Regular", "Italic"]),

@@ -91,12 +91,13 @@ These are generated artifacts. Edit the JSON config or generator, then rebuild; 
 
 ## Configuration and source phases
 
-The public JSON surface is intentionally small: `locale_name`, `source`, `unicode`, and `transform`. Output layout, naming, feature font, temporary paths, and outline mode are derived or fixed by the builder.
+The public JSON surface is intentionally small: `locale_name`, `freeze_feature`, `source`, `unicode`, and `transform`. `freeze_feature` optionally enables one OpenType feature in generated static CJK fonts; output layout, naming, feature font, temporary paths, and outline mode are derived or fixed by the builder.
 
 ```json
 {
   "$schema": "./cjk_schema.json",
   "locale_name": "HK",
+  "freeze_feature": "cv99",
   "source": {
     "path": "MyCJK-VF.ttf",
     "masters": {

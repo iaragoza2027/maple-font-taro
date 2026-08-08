@@ -72,4 +72,5 @@
 - [x] Resource Han Sans JP as JP part
 - [x] cjk meta table language correction
 - [x] figure out why maplemono-nf-tc-vf size is too large
+- [x] freeze `cv99` for tc. (via a new `freeze_feature` option in `config-<locale>.json`)
 - [ ] cjk hint effect test

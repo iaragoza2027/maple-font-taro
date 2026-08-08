@@ -15,6 +15,12 @@
       "$ref": "#/$defs/localeName",
       "description": "Short label used in generated family names, file names, and output directories, for example CN, JP, TC, KR, or HK. You do not need to configure PostScript or family names separately."
     },
+    "freeze_feature": {
+      "type": ["string", "null"],
+      "pattern": "^(cv[0-9]{2}|ss[0-9]{2}|zero)$",
+      "default": null,
+      "description": "Optional feature tag to enable in generated static CJK fonts, for example cv99."
+    },
     "source": {
       "type": "object",
       "description": "Variable font to merge and the coordinates used for Maple's light, regular, and bold ends. The builder detects glyf or CFF2 outlines automatically.",

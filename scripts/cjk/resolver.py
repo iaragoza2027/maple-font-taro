@@ -33,6 +33,7 @@ if TYPE_CHECKING:
 LOCALE_NAME_PATTERN = re.compile(r"^[A-Za-z0-9]+$")
 AXIS_TAG_PATTERN = re.compile(r"^[ -~]{1,4}$")
 TABLE_TAG_PATTERN = re.compile(r"^[A-Za-z0-9/ ]{1,32}$")
+FEATURE_TAG_PATTERN = re.compile(r"^(?:cv\d{2}|ss\d{2}|zero)$")
 
 
 def _require_object(value: Any, field: str) -> dict[str, Any]:
@@ -464,6 +465,7 @@ def config_from_data(
     allowed_keys = {
         "$schema",
         "locale_name",
+        "freeze_feature",
         "source",
         "unicode",
         "transform",
@@ -495,6 +497,14 @@ def config_from_data(
             f"{', '.join(sorted(allowed_source_keys))}."
         )
     locale_name = validate_locale_name(data.get("locale_name"))
+    freeze_feature = data.get("freeze_feature")
+    if freeze_feature is not None and (
+        not isinstance(freeze_feature, str)
+        or not FEATURE_TAG_PATTERN.fullmatch(freeze_feature)
+    ):
+        raise ValueError(
+            "freeze_feature must be a feature tag such as cv99, ss01, or zero"
+        )
     download_data = source_data.get("download")
     download: CJKDownloadConfig | None = None
     if "download" in source_data:
@@ -580,6 +590,7 @@ def config_from_data(
             drop_tables=tuple(drop_tables),
         ),
         locale_name=locale_name,
+        freeze_feature=freeze_feature,
         output=output_config_from_locale(locale_name),
         naming=naming_config_from_locale(locale_name),
         unicode=CJKUnicodeConfig(
@@ -622,7 +633,7 @@ def serialize_cjk_build_config(config: CJKBuildConfig) -> dict[str, Any]:
             source["download"]["path_in_archive"] = (
                 config.source.download.path_in_archive
             )
-    return {
+    result = {
         "locale_name": config.locale_name,
         "source": source,
         "unicode": {
@@ -639,6 +650,9 @@ def serialize_cjk_build_config(config: CJKBuildConfig) -> dict[str, Any]:
             "italic_angle": config.transform.italic_angle,
         },
     }
+    if config.freeze_feature is not None:
+        result["freeze_feature"] = config.freeze_feature
+    return result
 
 
 def add_cjk_arguments(parser: argparse.ArgumentParser) -> None:

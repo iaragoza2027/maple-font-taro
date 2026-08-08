@@ -34,6 +34,15 @@ def custom_config_data() -> dict[str, Any]:
 
 
 class CJKConfigSurfaceTest(unittest.TestCase):
+    def test_freeze_feature_round_trips(self) -> None:
+        data = custom_config_data()
+        data["freeze_feature"] = "cv99"
+
+        config = config_from_data(data)
+
+        self.assertEqual(config.freeze_feature, "cv99")
+        self.assertEqual(serialize_cjk_build_config(config)["freeze_feature"], "cv99")
+
     def test_rejects_non_object_config_sections(self) -> None:
         for field in (None, "source", "unicode", "transform"):
             data: Any = [] if field is None else custom_config_data()

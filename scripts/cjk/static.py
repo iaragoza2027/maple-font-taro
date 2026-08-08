@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -199,6 +200,9 @@ def postprocess_cjk_extended_static_font(
         entry.display_name,
         style_compact,
     )
+    if entry.build_config.freeze_feature is not None:
+        font_config = deepcopy(font_config)
+        font_config.feature_freeze[entry.build_config.freeze_feature] = "enable"
     remove_target_glyph(font, ".1")
     postscript_name = apply_cjk_names(
         font,

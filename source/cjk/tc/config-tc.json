@@ -1,6 +1,7 @@
 {
   "$schema": "../cjk_schema.json",
   "locale_name": "TC",
+  "freeze_feature": "cv99",
   "source": {
     "path": "../variable-source/ChironGoRoundTCVF.ttf",
     "download": {

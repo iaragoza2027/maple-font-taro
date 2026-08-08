@@ -178,6 +178,7 @@ class CJKBuildConfig:
 
     source: CJKSourceConfig
     locale_name: str = "CJK"
+    freeze_feature: str | None = None
     feature_font_path: Path = DEFAULT_FEATURE_FONT_PATH
     output: CJKOutputConfig = field(default_factory=CJKOutputConfig)
     naming: CJKNamingConfig = field(default_factory=CJKNamingConfig)

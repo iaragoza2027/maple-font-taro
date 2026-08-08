@@ -32,23 +32,38 @@ Maple Mono 是一款开源等宽字体，专注于优化您的编码体验。
 
 您可以[在这里](https://github.com/subframe7536/maple-font/tree/v7)查看 V7 版本。
 
-## 特性
+## 为什么选择 Maple Mono？
 
-<!--todo)) 更新-->
+- ✨ **可变字体支持** - 支持连续字重调节，并优化细粒度斜体字形表现，提供更灵活的排版控制能力。
+- ☁️ **圆角与视觉优化** - 全面圆角化处理，重绘 `@ $ % & Q ->` 等关键符号，优化斜体连笔（`f i j k l x y`），并提供多种宽度模式。
+- 💪 **编程连字增强** - 强化编程连字支持，新增状态标签类连字、丰富字符变体与 OpenType Stylistic Sets，提升代码可读性与表达效率。
+- 🔣 **Unicode 扩展覆盖** - 制表符、盲文、数学运算符（U+2200–U+22FF）、国际象棋与扑克牌符号、终端状态/进度符号、Claude Code 状态加载符号等完整符号集，增强科学与开发场景支持。
+- 🎨 **Nerd Font 图标支持** - 原生集成 [Nerd Fonts](https://github.com/ryanoasis/nerd-fonts)，无缝兼容各类开发工具与终端环境，显著增强界面信息表达与可读性。
+- 🔨 **高度可定制构建** - 支持强制开启 OpenType 特性、自定义标签连字、自定义行高、宽度、字重映射等配置，并可从源码生成专属字体，满足个性化构建需求。
 
-- ✨ 可变 - 无限的字体粗细，以及手工微调的斜体字形。
-- ☁️ 丝滑 - **圆角**，独特的 `@ $ % & Q ->` 字形，以及手写风格的斜体 `f i j k l x y`。
-- 💪 实用 - 大量的智能连字，详见 [`features/`](./source/features/README.md)。
-- 🎨 图标 - 提供 [Nerd-Font](https://github.com/ryanoasis/nerd-fonts) 嵌入的版本，添加图标支持。
-- 🔨 定制 - 自由开关或者构建 OpenType 字体特性，打造您专属的字体。
+### **简体中文、繁体中文、日文与韩文**
 
-### 简体中文、繁体中文、日文与韩文
+Maple Mono 支持 CJK 字符集，相比于 V7，V8 版本的 CJK 字符集进行了大幅度的扩充和优化，支持简体中文、繁体中文、日文和韩文。同时，为了在多语言显示、Markdown 表格等场景做到整齐划一、美观舒适，本字体的 CJK 字符可以与英文字符 2:1 完美对齐；作为取舍，默认的 CJK 字符的间距相比其他流行的中文字体更大，详见[这个议题](https://github.com/subframe7536/maple-font/issues/211) 。
 
-Maple Mono 支持 CJK 字符集，相比于 V7，V8 版本的 CJK 字符集进行了大幅度的扩充，支持简体中文、繁体中文、日文和韩文。同时，为了在多语言显示、Markdown 表格等场景做到整齐划一、美观舒适，本字体的 CJK 字符可以与英文字符 2:1 完美对齐；作为取舍，CJK 字符的间距相比其他流行的中文字体更大，详见[这个议题](https://github.com/subframe7536/maple-font/issues/211)。
+| 地区 | 覆盖范围                           | CJK 字库来源                                                                             | 构建输出 |
+| ---- | ---------------------------------- | ---------------------------------------------------------------------------------------- | -------- |
+| CN   | 简体中文，并覆盖常用繁体与日文字符 | [WenYuan Rounded SC](https://github.com/takushun-wu/WenYuanFonts)                        | `CN`     |
+| TC   | 繁体中文                           | [Chiron Go Round TC](https://github.com/chiron-fonts/chiron-go-round-tc)                 | `TC`     |
+| JP   | 日文                               | [Resource Han Rounded JP](https://github.com/CyanoHao/Resource-Han-Rounded)              | `JP`     |
+| KR   | 韩文                               | [Chiron Go Round TC](https://github.com/chiron-fonts/chiron-go-round-tc)，按韩文区域筛选 | `KR`     |
 
-![2-1.png](./resources/2-1.png)
+CJK 构建默认关闭。可通过 CJK 构建配置选择地区、静态/可变输出以及是否启用紧凑宽度模式。
 
-## 屏幕截图
+<!--
+|Go|od| t|yp|og|ra|ph|y |re|ad|s |ea|si|ly|
+|优|美|的|字|体|让|阅|读|变|得|更|加|轻|松|
+|優|美|的|字|體|讓|閱|讀|變|得|更|加|輕|鬆|
+|美|し|い|書|体|は|も|っ|と|読|み|や|す|い|
+|아|름|다|운|글|꼴|은|더|읽|기|가|편|해|요|
+|1!|2@|3#|4$|5%|6^|7&|8*|9(|0)|=+|{}|[]|;:|
+-->
+
+## 预览
 
 ![showcase.png](./resources/showcase.png)
 
@@ -56,15 +71,23 @@ Maple Mono 支持 CJK 字符集，相比于 V7，V8 版本的 CJK 字符集进�
 - 主题：[Maple](https://github.com/subframe7536/vscode-theme-maple)
 - 配置：字体大小 16px，行高 1.8，默认字母间距
 
-## 下载
+## 开始使用
 
-您可以从 [Releases](https://github.com/subframe7536/maple-font/releases) 下载所有字体压缩包。
+### 下载与安装
 
-您也可以从 Scoop、Homebrew、AUR/Paru、NixPkgs 等包管理器安装 Maple Mono。
+您可以从 [Releases](https://github.com/subframe7536/maple-font/releases/latest) 下载所有字体压缩包。
 
-<!--todo)) 单独的文档-->
+您也可以从 Scoop、Homebrew、AUR/Paru、NixPkgs 等包管理器安装 Maple Mono，详情见 [安装指南](./docs/install.md)。
 
-## CDN
+### 使用与特性配置
+
+请参阅 [使用指南](./docs/usage.md)
+
+#### 命名说明与字体选择
+
+不同于绝大部分字体，Maple Mono 根据用户反馈，在发行版中提供了多种字体格式和不同的字符集范围，您可以根据自己的需求选择合适的字体文件，详情见 [字体选择](./docs/choose.md)
+
+### CDN
 
 ### Maple Mono
 
@@ -76,98 +99,19 @@ Maple Mono 支持 CJK 字符集，相比于 V7，V8 版本的 CJK 字符集进�
 - [The Chinese Web Fonts Plan (中文网字计划)](https://chinese-font.netlify.app/zh-cn/fonts/maple-mono-cn/MapleMono-CN-Regular)
 - [ZeoSeven Fonts](https://fonts.zeoseven.com/items/442/)
 
-## 使用方法 & 特性配置
 
-请参阅 [文档](./source/features/README_CN.md) 或者在 [特性测试页面](https://font.subf.dev/zh-cn/playground) 尝试。
+## 亮点介绍
 
-## 命名说明
+您可以在 [介绍页面#todo]() 预览所有亮点。
 
-<!--todo)) 单独的文档（v8新增了宽度，需要添加）-->
+### 自定义构建
 
-### 字体特性
-
-- **Ligature**: 带有连字的默认版本 (`Maple Mono`)
-- **No-Ligature**: 没有连字的默认版本 (`Maple Mono NL`)
-- **Normal-Ligature**: 带有连字的 [`--normal` 预设](#预设) (`Maple Mono Normal`)
-- **Normal-No-Ligature**: 没有连字的 [`--normal` 预设](#预设) (`Maple Mono Normal NL`)
-
-### 字体格式和字符集
-
-- **Variable**: 最小版本，通过字体的可变轴改变字体粗细
-- **TTF**: 最小版本，ttf 格式 [推荐！]
-- **OTF**: 最小版本，otf 格式
-- **WOFF2**: 最小版本，woff2 格式，多用于网页加载
-- **NF**: 嵌入 Nerd-Font 的版本，为终端添加图标 (带有 `-NF` 后缀)
-- **CN**: 中文版本，嵌入中文和日文字形 (带有 `-CN` 后缀)
-- **NF-CN**: 完整版本，嵌入图标、中文和日文字形 (带有 `-NF-CN` 后缀)
-
-### 字体微调
-
-- **Hinted 字体** 用于低分辨率屏幕，以获得更好的渲染效果。根据我个人的经验，如果您的屏幕分辨率低于或等于 1080P，建议使用 "hinted 字体"。使用 "unhinted 字体" 会导致文本错位或粗细不均。
-  - 在这种情况下，您可以选择 `MapleMono-TTF-AutoHint` / `MapleMono-NF` / `MapleMono-NF-CN` 等。
-- **Unhinted 字体** 用于高分辨率屏幕（例如 MacBook）。使用 "hinted 字体" 会使您的文本模糊或看起来很奇怪。
-  - 在这种情况下，您可以选择 `MapleMono-OTF` / `MapleMono-TTF` / `MapleMono-NF-unhinted` / `MapleMono-NF-CN-unhinted` 等。
-- 为什么存在 `-AutoHint` 和 `-unhinted` 后缀？
-  - 为了向后兼容，我保留了原始命名方案。`-AutoHint` 仅用于 `TTF` 格式。
-
-## 自定义构建
-
-<!--todo)) 单独的文档-->
-
-[`config.json`](./config.json) 文件用于配置构建过程。查看 [schema](./source/schema.json) 或 [文档](./source/features/README.md) 了解更多详情。
-
-还有一些 [命令行选项](#构建脚本用法) 用于自定义构建过程。命令行选项的优先级高于 `config.json` 中的选项。
-
-### 构建方法
-
-#### 1. 浏览器中构建
-
-进入 [特性测试页面](https://font.subf.dev/zh-cn/playground)，点击左下角的“自定义构建”按钮
-
-- 目前只支持固定 OpenType 特性
-
-#### 2. 使用 Github Actions
-
-您可以使用 [Github Actions](https://github.com/subframe7536/maple-font/actions/workflows/custom.yml) 来构建字体。
-
-1. Fork 仓库
-2. (可选) 更改 `config.json` 中的内容
-3. 转到 Actions 选项卡
-4. 点击左侧的 `Custom Build` 菜单项
-5. 点击 `Run workflow` 按钮并设置选项
-6. 等待构建完成
-7. 从 Releases 下载字体压缩包
-
-#### 3. 使用 Docker
-
-```shell
-git clone https://github.com/subframe7536/maple-font --depth 1 -b variable
-docker build -t maple-font .
-docker run -v "$(pwd)/fonts:/app/fonts" -e BUILD_ARGS="--normal" maple-font
-```
-
-#### 4. 本地构建
-
-克隆仓库并在您的本地机器上运行。确保您已安装 `python3` 和 `pip`
-
-```shell
-git clone https://github.com/subframe7536/maple-font --depth 1 -b variable
-pip install -r requirements.txt
-python build.py
-```
-
-> [!TIP]
-> 对于 `Ubuntu` 或 `Debian`，可能还需要 `python-is-python3`
->
-> 如果您在安装依赖项时遇到问题，只需创建一个新的 GitHub Codespace 并在那里运行命令
-
-## 特性
-
-<!--todo)) 单独的文档-->
+Maple Mono 提供了高度可定制的构建方式，您可以通过修改 [`config.json`](./config.json) 文件或在命令行中添加参数来生成符合您需求的字体文件，详情见 [自定义构建](./docs/build.md)。
 
 ### 窄字符
 
-你可以在 config.json 中设置 `"width": "narrow"` 或者在命令行添加 `--width slim` 来在构建时修改字形宽度。中文字符部分也会等比例修改。
+在 v8 版本中，Maple Mono 提供了三种不同的字符宽度选项，
+您可以通过修改 [`config.json`](./config.json) 的 `"width"` 字段或在命令行中添加参数 `--width <mode>` 来选择不同的宽度模式。
 
 有 3 个选项：
 
@@ -175,32 +119,23 @@ python build.py
 - narrow: 550
 - slim: 500
 
-预览：[#131](https://github.com/subframe7536/maple-font/issues/131#issuecomment-3678666194)
+[预览#todo]()
 
-### 自定义 Nerd-Font
+### OpenType 特性开关
 
-如果您想获得固定宽度的图标，请在 `config.json` 中设置 `"nerd_font.mono": true` 或在构建脚本参数中添加 `--nf-mono` 标志。
+“OpenType 特性”是一种可以控制字体的内置变体和连字的机制，被绝大多数现代化的操作系统、浏览器、终端、编辑器所支持。您可以通过开启或者关闭 OpenType 特性来控制一些连字的开关或者字符样式的变化。
 
-如果您想获得可变宽度的图标，请在 `config.json` 中设置 `"nerd_font.propo": true` 或在构建脚本参数中添加 `--nf-propo` 标志。
+Maple Mono 拥有大量的、细粒度的 OpenType 特性，为了减少使用时的配置时间，在构建时针对特性的开关提供了三种选项（[为什么](https://github.com/subframe7536/maple-font/issues/233#issuecomment-2410170270)）：
 
-对于自定义的 `font-patcher` 参数，需要 `font-forge`（也可能需要 `python3-fontforge`）。
+1. `enable`: 强制启用这些特性，而无需在字体特性配置中设置 `cvXX` / `ssXX` / `zero`，就像默认连字一样
+2. `disable`: 删除 `cvXX` / `ssXX` / `zero` 中的特性，即使您手动启用它，也不在生效
+3. `ignore`: 什么也不做
 
-您可能还应该在 [config.json](./config.json) 中更改 `"nerd_font.extra_args"`。
+### Normal 预设
 
-默认参数： `-l --careful --outputdir dir`
+Maple Mono 的默认字形设计偏向于独特和个性化，这可能不适合所有用户的审美或使用场景。为了满足更多用户的需求，Maple Mono 提供了一个名为 `--normal` 的构建预设，可以提供类似 `JetBrains Mono`（除了 `0` 的中间是斜线而不是点）的字形。
 
-- 如果 `"nerd_font.propo"` 为 `true`，则添加 `--variable-width-glyphs`
-- 否则，如果 `"nerd_font.mono"` 为 `true`，则添加 `--mono`
-
-### 预设
-
-如果您想要获得固定宽度的 Nerd Font 图标，只需要在 `config.json` 中设置 `"nerd_font.mono": true` 或者在构建脚本中添加 `--nf-mono` 参数即可。
-
-运行 `build.py` 时添加 `--normal` 参数，让字形不那么独特~~奇怪~~，就像 `JetBrains Mono` 一样（除了 `0` 的中间是斜线而不是点）。
-
-如果您使用的是可变字体（不推荐），请启用 `calt` 特性以使所有特性正常工作。
-
-启用的特性：
+以下是 `--normal` 参数启用的特性：
 <!-- NORMAL -->
 
 ```
@@ -209,29 +144,40 @@ cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
 
 <!-- NORMAL -->
 
-[在线预览](https://font.subf.dev/zh-cn/playground?normal)
+[预览#todo]()
 
-### OpenType 特性强制开启
+#### 自定义 OpenType 特性（如添加标签连字内容）
 
-有三种选项（[为什么](https://github.com/subframe7536/maple-font/issues/233#issuecomment-2410170270)）：
+绝大多数的字体都不支持自定义 OpenType 特性，Maple Mono 是少数提供了以编程的方式自定义 OpenType 特性功能的字体。
 
-1. `enable`: 强制启用这些特性，而无需在字体特性配置中设置 `cvXX` / `ssXX` / `zero`，就像默认连字一样
-2. `disable`: 删除 `cvXX` / `ssXX` / `zero` 中的特性，即使您手动启用它，也不在生效
-3. `ignore`: 什么也不做
-
-#### 自定义 OpenType 特性
-
-OpenType 特性可以控制字体的内置变体和连字。您可以通过修改 OpenType 特性来删除一些不需要的连字或特征，修改特征的触发规则或添加一些新规则。
-
-默认情况下，[`source/py/feature/`](./source/py/feature) 中的 Python 模块会生成 OpenType 特性字符串并在构建时加载。您可以在此处修改功能或自定义标签。
-
-如果你想通过修改 OpenType 特性文件实现，运行 `build.py` 时添加 `--apply-fea-file` 参数，会读取 [`source/features/{regular,italic}{_cn,}.fea`](./source/features) 的特性文件并加载。
+默认情况下，[`scripts/feature/`](./scripts/feature) 中的 Python 模块会生成 OpenType 特性字符串并在构建时加载。您可以在此处修改功能或自定义标签。如果你想通过修改 OpenType 特性源文件（.fea）实现，运行 `build.py` 时添加 `--apply-fea-file` 参数，会读取 [`source/features/{regular,italic}{_cn,}.fea`](./source/features) 的特性文件并加载。
 
 ### 无限箭头连字
 
-受 Fira Code 的启发，从 v7.3 开始，该字体默认启用无限箭头连字。由于某种原因，在使用 Hinted 字体时连字会错位，因此在 v7.4 的 Hinted 版本中默认将其移除。
+受 Fira Code 和 Cascadia Code 的启发，从 v7.3 开始，Maple Mono 支持了无限箭头连字特性。由于某种未知的渲染原因，在使用 Hinted 字体时连字会错位，因此在 v7.4 的 Hinted 版本中默认将其移除。
 
-您可以在 `config.json` 中设置 `"infinite_arrow": true`，或在命令行标志中添加 `--infinite-arrow`。详情见 [#508](https://github.com/subframe7536/maple-font/issues/508)
+您可以在 `config.json` 中设置 `"infinite_arrow": true`，或在命令行标志中添加 `--infinite-arrow` 强制开启或者关闭。如果有问题，请在 [#508](https://github.com/subframe7536/maple-font/issues/508) 内讨论
+
+[预览#todo]()
+
+### 自定义行高
+
+Maple Mono 的默认行高为 `1`，您可以通过修改 [`config.json`](./config.json) 中的 `"line_height"` 字段或在命令行中添加参数 `--line-height <value>` 来修改行高，最终行高的计算公式为 `(ascender - descender) * line_height`。
+
+### 自定义 Unicode 映射
+
+Maple Mono 可能会缺少某些 Unicode 码点，导致某些字符无法显示。您可以通过修改 [`config.json`](./config.json) 中的 `"codepoint_alias"` 项来自定义 Unicode 映射。
+
+例如，如果您想将某个字符映射到另一个 Unicode 码点：
+
+```json
+{
+  "codepoint_alias": {
+    "U+E000": "U+E001",
+    "U+E002": "U+E003"
+  }
+}
+```
 
 ### 自定义字重映射
 
@@ -254,37 +200,54 @@ OpenType 特性可以控制字体的内置变体和连字。您可以通过修�
 }
 ```
 
-## 中文版本
+### 自定义 Nerd-Font
 
-默认情况下不会生成中文字体，运行 `python build.py` 时添加 `--cjk cn` 参数，中文基字（约 111 MB）将从 GitHub 下载。
+Maple Mono 内置了 Nerd-Font 图标支持，并遵守了其命名规则。默认情况下，图标的宽度是一个拉丁字符宽度。
 
-#### 缩小中文字体的间距
+- 如果您想获得两个拉丁字符宽度的图标（Nerd Font Mono），请在 `config.json` 中设置 `"nerd_font.mono": true` 或在构建脚本参数中添加 `--nf-mono` 标志。
+- 如果您想获得可变宽度的图标（Nerd Font Propo），请在 `config.json` 中设置 `"nerd_font.propo": true` 或在构建脚本参数中添加 `--nf-propo` 标志。
 
-如果您觉得中文字符的间距**过大**，有一个构建选项 `cn.narrow` 或 命令行参数 `--cn-narrow` 可以缩小间距，但是这将让字体无法被识别为等宽字体。
+对于自定义的 `font-patcher` 参数，需要 `font-forge`（也可能需要 `python3-fontforge`）。您可能还需要在 [config.json](./config.json) 中更改 `"nerd_font.extra_args"`。
 
-您可以在 [#249](https://github.com/subframe7536/maple-font/issues/249#issuecomment-2871260476) 中查看效果。
+[预览#todo]()
 
-如果您也想改变拉丁字母的宽度，请使用 [`--width` 参数](#窄字符)
+#### 参数解析规则
 
-#### GitHub 镜像
+默认参数： `-l --careful --outputdir dir`
+
+- 如果 `"nerd_font.propo"` 为 `true`，则添加 `--variable-width-glyphs`
+- 如果 `"nerd_font.mono"` 为 `true`，则添加 `--mono`
+
+## CJK 版本（中文）
+
+默认情况下不会生成中文字体，运行 `python build.py` 时添加 `--cjk cn` 参数，中文基字将从 [GitHub Release](https://github.com/subframe7536/maple-font/releases/tag/cjk-base) 下载。
+
+### 缩小中文字体的间距
+
+如果您觉得只有中文字符的间距**过大**，而英文字符的间距正常，您可以通过构建选项 `cjk.narrow` 或 命令行参数 `--cjk-narrow` 缩小中文字符间距，但是这将让字体无法被识别为等宽字体。
+
+您可以在 [#249](https://github.com/subframe7536/maple-font/issues/249#issuecomment-2871260476) 中查看效果或者讨论。
+
+- 如果您也想改变拉丁字母的宽度，请使用 [`--width` 参数](#窄字符)
+
+### GitHub 镜像
 
 构建脚本将自动从 GitHub 下载所需的资源。如果您在下载时遇到问题，请在 [config.json](./config.json) 中设置 `github_mirror` 或将 `$GITHUB` 设置为您的环境变量。（目标 URL 为 `https://<github_mirror>/<user>/<repo>/releases/download/<tag>/<file>`），或者直接下载目标 `.zip` 文件并将其放在与 `build.py` 相同的目录中。
 
-#### 繁體中文標點符號支援
+#### 繁体中文标点支持
 
-<!--todo)) 繁体中文专属-->
-
-通過開啟 `cv99`，所有的中文標點符號都會居中，詳情見 [#150](https://github.com/subframe7536/maple-font/issues/150)
+通过开启 `cv99`，所有的中文标点符号都会居中，详情见 [#150](https://github.com/subframe7536/maple-font/issues/150)
 
 ## 我个人在用的其他中文字体资源
 
-[cn-resource](https://github.com/subframe7536/maple-font/tree/other-resources/cn-resource)
+见 [cn-resource](https://github.com/subframe7536/maple-font/tree/other-resources/cn-resource) 和 [cn-base](https://github.com/subframe7536/maple-font/releases/tag/cn-base)
 
 ## 鸣谢
 
 - [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono)
-- [Roboto Mono](https://github.com/googlefonts/RobotoMono)
 - [Fira Code](https://github.com/tonsky/FiraCode)
+- [Cascadia Code](https://github.com/microsoft/cascadia-code)
+- [Roboto Mono](https://github.com/googlefonts/RobotoMono)
 - [Victor Mono](https://github.com/rubjo/victor-mono)
 - [Commit Mono](https://github.com/eigilnikolajsen/commit-mono)
 - [Code Sample](https://github.com/TheRenegadeCoder/sample-programs-website)

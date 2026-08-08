@@ -17,11 +17,13 @@
 </p>
 
 <p align="center">
-  <a href="#下载">下载</a> |
+  <a href="#下载与安装">下载</a> |
   <a href="https://font.subf.dev">网站</a> |
   <a href="./README.md">English</a> |
   中文 |
-  <a href="./README_JA.md">日本語</a>
+  <a href="./README_TC.md">繁中</a> |
+  <a href="./README_JP.md">日本語</a> |
+  <a href="./README_KR.md">한국어</a>
 </p>
 
 > [!WARNING]
@@ -220,7 +222,7 @@ Maple Mono 内置 Nerd Font 图标支持，并遵循其命名规则。默认情�
 - 当 `"nerd_font.propo"` 为 `true` 时，添加 `--variable-width-glyphs`。
 - 当 `"nerd_font.mono"` 为 `true` 时，添加 `--mono`。
 
-## CJK 版本（中文）
+## CJK 版本（简体中文）
 
 默认情况下不会生成中文字体。运行 `python build.py` 时添加 `--cjk cn` 参数，构建脚本会从 [GitHub Release](https://github.com/subframe7536/maple-font/releases/tag/cjk-base) 下载中文基字形。
 

@@ -83,7 +83,7 @@ def format_fontsource_name(filename: str):
 
 
 def format_woff2_name(filename: str):
-    return filename.replace(".ttf.woff2", "-VF.woff2")
+    return filename.replace("[wght].woff2", "[wght]-VF.woff2")
 
 
 def rename_woff_files(dir_path: str, fn: Callable[[str], str | None]):

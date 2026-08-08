@@ -73,13 +73,13 @@ class LoggingConfigurationTest(unittest.TestCase):
         with redirect_stderr(stderr):
             configure_logging()
             log_task(TaskName.WOFF2, "Converting static fonts to WOFF2")
-            logger.info("Saved WOFF2 font to fonts/Woff2/MapleMono-Regular.ttf.woff2")
+            logger.info("Saved WOFF2 font to fonts/Woff2/MapleMono-Regular.woff2")
 
         self.assertEqual(
             stderr.getvalue(),
             "[woff2] Converting static fonts to WOFF2\n"
             "[woff2] Saved WOFF2 font to "
-            "fonts/Woff2/MapleMono-Regular.ttf.woff2\n",
+            "fonts/Woff2/MapleMono-Regular.woff2\n",
         )
 
     def test_task_switch_inserts_one_unprefixed_blank_line(self) -> None:

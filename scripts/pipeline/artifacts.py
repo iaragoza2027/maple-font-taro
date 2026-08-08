@@ -45,7 +45,7 @@ def expected_static_font_paths(
     return [
         directory
         / (
-            f"{family_name_compact}-{style}.ttf.woff2"
+            f"{family_name_compact}-{style}.woff2"
             if extension == ".woff2"
             else f"{family_name_compact}-{style}{extension}"
         )

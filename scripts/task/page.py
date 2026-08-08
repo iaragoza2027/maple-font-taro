@@ -114,7 +114,10 @@ def update_page(
             if filename.endswith(".woff2"):
                 os.rename(
                     join_path(var_dir, filename),
-                    join_path(font_dir, filename.replace(".ttf.woff2", "-VF.woff2")),
+                    join_path(
+                        font_dir,
+                        filename.replace("[wght].woff2", "[wght]-VF.woff2"),
+                    ),
                 )
 
     if sync:

@@ -35,7 +35,12 @@ class WebFontConversionTest(unittest.TestCase):
                 patch(
                     "scripts.font_ops.conversion._convert_font_to_web",
                     side_effect=lambda job: (
-                        job.target_dir / f"{job.font_path.name}.{job.flavor}"
+                        job.target_dir
+                        / (
+                            f"{job.font_path.stem}.woff2"
+                            if job.flavor == "woff2"
+                            else f"{job.font_path.name}.{job.flavor}"
+                        )
                     ),
                 ),
             ):
@@ -49,8 +54,8 @@ class WebFontConversionTest(unittest.TestCase):
             self.assertEqual(
                 outputs,
                 [
-                    target_dir / "MapleMono-Bold.ttf.woff2",
-                    target_dir / "MapleMono-Regular.ttf.woff2",
+                    target_dir / "MapleMono-Bold.woff2",
+                    target_dir / "MapleMono-Regular.woff2",
                 ],
             )
 
@@ -73,7 +78,7 @@ class WebFontConversionTest(unittest.TestCase):
                     WebFontConversionJob(source, output_dir, "woff2")
                 )
 
-            target = output_dir / "MapleMono-Regular.ttf.woff2"
+            target = output_dir / "MapleMono-Regular.woff2"
             ttfont.assert_called_once_with(source)
             self.assertEqual(font.flavor, "woff2")
             font.save.assert_called_once_with(target, reorderTables=False)
@@ -86,7 +91,7 @@ class WebFontConversionTest(unittest.TestCase):
             source = Path(tmp) / "MapleMono-Regular.ttf"
             source.write_bytes(b"")
             executor = MagicMock()
-            expected = [source.with_name(f"{source.name}.woff2")]
+            expected = [source.with_suffix(".woff2")]
 
             with patch(
                 "scripts.font_ops.conversion.run_jobs", return_value=expected
@@ -110,7 +115,12 @@ class WebFontConversionTest(unittest.TestCase):
             with patch(
                 "scripts.font_ops.conversion.run_jobs",
                 side_effect=lambda _executor, _worker, jobs: [
-                    job.target_dir / f"{job.font_path.name}.{job.flavor}"
+                    job.target_dir
+                    / (
+                        f"{job.font_path.stem}.woff2"
+                        if job.flavor == "woff2"
+                        else f"{job.font_path.name}.{job.flavor}"
+                    )
                     for job in jobs
                 ],
             ) as run_jobs:
@@ -121,7 +131,7 @@ class WebFontConversionTest(unittest.TestCase):
                     executor=executor,
                 )
 
-            self.assertEqual(outputs, [target_dir / "MapleMono-Regular.ttf.woff2"])
+            self.assertEqual(outputs, [target_dir / "MapleMono-Regular.woff2"])
             self.assertEqual(
                 [job.font_path for job in run_jobs.call_args.args[2]],
                 [current],

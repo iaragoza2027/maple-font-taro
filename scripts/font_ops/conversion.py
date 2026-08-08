@@ -22,11 +22,17 @@ class WebFontConversionJob:
     flavor: WebFontFlavor
 
 
+def _web_font_name(font_path: Path, flavor: WebFontFlavor) -> str:
+    if flavor == "woff2":
+        return f"{font_path.stem}.woff2"
+    return f"{font_path.name}.{flavor}"
+
+
 def _convert_font_to_web(
     job: WebFontConversionJob,
 ) -> Path:
     set_log_task(job.flavor)
-    target_path = job.target_dir / f"{job.font_path.name}.{job.flavor}"
+    target_path = job.target_dir / _web_font_name(job.font_path, job.flavor)
     font = load_font(job.font_path)
     try:
         font.flavor = job.flavor
@@ -83,7 +89,7 @@ def convert_to_web(
     else:
         target_dir = source.parent if source.is_file() else source
 
-    target_paths = [target_dir / f"{path.name}.{flavor}" for path in font_paths]
+    target_paths = [target_dir / _web_font_name(path, flavor) for path in font_paths]
     if len(set(target_paths)) != len(target_paths):
         raise ValueError(f"Duplicate {flavor.upper()} conversion output paths")
     target_dir.mkdir(parents=True, exist_ok=True)

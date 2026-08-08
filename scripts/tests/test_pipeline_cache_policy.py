@@ -272,7 +272,7 @@ class PipelineCachePolicyTest(unittest.TestCase):
                 directory.mkdir(parents=True, exist_ok=True)
                 for style in TEST_STYLES:
                     file_name = (
-                        f"MapleMono-{style}.ttf.woff2"
+                        f"MapleMono-{style}.woff2"
                         if suffix == ".woff2"
                         else f"MapleMono-{style}{suffix}"
                     )
@@ -509,7 +509,7 @@ class PipelineCachePolicyTest(unittest.TestCase):
                 else:
                     for style in TEST_STYLES:
                         file_name = (
-                            f"MapleMono-{style}.ttf.woff2"
+                            f"MapleMono-{style}.woff2"
                             if suffix == ".woff2"
                             else f"MapleMono-{style}{suffix}"
                         )
@@ -521,7 +521,7 @@ class PipelineCachePolicyTest(unittest.TestCase):
             for directory, suffix in (
                 (Path(runtime_context.output_ttf), ".ttf"),
                 (Path(runtime_context.output_ttf_hinted), ".ttf"),
-                (Path(runtime_context.output_woff2), ".ttf.woff2"),
+                (Path(runtime_context.output_woff2), ".woff2"),
             ):
                 write_test_font(directory / f"MapleMonoDebug-Regular{suffix}")
 

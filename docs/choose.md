@@ -33,24 +33,24 @@ For example, `--normal --no-liga --width narrow` produces `MapleMonoNormalNLNR-R
 
 ### Font Formats
 
-| Format or marker | Example                       | Description                                                                                         |
-| ---------------- | ----------------------------- | --------------------------------------------------------------------------------------------------- |
-| `Variable`       | `MapleMono[wght].ttf`         | A variable font whose weight is controlled through the `wght` axis. Italic files include `-Italic`. |
-| `TTF`            | `MapleMono-Regular.ttf`       | A static TrueType font with broad application compatibility.                                        |
-| `OTF`            | `MapleMono-Regular.otf`       | A static OpenType font for desktop applications with OpenType support.                              |
-| `WOFF2`          | `MapleMono-Regular.ttf.woff2` | A compressed WOFF2 font intended mainly for web pages.                                              |
-| `NF`             | `MapleMono-NF-Regular.ttf`    | Includes Nerd Font icons; `NF` can also be combined with feature and width suffixes.                |
+| Format or marker | Example                    | Description                                                                                         |
+| ---------------- | -------------------------- | --------------------------------------------------------------------------------------------------- |
+| `Variable`       | `MapleMono[wght].ttf`      | A variable font whose weight is controlled through the `wght` axis. Italic files include `-Italic`. |
+| `TTF`            | `MapleMono-Regular.ttf`    | A static TrueType font with broad application compatibility.                                        |
+| `OTF`            | `MapleMono-Regular.otf`    | A static OpenType font for desktop applications with OpenType support.                              |
+| `WOFF2`          | `MapleMono-Regular.woff2`  | A compressed WOFF2 font intended mainly for web pages.                                              |
+| `NF`             | `MapleMono-NF-Regular.ttf` | Includes Nerd Font icons; `NF` can also be combined with feature and width suffixes.                |
 
 ### CJK Character Sets
 
-CJK outputs use a locale suffix. Regular CJK and NF-CJK fonts are written to `fonts/<LOCALE>/` and `fonts/NF-<LOCALE>/`; Variable outputs use the corresponding `Variable-<LOCALE>` and `Variable-NF-<LOCALE>` directories.
+CJK outputs use a locale suffix. The coverage below follows each built-in locale configuration, including its Unicode ranges and source-font encoding filter. Regular CJK and NF-CJK fonts are written to `fonts/<LOCALE>/` and `fonts/NF-<LOCALE>/`; Variable outputs use the corresponding `Variable-<LOCALE>` and `Variable-NF-<LOCALE>` directories.
 
-| Locale | Coverage                                                                | Regular CJK example        | NF-CJK example                |
-| ------ | ----------------------------------------------------------------------- | -------------------------- | ----------------------------- |
-| `CN`   | Simplified Chinese, with common Traditional Chinese and Japanese ranges | `MapleMono-CN-Regular.ttf` | `MapleMono-NF-CN-Regular.ttf` |
-| `TC`   | Traditional Chinese                                                     | `MapleMono-TC-Regular.ttf` | `MapleMono-NF-TC-Regular.ttf` |
-| `JP`   | Japanese                                                                | `MapleMono-JP-Regular.ttf` | `MapleMono-NF-JP-Regular.ttf` |
-| `KR`   | Korean                                                                  | `MapleMono-KR-Regular.ttf` | `MapleMono-NF-KR-Regular.ttf` |
+| Locale | Real coverage                                                                                                                                                                                                                                                                                                     | Regular CJK example        | NF-CJK example                |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | ----------------------------- |
+| `CN`   | Simplified Chinese, common Traditional Chinese and Japanese kana; includes CJK radicals, ideographic description characters, Bopomofo, CJK punctuation and symbols, Han ideographs (`U+3400–U+9FFF`), compatibility ideographs, and fullwidth forms. See the [CN configuration](../source/cjk/cn/config-cn.json). | `MapleMono-CN-Regular.ttf` | `MapleMono-NF-CN-Regular.ttf` |
+| `TC`   | Traditional Chinese; includes CJK radicals, ideographic description characters, Bopomofo, CJK punctuation and symbols, Han ideographs (`U+3400–U+9FFF`), compatibility ideographs, and fullwidth forms. It does not add Japanese kana. See the [TC configuration](../source/cjk/tc/config-tc.json).               | `MapleMono-TC-Regular.ttf` | `MapleMono-NF-TC-Regular.ttf` |
+| `JP`   | Japanese CP932 coverage: Hiragana, Katakana and Katakana Phonetic Extensions, Japanese punctuation and symbols, enclosed CJK characters, and CP932 Kanji. See the [JP configuration](../source/cjk/jp/config-jp.json).                                                                                            | `MapleMono-JP-Regular.ttf` | `MapleMono-NF-JP-Regular.ttf` |
+| `KR`   | Korean script coverage: Hangul syllables (`U+AC00–U+D7A3`), Hangul Compatibility Jamo, halfwidth Hangul, Korean punctuation and symbols, plus selected enclosed and unit characters. The KR locale does not add the Han ideograph range. See the [KR configuration](../source/cjk/kr/config-kr.json).             | `MapleMono-KR-Regular.ttf` | `MapleMono-NF-KR-Regular.ttf` |
 
 Locales can be combined with feature and width settings. For example, `--cjk jp --nf --width slim` produces the static file `MapleMonoSL-NF-JP-Regular.ttf`. CJK builds are disabled by default; see the [build guide](build.md) for configuration details.
 

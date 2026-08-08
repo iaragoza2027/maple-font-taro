@@ -53,9 +53,11 @@ from scripts.errors import CJKSourceUnavailable
 from scripts.external.process import (
     SynchronousExecutor,
     create_process_executor,
+    is_ci,
     run_process_jobs,
 )
 from scripts.font_ops.fonttools import (
+    HeadTable,
     SubsetOptions,
     TTFont,
     instantiate_variable_font,
@@ -150,6 +152,8 @@ class StaticFontCache:
 
 def create_font_executor(pool_size: int = 4) -> Executor:
     """Create a bounded executor for expensive font instantiation work."""
+    if is_ci():
+        pool_size = 1
     if pool_size <= 1:
         return SynchronousExecutor()
     return create_process_executor(
@@ -260,7 +264,7 @@ def instantiate_variable_font_file(
         )
         try:
             if target_upem is not None and "head" in instance:
-                source_upem = instance.table("head").unitsPerEm
+                source_upem = cast("HeadTable", instance["head"]).unitsPerEm
                 if source_upem != target_upem:
                     logger.debug(
                         "Scale source UPEM: source=%s, target=%s",

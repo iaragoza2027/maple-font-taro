@@ -12,6 +12,7 @@ from scripts.cjk.builder import (
     autohint_static_fonts,
     create_font_executor,
     instantiate_cjk_static_from_variable,
+    instantiate_variable_font_file,
 )
 from scripts.cjk.config import (
     CJKBuildConfig,
@@ -223,6 +224,57 @@ class CJKExecutorOwnershipTest(unittest.TestCase):
 
         self.assertEqual(future.result(), "done")
         create_process.assert_not_called()
+
+    def test_ci_uses_inline_execution_even_with_configured_pool(self) -> None:
+        with (
+            patch("scripts.cjk.builder.is_ci", return_value=True),
+            patch("scripts.cjk.builder.create_process_executor") as create_process,
+        ):
+            executor = create_font_executor(4)
+            future = executor.submit(lambda: "done")
+
+        self.assertEqual(future.result(), "done")
+        create_process.assert_not_called()
+
+    def test_variable_instantiation_reads_raw_fonttools_tables(self) -> None:
+        class RawFont:
+            def __init__(self) -> None:
+                self.head = SimpleNamespace(unitsPerEm=1000)
+                self.saved = False
+                self.closed = False
+
+            def __contains__(self, tag: str) -> bool:
+                return tag == "head"
+
+            def __getitem__(self, tag: str) -> SimpleNamespace:
+                if tag != "head":
+                    raise KeyError(tag)
+                return self.head
+
+            def save(self, _path: str) -> None:
+                self.saved = True
+
+            def close(self) -> None:
+                self.closed = True
+
+        source = RawFont()
+        instance = RawFont()
+        with (
+            patch("scripts.cjk.builder.load_font", return_value=source),
+            patch(
+                "scripts.cjk.builder.instantiate_variable_font", return_value=instance
+            ),
+        ):
+            instantiate_variable_font_file(
+                "source.ttf",
+                "output.ttf",
+                {"wght": 400},
+                target_upem=1000,
+            )
+
+        self.assertTrue(instance.saved)
+        self.assertTrue(instance.closed)
+        self.assertTrue(source.closed)
 
     def test_builder_resolves_source_before_creating_executor(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

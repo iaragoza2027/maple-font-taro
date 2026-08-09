@@ -43,6 +43,7 @@ class ReleaseVersionTest(unittest.TestCase):
         output = StringIO()
         with (
             patch("scripts.task.release.project_version", return_value="7.9"),
+            patch("scripts.task.release.read_font_version", return_value="7.900"),
             patch("scripts.task.release.input") as prompt,
             patch("scripts.task.release.generate_release_assets") as generate,
             patch("scripts.task.release.publish_release") as publish,

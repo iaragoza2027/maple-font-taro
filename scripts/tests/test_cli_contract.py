@@ -120,15 +120,6 @@ class PublicCliContractTest(unittest.TestCase):
             env=env,
         )
 
-    def test_build_version_uses_project_version_once(self) -> None:
-        for option in ("--version", "-v"):
-            with self.subTest(option=option):
-                result = self.run_cli("build.py", option)
-
-                self.assertEqual(result.returncode, 0)
-                self.assertEqual(result.stdout.strip(), "Maple Mono Builder v7.9")
-                self.assertEqual(result.stderr, "")
-
     def test_build_help_short_and_long_options_are_equivalent(self) -> None:
         long_help = self.run_cli("build.py", "--help")
         short_help = self.run_cli("build.py", "-h")

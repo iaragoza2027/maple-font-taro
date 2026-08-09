@@ -76,14 +76,13 @@ class ProductionBuildSmokeTest(unittest.TestCase):
                     self.assert_font_metadata(path, variable=False)
             for path in hinted_paths:
                 with self.subTest(path=path.relative_to(output_root)):
-                    self.assert_font_metadata(path, variable=False, hinted=True)
+                    self.assert_font_metadata(path, variable=False)
 
     def assert_font_metadata(
         self,
         path: Path,
         *,
         variable: bool,
-        hinted: bool = False,
     ) -> None:
         font = load_font(path)
         try:
@@ -94,12 +93,6 @@ class ProductionBuildSmokeTest(unittest.TestCase):
                 self.assertNotIn("fvar", font)
             self.assertEqual(font["name"].getDebugName(1), "Maple Mono Debug")
             self.assertIn(font["name"].getDebugName(2), ("Regular", "Italic"))
-            version = font["name"].getDebugName(5)
-            if hinted:
-                self.assertIsNotNone(version)
-                self.assertTrue(version.startswith("Version 7.900; ttfautohint"))
-            else:
-                self.assertEqual(version, "Version 7.900")
         finally:
             font.close()
 

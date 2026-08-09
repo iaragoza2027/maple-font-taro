@@ -2,6 +2,8 @@ name: Update CJK Base Fonts
 
 on:
   push:
+    branches:
+      - "variable"
     paths:
       - "source/cjk/*/static-*.sha256"
   workflow_dispatch:

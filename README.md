@@ -42,7 +42,7 @@ I created it to improve my own productivity, and hope it helps more people enjoy
 - 🪄 **Enhanced smart ligatures** - Extensive smart ligatures, character variants, OpenType stylistic sets, and built-in status-label ligatures make code easier to read and more expressive.
 - 🔣 **Extended Unicode coverage** - Includes box-drawing characters, Braille, mathematical operators (U+2200–U+22FF), chess and card symbols, terminal status and progress symbols, and Claude Code loading indicators for scientific and development workflows.
 - 🎨 **Nerd Font icon support** - Integrates [Nerd Fonts](https://github.com/ryanoasis/nerd-fonts) natively for clear, readable interfaces across development tools and terminals.
-- 🔨 **Highly customizable builds** - Configure OpenType features, status-label ligatures, line height, character width, and weight mapping, or generate a custom font from source.
+- 🔨 **Highly customizable builds** - Configure OpenType features, custom tag ligatures, line height, character width, and weight mapping, or generate a custom font from source.
 
 ### Simplified Chinese, Traditional Chinese, Japanese, and Korean
 
@@ -70,7 +70,7 @@ CJK builds are disabled by default. Use the CJK build configuration to select on
 
 ## Preview
 
-![showcase.png](./resources/showcase.png)
+![showcase.png](./resources/showcase.webp)
 
 - Generated with [CodeImg](https://github.com/subframe7536/vscode-codeimg)
 - Theme: [Maple](https://github.com/subframe7536/vscode-theme-maple)
@@ -142,7 +142,7 @@ Maple Mono's default glyph design is distinctive and personalized, which may not
 
 ![Normal preset](./resources/preview-normal.webp)
 
-#### Custom OpenType Features, Such as Status-Label Ligatures
+#### Custom OpenType Features
 
 Most fonts do not support custom OpenType features, while Maple Mono supports defining them programmatically.
 

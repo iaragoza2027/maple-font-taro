@@ -42,7 +42,7 @@ Maple Mono は、コーディングをより快適かつ効率的にすること
 - 🪄 **スマートリガチャの強化** - 多数のスマートリガチャ、文字バリアント、OpenType スタイルセット、組み込みのラベル用リガチャを利用できます。
 - 🔣 **Unicode の拡張カバレッジ** - 罫線文字、点字、数学演算子（U+2200–U+22FF）、チェスとカードの記号、ターミナルの状態・進捗記号、Claude Code のローディング記号を含みます。
 - 🎨 **Nerd Font アイコン対応** - [Nerd Fonts](https://github.com/ryanoasis/nerd-fonts) を標準で統合し、開発ツールやターミナルで利用できます。
-- 🔨 **高いカスタマイズ性** - OpenType 機能、ラベル用リガチャ、行の高さ、文字幅、ウェイトマッピングを設定でき、ソースから専用フォントを生成できます。
+- 🔨 **高いカスタマイズ性** - OpenType 機能、カスタムタグ用リガチャ、行の高さ、文字幅、ウェイトマッピングを設定でき、ソースから専用フォントを生成できます。
 
 ### 簡体字中国語、繁体字中国語、日本語、韓国語
 
@@ -70,7 +70,7 @@ CJK ビルドはデフォルトで無効です。CJK ビルド設定で対象地
 
 ## プレビュー
 
-![showcase.png](./resources/showcase.png)
+![showcase.png](./resources/showcase.webp)
 
 - 生成ツール：[CodeImg](https://github.com/subframe7536/vscode-codeimg)
 - テーマ：[Maple](https://github.com/subframe7536/vscode-theme-maple)

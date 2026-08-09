@@ -70,7 +70,7 @@ CJK 构建默认关闭。你可以通过 CJK 构建配置选择地区、静态�
 
 ## 预览
 
-![showcase.png](./resources/showcase.png)
+![showcase.png](./resources/showcase.webp)
 
 - 生成工具：[CodeImg](https://github.com/subframe7536/vscode-codeimg)
 - 主题：[Maple](https://github.com/subframe7536/vscode-theme-maple)

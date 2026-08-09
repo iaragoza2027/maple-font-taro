@@ -70,7 +70,7 @@ CJK 建置預設關閉。你可以透過 CJK 建置設定選擇地區、靜態�
 
 ## 預覽
 
-![showcase.png](./resources/showcase.png)
+![showcase.png](./resources/showcase.webp)
 
 - 生成工具：[CodeImg](https://github.com/subframe7536/vscode-codeimg)
 - 主題：[Maple](https://github.com/subframe7536/vscode-theme-maple)

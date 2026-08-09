@@ -70,7 +70,7 @@ CJK 빌드는 기본적으로 비활성화되어 있습니다. CJK 빌드 설정
 
 ## 미리보기
 
-![showcase.png](./resources/showcase.png)
+![showcase.png](./resources/showcase.webp)
 
 - 생성 도구: [CodeImg](https://github.com/subframe7536/vscode-codeimg)
 - 테마: [Maple](https://github.com/subframe7536/vscode-theme-maple)

@@ -230,13 +230,13 @@ See [#249](https://github.com/subframe7536/maple-font/issues/249#issuecomment-28
 
 - To change Latin character width as well, use the [`--width` option](#narrow-glyphs).
 
+### Centered Full-Width Punctuation
+
+Maple Mono supports the `cpct` feature to center full-width punctuation, which is common in Traditional Chinese; you can also enable `cv99` to force this behavior. See [#150](https://github.com/subframe7536/maple-font/issues/150) for details.
+
 ### GitHub Mirror
 
 The build script automatically downloads required resources from GitHub. If a download fails, set `github_mirror` in [config.json](./config.json) or set `$GITHUB` as an environment variable. The target URL format is `https://<github_mirror>/<user>/<repo>/releases/download/<tag>/<file>`; you can also download the target `.zip` file and place it next to `build.py`.
-
-#### Centered Full-Width Punctuation
-
-Maple Mono supports the `cpct` feature to center full-width punctuation, which is common in Traditional Chinese; you can also enable `cv99` to force this behavior. See [#150](https://github.com/subframe7536/maple-font/issues/150) for details.
 
 <a id="buildpy-cli"></a>
 

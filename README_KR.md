@@ -227,13 +227,13 @@ Maple Mono는 Nerd Font 아이콘을 내장하고 명명 규칙을 따릅니다.
 
 - 라틴 문자 폭도 바꾸려면 [`--width` 인수](#좁은-글리프)를 사용하세요.
 
+### 가운데 정렬된 전각 문장 부호
+
+Maple Mono는 전각 문장 부호를 가운데 정렬하는 `cpct` 기능을 지원하며, `cv99` 기능을 활성화하여 이 동작을 강제로 적용할 수도 있습니다. 자세한 내용은 [#150](https://github.com/subframe7536/maple-font/issues/150)을 참고하세요.
+
 ### GitHub 미러
 
 빌드 스크립트는 필요한 리소스를 GitHub에서 자동으로 다운로드합니다. 다운로드에 실패하면 [config.json](./config.json)에 `github_mirror`를 설정하거나 `$GITHUB`를 환경 변수로 지정하세요. 대상 URL 형식은 `https://<github_mirror>/<user>/<repo>/releases/download/<tag>/<file>`입니다. 대상 `.zip` 파일을 직접 다운로드하여 `build.py`가 있는 디렉터리에 둘 수도 있습니다.
-
-#### 가운데 정렬된 전각 문장 부호
-
-Maple Mono는 전각 문장 부호를 가운데 정렬하는 `cpct` 기능을 지원하며, `cv99` 기능을 활성화하여 이 동작을 강제로 적용할 수도 있습니다. 자세한 내용은 [#150](https://github.com/subframe7536/maple-font/issues/150)을 참고하세요.
 
 <a id="buildpy-cli"></a>
 

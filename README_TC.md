@@ -231,13 +231,13 @@ Maple Mono 內建 Nerd Font 圖示支援，並遵循其命名規則。預設情�
 
 - 如果還想改變拉丁字母的寬度，請使用[`--width` 參數](#窄字元)。
 
+### 置中全形標點支援
+
+Maple Mono 支援 `cpct` 特性，讓全形標點置中顯示；也可以啟用 `cv99` 特性強制套用該效果，詳情請參閱[#150](https://github.com/subframe7536/maple-font/issues/150)。
+
 ### GitHub 鏡像
 
 建置腳本會自動從 GitHub 下載所需資源。如果下載失敗，可以在 [config.json](./config.json) 中設定 `github_mirror`，或將 `$GITHUB` 設定為環境變數。目標 URL 格式為 `https://<github_mirror>/<user>/<repo>/releases/download/<tag>/<file>`；也可以直接下載目標 `.zip` 檔案，並將它放在 `build.py` 所在目錄中。
-
-#### 置中全形標點支援
-
-Maple Mono 支援 `cpct` 特性，讓全形標點置中顯示；也可以啟用 `cv99` 特性強制套用該效果，詳情請參閱[#150](https://github.com/subframe7536/maple-font/issues/150)。
 
 <a id="buildpy-cli"></a>
 

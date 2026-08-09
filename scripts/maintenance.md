@@ -111,7 +111,7 @@ The task rebuilds the regular and italic variable bases and the static instances
 
 ### Build and publish GitHub release assets
 
-The `Build All Formats and Release` workflow starts from a `v*` tag. It builds 12 base tasks and 48 CJK tasks in parallel, producing the 264 archives declared by the release matrix, validates every expected archive, and creates a draft GitHub release with `uv run task.py publish release`.
+The `Build All Formats and Release` workflow starts from a `v*` tag. It builds 8 base tasks and 32 CJK tasks in parallel, producing the 176 archives declared by the release matrix, validates every expected archive, and creates a draft GitHub release with `uv run task.py publish release`.
 
 For a manual rerun, use **Run workflow** and enter the existing release tag in the required `release_tag` field (for example, `v8.1`). The workflow checks out that tag; it does not create a new tag or infer one from the default branch. Do not pass a branch name or an unpushed tag.
 

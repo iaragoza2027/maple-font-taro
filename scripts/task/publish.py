@@ -116,7 +116,6 @@ RELEASE_PROFILES = (
 )
 RELEASE_WIDTHS = (
     ReleaseWidth("default", "default", ""),
-    ReleaseWidth("narrow", "narrow", "NR"),
     ReleaseWidth("slim", "slim", "SL"),
 )
 RELEASE_CJK_LOCALES = (

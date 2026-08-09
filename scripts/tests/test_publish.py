@@ -247,12 +247,10 @@ class PublishTest(unittest.TestCase):
 
         self.assertIn("cjk", manifest)
         self.assertFalse(any(key.startswith("cjk_") for key in manifest))
-        self.assertEqual(len(archives), 264)
-        self.assertEqual(len(manifest["archives"]), 264)
+        self.assertEqual(len(archives), 176)
+        self.assertEqual(len(manifest["archives"]), 176)
         self.assertEqual(len(manifest["nf_variants"]), 3)
-        self.assertIn("MapleMonoNormalNLNR-NF-JP-VF.zip", archives)
-        self.assertIn("MapleMonoNormalNLNR-NFMono-unhinted.zip", archives)
-        self.assertIn("MapleMonoNormalNLNR-NFPropo-unhinted.zip", archives)
+        self.assertFalse(any("NR" in name for name in archives))
         self.assertIn("MapleMonoSL-Woff2.zip", archives)
         self.assertFalse(
             any("Static" in name or "Variable" in name for name in archives)
@@ -289,16 +287,20 @@ class PublishTest(unittest.TestCase):
         base = release_matrix("base")["include"]
         cjk = release_matrix("cjk")["include"]
 
-        self.assertEqual(len(base), 12)
-        self.assertEqual(len(cjk), 48)
+        self.assertEqual(len(base), 8)
+        self.assertEqual(len(cjk), 32)
         self.assertTrue(all(set(item) == {"task"} for item in (*base, *cjk)))
+        self.assertFalse(any("narrow" in item["task"] for item in (*base, *cjk)))
         self.assertIn(
             {"task": "cjk-normal-no-ligature-slim-kr"},
             cjk,
         )
 
     def test_release_task_owns_build_steps_and_archive_names(self) -> None:
-        base = resolve_release_task("base-normal-narrow")
+        with self.assertRaises(ValueError):
+            resolve_release_task("base-normal-narrow")
+
+        base = resolve_release_task("base-normal-slim")
         base_steps = release_build_steps(base, ("--least-styles",))
         self.assertEqual(len(base_steps), 5)
         self.assertTrue(all("--least-styles" in step.args for step in base_steps))
@@ -311,10 +313,10 @@ class PublishTest(unittest.TestCase):
         self.assertIn("--nf-mono", base_steps[3].args)
         self.assertIn("--nf-propo", base_steps[4].args)
         self.assertEqual(len(base.archive_names()), 10)
-        self.assertIn("MapleMonoNormalNR-VF.zip", base.archive_names())
-        self.assertIn("MapleMonoNormalNR-NF-VF.zip", base.archive_names())
-        self.assertIn("MapleMonoNormalNR-NFMono-unhinted.zip", base.archive_names())
-        self.assertIn("MapleMonoNormalNR-NFPropo-unhinted.zip", base.archive_names())
+        self.assertIn("MapleMonoNormalSL-VF.zip", base.archive_names())
+        self.assertIn("MapleMonoNormalSL-NF-VF.zip", base.archive_names())
+        self.assertIn("MapleMonoNormalSL-NFMono-unhinted.zip", base.archive_names())
+        self.assertIn("MapleMonoNormalSL-NFPropo-unhinted.zip", base.archive_names())
 
         cjk = resolve_release_task("cjk-no-ligature-slim-jp")
         cjk_steps = release_build_steps(cjk)

@@ -46,14 +46,9 @@ jobs:
             --pattern "$expected" \
             --dir "cjk-base-verify/$locale" \
             --clobber
-          ARCHIVE="cjk-base-verify/$locale/$expected" \
-            HASH_FILE="source/cjk/$locale/static-$locale.sha256" \
-            uv run python -c '
-          import os
-          from pathlib import Path
-          from scripts.cjk.cache import verify_static_archive
-          verify_static_archive(Path(os.environ["ARCHIVE"]), Path(os.environ["HASH_FILE"]))
-          '
+          uv run task.py cjk cache-validate \
+            --archive "cjk-base-verify/$locale/$expected" \
+            --hash "source/cjk/$locale/static-$locale.sha256"
         done
     - id: matrix
       name: Generate release task matrices

@@ -107,6 +107,8 @@ Maple Mono는 사용자 피드백을 반영하여 여러 글꼴 형식과 문자
 
 Maple Mono는 높은 수준의 사용자 정의 빌드를 제공합니다. [`config.json`](./config.json)을 수정하거나 명령줄 인수를 추가하여 필요한 글꼴을 생성할 수 있습니다. 자세한 내용은 [사용자 정의 빌드](./docs/build.md)를 참고하세요.
 
+전체 [`build.py` 명령줄 옵션 목록](#buildpy-cli)을 확인하세요.
+
 ### 좁은 글리프
 
 V8에서는 세 가지 문자 폭 모드를 제공합니다. [`config.json`](./config.json)의 `"width"` 필드를 수정하거나 명령줄에서 `--width <mode>`를 사용하세요.
@@ -232,6 +234,91 @@ Maple Mono는 Nerd Font 아이콘을 내장하고 명명 규칙을 따릅니다.
 #### 가운데 정렬된 전각 문장 부호
 
 Maple Mono는 전각 문장 부호를 가운데 정렬하는 `cpct` 기능을 지원하며, `cv99` 기능을 활성화하여 이 동작을 강제로 적용할 수도 있습니다. 자세한 내용은 [#150](https://github.com/subframe7536/maple-font/issues/150)을 참고하세요.
+
+<a id="buildpy-cli"></a>
+
+## `build.py` 명령줄 옵션
+
+```text
+사용법: build.py [-h] [-v] [-d] [--debug] [-n] [--standard-zero] [--feat FEAT]
+                 [--apply-fea-file] [--hinted | --no-hinted]
+                 [--liga | --no-liga] [--infinite-arrow] [--remove-tag-liga]
+                 [--line-height LINE_HEIGHT] [--width {default,narrow,slim}]
+                 [--format FORMATS] [--least-styles] [--cache] [--archive]
+                 [--nf | --no-nf] [--nf-mono] [--nf-propo] [--nf-variable]
+                 [--font-patcher] [--cjk CJK] [--cjk-variable] [--cjk-narrow]
+                 [--cjk-scale-factor CJK_SCALE_FACTOR] [--cjk-both]
+                 [--cjk-hinted | --no-cjk-hinted] [--cn | --no-cn]
+                 [--cn-narrow] [--cn-scale-factor CN_SCALE_FACTOR] [--cn-both]
+
+Maple Mono 빌더 및 최적화 도구
+
+옵션:
+  -h, --help            이 도움말을 표시하고 종료합니다
+  -v, --version         프로그램 버전을 표시하고 종료합니다
+  -d, --dry             설정을 출력하고 종료합니다
+  --debug               빠른 디버그 빌드를 사용합니다. `Debug`를 추가하고,
+                        디버그 로깅을 활성화하며 Regular/Italic만 빌드하고,
+                        OTF/WOFF2/Nerd Font 출력을 건너뜁니다
+
+기능 옵션:
+  -n, --normal          `JetBrains Mono`와 비슷한 Normal 프리셋을 사용하며,
+                        `0`은 사선 모양이 됩니다
+  --standard-zero       표준 zero 의미를 사용합니다. 기본 `0`은 점 모양이고,
+                        `zero`를 활성화하면 사선 모양이 됩니다
+  --feat FEAT           지정한 기능을 활성화하고 고정합니다. `,`로 구분합니다
+                        (예: `--feat zero,cv01,ss07,ss08`). 문맥 규칙은 `calt`를
+                        통해 활성화됩니다
+  --apply-fea-file      일치하는
+                        `source/features/{regular,italic}{_cn,}.fea`를 정적 및 가변 글꼴에 적용합니다
+  --hinted              NF/CJK/NF-CJK의 기본 글꼴로 힌팅된 글꼴을 사용합니다（기본값）
+  --no-hinted           NF/CJK/NF-CJK의 기본 글꼴로 힌팅되지 않은 글꼴을 사용합니다
+  --liga                모든 합자를 유지합니다（기본값）
+  --no-liga             모든 합자를 제거합니다
+  --infinite-arrow      무한 화살표 합자를 활성화합니다（Hinted 글꼴에서는 기본적으로 비활성화）
+  --remove-tag-liga     `[TODO]`와 같은 일반 텍스트 태그 합자를 제거합니다
+  --line-height LINE_HEIGHT
+                        줄 높이 배율（예: 1.1）
+  --width {default,narrow,slim}
+                        글리프 폭을 설정합니다: default（600）, narrow（550）, slim（500）
+
+빌드 옵션:
+  --format FORMATS      필요한 기본 출력 형식을 쉼표로 구분해 선택합니다: ttf, otf, woff2.
+                        가변 글꼴 기본 버전은 항상 빌드됩니다
+  --least-styles        Regular / Bold / Italic / BoldItalic 스타일만 빌드합니다
+  --cache               `fonts/` 아래의 유효한 캐시 파이프라인 단계를 재사용하고,
+                        관련 없는 기존 출력을 보존합니다
+  --archive             설정과 라이선스를 포함하여 기존의 각 비 JSON 출력 디렉터리를 보관합니다
+
+Nerd Font 옵션:
+  --nf, --nerd-font     Nerd Font 버전을 빌드합니다（기본값）
+  --no-nf, --no-nerd-font
+                        Nerd Font 버전을 빌드하지 않습니다
+  --nf-mono             Nerd Font 아이콘 폭을 고정합니다
+  --nf-propo            Nerd Font 아이콘 폭을 가변으로 만들고 `--nf-mono`를 덮어씁니다
+  --nf-variable         Nerd Font를 가변 글꼴로 빌드합니다
+  --font-patcher        Nerd Font Patcher를 사용해 NF 형식을 빌드하도록 강제합니다
+
+CJK 옵션:
+  --cjk CJK             cn, jp, tc, kr 로케일용 Maple Mono + CJK 확장 글꼴을 빌드합니다.
+                        반복해서 지정하거나 쉼표로 구분할 수 있습니다
+  --cjk-variable        CJK 확장 출력을 병합된 가변 글꼴로 유지합니다
+  --cjk-narrow          선택한 로케일에 좁은 CJK 간격을 적용합니다
+  --cjk-scale-factor CJK_SCALE_FACTOR
+                        선택한 CJK 로케일의 배율을 설정합니다. 형식:
+                        <factor> 또는 <width_factor>,<height_factor>
+  --cjk-both            Nerd Font가 활성화되면 NF CJK와 비 NF CJK 출력을 모두 빌드합니다
+  --cjk-hinted          최종 정적 CJK 글꼴에 자동 힌팅을 적용합니다
+  --no-cjk-hinted       최종 정적 CJK 글꼴에 자동 힌팅을 적용하지 않습니다（기본값）
+
+더 이상 사용하지 않는 CN 옵션:
+  --cn                  더 이상 사용하지 않습니다. `--cjk cn`의 별칭입니다
+  --no-cn               더 이상 사용하지 않습니다. 선택한 CJK 로케일에서 `cn`을 제거하는 별칭입니다
+  --cn-narrow           더 이상 사용하지 않습니다. `cn` 대상 `--cjk-narrow`의 별칭입니다
+  --cn-scale-factor CN_SCALE_FACTOR
+                        더 이상 사용하지 않습니다. `cn` 대상 `--cjk-scale-factor`의 별칭입니다
+  --cn-both             더 이상 사용하지 않습니다. `--cjk-both`의 별칭입니다
+```
 
 ## 감사의 글
 

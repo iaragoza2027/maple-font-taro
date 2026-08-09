@@ -24,7 +24,7 @@ jobs:
     - uses: actions/checkout@v6
       with:
         ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
-    - uses: astral-sh/setup-uv@v6
+    - uses: astral-sh/setup-uv@v9
       with:
         enable-cache: true
         prune-cache: false
@@ -66,7 +66,7 @@ jobs:
     - uses: actions/checkout@v6
       with:
         ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
-    - uses: astral-sh/setup-uv@v6
+    - uses: astral-sh/setup-uv@v9
       with:
         enable-cache: true
         prune-cache: false
@@ -74,7 +74,7 @@ jobs:
     - run: uv sync --locked --no-dev
     - name: Build release task
       run: uv run task.py publish build "${{ matrix.task }}"
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       with:
         name: release-${{ matrix.task }}
         path: release-task/*.zip
@@ -94,7 +94,7 @@ jobs:
     - uses: actions/checkout@v6
       with:
         ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
-    - uses: astral-sh/setup-uv@v6
+    - uses: astral-sh/setup-uv@v9
       with:
         enable-cache: true
         prune-cache: false
@@ -102,7 +102,7 @@ jobs:
     - run: uv sync --locked --no-dev
     - name: Build release task
       run: uv run task.py publish build "${{ matrix.task }}"
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       with:
         name: release-${{ matrix.task }}
         path: release-task/*.zip
@@ -118,7 +118,7 @@ jobs:
       with:
         fetch-depth: 0
         ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
-    - uses: astral-sh/setup-uv@v6
+    - uses: astral-sh/setup-uv@v9
       with:
         enable-cache: true
         prune-cache: false

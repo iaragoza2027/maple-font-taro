@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="multiplicationX" format="2">
+  <advance width="600"/>
+  <unicode hex="2715"/>
+  <outline>
+    <contour>
+      <point x="476" y="100" type="line"/>
+      <point x="299" y="277" type="line"/>
+      <point x="123" y="101" type="line"/>
+      <point x="67" y="157" type="line"/>
+      <point x="243" y="333" type="line"/>
+      <point x="66" y="510" type="line"/>
+      <point x="124" y="568" type="line"/>
+      <point x="301" y="391" type="line"/>
+      <point x="477" y="567" type="line"/>
+      <point x="533" y="511" type="line"/>
+      <point x="357" y="335" type="line"/>
+      <point x="534" y="158" type="line"/>
+    </contour>
+  </outline>
+</glyph>

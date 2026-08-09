@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="highVoltageSign" format="2">
+  <advance width="600"/>
+  <unicode hex="26A1"/>
+  <outline>
+    <contour>
+      <point x="295" y="310" type="line"/>
+      <point x="20" y="310" type="line"/>
+      <point x="470" y="840" type="line"/>
+      <point x="290" y="440" type="line"/>
+      <point x="580" y="440" type="line"/>
+      <point x="50" y="-110" type="line"/>
+    </contour>
+  </outline>
+</glyph>

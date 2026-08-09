@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="measuredby" format="2">
+  <advance width="600"/>
+  <unicode hex="225E"/>
+  <anchor x="319.0" y="560.0" name="bottom"/>
+  <anchor x="377.2" y="835.0" name="top"/>
+  <outline>
+    <component base="equal"/>
+    <component base="m" xScale="0.6" yScale="0.5" xOffset="187" yOffset="560"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>equal</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>m</string>
+        </dict>
+      </array>
+      <key>com.schriftgestaltung.componentsSmartComponentValues</key>
+      <array>
+        <dict/>
+        <dict>
+          <key>Wt</key>
+          <integer>500</integer>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

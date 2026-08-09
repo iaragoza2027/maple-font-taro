@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="idotless.cv39" format="2">
+  <advance width="600"/>
+  <anchor x="235" y="0" name="bottom"/>
+  <anchor x="250" y="0" name="ogonek"/>
+  <anchor x="332" y="550" name="top"/>
+  <outline>
+    <contour>
+      <point x="206.171" y="35" type="curve" smooth="yes"/>
+      <point x="270.531" y="400" type="line" smooth="yes"/>
+      <point x="275.292" y="427"/>
+      <point x="264.584" y="440"/>
+      <point x="237.584" y="440" type="curve" smooth="yes"/>
+      <point x="146.584" y="440" type="line" smooth="yes"/>
+      <point x="119.584" y="440"/>
+      <point x="105.758" y="458"/>
+      <point x="110.519" y="485" type="curve" smooth="yes"/>
+      <point x="115.279" y="512"/>
+      <point x="135.453" y="530"/>
+      <point x="162.453" y="530" type="curve" smooth="yes"/>
+      <point x="303.453" y="530" type="line" smooth="yes"/>
+      <point x="357.453" y="530"/>
+      <point x="378.869" y="504"/>
+      <point x="369.347" y="450" type="curve" smooth="yes"/>
+      <point x="296.171" y="35" type="line" smooth="yes"/>
+      <point x="290.882" y="5"/>
+      <point x="273.237" y="-10"/>
+      <point x="243.237" y="-10" type="curve" smooth="yes"/>
+      <point x="213.237" y="-10"/>
+      <point x="200.882" y="5"/>
+    </contour>
+  </outline>
+</glyph>

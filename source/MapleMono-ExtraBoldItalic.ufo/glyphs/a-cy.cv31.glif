@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="a-cy.cv31" format="2">
+  <advance width="600"/>
+  <anchor x="303" y="550" name="top"/>
+  <anchor x="206" y="0" name="bottom"/>
+  <anchor x="380" y="0" name="ogonek"/>
+  <outline>
+    <component base="a.cv31"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>a.cv31</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

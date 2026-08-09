@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="uhorntilde.cv45" format="2">
+  <advance width="600"/>
+  <anchor x="220" y="0" name="bottom"/>
+  <anchor x="427" y="550" name="horn"/>
+  <anchor x="275" y="0" name="ogonek"/>
+  <anchor x="340" y="795" name="top"/>
+  <anchor x="693" y="670" name="topright"/>
+  <outline>
+    <component base="uhorn.cv45"/>
+    <component base="tildecomb" xOffset="580"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>uhorn.cv45</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>tildecomb</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

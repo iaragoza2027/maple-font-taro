@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="sphericalangle" format="2">
+  <advance width="600"/>
+  <unicode hex="2222"/>
+  <outline>
+    <component base="less_math.decorator"/>
+    <component base="quarter_cirle.decorator" xScale="0.8418832623377851" xyScale="-0.4067647632176221" yxScale="0.4654955044308617" yScale="0.9634385996806739" xOffset="5.0" yOffset="297.0"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>less_math.decorator</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>quarter_cirle.decorator</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

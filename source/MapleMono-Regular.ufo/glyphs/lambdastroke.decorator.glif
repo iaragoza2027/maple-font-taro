@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="lambdastroke.decorator" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="446" y="648" type="curve" smooth="yes"/>
+      <point x="138" y="494" type="line" smooth="yes"/>
+      <point x="106" y="478"/>
+      <point x="90" y="487"/>
+      <point x="90" y="523" type="curve" smooth="yes"/>
+      <point x="90" y="541"/>
+      <point x="98" y="554"/>
+      <point x="114" y="562" type="curve" smooth="yes"/>
+      <point x="422" y="716" type="line" smooth="yes"/>
+      <point x="454" y="732"/>
+      <point x="470" y="723"/>
+      <point x="470" y="687" type="curve" smooth="yes"/>
+      <point x="470" y="669"/>
+      <point x="462" y="656"/>
+    </contour>
+  </outline>
+</glyph>

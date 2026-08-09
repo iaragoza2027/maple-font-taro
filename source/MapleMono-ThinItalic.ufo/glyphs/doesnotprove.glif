@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="doesnotprove" format="2">
+  <advance width="600"/>
+  <unicode hex="22AC"/>
+  <outline>
+    <component base="assertion"/>
+    <component base="slashlongcomb" xOffset="602" yOffset="10"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>assertion</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>slashlongcomb</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

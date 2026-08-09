@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="greaterbutnotequal" format="2">
+  <advance width="600"/>
+  <unicode hex="2269"/>
+  <outline>
+    <component base="ustraightstroke-cy.decorator" xScale="0.5000000000000001" xyScale="0.8660254037844386" yxScale="-0.8660254037844386" yScale="0.5000000000000001" xOffset="130" yOffset="-230"/>
+    <component base="greateroverequal"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>ustraightstroke-cy.decorator</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>greateroverequal</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

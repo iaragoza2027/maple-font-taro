@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="bar.cv67" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="151.8" y="-245" type="curve" smooth="yes"/>
+      <point x="358.102" y="925" type="line" smooth="yes"/>
+      <point x="361.1" y="942"/>
+      <point x="370.511" y="950"/>
+      <point x="387.511" y="950" type="curve" smooth="yes"/>
+      <point x="404.511" y="950"/>
+      <point x="411.1" y="942"/>
+      <point x="408.102" y="925" type="curve" smooth="yes"/>
+      <point x="201.8" y="-245" type="line" smooth="yes"/>
+      <point x="198.802" y="-262"/>
+      <point x="189.392" y="-270"/>
+      <point x="172.392" y="-270" type="curve" smooth="yes"/>
+      <point x="155.392" y="-270"/>
+      <point x="148.802" y="-262"/>
+    </contour>
+  </outline>
+</glyph>

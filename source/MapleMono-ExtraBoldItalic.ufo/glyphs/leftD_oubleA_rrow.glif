@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="leftDoubleArrow" format="2">
+  <advance width="600"/>
+  <unicode hex="21D0"/>
+  <outline>
+    <component base="rightDoubleArrow" xScale="-1" xOffset="440"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>rightDoubleArrow</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

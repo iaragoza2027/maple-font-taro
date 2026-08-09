@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="pageup" format="2">
+  <advance width="600"/>
+  <unicode hex="21DE"/>
+  <outline>
+    <contour>
+      <point x="277" y="227" type="line"/>
+      <point x="277" y="346" type="line"/>
+      <point x="135" y="346" type="line"/>
+      <point x="135" y="386" type="line"/>
+      <point x="277" y="386" type="line"/>
+      <point x="277" y="552" type="line"/>
+      <point x="125" y="552" type="line"/>
+      <point x="306" y="760" type="line"/>
+      <point x="475" y="552" type="line"/>
+      <point x="323" y="552" type="line"/>
+      <point x="323" y="386" type="line"/>
+      <point x="465" y="386" type="line"/>
+      <point x="465" y="346" type="line"/>
+      <point x="323" y="346" type="line"/>
+      <point x="323" y="227" type="line"/>
+      <point x="465" y="227" type="line"/>
+      <point x="465" y="187" type="line"/>
+      <point x="323" y="187" type="line"/>
+      <point x="323" y="-1" type="line"/>
+      <point x="277" y="-1" type="line"/>
+      <point x="277" y="187" type="line"/>
+      <point x="135" y="187" type="line"/>
+      <point x="135" y="227" type="line"/>
+    </contour>
+  </outline>
+</glyph>

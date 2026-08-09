@@ -6,56 +6,136 @@ on:
       - v*
   workflow_dispatch:
     inputs:
-      build_args:
-        description: 'Args for build.py'
-        required: false
-        default: ''
+      release_tag:
+        description: 'Existing release tag to build and publish'
+        required: true
         type: string
 
 permissions:
   contents: write
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        config: [
-          {name: normal-liga, args: "--normal --liga"},
-          {name: normal-no-liga, args: "--normal --no-liga"},
-          {name: liga, args: "--liga"},
-          {name: no-liga, args: "--no-liga"}
-        ]
+  prepare-matrix:
     runs-on: ubuntu-latest
+    outputs:
+      base: ${{ steps.matrix.outputs.base }}
+      cjk: ${{ steps.matrix.outputs.cjk }}
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
       with:
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
+    - uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+        prune-cache: false
         python-version: '3.12'
-        cache: 'pip'
-        cache-dependency-path: './requirements.txt'
-    - run: pip install -r requirements.txt
-    - name: Build fonts
+    - run: uv sync --locked --no-dev
+    - name: Verify CJK base release assets
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        python build.py --archive --cn-both --hinted ${{ matrix.config.args }} ${{ github.event.inputs.build_args }}
-        python build.py --archive --cn-both --no-hinted --cache ${{ matrix.config.args }} ${{ github.event.inputs.build_args }}
+        set -euo pipefail
+        assets="$(gh release view cjk-base --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
+        mkdir -p cjk-base-verify
+        for locale in cn tc jp kr; do
+          expected="${locale}-base-static.zip"
+          grep -Fxq "$expected" <<< "$assets"
+          mkdir -p "cjk-base-verify/$locale"
+          gh release download cjk-base \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$expected" \
+            --dir "cjk-base-verify/$locale" \
+            --clobber
+          ARCHIVE="cjk-base-verify/$locale/$expected" \
+            HASH_FILE="source/cjk/$locale/static-$locale.sha256" \
+            uv run python -c '
+          import os
+          from pathlib import Path
+          from scripts.cjk.cache import verify_static_archive
+          verify_static_archive(Path(os.environ["ARCHIVE"]), Path(os.environ["HASH_FILE"]))
+          '
+        done
+    - id: matrix
+      name: Generate release task matrices
+      run: |
+        echo "base=$(uv run task.py publish matrix base)" >> "$GITHUB_OUTPUT"
+        echo "cjk=$(uv run task.py publish matrix cjk)" >> "$GITHUB_OUTPUT"
+
+  build-base:
+    needs: prepare-matrix
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare-matrix.outputs.base) }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
+    - uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+        prune-cache: false
+        python-version: '3.12'
+    - run: uv sync --locked --no-dev
+    - name: Build release task
+      run: uv run task.py publish build "${{ matrix.task }}"
     - uses: actions/upload-artifact@v4
       with:
-        name: release-artifacts-${{ matrix.config.name }}
-        path: fonts/archive/*
+        name: release-${{ matrix.task }}
+        path: release-task/*.zip
+        if-no-files-found: error
+        compression-level: 0
+        retention-days: 1
+
+  build-cjk:
+    needs: prepare-matrix
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix: ${{ fromJSON(needs.prepare-matrix.outputs.cjk) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
+    - uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+        prune-cache: false
+        python-version: '3.12'
+    - run: uv sync --locked --no-dev
+    - name: Build release task
+      run: uv run task.py publish build "${{ matrix.task }}"
+    - uses: actions/upload-artifact@v4
+      with:
+        name: release-${{ matrix.task }}
+        path: release-task/*.zip
+        if-no-files-found: error
+        compression-level: 0
+        retention-days: 1
 
   create-release:
-    needs: build
+    needs: [build-base, build-cjk]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
+    - uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+        prune-cache: false
+        python-version: '3.12'
+    - run: uv sync --locked --no-dev
     - uses: actions/download-artifact@v4
       with:
-        pattern: release-artifacts*
+        pattern: release-*
         path: release
-
+        merge-multiple: true
     - name: Release artifacts
-      run: python task.py publish
+      run: uv run task.py publish release --tag "$RELEASE_TAG"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}

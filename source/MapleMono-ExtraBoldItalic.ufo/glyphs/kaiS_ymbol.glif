@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="kaiSymbol" format="2">
+  <advance width="600"/>
+  <unicode hex="03D7"/>
+  <anchor x="220" y="0" name="bottom"/>
+  <anchor x="427" y="550" name="horn"/>
+  <anchor x="275" y="0" name="ogonek"/>
+  <anchor x="317" y="550" name="top"/>
+  <anchor x="520" y="60" name="topright"/>
+  <outline>
+    <component base="ii-cy"/>
+    <component base="horncomb" xOffset="509" yOffset="-600"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>ii-cy</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>horncomb</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

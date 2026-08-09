@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="compasstarpointedblackheavyeight" format="2">
+  <advance width="600"/>
+  <unicode hex="2738"/>
+  <outline>
+    <contour>
+      <point x="428" y="347" type="line"/>
+      <point x="544" y="229" type="line"/>
+      <point x="367" y="243" type="line"/>
+      <point x="349" y="63" type="line"/>
+      <point x="255" y="200" type="line"/>
+      <point x="113" y="63" type="line"/>
+      <point x="159" y="243" type="line"/>
+      <point x="-24" y="229" type="line"/>
+      <point x="134" y="347" type="line"/>
+      <point x="18" y="464" type="line"/>
+      <point x="196" y="451" type="line"/>
+      <point x="213" y="631" type="line"/>
+      <point x="307" y="494" type="line"/>
+      <point x="449" y="631" type="line"/>
+      <point x="404" y="451" type="line"/>
+      <point x="586" y="464" type="line"/>
+    </contour>
+  </outline>
+</glyph>

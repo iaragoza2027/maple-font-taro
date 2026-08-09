@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="Gheupturn-cy" format="2">
+  <advance width="600"/>
+  <unicode hex="0490"/>
+  <outline>
+    <contour>
+      <point x="108" y="-10" type="curve" smooth="yes"/>
+      <point x="58" y="-10"/>
+      <point x="38" y="15"/>
+      <point x="46" y="65" type="curve" smooth="yes"/>
+      <point x="146" y="630" type="line" smooth="yes"/>
+      <point x="158" y="697"/>
+      <point x="197" y="730"/>
+      <point x="264" y="730" type="curve" smooth="yes"/>
+      <point x="437" y="730" type="line" smooth="yes"/>
+      <point x="455" y="730"/>
+      <point x="465" y="739"/>
+      <point x="468" y="757" type="curve" smooth="yes"/>
+      <point x="469" y="758" type="line" smooth="yes"/>
+      <point x="477" y="803"/>
+      <point x="502" y="825"/>
+      <point x="547" y="825" type="curve" smooth="yes"/>
+      <point x="600" y="825"/>
+      <point x="621" y="800"/>
+      <point x="612" y="747" type="curve" smooth="yes"/>
+      <point x="602" y="690" type="line" smooth="yes"/>
+      <point x="590" y="623"/>
+      <point x="551" y="590"/>
+      <point x="484" y="590" type="curve" smooth="yes"/>
+      <point x="339" y="590" type="line" smooth="yes"/>
+      <point x="306" y="590"/>
+      <point x="286" y="574"/>
+      <point x="280" y="540" type="curve" smooth="yes"/>
+      <point x="196" y="65" type="line" smooth="yes"/>
+      <point x="188" y="15"/>
+      <point x="158" y="-10"/>
+    </contour>
+  </outline>
+</glyph>

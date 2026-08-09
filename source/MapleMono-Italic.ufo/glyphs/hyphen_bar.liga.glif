@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="hyphen_bar.liga" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="161.775" y="-75" type="curve" smooth="yes"/>
+      <point x="225.253" y="285" type="line"/>
+      <point x="-509.747" y="285" type="line" smooth="yes"/>
+      <point x="-539.747" y="285"/>
+      <point x="-552.102" y="300"/>
+      <point x="-546.812" y="330" type="curve" smooth="yes"/>
+      <point x="-541.522" y="360"/>
+      <point x="-523.877" y="375"/>
+      <point x="-493.877" y="375" type="curve" smooth="yes"/>
+      <point x="241.123" y="375" type="line"/>
+      <point x="304.6" y="735" type="line" smooth="yes"/>
+      <point x="309.89" y="765"/>
+      <point x="327.535" y="780"/>
+      <point x="357.535" y="780" type="curve" smooth="yes"/>
+      <point x="387.535" y="780"/>
+      <point x="399.89" y="765"/>
+      <point x="394.6" y="735" type="curve" smooth="yes"/>
+      <point x="251.775" y="-75" type="line" smooth="yes"/>
+      <point x="246.486" y="-105"/>
+      <point x="228.841" y="-120"/>
+      <point x="198.841" y="-120" type="curve" smooth="yes"/>
+      <point x="168.841" y="-120"/>
+      <point x="156.486" y="-105"/>
+    </contour>
+  </outline>
+</glyph>

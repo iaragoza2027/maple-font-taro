@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="squaredplus" format="2">
+  <advance width="600"/>
+  <unicode hex="229E"/>
+  <outline>
+    <contour>
+      <point x="525.29" y="30" type="line"/>
+      <point x="-74.71" y="30" type="line"/>
+      <point x="31.086" y="630" type="line"/>
+      <point x="631.086" y="630" type="line"/>
+    </contour>
+    <contour>
+      <point x="72.27" y="580" type="line"/>
+      <point x="-15.894" y="80" type="line"/>
+      <point x="484.106" y="80" type="line"/>
+      <point x="572.27" y="580" type="line"/>
+    </contour>
+    <contour>
+      <point x="305.58" y="60" type="line"/>
+      <point x="155.58" y="60" type="line"/>
+      <point x="190.845" y="260" type="line"/>
+      <point x="-9.155" y="260" type="line"/>
+      <point x="15.531" y="400" type="line"/>
+      <point x="215.531" y="400" type="line"/>
+      <point x="252.559" y="610" type="line"/>
+      <point x="402.559" y="610" type="line"/>
+      <point x="365.531" y="400" type="line"/>
+      <point x="565.531" y="400" type="line"/>
+      <point x="540.845" y="260" type="line"/>
+      <point x="340.845" y="260" type="line"/>
+    </contour>
+  </outline>
+</glyph>

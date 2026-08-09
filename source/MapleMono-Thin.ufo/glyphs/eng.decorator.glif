@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="eng.decorator" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="315" y="-118" type="curve" smooth="yes"/>
+      <point x="315" y="-103"/>
+      <point x="322" y="-95"/>
+      <point x="337" y="-95" type="curve" smooth="yes"/>
+      <point x="356" y="-95" type="line" smooth="yes"/>
+      <point x="425" y="-95"/>
+      <point x="452" y="-65"/>
+      <point x="452" y="15" type="curve" smooth="yes"/>
+      <point x="452" y="30" type="line"/>
+      <point x="502" y="30" type="line"/>
+      <point x="502" y="15" type="line" smooth="yes"/>
+      <point x="502" y="-97"/>
+      <point x="459" y="-140"/>
+      <point x="356" y="-140" type="curve" smooth="yes"/>
+      <point x="337" y="-140" type="line" smooth="yes"/>
+      <point x="322" y="-140"/>
+      <point x="315" y="-133"/>
+    </contour>
+  </outline>
+</glyph>

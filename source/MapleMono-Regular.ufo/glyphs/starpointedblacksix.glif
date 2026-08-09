@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="starpointedblacksix" format="2">
+  <advance width="600"/>
+  <unicode hex="2736"/>
+  <outline>
+    <contour>
+      <point x="548" y="206" type="curve"/>
+      <point x="548" y="204" type="line"/>
+      <point x="544" y="201" type="line"/>
+      <point x="541" y="202" type="line"/>
+      <point x="347" y="264" type="line"/>
+      <point x="342" y="240"/>
+      <point x="310" y="71"/>
+      <point x="302" y="61" type="curve"/>
+      <point x="300" y="60" type="line"/>
+      <point x="297" y="62" type="line"/>
+      <point x="294" y="65"/>
+      <point x="255" y="247"/>
+      <point x="252" y="264" type="curve"/>
+      <point x="58" y="202" type="line"/>
+      <point x="55" y="201" type="line"/>
+      <point x="51" y="204" type="line"/>
+      <point x="51" y="206" type="line"/>
+      <point x="53" y="211"/>
+      <point x="190" y="335"/>
+      <point x="204" y="347" type="curve"/>
+      <point x="190" y="360"/>
+      <point x="53" y="483"/>
+      <point x="51" y="488" type="curve"/>
+      <point x="51" y="490" type="line"/>
+      <point x="55" y="492" type="line"/>
+      <point x="58" y="492" type="line"/>
+      <point x="252" y="430" type="line"/>
+      <point x="294" y="628" type="line"/>
+      <point x="297" y="632" type="line"/>
+      <point x="299" y="633" type="line"/>
+      <point x="302" y="632" type="line"/>
+      <point x="304" y="628" type="line"/>
+      <point x="347" y="430" type="line"/>
+      <point x="541" y="492" type="line"/>
+      <point x="544" y="492" type="line"/>
+      <point x="548" y="490" type="line"/>
+      <point x="548" y="488" type="line"/>
+      <point x="546" y="482"/>
+      <point x="409" y="360"/>
+      <point x="395" y="347" type="curve"/>
+      <point x="409" y="335"/>
+      <point x="546" y="212"/>
+    </contour>
+  </outline>
+</glyph>

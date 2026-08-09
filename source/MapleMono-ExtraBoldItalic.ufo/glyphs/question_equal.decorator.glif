@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="question_equal.decorator" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="425.567" y="145" type="curve" smooth="yes"/>
+      <point x="-54.433" y="145" type="line" smooth="yes"/>
+      <point x="-98.433" y="145"/>
+      <point x="-115.73" y="166"/>
+      <point x="-107.971" y="210" type="curve" smooth="yes"/>
+      <point x="-100.213" y="254"/>
+      <point x="-75.51" y="275"/>
+      <point x="-31.51" y="275" type="curve" smooth="yes"/>
+      <point x="448.49" y="275" type="line" smooth="yes"/>
+      <point x="492.49" y="275"/>
+      <point x="509.787" y="254"/>
+      <point x="502.029" y="210" type="curve" smooth="yes"/>
+      <point x="494.27" y="166"/>
+      <point x="469.567" y="145"/>
+    </contour>
+    <contour>
+      <point x="467.886" y="385" type="curve" smooth="yes"/>
+      <point x="107.886" y="385" type="line" smooth="yes"/>
+      <point x="63.886" y="385"/>
+      <point x="46.589" y="406"/>
+      <point x="54.347" y="450" type="curve" smooth="yes"/>
+      <point x="62.106" y="494"/>
+      <point x="86.808" y="515"/>
+      <point x="130.808" y="515" type="curve" smooth="yes"/>
+      <point x="490.808" y="515" type="line" smooth="yes"/>
+      <point x="534.808" y="515"/>
+      <point x="552.106" y="494"/>
+      <point x="544.347" y="450" type="curve" smooth="yes"/>
+      <point x="536.589" y="406"/>
+      <point x="511.886" y="385"/>
+    </contour>
+  </outline>
+</glyph>

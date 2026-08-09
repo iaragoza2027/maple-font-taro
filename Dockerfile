@@ -1,8 +1,8 @@
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 # Install system dependencies including FontForge
 RUN apt-get update \
-    && apt-get install -y fontforge \
+    && apt-get install -y build-essential fontforge git git-lfs ttfautohint \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory

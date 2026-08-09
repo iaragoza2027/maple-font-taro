@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="ampersand_ampersand_equal.liga.cv01.ss11" format="2">
+  <advance width="600"/>
+  <outline>
+    <component base="ampersand_equal.liga.cv01.ss11"/>
+    <component base="ampersand.cv01" xOffset="-1100"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>ampersand_equal.liga.cv01.ss11</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>ampersand.cv01</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

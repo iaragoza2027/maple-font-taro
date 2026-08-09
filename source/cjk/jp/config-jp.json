@@ -1,0 +1,60 @@
+{
+  "$schema": "../cjk_schema.json",
+  "locale_name": "JP",
+  "source": {
+    "path": "../variable-source/ResourceHanRoundedJP-VF.otf",
+    "download": {
+      "url": "https://github.com/CyanoHao/Resource-Han-Rounded/releases/download/v1.910/RHR-CFF2-JP-1.910.7z",
+      "path_in_archive": "ResourceHanRoundedJP-VF.otf"
+    },
+    "drop_tables": [
+      "BASE",
+      "GDEF",
+      "GPOS",
+      "GSUB",
+      "HVAR",
+      "MVAR",
+      "VORG",
+      "VVAR",
+      "vhea",
+      "vmtx"
+    ],
+    "masters": {
+      "100": {
+        "wght": 300,
+        "ROND": 100
+      },
+      "400": {
+        "wght": 500,
+        "ROND": 100
+      },
+      "800": {
+        "wght": 900,
+        "ROND": 100
+      }
+    }
+  },
+  "unicode": {
+    "ranges": [
+      "0x2460-0x24FF",
+      "0x3000-0x303F",
+      "0x3040-0x30FF",
+      "0x31F0-0x31FF",
+      "0x3200-0x33FF",
+      "0x4E00-0x9FFF",
+      "0xF900-0xFAFF",
+      "0xFE30-0xFE6F",
+      "0xFF00-0xFFEF"
+    ],
+    "filter_encoding": "cp932",
+    "exclude_feature_codepoints": true
+  },
+  "transform": {
+    "target_advance_width": 1200,
+    "x_scale": 1.03,
+    "y_scale": 1.05,
+    "x_shift": 100,
+    "y_shift": -25,
+    "italic_angle": 10
+  }
+}

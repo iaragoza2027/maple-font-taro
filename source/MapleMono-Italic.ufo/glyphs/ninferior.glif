@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="ninferior" format="2">
+  <advance width="600"/>
+  <unicode hex="2099"/>
+  <anchor x="270.2" y="270.0" name="top"/>
+  <anchor x="209.0" y="-60.0" name="bottom"/>
+  <outline>
+    <component base="n" xScale="0.6" yScale="0.6" xOffset="77" yOffset="-60"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>n</string>
+        </dict>
+      </array>
+      <key>com.schriftgestaltung.componentsSmartComponentValues</key>
+      <array>
+        <dict>
+          <key>Wt</key>
+          <integer>600</integer>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

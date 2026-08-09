@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="arrowheadup" format="2">
+  <advance width="600"/>
+  <unicode hex="2303"/>
+  <anchor x="335.5" y="655.0" name="top"/>
+  <anchor x="384.0" y="380.0" name="bottom"/>
+  <outline>
+    <component base="vturned" xScale="0.5" yScale="0.5" xOffset="177" yOffset="380"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>vturned</string>
+        </dict>
+      </array>
+      <key>com.schriftgestaltung.componentsSmartComponentValues</key>
+      <array>
+        <dict>
+          <key>Wt</key>
+          <integer>600</integer>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

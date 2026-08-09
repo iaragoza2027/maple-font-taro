@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="less_slash.liga" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="-56" y="-71" type="curve"/>
+      <point x="-24" y="-15" type="line"/>
+      <point x="-505" y="258" type="line" smooth="yes"/>
+      <point x="-532" y="273"/>
+      <point x="-543" y="296"/>
+      <point x="-537" y="330" type="curve" smooth="yes"/>
+      <point x="-531" y="364"/>
+      <point x="-512" y="387"/>
+      <point x="-479" y="402" type="curve" smooth="yes"/>
+      <point x="-141" y="558" type="line" smooth="yes"/>
+      <point x="-87" y="583"/>
+      <point x="-65" y="567"/>
+      <point x="-75" y="512" type="curve" smooth="yes"/>
+      <point x="-78" y="494"/>
+      <point x="-89" y="481"/>
+      <point x="-107" y="473" type="curve" smooth="yes"/>
+      <point x="-378" y="348" type="line" smooth="yes"/>
+      <point x="-404" y="336"/>
+      <point x="-406" y="324"/>
+      <point x="-384" y="312" type="curve" smooth="yes"/>
+      <point x="31" y="84" type="line"/>
+      <point x="417" y="780" type="line" smooth="yes"/>
+      <point x="428" y="800"/>
+      <point x="444" y="810"/>
+      <point x="470" y="810" type="curve" smooth="yes"/>
+      <point x="497" y="810"/>
+      <point x="510" y="800"/>
+      <point x="506" y="779" type="curve" smooth="yes"/>
+      <point x="505" y="771"/>
+      <point x="501" y="762"/>
+      <point x="495" y="751" type="curve" smooth="yes"/>
+      <point x="23" y="-100" type="line" smooth="yes"/>
+      <point x="12" y="-120"/>
+      <point x="-4" y="-130"/>
+      <point x="-30" y="-130" type="curve" smooth="yes"/>
+      <point x="-57" y="-130"/>
+      <point x="-70" y="-120"/>
+      <point x="-66" y="-99" type="curve" smooth="yes"/>
+      <point x="-65" y="-91"/>
+      <point x="-61" y="-82"/>
+    </contour>
+  </outline>
+</glyph>

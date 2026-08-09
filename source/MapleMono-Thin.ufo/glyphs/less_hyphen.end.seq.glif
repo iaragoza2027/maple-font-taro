@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="less_hyphen.end.seq" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="230" y="305" type="line"/>
+      <point x="-10" y="305" type="line"/>
+      <point x="-10" y="355" type="line"/>
+      <point x="230" y="355" type="line"/>
+    </contour>
+    <contour>
+      <point x="213" y="373" type="curve" smooth="yes"/>
+      <point x="453" y="613" type="line" smooth="yes"/>
+      <point x="465" y="625"/>
+      <point x="477" y="626"/>
+      <point x="489" y="614" type="curve" smooth="yes"/>
+      <point x="501" y="602"/>
+      <point x="500" y="590"/>
+      <point x="488" y="578" type="curve" smooth="yes"/>
+      <point x="261" y="351" type="line" smooth="yes"/>
+      <point x="247" y="337"/>
+      <point x="247" y="323"/>
+      <point x="261" y="309" type="curve" smooth="yes"/>
+      <point x="488" y="82" type="line" smooth="yes"/>
+      <point x="500" y="70"/>
+      <point x="501" y="59"/>
+      <point x="489" y="47" type="curve" smooth="yes"/>
+      <point x="477" y="35"/>
+      <point x="465" y="35"/>
+      <point x="453" y="47" type="curve" smooth="yes"/>
+      <point x="213" y="287" type="line" smooth="yes"/>
+      <point x="184" y="316"/>
+      <point x="184" y="344"/>
+    </contour>
+  </outline>
+</glyph>

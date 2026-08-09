@@ -1,9 +1,15 @@
 {
   "$schema": "./source/schema.json",
   "family_name": "Maple Mono",
+  "font_version": "7.900",
+  "formats": [
+    "ttf",
+    "otf",
+    "woff2"
+  ],
   "use_hinted": true,
+  "standard_zero": false,
   "pool_size": 4,
-  "enable_ligature": true,
   "ttfautohint_param": {},
   "github_mirror": "github.com",
   "infinite_arrow": null,
@@ -18,6 +24,7 @@
     "bold": 700,
     "extrabold": 800
   },
+  "codepoint_alias": {},
   "line_height": 1.0,
   "width": "default",
   "feature_freeze": {
@@ -32,6 +39,7 @@
     "cv09": "ignore",
     "cv10": "ignore",
     "cv11": "ignore",
+    "cv12": "ignore",
     "cv31": "ignore",
     "cv32": "ignore",
     "cv33": "ignore",
@@ -46,12 +54,15 @@
     "cv42": "ignore",
     "cv43": "ignore",
     "cv44": "ignore",
+    "cv45": "ignore",
     "cv61": "ignore",
     "cv62": "ignore",
     "cv63": "ignore",
     "cv64": "ignore",
     "cv65": "ignore",
     "cv66": "ignore",
+    "cv67": "ignore",
+    "cv68": "ignore",
     "cv96": "ignore",
     "cv97": "ignore",
     "cv98": "ignore",
@@ -67,27 +78,39 @@
     "ss09": "ignore",
     "ss10": "ignore",
     "ss11": "ignore",
+    "ss12": "ignore",
+    "ss13": "ignore",
     "zero": "ignore"
   },
   "nerd_font": {
     "enable": true,
-    "version": "3.4.0",
+    "version": "3.5.0",
     "mono": false,
     "propo": false,
+    "variable": false,
     "use_font_patcher": false,
     "glyphs": [
       "--complete"
     ],
     "extra_args": []
   },
-  "cn": {
-    "enable": false,
+  "cjk": {
+    "variable": false,
+    "locales": {
+      "cn": false,
+      "jp": false,
+      "tc": false,
+      "kr": false,
+      "custom": []
+    },
     "with_nerd_font": true,
     "fix_meta_table": true,
     "clean_cache": false,
     "narrow": false,
     "use_hinted": false,
-    "use_static_base_font": true,
-    "scale_factor": 1.0
+    "scale_factor": [
+      1.0,
+      1.0
+    ]
   }
 }

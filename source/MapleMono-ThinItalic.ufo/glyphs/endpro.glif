@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="endpro" format="2">
+  <advance width="600"/>
+  <unicode hex="220E"/>
+  <outline>
+    <contour>
+      <point x="320" y="0" type="curve" smooth="yes"/>
+      <point x="120" y="0" type="line" smooth="yes"/>
+      <point x="66" y="0"/>
+      <point x="45" y="26"/>
+      <point x="54" y="80" type="curve" smooth="yes"/>
+      <point x="116" y="430" type="line" smooth="yes"/>
+      <point x="125" y="484"/>
+      <point x="156" y="510"/>
+      <point x="210" y="510" type="curve" smooth="yes"/>
+      <point x="410" y="510" type="line" smooth="yes"/>
+      <point x="464" y="510"/>
+      <point x="485" y="484"/>
+      <point x="476" y="430" type="curve" smooth="yes"/>
+      <point x="414" y="80" type="line" smooth="yes"/>
+      <point x="405" y="26"/>
+      <point x="374" y="0"/>
+    </contour>
+  </outline>
+</glyph>

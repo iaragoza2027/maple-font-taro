@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="h.decorator" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="192" y="480" type="line"/>
+      <point x="102" y="480" type="line"/>
+      <point x="102" y="695" type="line" smooth="yes"/>
+      <point x="102" y="725"/>
+      <point x="117" y="740"/>
+      <point x="147" y="740" type="curve" smooth="yes"/>
+      <point x="177" y="740"/>
+      <point x="192" y="725"/>
+      <point x="192" y="695" type="curve" smooth="yes"/>
+    </contour>
+  </outline>
+</glyph>

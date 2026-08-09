@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="heavyleftpointinganglequotationmarkornament" format="2">
+  <advance width="600"/>
+  <unicode hex="276E"/>
+  <outline>
+    <contour>
+      <point x="268" y="365" type="line"/>
+      <point x="503" y="0" type="line"/>
+      <point x="335" y="0" type="line"/>
+      <point x="100" y="363" type="line"/>
+      <point x="335" y="730" type="line"/>
+      <point x="503" y="730" type="line"/>
+    </contour>
+  </outline>
+</glyph>

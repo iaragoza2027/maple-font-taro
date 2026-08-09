@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="Kappa" format="2">
+  <advance width="600"/>
+  <unicode hex="039A"/>
+  <outline>
+    <contour>
+      <point x="130" y="-10" type="curve" smooth="yes"/>
+      <point x="113" y="-10"/>
+      <point x="105" y="-2"/>
+      <point x="105" y="15" type="curve" smooth="yes"/>
+      <point x="105" y="715" type="line" smooth="yes"/>
+      <point x="105" y="732"/>
+      <point x="113" y="740"/>
+      <point x="130" y="740" type="curve" smooth="yes"/>
+      <point x="147" y="740"/>
+      <point x="155" y="732"/>
+      <point x="155" y="715" type="curve" smooth="yes"/>
+      <point x="155" y="401" type="line"/>
+      <point x="293" y="401" type="line" smooth="yes"/>
+      <point x="303" y="401"/>
+      <point x="311" y="405"/>
+      <point x="315" y="414" type="curve" smooth="yes"/>
+      <point x="462" y="724" type="line" smooth="yes"/>
+      <point x="467" y="735"/>
+      <point x="476" y="740"/>
+      <point x="488" y="740" type="curve" smooth="yes"/>
+      <point x="513" y="740"/>
+      <point x="520" y="729"/>
+      <point x="509" y="707" type="curve" smooth="yes"/>
+      <point x="360" y="394" type="line" smooth="yes"/>
+      <point x="356" y="385"/>
+      <point x="355" y="376"/>
+      <point x="359" y="367" type="curve" smooth="yes"/>
+      <point x="518" y="25" type="line" smooth="yes"/>
+      <point x="529" y="1"/>
+      <point x="522" y="-10"/>
+      <point x="496" y="-10" type="curve" smooth="yes"/>
+      <point x="483" y="-10"/>
+      <point x="474" y="-4"/>
+      <point x="468" y="8" type="curve" smooth="yes"/>
+      <point x="313" y="342" type="line" smooth="yes"/>
+      <point x="309" y="351"/>
+      <point x="302" y="356"/>
+      <point x="292" y="356" type="curve" smooth="yes"/>
+      <point x="155" y="356" type="line"/>
+      <point x="155" y="15" type="line" smooth="yes"/>
+      <point x="155" y="-2"/>
+      <point x="147" y="-10"/>
+    </contour>
+  </outline>
+</glyph>

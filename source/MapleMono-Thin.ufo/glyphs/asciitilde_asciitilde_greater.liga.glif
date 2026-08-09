@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="asciitilde_asciitilde_greater.liga" format="2">
+  <advance width="600"/>
+  <outline>
+    <component base="less_asciitilde_asciitilde.liga" xScale="-1.0" yScale="-1.0" xOffset="-600" yOffset="661"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>less_asciitilde_asciitilde.liga</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

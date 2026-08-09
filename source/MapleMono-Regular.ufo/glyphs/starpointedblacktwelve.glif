@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="starpointedblacktwelve" format="2">
+  <advance width="600"/>
+  <unicode hex="2739"/>
+  <outline>
+    <contour>
+      <point x="442" y="384" type="line"/>
+      <point x="586" y="347" type="line"/>
+      <point x="442" y="309" type="line"/>
+      <point x="548" y="204" type="line"/>
+      <point x="404" y="243" type="line"/>
+      <point x="443" y="99" type="line"/>
+      <point x="338" y="205" type="line"/>
+      <point x="300" y="60" type="line"/>
+      <point x="262" y="205" type="line"/>
+      <point x="157" y="99" type="line"/>
+      <point x="196" y="243" type="line"/>
+      <point x="52" y="204" type="line"/>
+      <point x="158" y="309" type="line"/>
+      <point x="14" y="347" type="line"/>
+      <point x="158" y="384" type="line"/>
+      <point x="52" y="490" type="line"/>
+      <point x="196" y="451" type="line"/>
+      <point x="157" y="595" type="line"/>
+      <point x="262" y="488" type="line"/>
+      <point x="300" y="633" type="line"/>
+      <point x="338" y="488" type="line"/>
+      <point x="443" y="595" type="line"/>
+      <point x="404" y="451" type="line"/>
+      <point x="548" y="490" type="line"/>
+    </contour>
+  </outline>
+</glyph>

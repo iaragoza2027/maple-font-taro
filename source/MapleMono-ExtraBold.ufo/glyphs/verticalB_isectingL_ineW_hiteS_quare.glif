@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="verticalBisectingLineWhiteSquare" format="2">
+  <advance width="600"/>
+  <unicode hex="25EB"/>
+  <outline>
+    <contour>
+      <point x="600" y="660" type="line"/>
+      <point x="600" y="60" type="line"/>
+      <point x="0" y="60" type="line"/>
+      <point x="0" y="660" type="line"/>
+    </contour>
+    <contour>
+      <point x="550" y="610" type="line"/>
+      <point x="50" y="610" type="line"/>
+      <point x="50" y="110" type="line"/>
+      <point x="550" y="110" type="line"/>
+    </contour>
+    <contour>
+      <point x="325" y="650" type="line"/>
+      <point x="325" y="70" type="line"/>
+      <point x="275" y="70" type="line"/>
+      <point x="275" y="650" type="line"/>
+    </contour>
+  </outline>
+</glyph>

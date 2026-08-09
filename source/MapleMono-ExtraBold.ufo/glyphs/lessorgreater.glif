@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="lessorgreater" format="2">
+  <advance width="600"/>
+  <unicode hex="2276"/>
+  <outline>
+    <component base="less_math.decorator" yOffset="200"/>
+    <component base="less_math.decorator" xScale="-1" xOffset="600" yOffset="-200"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>less_math.decorator</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>less_math.decorator</string>
+        </dict>
+      </array>
+      <key>com.schriftgestaltung.componentsSmartComponentValues</key>
+      <array>
+        <dict>
+          <key>Wt</key>
+          <integer>700</integer>
+        </dict>
+        <dict>
+          <key>Wt</key>
+          <integer>700</integer>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

@@ -1,0 +1,66 @@
+{
+  "$schema": "../cjk_schema.json",
+  "locale_name": "KR",
+  "source": {
+    "path": "../variable-source/ChironGoRoundTCVF.ttf",
+    "download": {
+      "url": "https://github.com/chiron-fonts/chiron-go-round-tc/raw/v1.011/VAR_TTF/ChironGoRoundTCVF.ttf"
+    },
+    "drop_tables": [
+      "BASE",
+      "VVAR",
+      "vhea",
+      "vmtx"
+    ],
+    "masters": {
+      "100": {
+        "wght": 310
+      },
+      "400": {
+        "wght": 570
+      },
+      "800": {
+        "wght": 900
+      }
+    }
+  },
+  "unicode": {
+    "ranges": [
+      "0x2460-0x2473",
+      "0x24B6-0x24CF",
+      "0x24EA-0x24F4",
+      "0x24FF",
+      "0x3000-0x3003",
+      "0x3008-0x3011",
+      "0x3014-0x301F",
+      "0x3131-0x3164",
+      "0x318D",
+      "0x321C",
+      "0x3380-0x3384",
+      "0x3388-0x33CA",
+      "0x33CF-0x33D0",
+      "0x33D3",
+      "0x33D6",
+      "0x33D8",
+      "0x33DB-0x33DD",
+      "0xAC00-0xD7A3",
+      "0xFF01-0xFF60",
+      "0xFFA1-0xFFBE",
+      "0xFFC2-0xFFC7",
+      "0xFFCA-0xFFCF",
+      "0xFFD2-0xFFD7",
+      "0xFFDA-0xFFDC",
+      "0xFFE0-0xFFE1",
+      "0xFFE5-0xFFE6"
+    ],
+    "exclude_feature_codepoints": true
+  },
+  "transform": {
+    "target_advance_width": 1200,
+    "x_scale": 1.02,
+    "y_scale": 1.05,
+    "x_shift": 100,
+    "y_shift": -25,
+    "italic_angle": 10
+  }
+}

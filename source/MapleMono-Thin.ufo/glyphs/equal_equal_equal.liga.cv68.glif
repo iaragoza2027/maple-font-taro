@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="equal_equal_equal.liga.cv68" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="490" y="185" type="curve" smooth="yes"/>
+      <point x="-1090" y="185" type="line" smooth="yes"/>
+      <point x="-1107" y="185"/>
+      <point x="-1115" y="193"/>
+      <point x="-1115" y="210" type="curve" smooth="yes"/>
+      <point x="-1115" y="227"/>
+      <point x="-1107" y="235"/>
+      <point x="-1090" y="235" type="curve" smooth="yes"/>
+      <point x="490" y="235" type="line" smooth="yes"/>
+      <point x="507" y="235"/>
+      <point x="515" y="227"/>
+      <point x="515" y="210" type="curve" smooth="yes"/>
+      <point x="515" y="193"/>
+      <point x="507" y="185"/>
+    </contour>
+    <contour>
+      <point x="490" y="425" type="curve" smooth="yes"/>
+      <point x="-1090" y="425" type="line" smooth="yes"/>
+      <point x="-1107" y="425"/>
+      <point x="-1115" y="433"/>
+      <point x="-1115" y="450" type="curve" smooth="yes"/>
+      <point x="-1115" y="467"/>
+      <point x="-1107" y="475"/>
+      <point x="-1090" y="475" type="curve" smooth="yes"/>
+      <point x="490" y="475" type="line" smooth="yes"/>
+      <point x="507" y="475"/>
+      <point x="515" y="467"/>
+      <point x="515" y="450" type="curve" smooth="yes"/>
+      <point x="515" y="433"/>
+      <point x="507" y="425"/>
+    </contour>
+  </outline>
+</glyph>

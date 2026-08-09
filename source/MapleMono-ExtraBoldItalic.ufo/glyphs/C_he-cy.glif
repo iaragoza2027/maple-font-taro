@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="Che-cy" format="2">
+  <advance width="600"/>
+  <unicode hex="0427"/>
+  <anchor x="349" y="730" name="top"/>
+  <anchor x="500" y="0" name="bottomright"/>
+  <outline>
+    <contour>
+      <point x="311.461" y="65" type="curve"/>
+      <point x="344.082" y="250" type="line"/>
+      <point x="234.082" y="250" type="line" smooth="yes"/>
+      <point x="129.082" y="250"/>
+      <point x="32.596" y="355"/>
+      <point x="49.347" y="450" type="qcurve" smooth="yes"/>
+      <point x="87.257" y="665" type="line" smooth="yes"/>
+      <point x="96.074" y="715"/>
+      <point x="125.482" y="740"/>
+      <point x="175.482" y="740" type="curve" smooth="yes"/>
+      <point x="225.482" y="740"/>
+      <point x="246.074" y="715"/>
+      <point x="237.257" y="665" type="curve" smooth="yes"/>
+      <point x="201.11" y="460" type="line" smooth="yes"/>
+      <point x="195.115" y="426"/>
+      <point x="235.886" y="385"/>
+      <point x="276.886" y="385" type="qcurve" smooth="yes"/>
+      <point x="367.886" y="385" type="line"/>
+      <point x="417.257" y="665" type="line"/>
+      <point x="426.074" y="715"/>
+      <point x="455.482" y="740"/>
+      <point x="505.482" y="740" type="curve" smooth="yes"/>
+      <point x="555.482" y="740"/>
+      <point x="576.074" y="715"/>
+      <point x="567.257" y="665" type="curve" smooth="yes"/>
+      <point x="461.461" y="65" type="line" smooth="yes"/>
+      <point x="452.645" y="15"/>
+      <point x="423.237" y="-10"/>
+      <point x="373.237" y="-10" type="curve" smooth="yes"/>
+      <point x="323.237" y="-10"/>
+      <point x="302.645" y="15"/>
+    </contour>
+  </outline>
+</glyph>

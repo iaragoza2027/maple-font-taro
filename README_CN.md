@@ -16,459 +16,83 @@
   <img alt="GitHub Repo Issues" src="https://img.shields.io/github/issues/subframe7536/maple-font">
 </p>
 
-
 <p align="center">
-  <a href="#下载">下载</a> |
+  <a href="#下载与安装">下载</a> |
   <a href="https://font.subf.dev">网站</a> |
   <a href="./README.md">English</a> |
   中文 |
-  <a href="./README_JA.md">日本語</a>
+  <a href="./README_TC.md">繁中</a> |
+  <a href="./README_JP.md">日本語</a> |
+  <a href="./README_KR.md">한국어</a>
 </p>
+
+> [!WARNING]
+> V8 版本仍在开发中，尚未正式发布。如果你需要使用稳定版本，请前往 [`v7` 分支](https://github.com/subframe7536/maple-font/tree/v7)。
 
 # Maple Mono
 
-Maple Mono 是一款开源等宽字体，专注于优化您的编码体验。
+Maple Mono 是一款开源等宽字体，致力于让编码体验更加舒适、高效。
 
-我制作它是为了提升自己的工作效率，希望它也能对其他人有所帮助。
+我制作它是为了提升自己的工作效率，也希望它能帮助更多人更愉快地编写代码。
 
-V7 是一个完全重制版本，提供了可变字体格式和字体工程源文件，重新设计了超过一半的字形，并提供更智能的连字。您可以[在这里](https://github.com/subframe7536/maple-font/tree/main)查看 V6 版本。
+## 为什么选择 Maple Mono？
 
-## 特性
+- ✨ **可变字体支持** - 支持连续调节字重，并针对斜体字形进行细致优化，让排版控制更加灵活。
+- ☁️ **圆角与视觉优化** - 全面采用圆角设计，重绘 `@ $ % & Q ->` 等关键符号，优化斜体连笔（`f i j k l x y`），并提供多种字符宽度模式。
+- 🪄 **智能连字增强** - 支持大量智能连字，提供丰富的字符变体和 OpenType 样式集，内置标签连字，帮助代码更易读，也更有表现力。
+- 🔣 **Unicode 扩展覆盖** - 覆盖制表符、盲文、数学运算符（U+2200–U+22FF）、国际象棋与扑克牌符号、终端状态与进度符号，以及 Claude Code 状态加载符号等，适用于科学计算和开发场景。
+- 🎨 **Nerd Font 图标支持** - 原生集成 [Nerd Fonts](https://github.com/ryanoasis/nerd-fonts)，兼容各类开发工具和终端环境，让界面信息更清晰易读。
+- 🔨 **高度可定制构建** - 支持强制启用 OpenType 特性、自定义标签连字、行高、字符宽度和字重映射等配置，也可以从源码生成专属字体。
 
-- ✨ 可变 - 无限的字体粗细，以及手工微调的斜体字形。
-- ☁️ 丝滑 - **圆角**，独特的 `@ $ % & Q ->` 字形，以及手写风格的斜体 `f i j k l x y`。
-- 💪 实用 - 大量的智能连字，详见 [`features/`](./source/features/README.md)。
-- 🎨 图标 - 提供 [Nerd-Font](https://github.com/ryanoasis/nerd-fonts) 嵌入的版本，添加图标支持。
-- 🔨 定制 - 自由开关或者构建 OpenType 字体特性，打造您专属的字体。
+### 简体中文、繁体中文、日文与韩文
 
-### 简体中文、繁体中文和日文
+Maple Mono 支持 CJK 字符集。与 V7 相比，V8 大幅扩充并优化了 CJK 字符集，覆盖简体中文、繁体中文、日文和韩文。为了让多语言文本和 Markdown 表格保持整齐，CJK 字符与英文字符按 2:1 的宽度对齐；相应地，默认 CJK 字符的间距会比其他常见中文字体更宽，详见[这个议题](https://github.com/subframe7536/maple-font/issues/211)。
 
-CN 版本基于[资源圆体](https://github.com/CyanoHao/Resource-Han-Rounded)提供了完整的中文开发环境的字符集支持，包括简体中文、繁体中文和日文。同时，中英文 2:1 完美对齐的特性，使得本字体在多语言显示、Markdown 表格等场景可以做到整齐划一、美观舒适。但是中文的间距相比其他流行的中文字体更大，详情请参阅[发行版说明](https://github.com/subframe7536/maple-font/releases/tag/cn-base)和[这个议题](https://github.com/subframe7536/maple-font/issues/211)。
+| 地区 | 覆盖范围                           | CJK 字库来源                                                                             | 构建输出 |
+| ---- | ---------------------------------- | ---------------------------------------------------------------------------------------- | -------- |
+| CN   | 简体中文，并覆盖常用繁体与日文字符 | [WenYuan Rounded SC](https://github.com/takushun-wu/WenYuanFonts)                        | `CN`     |
+| TC   | 繁体中文                           | [Chiron Go Round TC](https://github.com/chiron-fonts/chiron-go-round-tc)                 | `TC`     |
+| JP   | 日文                               | [Resource Han Rounded JP](https://github.com/CyanoHao/Resource-Han-Rounded)              | `JP`     |
+| KR   | 韩文                               | [Chiron Go Round TC](https://github.com/chiron-fonts/chiron-go-round-tc)，按韩文区域筛选 | `KR`     |
 
-- CN 版本暂时不支持可变字体格式
+CJK 构建默认关闭。你可以通过 CJK 构建配置选择地区、静态或可变输出，以及是否启用紧凑宽度模式。
+
+<!--
+|Go|od| t|yp|og|ra|ph|y |re|ad|s |ea|si|ly|
+|优|美|的|字|体|让|阅|读|变|得|更|加|轻|松|
+|優|美|的|字|體|讓|閱|讀|變|得|更|加|輕|鬆|
+|美|し|い|書|体|は|も|っ|と|読|み|や|す|い|
+|아|름|다|운|글|꼴|은|더|읽|기|가|편|해|요|
+|1!|2@|3#|4$|5%|6^|7&|8*|9(|0)|_+|{}|[]|;:|
+-->
 
 ![2-1.png](./resources/2-1.png)
 
-## 屏幕截图
+## 预览
 
-![showcase.png](./resources/showcase.png)
+![showcase.png](./resources/showcase.webp)
 
-- 生成：[CodeImg](https://github.com/subframe7536/vscode-codeimg)
+- 生成工具：[CodeImg](https://github.com/subframe7536/vscode-codeimg)
 - 主题：[Maple](https://github.com/subframe7536/vscode-theme-maple)
-- 配置：字体大小 16px，行高 1.8，默认字母间距
+- 配置：字号 16px，行高 1.8，默认字母间距
 
-## 下载
+## 开始使用
 
-您可以从 [Releases](https://github.com/subframe7536/maple-font/releases) 下载所有字体压缩包。
+### 下载与安装
 
-### Scoop (Windows)
+你可以从 [Releases](https://github.com/subframe7536/maple-font/releases/latest) 下载字体压缩包。
 
-```sh
-# Add bucket
-scoop bucket add nerd-fonts
-# Maple Mono (ttf 格式)
-scoop install Maple-Mono
-# Maple Mono NF
-scoop install Maple-Mono-NF
-# Maple Mono NF CN
-scoop install Maple-Mono-NF-CN
-```
+你也可以通过 Scoop、Homebrew、AUR/Paru、NixPkgs 等包管理器安装 Maple Mono，详情见[安装指南](./docs/install.md)。
 
-<details>
-  <summary>所有包 (点击展开)</summary>
+### 使用与特性配置
 
-  ```sh
-  # 添加 bucket
-  scoop bucket add nerd-fonts
-  # Maple Mono (ttf 格式)
-  scoop install Maple-Mono
-  # Maple Mono (hinted ttf 格式)
-  scoop install Maple-Mono-autohint
-  # Maple Mono (otf 格式)
-  scoop install Maple-Mono-otf
-  # Maple Mono NF
-  scoop install Maple-Mono-NF
-  # Maple Mono NF CN
-  scoop install Maple-Mono-NF-CN
-  ```
+使用方法和配置说明请参阅[使用指南](./docs/usage.md)。
 
-</details>
+#### 命名说明与字体选择
 
-### Homebrew (MacOS, Linux)
+Maple Mono 根据用户反馈，在发行版中提供了多种字体格式和字符集范围。你可以根据使用场景选择合适的字体文件，详情见[字体选择](./docs/choose.md)。
 
-```sh
-# Maple Mono
-brew install --cask font-maple-mono
-# Maple Mono NF
-brew install --cask font-maple-mono-nf
-# Maple Mono NF CN
-brew install --cask font-maple-mono-nf-cn
-```
-
-<details>
-  <summary>所有包 (点击展开)</summary>
-
-  ```sh
-  # Maple Mono
-  brew install --cask font-maple-mono
-  # Maple Mono NF
-  brew install --cask font-maple-mono-nf
-  # Maple Mono CN
-  brew install --cask font-maple-mono-cn
-  # Maple Mono NF CN
-  brew install --cask font-maple-mono-nf-cn
-
-  # Maple Mono Normal
-  brew install --cask font-maple-mono-normal
-  # Maple Mono Normal NF
-  brew install --cask font-maple-mono-normal-nf
-  # Maple Mono Normal CN
-  brew install --cask font-maple-mono-normal-cn
-  # Maple Mono Normal NF CN
-  brew install --cask font-maple-mono-normal-nf-cn
-  ```
-
-</details>
-
-### Arch Linux
-
-ArchLinuxCN 仓库允许下载单个软件包的 zip 文件，而无需下载 pkgbase 中的所有软件包的 zip 文件，但 AUR 不允许。(如果您有好的解决方案，请联系 Cyberczy(czysheep@gmail.com))
-
-#### ArchLinuxCN (推荐)
-
-```sh
-# Maple Mono (Ligature TTF unhinted)
-paru -S ttf-maplemono
-# Maple Mono NF (Ligature unhinted)
-paru -S ttf-maplemono-nf-unhinted
-# Maple Mono NF CN (Ligature unhinted)
-paru -S ttf-maplemono-nf-cn-unhinted
-```
-
-<details>
-  <summary>所有包 (点击展开)</summary>
-
-  ```sh
-  # Maple Mono (Ligature Variable)
-  paru -S ttf-maplemono-variable
-  # Maple Mono (Ligature TTF hinted)
-  paru -S ttf-maplemono-autohint
-  # Maple Mono (Ligature TTF unhinted)
-  paru -S ttf-maplemono
-  # Maple Mono (Ligature OTF)
-  paru -S otf-maplemono
-  # Maple Mono (Ligature WOFF2)
-  paru -S woff2-maplemono
-  # Maple Mono NF (Ligature hinted)
-  paru -S ttf-maplemono-nf
-  # Maple Mono NF (Ligature unhinted)
-  paru -S ttf-maplemono-nf-unhinted
-  # Maple Mono CN (Ligature hinted)
-  paru -S ttf-maplemono-cn
-  # Maple Mono CN (Ligature unhinted)
-  paru -S ttf-maplemono-cn-unhinted
-  # Maple Mono NF CN (Ligature hinted)
-  paru -S ttf-maplemono-nf-cn
-  # Maple Mono NF CN (Ligature unhinted)
-  paru -S ttf-maplemono-nf-cn-unhinted
-
-  # Maple Mono (No-Ligature Variable)
-  paru -S ttf-maplemononl-variable
-  # Maple Mono (No-Ligature TTF hinted)
-  paru -S ttf-maplemononl-autohint
-  # Maple Mono (No-Ligature TTF unhinted)
-  paru -S ttf-maplemononl
-  # Maple Mono (No-Ligature OTF)
-  paru -S otf-maplemononl
-  # Maple Mono (No-Ligature WOFF2)
-  paru -S woff2-maplemononl
-  # Maple Mono NF (No-Ligature hinted)
-  paru -S ttf-maplemononl-nf
-  # Maple Mono NF (No-Ligature unhinted)
-  paru -S ttf-maplemononl-nf-unhinted
-  # Maple Mono CN (No-Ligature hinted)
-  paru -S ttf-maplemononl-cn
-  # Maple Mono CN (No-Ligature unhinted)
-  paru -S ttf-maplemononl-cn-unhinted
-  # Maple Mono NF CN (No-Ligature hinted)
-  paru -S ttf-maplemononl-nf-cn
-  # Maple Mono NF CN (No-Ligature unhinted)
-  paru -S ttf-maplemononl-nf-cn-unhinted
-
-  # Maple Mono Normal (Ligature Variable)
-  paru -S ttf-maplemononormal-variable
-  # Maple Mono Normal (Ligature TTF hinted)
-  paru -S ttf-maplemononormal-autohint
-  # Maple Mono Normal (Ligature TTF unhinted)
-  paru -S ttf-maplemononormal
-  # Maple Mono Normal (Ligature OTF)
-  paru -S otf-maplemononormal
-  # Maple Mono Normal (Ligature WOFF2)
-  paru -S woff2-maplemononormal
-  # Maple Mono Normal NF (Ligature hinted)
-  paru -S ttf-maplemononormal-nf
-  # Maple Mono Normal NF (Ligature unhinted)
-  paru -S ttf-maplemononormal-nf-unhinted
-  # Maple Mono Normal CN (Ligature hinted)
-  paru -S ttf-maplemononormal-cn
-  # Maple Mono Normal CN (Ligature unhinted)
-  paru -S ttf-maplemononormal-cn-unhinted
-  # Maple Mono Normal NF CN (Ligature hinted)
-  paru -S ttf-maplemononormal-nf-cn
-  # Maple Mono Normal NF CN (Ligature unhinted)
-  paru -S ttf-maplemononormal-nf-cn-unhinted
-
-  # Maple Mono Normal (No-Ligature Variable)
-  paru -S ttf-maplemononormalnl-variable
-  # Maple Mono Normal (No-Ligature TTF hinted)
-  paru -S ttf-maplemononormalnl-autohint
-  # Maple Mono Normal (No-Ligature TTF unhinted)
-  paru -S ttf-maplemononormalnl
-  # Maple Mono Normal (No-Ligature OTF)
-  paru -S otf-maplemononormalnl
-  # Maple Mono Normal (No-Ligature WOFF2)
-  paru -S woff2-maplemononormalnl
-  # Maple Mono Normal NF (No-Ligature hinted)
-  paru -S ttf-maplemononormalnl-nf
-  # Maple Mono Normal NF (No-Ligature unhinted)
-  paru -S ttf-maplemononormalnl-nf-unhinted
-  # Maple Mono Normal CN (No-Ligature hinted)
-  paru -S ttf-maplemononormalnl-cn
-  # Maple Mono Normal CN (No-Ligature unhinted)
-  paru -S ttf-maplemononormalnl-cn-unhinted
-  # Maple Mono Normal NF CN (No-Ligature hinted)
-  paru -S ttf-maplemononormalnl-nf-cn
-  # Maple Mono Normal NF CN (No-Ligature unhinted)
-  paru -S ttf-maplemononormalnl-nf-cn-unhinted
-  ```
-
-</details>
-
-#### AUR (不推荐)
-
-```sh
-# Maple Mono (Ligature TTF unhinted)
-paru -S maplemono-ttf
-# Maple Mono NF (Ligature unhinted)
-paru -S maplemono-nf-unhinted
-# Maple Mono NF CN (Ligature unhinted)
-paru -S maplemono-nf-cn-unhinted
-```
-
-<details>
-  <summary>所有包 (点击展开)</summary>
-
-  ```sh
-  # Maple Mono (Ligature Variable)
-  paru -S maplemono-variable
-  # Maple Mono (Ligature TTF hinted)
-  paru -S maplemono-ttf-autohint
-  # Maple Mono (Ligature TTF unhinted)
-  paru -S maplemono-ttf
-  # Maple Mono (Ligature OTF)
-  paru -S maplemono-otf
-  # Maple Mono (Ligature WOFF2)
-  paru -S maplemono-woff2
-  # Maple Mono NF (Ligature hinted)
-  paru -S maplemono-nf
-  # Maple Mono NF (Ligature unhinted)
-  paru -S maplemono-nf-unhinted
-  # Maple Mono CN (Ligature hinted)
-  paru -S maplemono-cn
-  # Maple Mono CN (Ligature unhinted)
-  paru -S maplemono-cn-unhinted
-  # Maple Mono NF CN (Ligature hinted)
-  paru -S maplemono-nf-cn
-  # Maple Mono NF CN (Ligature unhinted)
-  paru -S maplemono-nf-cn-unhinted
-
-  # Maple Mono (No-Ligature Variable)
-  paru -S maplemononl-variable
-  # Maple Mono (No-Ligature TTF hinted)
-  paru -S maplemononl-ttf-autohint
-  # Maple Mono (No-Ligature TTF unhinted)
-  paru -S maplemononl-ttf
-  # Maple Mono (No-Ligature OTF)
-  paru -S maplemononl-otf
-  # Maple Mono (No-Ligature WOFF2)
-  paru -S maplemononl-woff2
-  # Maple Mono NF (No-Ligature hinted)
-  paru -S maplemononl-nf
-  # Maple Mono NF (No-Ligature unhinted)
-  paru -S maplemononl-nf-unhinted
-  # Maple Mono CN (No-Ligature hinted)
-  paru -S maplemononl-cn
-  # Maple Mono CN (No-Ligature unhinted)
-  paru -S maplemononl-cn-unhinted
-  # Maple Mono NF CN (No-Ligature hinted)
-  paru -S maplemononl-nf-cn
-  # Maple Mono NF CN (No-Ligature unhinted)
-  paru -S maplemononl-nf-cn-unhinted
-
-  # Maple Mono Normal (Ligature Variable)
-  paru -S maplemononormal-variable
-  # Maple Mono Normal (Ligature TTF hinted)
-  paru -S maplemononormal-ttf-autohint
-  # Maple Mono Normal (Ligature TTF unhinted)
-  paru -S maplemononormal-ttf
-  # Maple Mono Normal (Ligature OTF)
-  paru -S maplemononormal-otf
-  # Maple Mono Normal (Ligature WOFF2)
-  paru -S maplemononormal-woff2
-  # Maple Mono Normal NF (Ligature hinted)
-  paru -S maplemononormal-nf
-  # Maple Mono Normal NF (Ligature unhinted)
-  paru -S maplemononormal-nf-unhinted
-  # Maple Mono Normal CN (Ligature hinted)
-  paru -S maplemononormal-cn
-  # Maple Mono Normal CN (Ligature unhinted)
-  paru -S maplemononormal-cn-unhinted
-  # Maple Mono Normal NF CN (Ligature hinted)
-  paru -S maplemononormal-nf-cn
-  # Maple Mono Normal NF CN (Ligature unhinted)
-  paru -S maplemononormal-nf-cn-unhinted
-
-  # Maple Mono Normal (No-Ligature Variable)
-  paru -S maplemononormalnl-variable
-  # Maple Mono Normal (No-Ligature TTF hinted)
-  paru -S maplemononormalnl-ttf-autohint
-  # Maple Mono Normal (No-Ligature TTF unhinted)
-  paru -S maplemononormalnl-ttf
-  # Maple Mono Normal (No-Ligature OTF)
-  paru -S maplemononormalnl-otf
-  # Maple Mono Normal (No-Ligature WOFF2)
-  paru -S maplemononormalnl-woff2
-  # Maple Mono Normal NF (No-Ligature hinted)
-  paru -S maplemononormalnl-nf
-  # Maple Mono Normal NF (No-Ligature unhinted)
-  paru -S maplemononormalnl-nf-unhinted
-  # Maple Mono Normal CN (No-Ligature hinted)
-  paru -S maplemononormalnl-cn
-  # Maple Mono Normal CN (No-Ligature unhinted)
-  paru -S maplemononormalnl-cn-unhinted
-  # Maple Mono Normal NF CN (No-Ligature hinted)
-  paru -S maplemononormalnl-nf-cn
-  # Maple Mono Normal NF CN (No-Ligature unhinted)
-  paru -S maplemononormalnl-nf-cn-unhinted
-  ```
-
-</details>
-
-### Nixpkgs (NixOS, Linux, MacOS)
-
-```nix
-fonts.packages = with pkgs; [
-  # Maple Mono (Ligature TTF unhinted)
-  maple-mono.truetype
-  # Maple Mono NF (Ligature unhinted)
-  maple-mono.NF-unhinted
-  # Maple Mono NF CN (Ligature unhinted)
-  maple-mono.NF-CN-unhinted
-];
-```
-
-<details>
-  <summary>所有包 (点击展开)</summary>
-
-  ```nix
-  fonts.packages = with pkgs; [
-    # Maple Mono (Ligature Variable)
-    maple-mono.variable
-    # Maple Mono (Ligature TTF hinted)
-    maple-mono.truetype-autohint
-    # Maple Mono (Ligature TTF unhinted)
-    maple-mono.truetype
-    # Maple Mono (Ligature OTF)
-    maple-mono.opentype
-    # Maple Mono (Ligature WOFF2)
-    maple-mono.woff2
-    # Maple Mono NF (Ligature hinted)
-    maple-mono.NF
-    # Maple Mono NF (Ligature unhinted)
-    maple-mono.NF-unhinted
-    # Maple Mono CN (Ligature hinted)
-    maple-mono.CN
-    # Maple Mono CN (Ligature unhinted)
-    maple-mono.CN-unhinted
-    # Maple Mono NF CN (Ligature hinted)
-    maple-mono.NF-CN
-    # Maple Mono NF CN (Ligature unhinted)
-    maple-mono.NF-CN-unhinted
-
-    # Maple Mono (No-Ligature Variable)
-    maple-mono.NL-Variable
-    # Maple Mono (No-Ligature TTF hinted)
-    maple-mono.NL-TTF-AutoHint
-    # Maple Mono (No-Ligature TTF unhinted)
-    maple-mono.NL-TTF
-    # Maple Mono (No-Ligature OTF)
-    maple-mono.NL-OTF
-    # Maple Mono (No-Ligature WOFF2)
-    maple-mono.NL-Woff2
-    # Maple Mono NF (No-Ligature hinted)
-    maple-mono.NL-NF
-    # Maple Mono NF (No-Ligature unhinted)
-    maple-mono.NL-NF-unhinted
-    # Maple Mono CN (No-Ligature hinted)
-    maple-mono.NL-CN
-    # Maple Mono CN (No-Ligature unhinted)
-    maple-mono.NL-CN-unhinted
-    # Maple Mono NF CN (No-Ligature hinted)
-    maple-mono.NL-NF-CN
-    # Maple Mono NF CN (No-Ligature unhinted)
-    maple-mono.NL-NF-CN-unhinted
-
-    # Maple Mono Normal (Ligature Variable)
-    maple-mono.Normal-Variable
-    # Maple Mono Normal (Ligature TTF hinted)
-    maple-mono.Normal-TTF-AutoHint
-    # Maple Mono Normal (Ligature TTF unhinted)
-    maple-mono.Normal-TTF
-    # Maple Mono Normal (Ligature OTF)
-    maple-mono.Normal-OTF
-    # Maple Mono Normal (Ligature WOFF2)
-    maple-mono.Normal-Woff2
-    # Maple Mono Normal NF (Ligature hinted)
-    maple-mono.Normal-NF
-    # Maple Mono Normal NF (Ligature unhinted)
-    maple-mono.Normal-NF-unhinted
-    # Maple Mono Normal CN (Ligature hinted)
-    maple-mono.Normal-CN
-    # Maple Mono Normal CN (Ligature unhinted)
-    maple-mono.Normal-CN-unhinted
-    # Maple Mono Normal NF CN (Ligature hinted)
-    maple-mono.Normal-NF-CN
-    # Maple Mono Normal NF CN (Ligature unhinted)
-    maple-mono.Normal-NF-CN-unhinted
-
-    # Maple Mono Normal (No-Ligature Variable)
-    maple-mono.NormalNL-Variable
-    # Maple Mono Normal (No-Ligature TTF hinted)
-    maple-mono.NormalNL-TTF-AutoHint
-    # Maple Mono Normal (No-Ligature TTF unhinted)
-    maple-mono.NormalNL-TTF
-    # Maple Mono Normal (No-Ligature OTF)
-    maple-mono.NormalNL-OTF
-    # Maple Mono Normal (No-Ligature WOFF2)
-    maple-mono.NormalNL-Woff2
-    # Maple Mono Normal NF (No-Ligature hinted)
-    maple-mono.NormalNL-NF
-    # Maple Mono Normal NF (No-Ligature unhinted)
-    maple-mono.NormalNL-NF-unhinted
-    # Maple Mono Normal CN (No-Ligature hinted)
-    maple-mono.NormalNL-CN
-    # Maple Mono Normal CN (No-Ligature unhinted)
-    maple-mono.NormalNL-CN-unhinted
-    # Maple Mono Normal NF CN (No-Ligature hinted)
-    maple-mono.NormalNL-NF-CN
-    # Maple Mono Normal NF CN (No-Ligature unhinted)
-    maple-mono.NormalNL-NF-CN-unhinted
-  ];
-  ```
-
-</details>
-
-## CDN
+### CDN
 
 ### Maple Mono
 
@@ -480,160 +104,87 @@ fonts.packages = with pkgs; [
 - [The Chinese Web Fonts Plan (中文网字计划)](https://chinese-font.netlify.app/zh-cn/fonts/maple-mono-cn/MapleMono-CN-Regular)
 - [ZeoSeven Fonts](https://fonts.zeoseven.com/items/442/)
 
-## 使用方法 & 特性配置
 
-请参阅 [文档](./source/features/README_CN.md) 或者在 [特性测试页面](https://font.subf.dev/zh-cn/playground) 尝试。
+## 亮点介绍
 
-> [!note]
-> 用于自定义构建的 Web 工具仍在开发中。
+你可以在[page#todo]()预览所有亮点。
 
-## 命名说明
+### 自定义构建
 
-### 字体特性
+Maple Mono 提供了高度可定制的构建方式。你可以修改 [`config.json`](./config.json)，或在命令行中添加参数，生成符合需求的字体文件，详情见[自定义构建](./docs/build.md)。
 
-- **Ligature**: 带有连字的默认版本 (`Maple Mono`)
-- **No-Ligature**: 没有连字的默认版本 (`Maple Mono NL`)
-- **Normal-Ligature**: 带有连字的 [`--normal` 预设](#预设) (`Maple Mono Normal`)
-- **Normal-No-Ligature**: 没有连字的 [`--normal` 预设](#预设) (`Maple Mono Normal NL`)
-
-### 字体格式和字符集
-
-- **Variable**: 最小版本，通过字体的可变轴改变字体粗细
-- **TTF**: 最小版本，ttf 格式 [推荐！]
-- **OTF**: 最小版本，otf 格式
-- **WOFF2**: 最小版本，woff2 格式，多用于网页加载
-- **NF**: 嵌入 Nerd-Font 的版本，为终端添加图标 (带有 `-NF` 后缀)
-- **CN**: 中文版本，嵌入中文和日文字形 (带有 `-CN` 后缀)
-- **NF-CN**: 完整版本，嵌入图标、中文和日文字形 (带有 `-NF-CN` 后缀)
-
-### 字体微调
-
-- **Hinted 字体** 用于低分辨率屏幕，以获得更好的渲染效果。根据我个人的经验，如果您的屏幕分辨率低于或等于 1080P，建议使用 "hinted 字体"。使用 "unhinted 字体" 会导致文本错位或粗细不均。
-  - 在这种情况下，您可以选择 `MapleMono-TTF-AutoHint` / `MapleMono-NF` / `MapleMono-NF-CN` 等。
-- **Unhinted 字体** 用于高分辨率屏幕（例如 MacBook）。使用 "hinted 字体" 会使您的文本模糊或看起来很奇怪。
-  - 在这种情况下，您可以选择 `MapleMono-OTF` / `MapleMono-TTF` / `MapleMono-NF-unhinted` / `MapleMono-NF-CN-unhinted` 等。
-- 为什么存在 `-AutoHint` 和 `-unhinted` 后缀？
-  - 为了向后兼容，我保留了原始命名方案。`-AutoHint` 仅用于 `TTF` 格式。
-
-
-## 自定义构建
-
-[`config.json`](./config.json) 文件用于配置构建过程。查看 [schema](./source/schema.json) 或 [文档](./source/features/README.md) 了解更多详情。
-
-还有一些 [命令行选项](#构建脚本用法) 用于自定义构建过程。命令行选项的优先级高于 `config.json` 中的选项。
-
-### 构建方法
-
-#### 1. 浏览器中构建
-
-进入 [特性测试页面](https://font.subf.dev/zh-cn/playground)，点击左下角的“自定义构建”按钮
-
-- 目前只支持固定 OpenType 特性
-
-#### 2. 使用 Github Actions
-
-您可以使用 [Github Actions](https://github.com/subframe7536/maple-font/actions/workflows/custom.yml) 来构建字体。
-
-1. Fork 仓库
-2. (可选) 更改 `config.json` 中的内容
-3. 转到 Actions 选项卡
-4. 点击左侧的 `Custom Build` 菜单项
-5. 点击 `Run workflow` 按钮并设置选项
-6. 等待构建完成
-7. 从 Releases 下载字体压缩包
-
-#### 3. 使用 Docker
-
-```shell
-git clone https://github.com/subframe7536/maple-font --depth 1 -b variable
-docker build -t maple-font .
-docker run -v "$(pwd)/fonts:/app/fonts" -e BUILD_ARGS="--normal" maple-font
-```
-
-#### 4. 本地构建
-
-克隆仓库并在您的本地机器上运行。确保您已安装 `python3` 和 `pip`
-
-```shell
-git clone https://github.com/subframe7536/maple-font --depth 1 -b variable
-pip install -r requirements.txt
-python build.py
-```
-
-> [!TIP]
-> 对于 `Ubuntu` 或 `Debian`，可能还需要 `python-is-python3`
->
-> 如果您在安装依赖项时遇到问题，只需创建一个新的 GitHub Codespace 并在那里运行命令
+查看完整的 [`build.py` 命令行选项](#buildpy-cli)。
 
 ### 窄字符
 
-你可以在 config.json 中设置 `"width": "narrow"` 或者在命令行添加 `--width slim` 来在构建时修改字形宽度。中文字符部分也会等比例修改。
+在 V8 中，Maple Mono 提供三种字符宽度模式。你可以修改 [`config.json`](./config.json) 中的 `"width"` 字段，或在命令行中添加参数 `--width <mode>` 来选择宽度模式。
 
-有 3 个选项：
+可选模式如下：
+
 - default: 600
 - narrow: 550
 - slim: 500
 
-预览：[#131](https://github.com/subframe7536/maple-font/issues/131#issuecomment-3678666194)
+![Width comparison](./resources/preview-widths.webp)
 
-### 自定义 Nerd-Font
+### OpenType 特性开关
 
-如果您想获得固定宽度的图标，请在 `config.json` 中设置 `"nerd_font.mono": true` 或在构建脚本参数中添加 `--nf-mono` 标志。
+“OpenType 特性”是用于控制字体内置变体和连字的机制，绝大多数现代操作系统、浏览器、终端和编辑器都支持它。你可以通过启用或禁用 OpenType 特性，控制连字和字符样式。
 
-如果您想获得可变宽度的图标，请在 `config.json` 中设置 `"nerd_font.propo": true` 或在构建脚本参数中添加 `--nf-propo` 标志。
+Maple Mono 提供大量细粒度的 OpenType 特性。为了减少配置成本，构建时可以为这些特性选择三种处理方式（[为什么](https://github.com/subframe7536/maple-font/issues/233#issuecomment-2410170270)）：
 
-对于自定义的 `font-patcher` 参数，需要 `font-forge`（也可能需要 `python3-fontforge`）。
+1. `enable`：强制启用这些特性，无需在字体特性配置中设置 `cvXX` / `ssXX` / `zero`，行为类似于默认连字。
+2. `disable`：移除 `cvXX` / `ssXX` / `zero` 中的特性，即使手动启用，也不会生效。
+3. `ignore`：保持默认行为，不做任何处理。
 
-您可能还应该在 [config.json](./config.json) 中更改 `"nerd_font.extra_args"`。
+### Normal 预设
 
-默认参数： `-l --careful --outputdir dir`
-- 如果 `"nerd_font.propo"` 为 `true`，则添加 `--variable-width-glyphs`
-- 否则，如果 `"nerd_font.mono"` 为 `true`，则添加 `--mono`
+Maple Mono 的默认字形设计偏向独特和个性化，可能不适合所有人的审美或使用场景。为此，Maple Mono 提供了 `--normal` 构建预设，生成类似 `JetBrains Mono` 的字形（`0` 的中间为斜线，而不是圆点）。
 
-### 预设
+![Normal preset](./resources/preview-normal.webp)
 
-如果您想要获得固定宽度的 Nerd Font 图标，只需要在 `config.json` 中设置 `"nerd_font.mono": true` 或者在构建脚本中添加 `--nf-mono` 参数即可。
+### 自定义 OpenType 特性
 
-运行 `build.py` 时添加 `--normal` 参数，让字形不那么独特~~奇怪~~，就像 `JetBrains Mono` 一样（除了 `0` 的中间是斜线而不是点）。
+绝大多数字体不支持自定义 OpenType 特性，而 Maple Mono 支持通过编程方式定制这些特性。
 
-如果您使用的是可变字体（不推荐），请启用 `calt` 特性以使所有特性正常工作。
-
-启用的特性：
-<!-- NORMAL -->
-```
-cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
-```
-<!-- NORMAL -->
-
-[在线预览](https://font.subf.dev/zh-cn/playground?normal)
-
-### OpenType 特性强制开启
-
-有三种选项（[为什么](https://github.com/subframe7536/maple-font/issues/233#issuecomment-2410170270)）：
-
-1. `enable`: 强制启用这些特性，而无需在字体特性配置中设置 `cvXX` / `ssXX` / `zero`，就像默认连字一样
-2. `disable`: 删除 `cvXX` / `ssXX` / `zero` 中的特性，即使您手动启用它，也不在生效
-3. `ignore`: 什么也不做
-
-#### 自定义 OpenType 特性
-
-OpenType 特性可以控制字体的内置变体和连字。您可以通过修改 OpenType 特性来删除一些不需要的连字或特征，修改特征的触发规则或添加一些新规则。
-
-默认情况下，[`source/py/feature/`](./source/py/feature) 中的 Python 模块会生成 OpenType 特性字符串并在构建时加载。您可以在此处修改功能或自定义标签。
-
-如果你想通过修改 OpenType 特性文件实现，运行 `build.py` 时添加 `--apply-fea-file` 参数，会读取 [`source/features/{regular,italic}{_cn,}.fea`](./source/features) 的特性文件并加载。
+默认情况下，[`scripts/feature/`](./scripts/feature) 中的 Python 模块会生成 OpenType 特性代码，并在构建时加载。你可以修改这些模块来调整功能或自定义标签；如果希望直接编辑 OpenType 特性源文件（`.fea`），请在运行 `build.py` 时添加 `--apply-fea-file` 参数，构建脚本会读取并加载 [`source/features/{regular,italic}{_cn,}.fea`](./source/features) 中的特性文件。
 
 ### 无限箭头连字
 
-受 Fira Code 的启发，从 v7.3 开始，该字体默认启用无限箭头连字。由于某种原因，在使用 Hinted 字体时连字会错位，因此在 v7.4 的 Hinted 版本中默认将其移除。
+受 Fira Code 和 Cascadia Code 启发，Maple Mono 从 v7.3 开始支持无限箭头连字。由于渲染方面的未知原因，Hinted 字体中的箭头连字可能发生错位，因此 v7.4 起的 Hinted 版本默认移除了该特性。
 
-您可以在 `config.json` 中设置 `"infinite_arrow": true`，或在命令行标志中添加 `--infinite-arrow`。详情见 [#508](https://github.com/subframe7536/maple-font/issues/508)
+你可以在 `config.json` 中设置 `"infinite_arrow": true`，或在命令行中添加 `--infinite-arrow` 强制启用该特性。遇到问题时，请在[#508](https://github.com/subframe7536/maple-font/issues/508)中讨论。
+
+![Infinite arrow ligatures](./resources/preview-infinite-arrows.webp)
+
+### 标准 Zero 特性
+
+默认情况下，`0` 是斜线样式，启用 `zero` 后显示圆点。使用 `--standard-zero` 可恢复标准的 OpenType 语义：`0` 默认显示圆点，启用 `zero` 后显示斜线。
+
+### 自定义行高
+
+Maple Mono 的默认行高为 `1`。你可以修改 [`config.json`](./config.json) 中的 `"line_height"` 字段，或在命令行中添加参数 `--line-height <value>` 来调整行高；最终行高的计算公式为 `(ascender - descender) * line_height`。
+
+### 自定义 Unicode 映射
+
+如果 Maple Mono 缺少某些 Unicode 码点，相关字符可能无法显示。你可以修改 [`config.json`](./config.json) 中的 `"codepoint_alias"` 项，自定义 Unicode 映射。
+
+例如，将一个现有的字符映射到另一个 Unicode 码点：
+
+```json
+{
+  "codepoint_alias": {
+    "U+E000": "U+E001",
+    "U+E002": "U+E003"
+  }
+}
+```
 
 ### 自定义字重映射
 
-您可以通过 `config.json` 中的 `"weight_mapping"` 项修改静态字体粗细。
+你可以通过 `config.json` 中的 `"weight_mapping"` 项修改静态字体的粗细。
 
-例如，如果您想让常规字重稍微细一些，只需将 `"weight_mapping.regular"` 的数值降低（在此示例中从 400 降到 350）：
+例如，要让常规字重稍微变细，只需降低 `"weight_mapping.regular"` 的数值（本例从 400 调整为 350）：
 
 ```json
 {
@@ -650,96 +201,136 @@ OpenType 特性可以控制字体的内置变体和连字。您可以通过修�
 }
 ```
 
-### 中文版本
+### 自定义 Nerd Font 配置
 
-默认情况下不会生成中文字体，运行 `python build.py` 时添加 `--cn` 参数，中文基字（约 111 MB）将从 GitHub 下载。
+Maple Mono 内置 Nerd Font 图标支持，并遵循其命名规则。默认情况下，每个图标占用一个拉丁字符的宽度。
 
-如果您想从可变字体（约 27 MB）构建中文基字，请在 [config.json](./config.json) 中设置 `"cn.use_static_base_font": false` 并且**耐心等待**，可变字体静态化将花费大约 10-30 分钟。
+- 如果需要让图标占用两个拉丁字符的宽度（Nerd Font Mono），请在 `config.json` 中设置 `"nerd_font.mono": true`，或在构建参数中添加 `--nf-mono`。
+- 如果需要使用可变宽度图标（Nerd Font Propo），请在 `config.json` 中设置 `"nerd_font.propo": true`，或在构建参数中添加 `--nf-propo`。
 
-#### 缩小中文字体的间距
+如果要自定义 `font-patcher` 参数，需要安装 `fontforge`（可能还需要 `python3-fontforge`）。你也可能需要在 [config.json](./config.json) 中修改 `"nerd_font.extra_args"`。
 
-如果您觉得中文字符的间距**过大**，有一个构建选项 `cn.narrow` 或 命令行参数 `--cn-narrow` 可以缩小间距，但是这将让字体无法被识别为等宽字体。
+![Nerd Font spacing modes](./resources/preview-nerd-fonts.webp)
 
-您可以在 [#249](https://github.com/subframe7536/maple-font/issues/249#issuecomment-2871260476) 中查看效果。
+#### 参数解析规则
 
-如果您也想改变拉丁字母的宽度，请使用 [`--width` 参数](#窄字符)
+默认参数：`-l --careful --outputdir dir`
 
-#### GitHub 镜像
+- 当 `"nerd_font.propo"` 为 `true` 时，添加 `--variable-width-glyphs`。
+- 当 `"nerd_font.mono"` 为 `true` 时，添加 `--mono`。
 
-构建脚本将自动从 GitHub 下载所需的资源。如果您在下载时遇到问题，请在 [config.json](./config.json) 中设置 `github_mirror` 或将 `$GITHUB` 设置为您的环境变量。（目标 URL 为 `https://<github_mirror>/<user>/<repo>/releases/download/<tag>/<file>`），或者直接下载目标 `.zip` 文件并将其放在与 `build.py` 相同的目录中。
+## CJK 版本（简体中文）
 
-#### 繁體中文標點符號支援
+默认情况下不会生成中文字体。运行 `python build.py` 时添加 `--cjk cn` 参数，构建脚本会从 [GitHub Release](https://github.com/subframe7536/maple-font/releases/tag/cjk-base) 下载中文基字形。
 
-通過開啟 `cv99`，所有的中文標點符號都會居中，詳情見 [#150](https://github.com/subframe7536/maple-font/issues/150)
+### 缩小中文字体的间距
 
-### 构建脚本用法
+如果只有中文字符的间距**过大**，而英文字母的间距正常，可以通过构建选项 `cjk.narrow` 或命令行参数 `--cjk-narrow` 缩小中文字符间距，但这样会导致字体无法再被识别为等宽字体。
 
-```
-usage: build.py [-h] [-v] [-d] [--debug] [-n] [--feat FEAT] [--apply-fea-file]
-                [--hinted | --no-hinted] [--liga | --no-liga] [--keep-infinite-arrow]
-                [--infinite-arrow] [--remove-tag-liga] [--line-height LINE_HEIGHT]
-                [--width {default,narrow,slim}] [--nf-mono] [--nf-propo]
-                [--cn-narrow] [--cn-scale-factor CN_SCALE_FACTOR] [--nf | --no-nf]
-                [--cn | --no-cn] [--cn-both] [--ttf-only] [--least-styles]
-                [--font-patcher] [--cache] [--cn-rebuild] [--archive]
+你可以在[#249](https://github.com/subframe7536/maple-font/issues/249#issuecomment-2871260476)中查看效果或参与讨论。
 
-✨ Builder and optimizer for Maple Mono
+- 如果还想改变拉丁字母的宽度，请使用[`--width` 参数](#窄字符)。
 
-options:
-  -h, --help            显示此帮助信息并退出
-  -v, --version         显示程序版本号并退出
-  -d, --dry             输出配置并退出
-  --debug               在字体名称中添加 `Debug` 后缀并加快构建速度
+### 居中全宽标点支持
 
-Feature Options:
-  -n, --normal          使用 normal 预设，就像带斜杠零的 `JetBrains Mono`
-  --feat FEAT           强制启用字体特性，用 `,` 分隔（例如 `--feat
-                        zero,cv01,ss07,ss08`）。 对可变字体无效
-  --apply-fea-file      从 `source/features/{regular,italic}.fea` 加载特性文件到
-                        可变字体
-  --hinted              在 NF / CN / NF-CN 中使用 hinted 字体作为基础字体（默认）
-  --no-hinted           在 NF / CN / NF-CN 中使用 unhinted 字体作为基础字体
-  --liga                保留所有连字（默认）
-  --no-liga             删除所有连字
-  --infinite-arrow      开启无限箭头连字 (默认在 hinted 格式中禁用)
-  --remove-tag-liga     移除纯文本标签连字，例如 `[TODO]`
-  --line-height LINE_HEIGHT
-                        行高的缩放因子 (例如 1.1)
-  --width {default,narrow,slim}
-                        设置字形宽度: default (600), narrow (550), slim (500)
-  --nf-mono             使 Nerd Font 图标的宽度固定
-  --nf-propo            使 Nerd Font 图标的宽度不固定，覆盖 `--nf-mono`
-  --cn-narrow           减小中文/日文字形间距（同时会让系统无法识别为等宽字体）
-  --cn-scale-factor CN_SCALE_FACTOR
-                        中文/日文字形的缩放因子。格式：<因子> 或
-                        <宽度因子>,<高度因子> (例如 1.1 或 1.2,1.1)
+Maple Mono 支持 `cpct` 特性，让全宽标点居中显示（繁体中文中较为常见）；也可以启用 `cv99` 特性强制应用该效果，详情见[#150](https://github.com/subframe7536/maple-font/issues/150)。
 
-Build Options:
-  --nf, --nerd-font     构建 Nerd-Font 版本（默认）
-  --no-nf, --no-nerd-font
-                        不构建 Nerd-Font 版本
-  --cn                  构建中文版本
-  --no-cn               不构建中文版本（默认）
-  --cn-both             同时构建 `Maple Mono CN` 和 `Maple Mono NF CN`。必须启用
-                        Nerd-Font 版本
-  --ttf-only            仅构建 TTF 格式
-  --least-styles        仅构建 常规 / 粗体 / 斜体 / 粗斜体 样式
-  --font-patcher        强制使用 Nerd Font Patcher 构建 NF 格式
-  --cache               重用 TTF、OTF 和 Woff2 格式的字体缓存
-  --cn-rebuild          重新静态化可变的中文基字
-  --archive             构建带有配置和许可的字体压缩包。如果带有 `--cache`
-                        标志，则仅打包 NF 和 CN 格式
-```
+### GitHub 镜像
+
+构建脚本会自动从 GitHub 下载所需资源。如果下载失败，可以在 [config.json](./config.json) 中设置 `github_mirror`，或将 `$GITHUB` 设置为环境变量。目标 URL 格式为 `https://<github_mirror>/<user>/<repo>/releases/download/<tag>/<file>`；也可以直接下载目标 `.zip` 文件，并将其放在 `build.py` 所在目录中。
 
 ## 我个人在用的其他中文字体资源
 
-[cn-resource](https://github.com/subframe7536/maple-font/tree/other-resources/cn-resource)
+参见 [cn-resource](https://github.com/subframe7536/maple-font/tree/other-resources/cn-resource) 和 [cn-base](https://github.com/subframe7536/maple-font/releases/tag/cn-base)。
+
+<a id="buildpy-cli"></a>
+
+## `build.py` 命令行选项
+
+```text
+用法：build.py [-h] [-v] [-d] [--debug] [-n] [--standard-zero] [--feat FEAT]
+               [--apply-fea-file] [--hinted | --no-hinted]
+               [--liga | --no-liga] [--infinite-arrow] [--remove-tag-liga]
+               [--line-height LINE_HEIGHT] [--width {default,narrow,slim}]
+               [--format FORMATS] [--least-styles] [--cache] [--archive]
+               [--nf | --no-nf] [--nf-mono] [--nf-propo] [--nf-variable]
+               [--font-patcher] [--cjk CJK] [--cjk-variable] [--cjk-narrow]
+               [--cjk-scale-factor CJK_SCALE_FACTOR] [--cjk-both]
+               [--cjk-hinted | --no-cjk-hinted] [--cn | --no-cn]
+               [--cn-narrow] [--cn-scale-factor CN_SCALE_FACTOR] [--cn-both]
+
+Maple Mono 构建与优化工具
+
+选项：
+  -h, --help            显示帮助信息并退出
+  -v, --version         显示程序版本并退出
+  -d, --dry             输出配置并退出
+  --debug               使用快速调试构建：添加 `Debug`、启用调试日志、
+                        仅构建 Regular/Italic，并跳过 OTF/WOFF2/Nerd Font 输出
+
+特性选项：
+  -n, --normal          使用 Normal 预设，生成类似 `JetBrains Mono` 的字形，
+                        其中 0 使用斜线样式
+  --standard-zero       使用标准 zero 语义：默认显示圆点，启用 `zero` 后显示斜线
+  --feat FEAT           启用并冻结指定特性，以逗号分隔
+                        （例如 `--feat zero,cv01,ss07,ss08`）；上下文规则通过
+                        `calt` 启用
+  --apply-fea-file      将匹配的
+                        `source/features/{regular,italic}{_cn,}.fea` 应用到静态和可变字体
+  --hinted              在 NF/CJK/NF-CJK 中使用 Hinted 字体作为基础字体（默认）
+  --no-hinted           在 NF/CJK/NF-CJK 中使用未加提示的字体作为基础字体
+  --liga                保留所有连字（默认）
+  --no-liga             移除所有连字
+  --infinite-arrow      启用无限箭头连字（Hinted 字体默认禁用）
+  --remove-tag-liga     移除类似 `[TODO]` 的纯文本标签连字
+  --line-height LINE_HEIGHT
+                        行高缩放因子（例如 1.1）
+  --width {default,narrow,slim}
+                        设置字形宽度：default（600）、narrow（550）、slim（500）
+
+构建选项：
+  --format FORMATS      以逗号分隔的列表选择所需基础输出格式：ttf、otf、woff2；
+                        可变字体基础版本始终会构建
+  --least-styles        仅构建 Regular/Bold/Italic/BoldItalic 样式
+  --cache               复用 `fonts/` 下有效的缓存流水线阶段，并保留其他已有输出
+  --archive             使用配置和许可证，将每个已有的非 JSON 输出目录归档
+
+Nerd Font 选项：
+  --nf, --nerd-font     构建 Nerd Font 版本（默认）
+  --no-nf, --no-nerd-font
+                        不构建 Nerd Font 版本
+  --nf-mono             固定 Nerd Font 图标的宽度
+  --nf-propo            使 Nerd Font 图标宽度可变，覆盖 `--nf-mono`
+  --nf-variable         构建 Nerd Font 可变字体
+  --font-patcher        强制使用 Nerd Font Patcher 构建 NF 格式
+
+CJK 选项：
+  --cjk CJK             构建 Maple Mono + CJK 扩展字体，区域为 cn、jp、tc、kr。
+                        可重复指定或使用逗号分隔的值。
+  --cjk-variable        将 CJK 扩展输出保留为合并的可变字体
+  --cjk-narrow          对选定区域应用窄 CJK 间距
+  --cjk-scale-factor CJK_SCALE_FACTOR
+                        设置选定 CJK 区域的缩放因子。格式为：
+                        <factor> 或 <width_factor>,<height_factor>
+  --cjk-both            启用 Nerd Font 时，同时构建 NF CJK 和非 NF CJK 输出
+  --cjk-hinted          自动为最终静态 CJK 字体添加提示
+  --no-cjk-hinted       不为最终静态 CJK 字体添加提示（默认）
+
+已弃用的 CN 选项：
+  --cn                  已弃用的 `--cjk cn` 别名
+  --no-cn               已弃用的从所选 CJK 区域中移除 `cn` 的别名
+  --cn-narrow           已弃用的针对 `cn` 使用 `--cjk-narrow` 的别名
+  --cn-scale-factor CN_SCALE_FACTOR
+                        已弃用的针对 `cn` 使用 `--cjk-scale-factor` 的别名
+  --cn-both             已弃用的 `--cjk-both` 别名
+```
 
 ## 鸣谢
 
 - [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono)
-- [Roboto Mono](https://github.com/googlefonts/RobotoMono)
 - [Fira Code](https://github.com/tonsky/FiraCode)
+- [Cascadia Code](https://github.com/microsoft/cascadia-code)
+- [Roboto Mono](https://github.com/googlefonts/RobotoMono)
 - [Victor Mono](https://github.com/rubjo/victor-mono)
 - [Commit Mono](https://github.com/eigilnikolajsen/commit-mono)
 - [Code Sample](https://github.com/TheRenegadeCoder/sample-programs-website)
@@ -751,7 +342,7 @@ Build Options:
 
 ## 赞助
 
-如果这个字体对您有所帮助，可以通过 [爱发电](https://afdian.com/a/subframe7536) 赞助我
+如果这个字体对你有所帮助，欢迎通过[爱发电](https://afdian.com/a/subframe7536)赞助我。
 
 ## 点星
 

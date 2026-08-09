@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="bracketright_numbersign.liga" format="2">
+  <advance width="600"/>
+  <outline>
+    <component base="numbersign_left.decorator" xScale="-1.0" yScale="-1.0" xOffset="597" yOffset="730"/>
+    <component base="bracketleft" xScale="-1.0" yScale="-1.0" yOffset="700"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>numbersign_left.decorator</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>bracketleft</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="geometricallyequivalent" format="2">
+  <advance width="600"/>
+  <unicode hex="224E"/>
+  <outline>
+    <component base="geo.decorator"/>
+    <component base="geo.decorator" yScale="-1" xOffset="116" yOffset="660"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>geo.decorator</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>geo.decorator</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

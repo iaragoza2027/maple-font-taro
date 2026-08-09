@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="arrowleftdashed" format="2">
+  <advance width="600"/>
+  <unicode hex="21E0"/>
+  <outline>
+    <contour>
+      <point x="-4.935" y="369" type="line"/>
+      <point x="180.98" y="550" type="line"/>
+      <point x="286.98" y="550" type="line"/>
+      <point x="180.347" y="450" type="line" smooth="yes"/>
+      <point x="157.644" y="429"/>
+      <point x="134.823" y="413"/>
+      <point x="124.294" y="410" type="curve"/>
+      <point x="232.294" y="410" type="line"/>
+      <point x="218.188" y="330" type="line"/>
+      <point x="110.188" y="330" type="line"/>
+      <point x="121.306" y="325"/>
+      <point x="139.661" y="310"/>
+      <point x="152.487" y="292" type="curve" smooth="yes"/>
+      <point x="226.502" y="190" type="line"/>
+      <point x="119.502" y="190" type="line"/>
+    </contour>
+    <contour>
+      <point x="292.294" y="410" type="line"/>
+      <point x="402.294" y="410" type="line"/>
+      <point x="388.188" y="330" type="line"/>
+      <point x="278.188" y="330" type="line"/>
+    </contour>
+    <contour>
+      <point x="462.294" y="410" type="line"/>
+      <point x="572.294" y="410" type="line"/>
+      <point x="558.188" y="330" type="line"/>
+      <point x="448.188" y="330" type="line"/>
+    </contour>
+  </outline>
+</glyph>

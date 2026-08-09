@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="hyphen.sta.seq" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="584" y="305" type="line"/>
+      <point x="89" y="305" type="line" smooth="yes"/>
+      <point x="72" y="305"/>
+      <point x="65" y="313"/>
+      <point x="68" y="330" type="curve" smooth="yes"/>
+      <point x="71" y="347"/>
+      <point x="81" y="355"/>
+      <point x="98" y="355" type="curve" smooth="yes"/>
+      <point x="593" y="355" type="line"/>
+    </contour>
+  </outline>
+</glyph>

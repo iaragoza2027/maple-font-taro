@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="arrowdownzigzag" format="2">
+  <advance width="600"/>
+  <unicode hex="21AF"/>
+  <outline>
+    <contour>
+      <point x="448" y="193" type="line"/>
+      <point x="475" y="126" type="line"/>
+      <point x="252" y="18" type="line"/>
+      <point x="136" y="186" type="line"/>
+      <point x="203" y="233" type="line"/>
+      <point x="258" y="152" type="line"/>
+      <point x="328" y="360" type="line"/>
+      <point x="33" y="244" type="line"/>
+      <point x="191" y="691" type="line"/>
+      <point x="276" y="676" type="line"/>
+      <point x="175" y="387" type="line"/>
+      <point x="473" y="503" type="line"/>
+      <point x="344" y="139" type="line"/>
+    </contour>
+  </outline>
+</glyph>

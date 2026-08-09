@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="wreathproduct" format="2">
+  <advance width="600"/>
+  <unicode hex="2240"/>
+  <outline>
+    <component base="similar" xScale="0.17625290033193436" xyScale="0.9995798693073911" yxScale="-0.9700356367170249" yScale="0.17104345500192644" xOffset="561.0" yOffset="103.0"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>similar</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

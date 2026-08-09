@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="Ghestroke-cy.decorator" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="340" y="326" type="curve" smooth="yes"/>
+      <point x="70" y="326" type="line" smooth="yes"/>
+      <point x="43" y="326"/>
+      <point x="30" y="339"/>
+      <point x="30" y="366" type="curve" smooth="yes"/>
+      <point x="30" y="393"/>
+      <point x="43" y="406"/>
+      <point x="70" y="406" type="curve" smooth="yes"/>
+      <point x="340" y="406" type="line" smooth="yes"/>
+      <point x="367" y="406"/>
+      <point x="380" y="393"/>
+      <point x="380" y="366" type="curve" smooth="yes"/>
+      <point x="380" y="339"/>
+      <point x="367" y="326"/>
+    </contour>
+  </outline>
+</glyph>

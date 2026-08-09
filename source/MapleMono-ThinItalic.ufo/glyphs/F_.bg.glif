@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="F.bg" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="487" y="-300" type="line"/>
+      <point x="720" y="1020" type="line"/>
+      <point x="80" y="1020" type="line"/>
+      <point x="-153" y="-300" type="line"/>
+    </contour>
+    <contour>
+      <point x="238.74" y="560" type="curve" smooth="yes"/>
+      <point x="216.87" y="436" type="line"/>
+      <point x="448.87" y="436" type="line" smooth="yes"/>
+      <point x="490.87" y="436"/>
+      <point x="507.35" y="416"/>
+      <point x="499.94" y="374" type="curve" smooth="yes"/>
+      <point x="492.54" y="332"/>
+      <point x="469.01" y="312"/>
+      <point x="427.01" y="312" type="curve" smooth="yes"/>
+      <point x="195.01" y="312" type="line"/>
+      <point x="151.46" y="65" type="line" smooth="yes"/>
+      <point x="142.63" y="15"/>
+      <point x="113.23" y="-10"/>
+      <point x="63.23" y="-10" type="curve" smooth="yes"/>
+      <point x="13.23" y="-10"/>
+      <point x="-7.35" y="15"/>
+      <point x="1.46" y="65" type="curve" smooth="yes"/>
+      <point x="102.84" y="640" type="line" smooth="yes"/>
+      <point x="113.42" y="700"/>
+      <point x="148.71" y="730"/>
+      <point x="208.71" y="730" type="curve" smooth="yes"/>
+      <point x="523.71" y="730" type="line" smooth="yes"/>
+      <point x="567.71" y="730"/>
+      <point x="585.01" y="709"/>
+      <point x="577.25" y="665" type="curve" smooth="yes"/>
+      <point x="569.49" y="621"/>
+      <point x="544.79" y="600"/>
+      <point x="500.79" y="600" type="curve" smooth="yes"/>
+      <point x="285.79" y="600" type="line" smooth="yes"/>
+      <point x="258.79" y="600"/>
+      <point x="243.68" y="588"/>
+    </contour>
+  </outline>
+</glyph>

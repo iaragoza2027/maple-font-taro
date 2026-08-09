@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="El-cy.loclBGR" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="322.862" y="555" type="curve"/>
+      <point x="325.403" y="59" type="line" smooth="yes"/>
+      <point x="325.292" y="13"/>
+      <point x="349.237" y="-10"/>
+      <point x="396.237" y="-10" type="curve" smooth="yes"/>
+      <point x="443.237" y="-10"/>
+      <point x="466.292" y="13"/>
+      <point x="465.403" y="59" type="curve" smooth="yes"/>
+      <point x="456.086" y="630" type="line" smooth="yes"/>
+      <point x="454.724" y="696"/>
+      <point x="440.719" y="730"/>
+      <point x="373.719" y="730" type="curve" smooth="yes"/>
+      <point x="325.719" y="730" type="line" smooth="yes"/>
+      <point x="258.719" y="730"/>
+      <point x="230.724" y="696"/>
+      <point x="206.086" y="630" type="curve" smooth="yes"/>
+      <point x="-4.597" y="59" type="line" smooth="yes"/>
+      <point x="-21.708" y="13"/>
+      <point x="-6.763" y="-10"/>
+      <point x="40.237" y="-10" type="curve" smooth="yes"/>
+      <point x="87.237" y="-10"/>
+      <point x="119.292" y="13"/>
+      <point x="135.403" y="59" type="curve" smooth="yes"/>
+      <point x="312.861" y="555" type="line"/>
+      <point x="316.448" y="564"/>
+      <point x="322.448" y="564"/>
+    </contour>
+  </outline>
+</glyph>

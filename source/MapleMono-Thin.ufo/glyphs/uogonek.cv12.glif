@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="uogonek.cv12" format="2">
+  <advance width="600"/>
+  <anchor x="356" y="0" name="_ogonek"/>
+  <anchor x="300" y="0" name="bottom"/>
+  <anchor x="410" y="550" name="horn"/>
+  <anchor x="355" y="0" name="ogonek"/>
+  <anchor x="300" y="550" name="top"/>
+  <anchor x="580" y="550" name="topright"/>
+  <outline>
+    <component base="ogonekcomb" xOffset="656"/>
+    <component base="u.cv12"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
+      <array>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>0</integer>
+          <key>name</key>
+          <string>ogonekcomb</string>
+        </dict>
+        <dict>
+          <key>alignment</key>
+          <integer>-1</integer>
+          <key>index</key>
+          <integer>1</integer>
+          <key>name</key>
+          <string>u.cv12</string>
+        </dict>
+      </array>
+    </dict>
+  </lib>
+</glyph>

@@ -1,0 +1,52 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="M.bg" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="487" y="-300" type="line"/>
+      <point x="720" y="1020" type="line"/>
+      <point x="80" y="1020" type="line"/>
+      <point x="-153" y="-300" type="line"/>
+    </contour>
+    <contour>
+      <point x="588.26" y="614" type="curve" smooth="yes"/>
+      <point x="490.57" y="60" type="line" smooth="yes"/>
+      <point x="482.29" y="13"/>
+      <point x="455.23" y="-10"/>
+      <point x="408.23" y="-10" type="curve" smooth="yes"/>
+      <point x="361.23" y="-10"/>
+      <point x="342.29" y="13"/>
+      <point x="350.57" y="60" type="curve" smooth="yes"/>
+      <point x="438.74" y="560" type="line"/>
+      <point x="344.54" y="298" type="line" smooth="yes"/>
+      <point x="330.66" y="259"/>
+      <point x="302.31" y="240"/>
+      <point x="262.31" y="240" type="curve" smooth="yes"/>
+      <point x="222.31" y="240"/>
+      <point x="200.66" y="259"/>
+      <point x="200.54" y="298" type="curve" smooth="yes"/>
+      <point x="198.74" y="560" type="line"/>
+      <point x="110.57" y="60" type="line" smooth="yes"/>
+      <point x="102.29" y="13"/>
+      <point x="75.23" y="-10"/>
+      <point x="28.23" y="-10" type="curve" smooth="yes"/>
+      <point x="-18.76" y="-10"/>
+      <point x="-37.7" y="13"/>
+      <point x="-29.42" y="60" type="curve" smooth="yes"/>
+      <point x="67.2" y="608" type="line" smooth="yes"/>
+      <point x="82.72" y="696"/>
+      <point x="125.48" y="740"/>
+      <point x="204.48" y="740" type="curve" smooth="yes"/>
+      <point x="266.48" y="740"/>
+      <point x="291.72" y="713"/>
+      <point x="292.02" y="658" type="curve" smooth="yes"/>
+      <point x="294.05" y="420" type="line"/>
+      <point x="380.02" y="658" type="line" smooth="yes"/>
+      <point x="399.72" y="713"/>
+      <point x="444.48" y="740"/>
+      <point x="502.48" y="740" type="curve" smooth="yes"/>
+      <point x="575.48" y="740"/>
+      <point x="602.72" y="696"/>
+    </contour>
+  </outline>
+</glyph>

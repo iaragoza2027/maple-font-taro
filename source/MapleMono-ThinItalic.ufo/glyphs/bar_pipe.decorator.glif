@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="bar_pipe.decorator" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="184.42" y="-60" type="curve" smooth="yes"/>
+      <point x="322.837" y="725" type="line" smooth="yes"/>
+      <point x="325.835" y="742"/>
+      <point x="335.245" y="750"/>
+      <point x="352.245" y="750" type="curve" smooth="yes"/>
+      <point x="369.245" y="750"/>
+      <point x="375.835" y="742"/>
+      <point x="372.837" y="725" type="curve" smooth="yes"/>
+      <point x="234.42" y="-60" type="line" smooth="yes"/>
+      <point x="231.423" y="-77"/>
+      <point x="222.012" y="-85"/>
+      <point x="205.012" y="-85" type="curve" smooth="yes"/>
+      <point x="188.012" y="-85"/>
+      <point x="181.423" y="-77"/>
+    </contour>
+  </outline>
+</glyph>

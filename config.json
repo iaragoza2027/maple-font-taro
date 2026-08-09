@@ -8,6 +8,7 @@
     "woff2"
   ],
   "use_hinted": true,
+  "standard_zero": false,
   "pool_size": 4,
   "ttfautohint_param": {},
   "github_mirror": "github.com",

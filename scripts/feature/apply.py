@@ -348,6 +348,23 @@ def _copy_ufo_outline(source: Glyph, target: Glyph) -> None:
     source.height = target.height
 
 
+def apply_standard_zero(designspace: DesignSpaceDocument) -> None:
+    """Swap zero glyph roles so the registered `zero` feature selects slashes."""
+    for descriptor in designspace.sources:
+        font = descriptor.font
+        if font is None:
+            raise ValueError(f"Designspace source master has no UFO font: {descriptor}")
+        if "zero" not in font or "zero.zero" not in font:
+            continue
+
+        zero = font["zero"]
+        slashed_zero = font["zero.zero"]
+        zero_snapshot = deepcopy(zero)
+        slashed_zero_snapshot = deepcopy(slashed_zero)
+        _copy_ufo_outline(zero, slashed_zero_snapshot)
+        _copy_ufo_outline(slashed_zero, zero_snapshot)
+
+
 def apply_ufo_substitutions(
     designspace: DesignSpaceDocument,
     substitutions: tuple[FeatureSubstitution, ...],
@@ -390,6 +407,8 @@ def prepare_designspace_features(
     )
     if prepared is None:
         raise AssertionError("Base source feature preparation cannot be skipped")
+    if config.feature.standard_zero:
+        apply_standard_zero(designspace)
     apply_ufo_substitutions(designspace, prepared.substitutions)
     for descriptor in designspace.sources:
         if descriptor.font is None:

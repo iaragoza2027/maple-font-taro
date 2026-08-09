@@ -249,6 +249,7 @@ class BuildBehaviorConfig:
 @dataclass(slots=True)
 class FeatureBuildConfig:
     normal: bool = False
+    standard_zero: bool = False
     feat: list[str] = field(default_factory=list)
     hinted: bool = True
     liga: bool = True
@@ -635,6 +636,7 @@ class ResolvedConfig:
             "infinite_arrow": "default"
             if self.infinite_arrow is None
             else self.infinite_arrow,
+            "standard_zero": self.feature.standard_zero,
             "weight_mapping": dict(self.weight_mapping),
             "codepoint_alias": serialize_codepoint_alias(self.codepoint_alias),
             "feature_freeze": dict(self.feature_freeze),

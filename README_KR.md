@@ -101,7 +101,7 @@ Maple Mono는 사용자 피드백을 반영하여 여러 글꼴 형식과 문자
 
 ## 주요 기능
 
-[소개 페이지#todo]()에서 모든 주요 기능을 미리 볼 수 있습니다.
+[page#todo]()에서 모든 주요 기능을 미리 볼 수 있습니다.
 
 ### 사용자 정의 빌드
 
@@ -117,7 +117,7 @@ V8에서는 세 가지 문자 폭 모드를 제공합니다. [`config.json`](./c
 - narrow: 550
 - slim: 500
 
-[미리보기#todo]()
+[preview#todo]()
 
 ### OpenType 기능 전환
 
@@ -134,17 +134,14 @@ Maple Mono는 세밀하게 조정할 수 있는 OpenType 기능을 많이 제공
 Maple Mono의 기본 글리프 디자인은 개성이 강해 모든 사람의 취향이나 사용 환경에 맞지는 않을 수 있습니다. `--normal` 빌드 프리셋은 `JetBrains Mono`와 비슷한 글리프를 생성합니다（`0`의 가운데가 점이 아니라 사선입니다）.
 
 `--normal`은 다음 기능을 활성화합니다:
-<!-- NORMAL -->
 
 ```
 cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
 ```
 
-<!-- NORMAL -->
+[preview#todo]()
 
-[미리보기#todo]()
-
-#### 사용자 정의 OpenType 기능（상태 라벨 합자 추가 등）
+#### 사용자 정의 OpenType 기능
 
 대부분의 글꼴은 사용자 정의 OpenType 기능을 지원하지 않지만 Maple Mono는 프로그래밍 방식으로 해당 기능을 정의할 수 있습니다.
 
@@ -156,7 +153,11 @@ Fira Code와 Cascadia Code에서 영감을 받아 Maple Mono는 v7.3부터 무�
 
 `config.json`에 `"infinite_arrow": true`를 설정하거나 명령줄에 `--infinite-arrow`를 추가하여 강제로 활성화할 수 있습니다. 문제는 [#508](https://github.com/subframe7536/maple-font/issues/508)에서 논의해 주세요.
 
-[미리보기#todo]()
+[preview#todo]()
+
+### 표준 Zero 기능
+
+기본적으로 `0`은 사선 모양이며 `zero`를 활성화하면 점 모양이 됩니다. `--standard-zero`를 사용하면 표준 OpenType 의미로 복원되어 기본 `0`은 점 모양이고 `zero`를 활성화하면 사선 모양이 됩니다.
 
 ### 사용자 정의 줄 높이
 
@@ -203,7 +204,7 @@ Maple Mono는 Nerd Font 아이콘을 내장하고 명명 규칙을 따릅니다.
 
 `font-patcher` 인수를 사용자 정의하려면 `fontforge`（필요할 경우 `python3-fontforge`도）를 설치해야 합니다. [config.json](./config.json)의 `"nerd_font.extra_args"`를 수정해야 할 수도 있습니다.
 
-[미리보기#todo]()
+[preview#todo]()
 
 #### 인수 해석 규칙
 

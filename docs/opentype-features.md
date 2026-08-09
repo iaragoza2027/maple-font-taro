@@ -99,7 +99,7 @@ For more details, please check out `.fea` files in [features](../source/features
 - [v7.8] cv66: Alternative pipe arrows
 - [v8.0] cv67: Alternative longer bar
 - [v8.0] cv68: Alternative `===` with 2 bars
-- [v7.0] zero: Dot style `0`
+- [v7.0] zero: Zero style variant
 <!-- CV -->
 
 #### Italic Only

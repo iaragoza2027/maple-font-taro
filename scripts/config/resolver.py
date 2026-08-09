@@ -163,6 +163,10 @@ class BuildConfigResolver:
     ) -> None:
         if "use_hinted" in data:
             config.feature.hinted = _require_bool(data["use_hinted"], "use_hinted")
+        if "standard_zero" in data:
+            config.feature.standard_zero = _require_bool(
+                data["standard_zero"], "standard_zero"
+            )
         if "ligature" in data:
             config.feature.liga = _require_bool(data["ligature"], "ligature")
         if "infinite_arrow" in data:
@@ -431,6 +435,9 @@ class BuildConfigResolver:
             config.feature.normal = True
             for feature in normal_enabled_features:
                 config.feature_freeze[feature] = "enable"
+
+        if args.standard_zero:
+            config.feature.standard_zero = True
 
         if args.feat:
             config.feature.feat = list(args.feat)

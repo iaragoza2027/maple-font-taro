@@ -164,6 +164,11 @@
       "description": "Whether to use hinted Latin TTF and Nerd Font static outputs as the base for static NF/CJK merges",
       "default": true
     },
+    "standard_zero": {
+      "type": "boolean",
+      "description": "Use standard OpenType zero semantics: the default zero is dotted and the `zero` feature selects the slashed form",
+      "default": false
+    },
     "ligature": {
       "type": "boolean",
       "description": "Whether to enable ligature.\nIf set to false, all the ligatures will be removed and 'ssXX' options in 'feature_freeze' will no longer effect",
@@ -455,7 +460,7 @@
           "$ref": "#/definitions/freeze_options"
         },
         "zero": {
-          "description": "[v7.0] Dot style '0'",
+          "description": "[v7.0] Zero style variant",
           "$ref": "#/definitions/freeze_options"
         }
       }

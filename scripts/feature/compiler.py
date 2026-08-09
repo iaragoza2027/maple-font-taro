@@ -155,7 +155,7 @@ def get_all_calt_text():
     return "\n".join(html_rows)
 
 
-zero_desc = "Dot style `0`"
+zero_desc = "Zero style variant"
 
 
 def get_version_info(

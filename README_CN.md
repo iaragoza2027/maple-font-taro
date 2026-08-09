@@ -107,7 +107,7 @@ Maple Mono 根据用户反馈，在发行版中提供了多种字体格式和字
 
 ## 亮点介绍
 
-你可以在[介绍页面#todo]()预览所有亮点。
+你可以在[page#todo]()预览所有亮点。
 
 ### 自定义构建
 
@@ -123,7 +123,7 @@ Maple Mono 提供了高度可定制的构建方式。你可以修改 [`config.js
 - narrow: 550
 - slim: 500
 
-[预览#todo]()
+[preview#todo]()
 
 ### OpenType 特性开关
 
@@ -139,9 +139,7 @@ Maple Mono 提供大量细粒度的 OpenType 特性。为了减少配置成本�
 
 Maple Mono 的默认字形设计偏向独特和个性化，可能不适合所有人的审美或使用场景。为此，Maple Mono 提供了 `--normal` 构建预设，生成类似 `JetBrains Mono` 的字形（`0` 的中间为斜线，而不是圆点）。
 
-[预览#todo]()
-
-#### 自定义 OpenType 特性（如添加标签连字内容）
+### 自定义 OpenType 特性
 
 绝大多数字体不支持自定义 OpenType 特性，而 Maple Mono 支持通过编程方式定制这些特性。
 
@@ -153,7 +151,11 @@ Maple Mono 的默认字形设计偏向独特和个性化，可能不适合所有
 
 你可以在 `config.json` 中设置 `"infinite_arrow": true`，或在命令行中添加 `--infinite-arrow` 强制启用该特性。遇到问题时，请在[#508](https://github.com/subframe7536/maple-font/issues/508)中讨论。
 
-[预览#todo]()
+[preview#todo]()
+
+### 标准 Zero 特性
+
+默认情况下，`0` 是斜线样式，启用 `zero` 后显示圆点。使用 `--standard-zero` 可恢复标准的 OpenType 语义：`0` 默认显示圆点，启用 `zero` 后显示斜线。
 
 ### 自定义行高
 
@@ -204,7 +206,7 @@ Maple Mono 内置 Nerd Font 图标支持，并遵循其命名规则。默认情�
 
 如果要自定义 `font-patcher` 参数，需要安装 `fontforge`（可能还需要 `python3-fontforge`）。你也可能需要在 [config.json](./config.json) 中修改 `"nerd_font.extra_args"`。
 
-[预览#todo]()
+[preview#todo]()
 
 #### 参数解析规则
 

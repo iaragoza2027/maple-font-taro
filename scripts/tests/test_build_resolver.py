@@ -832,6 +832,22 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
                 parse_args(args or [])
             )
 
+    def test_standard_zero_is_opt_in_and_normal_does_not_enable_it(self) -> None:
+        default = self._resolve_with_config({})
+        self.assertFalse(default.feature.standard_zero)
+        self.assertEqual(default.feature_freeze["zero"], "ignore")
+
+        standard = self._resolve_with_config({}, ["--standard-zero"])
+        self.assertTrue(standard.feature.standard_zero)
+
+        configured = self._resolve_with_config({"standard_zero": True})
+        self.assertTrue(configured.feature.standard_zero)
+
+        normal = self._resolve_with_config({}, ["--normal"])
+        self.assertFalse(normal.feature.standard_zero)
+        self.assertEqual(normal.feature_freeze["zero"], "ignore")
+        self.assertFalse(normal.to_build_record()["standard_zero"])
+
     def test_all_top_level_config_sections_resolve_to_runtime_values(self) -> None:
         font_config = self._resolve_with_config(
             {
@@ -956,7 +972,9 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
         )
 
         self.assertTrue(font_config.feature.normal)
+        self.assertFalse(font_config.feature.standard_zero)
         self.assertEqual(font_config.feature.feat, ["zero", "cv01"])
+        self.assertEqual(font_config.feature_freeze["zero"], "enable")
         self.assertTrue(font_config.apply_fea_file)
         self.assertTrue(font_config.use_hinted)
         self.assertTrue(font_config.feature.liga)
@@ -1027,11 +1045,15 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
                 BuildConfigResolver(project_root=Path(tmp)).resolve(parse_args([]))
 
     def test_feature_boolean_rejects_non_boolean_values(self) -> None:
-        for value in ("false", "true", 0, 1, None):
-            with self.subTest(value=value), self.assertRaises(ValueError) as error:
-                self._resolve_with_config({"use_hinted": value})
+        for field in ("use_hinted", "standard_zero"):
+            for value in ("false", "true", 0, 1, None):
+                with (
+                    self.subTest(field=field, value=value),
+                    self.assertRaises(ValueError) as error,
+                ):
+                    self._resolve_with_config({field: value})
 
-            self.assertIn("use_hinted", str(error.exception))
+                self.assertIn(field, str(error.exception))
 
     def test_json_boolean_fields_report_their_full_paths(self) -> None:
         common_options = (
@@ -1072,6 +1094,7 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
         font_config = self._resolve_with_config(
             {
                 "use_hinted": False,
+                "standard_zero": True,
                 "ligature": True,
                 "remove_tag_liga": True,
                 "nerd_font": {
@@ -1092,6 +1115,7 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
         )
 
         self.assertFalse(font_config.feature.hinted)
+        self.assertTrue(font_config.feature.standard_zero)
         self.assertTrue(font_config.feature.liga)
         self.assertTrue(font_config.feature.remove_tag_liga)
         self.assertTrue(font_config.nerd_font.enable)

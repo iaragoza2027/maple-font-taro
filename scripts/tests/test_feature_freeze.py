@@ -12,6 +12,7 @@ from ufoLib2.objects import Anchor
 from scripts.config.base import ResolvedConfig, normalize_feature_freeze
 from scripts.feature.apply import (
     FeatureSubstitution,
+    apply_standard_zero,
     apply_ufo_substitutions,
     prepare_feature_source,
 )
@@ -48,6 +49,49 @@ class FeatureFreezeConfigTest(unittest.TestCase):
 
 
 class FeatureApplicationTest(unittest.TestCase):
+    @staticmethod
+    def _add_zero_glyph(font: UFOFont, name: str, width: int, unicode: int | None):
+        glyph = font.newGlyph(name)
+        glyph.width = width
+        if unicode is not None:
+            glyph.unicodes = [unicode]
+        pen = glyph.getPointPen()
+        pen.beginPath()
+        pen.addPoint((0, 0), "move")
+        pen.addPoint((width // 2, 100), "line")
+        pen.addPoint((width, 0), "line")
+        pen.endPath()
+        return glyph
+
+    def test_standard_zero_swaps_roles_without_replacing_glyph_metadata(self) -> None:
+        font = UFOFont()
+        zero = self._add_zero_glyph(font, "zero", 600, 0x30)
+        dotted_zero = self._add_zero_glyph(font, "zero.zero", 500, None)
+        zero.lib["role"] = "default"
+        dotted_zero.lib["role"] = "alternate"
+        descriptor = SourceDescriptor()
+        descriptor.font = font
+        designspace = DesignSpaceDocument()
+        designspace.addSource(descriptor)
+
+        apply_standard_zero(designspace)
+
+        self.assertEqual(zero.width, 500)
+        self.assertEqual(dotted_zero.width, 600)
+        self.assertEqual(zero.unicodes, [0x30])
+        self.assertEqual(dotted_zero.unicodes, [])
+        self.assertEqual(zero.lib["role"], "default")
+        self.assertEqual(dotted_zero.lib["role"], "alternate")
+        self.assertEqual(zero.getBounds(font), (0, 0, 500, 100))
+        self.assertEqual(dotted_zero.getBounds(font), (0, 0, 600, 100))
+
+        apply_ufo_substitutions(
+            designspace,
+            (FeatureSubstitution("zero", "zero", "zero.zero"),),
+        )
+        self.assertEqual(zero.width, 600)
+        self.assertEqual(zero.getBounds(font), (0, 0, 600, 100))
+
     def _prepare_file(
         self,
         root: Path,

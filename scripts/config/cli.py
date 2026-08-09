@@ -44,6 +44,11 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
         help="Use normal preset, just like `JetBrains Mono` with slashed zero",
     )
     feature_group.add_argument(
+        "--standard-zero",
+        action="store_true",
+        help="Use standard zero semantics: default dotted zero and slashed zero when `zero` is enabled",
+    )
+    feature_group.add_argument(
         "--feat",
         type=lambda x: x.strip().split(","),
         help="Enable and freeze the listed features, split by `,` (e.g. `--feat zero,cv01,ss07,ss08`); contextual rules are enabled through `calt`",

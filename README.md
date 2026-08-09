@@ -106,7 +106,7 @@ Maple Mono provides multiple font formats and character-set ranges in its releas
 
 ## Highlights
 
-You can preview all highlights on the [showcase page#todo]().
+You can preview all highlights on the [page#todo]().
 
 ### Custom Builds
 
@@ -122,7 +122,7 @@ Available modes:
 - narrow: 550
 - slim: 500
 
-[Preview#todo]()
+[preview#todo]()
 
 ### OpenType Feature Switches
 
@@ -138,7 +138,7 @@ Maple Mono provides many fine-grained OpenType features. To reduce configuration
 
 Maple Mono's default glyph design is distinctive and personalized, which may not suit every taste or use case. The `--normal` build preset provides glyphs similar to `JetBrains Mono` (`0` has a slash in the middle instead of a dot).
 
-[Preview#todo]()
+[preview#todo]()
 
 #### Custom OpenType Features, Such as Status-Label Ligatures
 
@@ -152,7 +152,11 @@ Inspired by Fira Code and Cascadia Code, Maple Mono has supported infinite arrow
 
 Set `"infinite_arrow": true` in `config.json`, or pass `--infinite-arrow` on the command line to force-enable it. Discuss issues in [#508](https://github.com/subframe7536/maple-font/issues/508).
 
-[Preview#todo]()
+[preview#todo]()
+
+### Standard Zero Feature
+
+By default, `0` uses the slashed style, and enabling `zero` displays the dotted form. Use `--standard-zero` to restore the standard OpenType semantics: the default `0` is dotted, and enabling `zero` displays the slashed form.
 
 ### Custom Line Height
 
@@ -203,7 +207,7 @@ Maple Mono includes Nerd Font icons and follows its naming rules. By default, ea
 
 To customize `font-patcher` arguments, install `fontforge` (and possibly `python3-fontforge`). You may also need to change `"nerd_font.extra_args"` in [config.json](./config.json).
 
-[Preview#todo]()
+[preview#todo]()
 
 #### Argument Parsing Rules
 

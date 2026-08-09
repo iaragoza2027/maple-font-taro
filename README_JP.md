@@ -101,7 +101,7 @@ Maple Mono はユーザーからのフィードバックをもとに、複数の
 
 ## 特徴
 
-[紹介ページ#todo]()ですべての特徴をプレビューできます。
+[page#todo]()ですべての特徴をプレビューできます。
 
 ### カスタムビルド
 
@@ -117,7 +117,7 @@ V8 では 3 種類の文字幅モードを利用できます。[`config.json`](.
 - narrow: 550
 - slim: 500
 
-[プレビュー#todo]()
+[preview#todo]()
 
 ### OpenType 機能の切り替え
 
@@ -134,17 +134,14 @@ Maple Mono には細かく調整できる OpenType 機能が多数あります�
 Maple Mono のデフォルトのグリフデザインは個性的なため、すべての好みや用途に合うとは限りません。`--normal` ビルドプリセットでは、`JetBrains Mono` に似たグリフを生成します（`0` の中央は点ではなく斜線です）。
 
 `--normal` は次の機能を有効にします：
-<!-- NORMAL -->
 
 ```
 cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
 ```
 
-<!-- NORMAL -->
+[preview#todo]()
 
-[プレビュー#todo]()
-
-#### カスタム OpenType 機能（ラベル用リガチャの追加など）
+#### カスタム OpenType 機能
 
 ほとんどのフォントはカスタム OpenType 機能に対応していませんが、Maple Mono ではプログラムで定義できます。
 
@@ -156,7 +153,11 @@ Fira Code と Cascadia Code に着想を得て、Maple Mono は v7.3 から無�
 
 `config.json` に `"infinite_arrow": true` を設定するか、コマンドラインに `--infinite-arrow` を追加して強制的に有効化できます。問題は[#508](https://github.com/subframe7536/maple-font/issues/508)でご相談ください。
 
-[プレビュー#todo]()
+[preview#todo]()
+
+### 標準 Zero 機能
+
+デフォルトでは、`0` はスラッシュ付きで、`zero` を有効にするとドット付きになります。`--standard-zero` を使うと標準の OpenType の意味に戻り、デフォルトの `0` はドット付きで、`zero` を有効にするとスラッシュ付きになります。
 
 ### 行の高さのカスタマイズ
 
@@ -203,7 +204,7 @@ Maple Mono は Nerd Font アイコンを内蔵し、その命名規則に従っ�
 
 `font-patcher` の引数をカスタマイズするには `fontforge`（場合によっては `python3-fontforge` も）をインストールしてください。[config.json](./config.json) の `"nerd_font.extra_args"` の変更も必要になる場合があります。
 
-[プレビュー#todo]()
+[preview#todo]()
 
 #### 引数の解析規則
 

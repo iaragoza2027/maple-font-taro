@@ -119,7 +119,7 @@ Maple Mono 提供高度可自訂的建置方式。你可以修改 [`config.json`
 - narrow: 550
 - slim: 500
 
-[preview#todo]()
+![Width comparison](./resources/preview-widths.webp)
 
 ### OpenType 特性開關
 
@@ -141,7 +141,7 @@ Maple Mono 的預設字形設計偏向獨特和個人化，可能不適合所有
 cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
 ```
 
-[preview#todo]()
+![Normal preset](./resources/preview-normal.webp)
 
 #### 自訂 OpenType 特性
 
@@ -155,7 +155,7 @@ cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
 
 你可以在 `config.json` 中設定 `"infinite_arrow": true`，或在命令列中加入 `--infinite-arrow` 強制啟用該特性。遇到問題時，請在[#508](https://github.com/subframe7536/maple-font/issues/508)中討論。
 
-[preview#todo]()
+![Infinite arrow ligatures](./resources/preview-infinite-arrows.webp)
 
 ### 標準 Zero 特性
 
@@ -210,7 +210,7 @@ Maple Mono 內建 Nerd Font 圖示支援，並遵循其命名規則。預設情�
 
 如果要自訂 `font-patcher` 參數，需要安裝 `fontforge`（可能還需要 `python3-fontforge`）。你也可能需要在 [config.json](./config.json) 中修改 `"nerd_font.extra_args"`。
 
-[preview#todo]()
+![Nerd Font spacing modes](./resources/preview-nerd-fonts.webp)
 
 #### 參數解析規則
 

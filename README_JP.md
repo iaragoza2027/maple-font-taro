@@ -119,7 +119,7 @@ V8 では 3 種類の文字幅モードを利用できます。[`config.json`](.
 - narrow: 550
 - slim: 500
 
-[preview#todo]()
+![Width comparison](./resources/preview-widths.webp)
 
 ### OpenType 機能の切り替え
 
@@ -141,7 +141,7 @@ Maple Mono のデフォルトのグリフデザインは個性的なため、す
 cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
 ```
 
-[preview#todo]()
+![Normal preset](./resources/preview-normal.webp)
 
 #### カスタム OpenType 機能
 
@@ -155,7 +155,7 @@ Fira Code と Cascadia Code に着想を得て、Maple Mono は v7.3 から無�
 
 `config.json` に `"infinite_arrow": true` を設定するか、コマンドラインに `--infinite-arrow` を追加して強制的に有効化できます。問題は[#508](https://github.com/subframe7536/maple-font/issues/508)でご相談ください。
 
-[preview#todo]()
+![Infinite arrow ligatures](./resources/preview-infinite-arrows.webp)
 
 ### 標準 Zero 機能
 
@@ -206,7 +206,7 @@ Maple Mono は Nerd Font アイコンを内蔵し、その命名規則に従っ�
 
 `font-patcher` の引数をカスタマイズするには `fontforge`（場合によっては `python3-fontforge` も）をインストールしてください。[config.json](./config.json) の `"nerd_font.extra_args"` の変更も必要になる場合があります。
 
-[preview#todo]()
+![Nerd Font spacing modes](./resources/preview-nerd-fonts.webp)
 
 #### 引数の解析規則
 

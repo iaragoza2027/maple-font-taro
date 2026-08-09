@@ -124,7 +124,7 @@ Available modes:
 - narrow: 550
 - slim: 500
 
-[preview#todo]()
+![Width comparison](./resources/preview-widths.webp)
 
 ### OpenType Feature Switches
 
@@ -140,7 +140,7 @@ Maple Mono provides many fine-grained OpenType features. To reduce configuration
 
 Maple Mono's default glyph design is distinctive and personalized, which may not suit every taste or use case. The `--normal` build preset provides glyphs similar to `JetBrains Mono` (`0` has a slash in the middle instead of a dot).
 
-[preview#todo]()
+![Normal preset](./resources/preview-normal.webp)
 
 #### Custom OpenType Features, Such as Status-Label Ligatures
 
@@ -154,7 +154,7 @@ Inspired by Fira Code and Cascadia Code, Maple Mono has supported infinite arrow
 
 Set `"infinite_arrow": true` in `config.json`, or pass `--infinite-arrow` on the command line to force-enable it. Discuss issues in [#508](https://github.com/subframe7536/maple-font/issues/508).
 
-[preview#todo]()
+![Infinite arrow ligatures](./resources/preview-infinite-arrows.webp)
 
 ### Standard Zero Feature
 
@@ -209,7 +209,7 @@ Maple Mono includes Nerd Font icons and follows its naming rules. By default, ea
 
 To customize `font-patcher` arguments, install `fontforge` (and possibly `python3-fontforge`). You may also need to change `"nerd_font.extra_args"` in [config.json](./config.json).
 
-[preview#todo]()
+![Nerd Font spacing modes](./resources/preview-nerd-fonts.webp)
 
 #### Argument Parsing Rules
 

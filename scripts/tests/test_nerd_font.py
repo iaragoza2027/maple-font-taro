@@ -20,7 +20,21 @@ class NerdFontHelpersTest(unittest.TestCase):
         self.assertEqual(NerdFontVariant.from_options().symbol, "NF")
         self.assertEqual(NerdFontVariant.from_options(mono=True).suffix, "Mono")
         self.assertEqual(NerdFontVariant.from_options(mono=True).symbol, "NFo")
+        self.assertEqual(
+            NerdFontVariant.from_options(mono=True).directory_name, "NFMono"
+        )
+        self.assertEqual(
+            NerdFontVariant.from_options(mono=True).cjk_directory_name("CN"),
+            "NFMono-CN",
+        )
         self.assertEqual(NerdFontVariant.from_options(propo=True).symbol, "NFr")
+        self.assertEqual(
+            NerdFontVariant.from_options(propo=True).directory_name, "NFPropo"
+        )
+        self.assertEqual(
+            NerdFontVariant.from_options(mono=True, propo=True).suffix,
+            "Propo",
+        )
 
     def test_variant_resolves_font_patcher_flags(self) -> None:
         variant = NerdFontVariant.from_options(extra_args=("--mono",))
@@ -42,6 +56,23 @@ class NerdFontHelpersTest(unittest.TestCase):
             variant.patched_font_path("fonts", "MapleMono-Regular.ttf"),
             Path("fonts/MapleMonoNerdFontMono-Regular.ttf"),
         )
+
+    def test_runtime_context_uses_variant_directories(self) -> None:
+        config = BuildConfigResolver().load_defaults()
+        for flags, directory in (
+            ({}, "NF"),
+            ({"mono": True}, "NFMono"),
+            ({"propo": True}, "NFPropo"),
+        ):
+            with self.subTest(directory=directory):
+                config.nerd_font.mono = flags.get("mono", False)
+                config.nerd_font.propo = flags.get("propo", False)
+                runtime_context = BuildRuntimeContext.from_config(config)
+                self.assertEqual(runtime_context.output_nf, f"fonts/{directory}")
+                self.assertEqual(
+                    runtime_context.output_nf_variable,
+                    f"fonts/Variable-{directory}",
+                )
 
     def test_parse_codes_from_json_loads_and_sorts_codes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

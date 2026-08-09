@@ -987,7 +987,7 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
         self.assertTrue(font_config.cache)
         self.assertTrue(font_config.archive)
         self.assertTrue(font_config.nerd_font.enable)
-        self.assertTrue(font_config.nerd_font.mono)
+        self.assertFalse(font_config.nerd_font.mono)
         self.assertTrue(font_config.nerd_font.propo)
         self.assertTrue(font_config.nerd_font.variable)
         self.assertTrue(font_config.nerd_font.use_font_patcher)

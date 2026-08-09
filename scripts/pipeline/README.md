@@ -70,7 +70,7 @@ AutoHint consumes published static TTFs and writes `fonts/TTF-AutoHint/`. WOFF2 
 
 ### CJK stages
 
-`_cjk_stage_targets` records separate locale/profile stages such as `cn-static`, `nf-cn-static`, `cn-variable`, and `nf-cn-variable`. Static output goes to `fonts/<LOCALE>/` or `fonts/NF-<LOCALE>/`; variable output goes to `fonts/Variable-<LOCALE>/` or `fonts/Variable-NF-<LOCALE>/`. A CJK cache miss removes only the selected stage record before rebuilding, so other locale and profile records and files remain available.
+`_cjk_stage_targets` records separate locale/profile stages such as `cn-static`, `nf-cn-static`, `cn-variable`, and `nf-cn-variable`. Static output goes to `fonts/<LOCALE>/` or a variant directory such as `fonts/NF-<LOCALE>/`, `fonts/NFMono-<LOCALE>/`, or `fonts/NFPropo-<LOCALE>/`; variable output uses the matching `Variable-*` directory. A CJK cache miss removes only the selected stage record before rebuilding, so other locale and profile records and files remain available. Release jobs publish the default NF profile only; Mono and Propo CJK/VF outputs are supported for custom builds but are not release targets.
 
 ## Cache lifecycle and failure state
 

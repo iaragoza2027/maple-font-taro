@@ -463,10 +463,14 @@ class BuildConfigResolver:
             config.nerd_font.enable = False
         if args.nf_mono:
             config.nerd_font.mono = True
+            config.nerd_font.propo = False
             config.nerd_font.enable = True
         if args.nf_propo:
             config.nerd_font.propo = True
+            config.nerd_font.mono = False
             config.nerd_font.enable = True
+        elif config.nerd_font.propo:
+            config.nerd_font.mono = False
         if args.nf_variable:
             config.nerd_font.variable = True
             config.nerd_font.enable = True

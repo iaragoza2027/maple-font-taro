@@ -615,6 +615,40 @@ class PipelineCJKOutputsTest(unittest.TestCase):
 
             self.assertEqual(captured_profiles, [("NF-HK", True), ("HK", False)])
 
+    def test_variable_cjk_outputs_use_nfmono_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime_context = make_runtime_context(Path(tmp))
+            font_config = make_font_config()
+            font_config.nerd_font.mono = True
+            font_config.cjk.entries = [make_custom_entry("HK")]
+            captured_output_dirs: list[str] = []
+
+            with patch(
+                "scripts.pipeline.cjk_outputs.build_cjk_extended_variable_fonts",
+                side_effect=lambda _entry, *_args, **kwargs: (
+                    captured_output_dirs.append(kwargs["output_locale"])
+                    or (Path("regular"), Path("italic"))
+                ),
+            ):
+                build_cjk_extended_variable_outputs(font_config, runtime_context)
+
+            self.assertEqual(captured_output_dirs, ["NFMono-HK"])
+
+    def test_static_cjk_profiles_use_nfpropo_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime_context = make_runtime_context(Path(tmp))
+            runtime_context.is_nf_built = True
+            font_config = make_font_config()
+            font_config.nerd_font.propo = True
+            entry = make_custom_entry("HK")
+
+            profiles = cjk_static_base_profiles(font_config, runtime_context, entry)
+
+            self.assertEqual(
+                [profile.output_locale for profile in profiles], ["NFPropo-HK"]
+            )
+            self.assertEqual(profiles[0].base_dir, runtime_context.output_nf)
+
     def test_missing_cjk_selection_logs_reason_outside_ci(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             runtime_context = make_runtime_context(Path(tmp))

@@ -16,6 +16,10 @@ class FontArchiveTest(unittest.TestCase):
         self.assertEqual(archive_output_label("Variable-NF"), "NF-VF")
         self.assertEqual(archive_output_label("Variable-NF-CN"), "NF-CN-VF")
         self.assertEqual(archive_output_label("NF-CN"), "NF-CN")
+        self.assertEqual(archive_output_label("NFMono"), "NFMono")
+        self.assertEqual(archive_output_label("Variable-NFMono"), "NFMono-VF")
+        self.assertEqual(archive_output_label("NFMono-CN"), "NFMono-CN")
+        self.assertEqual(archive_output_label("Variable-NFPropo-CN"), "NFPropo-CN-VF")
 
     def test_archive_readme_links_only_relative_font_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

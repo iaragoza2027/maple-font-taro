@@ -5,7 +5,7 @@ The CJK subsystem converts a source CJK variable font into reusable Maple bases 
 | Workflow             | Command                          | Output and cache                                                                                                                                                                            |
 | -------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Build reusable bases | `uv run task.py cjk --preset cn` | Writes `source/cjk/<locale>/` variable bases, optional static instances, a static digest, and an archive. The standalone task always rebuilds the regular and italic variable bases.        |
-| Build release fonts  | `uv run build.py --cjk cn`       | Merges selected profiles under `fonts/<LOCALE>/`, `fonts/NF-<LOCALE>/`, `fonts/Variable-<LOCALE>/`, or `fonts/Variable-NF-<LOCALE>/`, and records each profile in `fonts/build-cache.json`. |
+| Build release fonts  | `uv run build.py --cjk cn`       | Merges selected profiles under `fonts/<LOCALE>/`, `fonts/NF-<LOCALE>/`, `fonts/Variable-<LOCALE>/`, or `fonts/Variable-NF-<LOCALE>/`; `--nf-mono` and `--nf-propo` use matching standalone directories and are local-only. |
 
 The standalone CJK artifacts under `source/cjk/` are independent from the main pipeline cache under `fonts/`. This document covers CJK decisions and fallback; the global stage lifecycle is in [`../pipeline/README.md`](../pipeline/README.md), and the update/publish procedure is in [`../maintenance.md`](../maintenance.md).
 
@@ -15,14 +15,16 @@ The main pipeline's `cjk.variable` / `--cjk-variable` selects the release shape:
 
 | Mode               | Per profile                                                                                        | Directory                                                             | Use it when                                                                                   |
 | ------------------ | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `static` (default) | Up to 16 TTFs: 8 weights, each regular and italic; `--debug`/`--least-styles` can reduce this set. | Plain: `fonts/<LOCALE>/`; NF: `fonts/NF-<LOCALE>/`.                   | Consumers need installable instance fonts, AutoHint, or the smallest runtime feature surface. |
-| `variable`         | Two TTFs: regular and italic `[wght]` files.                                                       | Plain: `fonts/Variable-<LOCALE>/`; NF: `fonts/Variable-NF-<LOCALE>/`. | Consumers need continuous weight variation and can use variable OpenType behavior.            |
+| `static` (default) | Up to 16 TTFs: 8 weights, each regular and italic; `--debug`/`--least-styles` can reduce this set. | Plain: `fonts/<LOCALE>/`; NF: `fonts/NF-<LOCALE>/`, `fonts/NFMono-<LOCALE>/`, or `fonts/NFPropo-<LOCALE>/`. | Consumers need installable instance fonts, AutoHint, or the smallest runtime feature surface. |
+| `variable`         | Two TTFs: regular and italic `[wght]` files.                                                       | Plain: `fonts/Variable-<LOCALE>/`; NF: `fonts/Variable-NF-<LOCALE>/`, `fonts/Variable-NFMono-<LOCALE>/`, or `fonts/Variable-NFPropo-<LOCALE>/`. | Consumers need continuous weight variation and can use variable OpenType behavior. |
 
 The standalone task writes two variable base files, regular and italic, and writes up to 16 static base instances unless `--vf-only` is set. The main pipeline can reuse those variable files for variable output or instantiate the required static styles for a static release.
 
 ## Plain and Nerd Font profiles
 
 `nerd_font.enable` controls whether the main pipeline builds the NF base. `cjk.with_nerd_font` controls whether each selected CJK entry is eligible for an NF profile. When both are true, the normal selection is NF-CJK. `--cjk-both` adds the plain profile alongside NF-CJK; if NF is disabled, only the plain profile can be produced. The same rule is applied independently to every locale and every output mode.
+
+The default NF profile uses `NF-*` and `Variable-NF-*` directories. `--nf-mono` and `--nf-propo` use `NFMono-*` / `Variable-NFMono-*` and `NFPropo-*` / `Variable-NFPropo-*` instead. Release jobs publish only the default NF locale packages; Mono and Propo CJK or variable builds remain supported for custom local builds but are not release targets.
 
 ## Hinting and cache controls
 

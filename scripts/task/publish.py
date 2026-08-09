@@ -43,6 +43,38 @@ class ReleaseLocale:
 
 
 @dataclass(frozen=True, slots=True)
+class ReleaseNFVariant:
+    id: str
+    args: tuple[str, ...]
+    directory_name: str
+    static_modes: tuple[str, ...]
+    variable: bool
+    locales: bool
+
+    def manifest(self) -> dict[str, object]:
+        return {
+            "id": self.id,
+            "args": list(self.args),
+            "directory": self.directory_name,
+            "static_modes": list(self.static_modes),
+            "variable": self.variable,
+            "locales": self.locales,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class ReleaseArchiveSpec:
+    directory: str
+    suffix: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class ReleaseBuildStep:
+    args: tuple[str, ...]
+    archives: tuple[ReleaseArchiveSpec, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class ReleaseTask:
     kind: ReleaseTaskKind
     profile: ReleaseProfile
@@ -93,15 +125,50 @@ RELEASE_CJK_LOCALES = (
     ReleaseLocale("jp", "JP"),
     ReleaseLocale("kr", "KR"),
 )
-BASE_ARCHIVE_TARGETS = (
+RELEASE_NF_VARIANTS = (
+    ReleaseNFVariant(
+        "nf",
+        ("--nf",),
+        "NF",
+        ("hinted", "unhinted"),
+        True,
+        True,
+    ),
+    ReleaseNFVariant(
+        "nfmono",
+        ("--nf-mono",),
+        "NFMono",
+        ("unhinted",),
+        False,
+        False,
+    ),
+    ReleaseNFVariant(
+        "nfpropo",
+        ("--nf-propo",),
+        "NFPropo",
+        ("unhinted",),
+        False,
+        False,
+    ),
+)
+RELEASE_DEFAULT_NF_VARIANT = RELEASE_NF_VARIANTS[0]
+BASE_CORE_ARCHIVE_TARGETS = (
     "VF",
     "TTF",
     "TTF-AutoHint",
     "OTF",
     "Woff2",
+)
+BASE_NF_ARCHIVE_TARGETS = (
     "NF",
     "NF-unhinted",
     "NF-VF",
+    "NFMono-unhinted",
+    "NFPropo-unhinted",
+)
+BASE_ARCHIVE_TARGETS = (
+    *BASE_CORE_ARCHIVE_TARGETS,
+    *BASE_NF_ARCHIVE_TARGETS,
 )
 CJK_ARCHIVE_TARGETS = (
     "NF-{locale}-VF",
@@ -181,6 +248,7 @@ def release_manifest() -> dict[str, Any]:
             }
             for width in RELEASE_WIDTHS
         ],
+        "nf_variants": [variant.manifest() for variant in RELEASE_NF_VARIANTS],
         "base": {"targets": list(BASE_ARCHIVE_TARGETS)},
         "cjk": {
             "locales": [
@@ -188,6 +256,7 @@ def release_manifest() -> dict[str, Any]:
             ],
             "targets": list(CJK_ARCHIVE_TARGETS),
         },
+        "archives": sorted(expected_release_archives()),
     }
 
 
@@ -201,58 +270,105 @@ def resolve_release_task(task_id: str) -> ReleaseTask:
 def release_build_steps(
     task: ReleaseTask,
     extra_args: tuple[str, ...] = (),
-) -> tuple[list[str], ...]:
+) -> tuple[ReleaseBuildStep, ...]:
     common = [
         *extra_args,
-        "--nf",
+        *RELEASE_DEFAULT_NF_VARIANT.args,
         "--width",
         task.width.value,
         *task.profile.args,
     ]
     if task.kind == "base":
         return (
-            [*common, "--format", "ttf,otf,woff2", "--hinted"],
-            [
-                *common,
-                "--format",
-                "ttf,otf,woff2",
-                "--no-hinted",
-                "--cache",
-            ],
-            [
-                *extra_args,
-                "--archive",
-                "--nf-variable",
-                "--width",
-                task.width.value,
-                *task.profile.args,
-                "--format",
-                "ttf,otf,woff2",
-                "--no-hinted",
-                "--cache",
-            ],
+            ReleaseBuildStep(
+                (*common, "--format", "ttf,otf,woff2", "--hinted"),
+                (ReleaseArchiveSpec("NF"),),
+            ),
+            ReleaseBuildStep(
+                (
+                    *common,
+                    "--format",
+                    "ttf,otf,woff2",
+                    "--no-hinted",
+                    "--cache",
+                ),
+                (ReleaseArchiveSpec("NF", "-unhinted"),),
+            ),
+            ReleaseBuildStep(
+                (
+                    *extra_args,
+                    "--nf-variable",
+                    "--width",
+                    task.width.value,
+                    *task.profile.args,
+                    "--format",
+                    "ttf,otf,woff2",
+                    "--no-hinted",
+                    "--cache",
+                ),
+                tuple(
+                    ReleaseArchiveSpec(directory)
+                    for directory in (
+                        "Variable",
+                        "TTF",
+                        "TTF-AutoHint",
+                        "OTF",
+                        "Woff2",
+                        "Variable-NF",
+                    )
+                ),
+            ),
+            *_release_nf_variant_steps(task, extra_args, RELEASE_NF_VARIANTS[1:]),
         )
     if task.locale is None:
         raise ValueError("CJK release task requires a locale")
     cjk = [*common, "--format", "ttf", "--cjk", task.locale.id]
+    cjk_directory = RELEASE_DEFAULT_NF_VARIANT.directory_name + "-" + task.locale.name
     return (
-        [
-            *cjk,
-            "--hinted",
-        ],
-        [
-            *cjk,
-            "--no-hinted",
-            "--no-cjk-hinted",
-            "--cache",
-        ],
-        [
-            *cjk,
-            "--cjk-variable",
-            "--no-hinted",
-            "--no-cjk-hinted",
-            "--cache",
-        ],
+        ReleaseBuildStep((*cjk, "--hinted"), (ReleaseArchiveSpec(cjk_directory),)),
+        ReleaseBuildStep(
+            (
+                *cjk,
+                "--no-hinted",
+                "--no-cjk-hinted",
+                "--cache",
+            ),
+            (ReleaseArchiveSpec(cjk_directory, "-unhinted"),),
+        ),
+        ReleaseBuildStep(
+            (
+                *cjk,
+                "--cjk-variable",
+                "--no-hinted",
+                "--no-cjk-hinted",
+                "--cache",
+            ),
+            (ReleaseArchiveSpec(f"Variable-{cjk_directory}"),),
+        ),
+    )
+
+
+def _release_nf_variant_steps(
+    task: ReleaseTask,
+    extra_args: tuple[str, ...],
+    variants: tuple[ReleaseNFVariant, ...],
+) -> tuple[ReleaseBuildStep, ...]:
+    return tuple(
+        ReleaseBuildStep(
+            (
+                *extra_args,
+                *variant.args,
+                "--width",
+                task.width.value,
+                *task.profile.args,
+                "--format",
+                "ttf",
+                "--no-hinted",
+                "--cache",
+            ),
+            (ReleaseArchiveSpec(variant.directory_name, "-unhinted"),),
+        )
+        for variant in variants
     )
 
 
@@ -274,39 +390,30 @@ def collect_release_task_archives(
         shutil.copy2(archive_dir / archive_name, output_dir / archive_name)
 
 
-def archive_overwritten_release_output(task: ReleaseTask) -> None:
-    """Snapshot the hinted NF archive before later steps replace its files."""
-    if task.kind == "base":
-        folder = "NF"
-    else:
-        if task.locale is None:
-            raise ValueError("CJK release task requires a locale")
-        folder = f"NF-{task.locale.name}"
-    source_dir = BUILD_ARCHIVE_DIR.parent / folder
-    if not source_dir.is_dir():
-        raise FileNotFoundError(
-            f"Release task output directory is missing: {source_dir}"
-        )
+def archive_release_step(task: ReleaseTask, step: ReleaseBuildStep) -> None:
     BUILD_ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
-    archive_fonts(
-        source_dir,
-        str(BUILD_ARCHIVE_DIR),
-        task.family_name,
-        "",
-        str(BUILD_ARCHIVE_DIR.parent / "build-config.json"),
-    )
+    for archive in step.archives:
+        source_dir = BUILD_ARCHIVE_DIR.parent / archive.directory
+        if not source_dir.is_dir():
+            raise FileNotFoundError(
+                f"Release task {task.id} output directory is missing: {source_dir}"
+            )
+        archive_fonts(
+            source_dir,
+            str(BUILD_ARCHIVE_DIR),
+            task.family_name,
+            archive.suffix,
+            str(BUILD_ARCHIVE_DIR.parent / "build-config.json"),
+        )
 
 
 def build_release_task(task_id: str, build_args: str = "") -> None:
     from scripts.pipeline import main as build_main
 
     task = resolve_release_task(task_id)
-    for index, build_step in enumerate(
-        release_build_steps(task, tuple(shlex.split(build_args)))
-    ):
-        build_main(build_step)
-        if index == 0:
-            archive_overwritten_release_output(task)
+    for build_step in release_build_steps(task, tuple(shlex.split(build_args))):
+        build_main(list(build_step.args))
+        archive_release_step(task, build_step)
     collect_release_task_archives(task)
 
 
@@ -399,13 +506,10 @@ def publish(write: bool, tag: str | None = None, dry: bool = not is_ci()):
         "--draft",
     ]
 
-    template = (
-        template_path.read_text()
-        .replace("<!-- changelog -->", changelog)
-        .replace(
-            "https://<url>",
-            f"https://github.com/subframe7536/maple-font/releases/download/{tag}",
-        )
+    template = template_path.read_text().replace("<!-- changelog -->", changelog)
+    template = template.replace(
+        "https://<url>",
+        f"https://github.com/subframe7536/maple-font/releases/download/{tag}",
     )
     if write or not dry:
         template_path.write_text(template)

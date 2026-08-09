@@ -247,11 +247,29 @@ class PublishTest(unittest.TestCase):
 
         self.assertIn("cjk", manifest)
         self.assertFalse(any(key.startswith("cjk_") for key in manifest))
-        self.assertEqual(len(archives), 240)
+        self.assertEqual(len(archives), 264)
+        self.assertEqual(len(manifest["archives"]), 264)
+        self.assertEqual(len(manifest["nf_variants"]), 3)
         self.assertIn("MapleMonoNormalNLNR-NF-JP-VF.zip", archives)
+        self.assertIn("MapleMonoNormalNLNR-NFMono-unhinted.zip", archives)
+        self.assertIn("MapleMonoNormalNLNR-NFPropo-unhinted.zip", archives)
         self.assertIn("MapleMonoSL-Woff2.zip", archives)
         self.assertFalse(
             any("Static" in name or "Variable" in name for name in archives)
+        )
+        self.assertFalse(any("NFMono-VF" in name for name in archives))
+        self.assertFalse(any("NFPropo-VF" in name for name in archives))
+        self.assertTrue(
+            all(
+                name.endswith("-NFMono-unhinted.zip") or "NFMono" not in name
+                for name in archives
+            )
+        )
+        self.assertTrue(
+            all(
+                name.endswith("-NFPropo-unhinted.zip") or "NFPropo" not in name
+                for name in archives
+            )
         )
 
     def test_prepare_release_assets_writes_manifest(self) -> None:
@@ -282,24 +300,31 @@ class PublishTest(unittest.TestCase):
     def test_release_task_owns_build_steps_and_archive_names(self) -> None:
         base = resolve_release_task("base-normal-narrow")
         base_steps = release_build_steps(base, ("--least-styles",))
-        self.assertEqual(len(base_steps), 3)
-        self.assertTrue(all("--least-styles" in step for step in base_steps))
-        self.assertIn("--hinted", base_steps[0])
-        self.assertNotIn("--archive", base_steps[0])
-        self.assertNotIn("--archive", base_steps[1])
-        self.assertIn("--archive", base_steps[2])
-        self.assertIn("--no-hinted", base_steps[1])
-        self.assertIn("--nf-variable", base_steps[2])
-        self.assertEqual(len(base.archive_names()), 8)
+        self.assertEqual(len(base_steps), 5)
+        self.assertTrue(all("--least-styles" in step.args for step in base_steps))
+        self.assertIn("--hinted", base_steps[0].args)
+        self.assertNotIn("--archive", base_steps[0].args)
+        self.assertNotIn("--archive", base_steps[1].args)
+        self.assertNotIn("--archive", base_steps[2].args)
+        self.assertIn("--no-hinted", base_steps[1].args)
+        self.assertIn("--nf-variable", base_steps[2].args)
+        self.assertIn("--nf-mono", base_steps[3].args)
+        self.assertIn("--nf-propo", base_steps[4].args)
+        self.assertEqual(len(base.archive_names()), 10)
         self.assertIn("MapleMonoNormalNR-VF.zip", base.archive_names())
         self.assertIn("MapleMonoNormalNR-NF-VF.zip", base.archive_names())
+        self.assertIn("MapleMonoNormalNR-NFMono-unhinted.zip", base.archive_names())
+        self.assertIn("MapleMonoNormalNR-NFPropo-unhinted.zip", base.archive_names())
 
         cjk = resolve_release_task("cjk-no-ligature-slim-jp")
         cjk_steps = release_build_steps(cjk)
         self.assertEqual(len(cjk_steps), 3)
-        self.assertIn("--hinted", cjk_steps[0])
-        self.assertNotIn("--cjk-hinted", cjk_steps[0])
-        self.assertIn("--cjk-variable", cjk_steps[2])
+        self.assertIn("--hinted", cjk_steps[0].args)
+        self.assertNotIn("--cjk-hinted", cjk_steps[0].args)
+        self.assertIn("--cjk-variable", cjk_steps[2].args)
+        self.assertEqual(cjk_steps[0].archives[0].directory, "NF-JP")
+        self.assertEqual(cjk_steps[1].archives[0].suffix, "-unhinted")
+        self.assertEqual(cjk_steps[2].archives[0].directory, "Variable-NF-JP")
         self.assertEqual(
             cjk.archive_names(),
             (
@@ -328,12 +353,12 @@ class PublishTest(unittest.TestCase):
             )
 
     @patch("scripts.task.publish.collect_release_task_archives")
-    @patch("scripts.task.publish.archive_overwritten_release_output")
+    @patch("scripts.task.publish.archive_release_step")
     @patch("scripts.pipeline.main")
     def test_build_release_task_runs_internal_steps(
         self,
         build_main,
-        archive_overwritten,
+        archive_step,
         collect_archives,
     ) -> None:
         task = resolve_release_task("base-default-slim")
@@ -343,9 +368,12 @@ class PublishTest(unittest.TestCase):
         expected_steps = release_build_steps(task, ("--least-styles",))
         self.assertEqual(
             build_main.call_args_list,
-            [call(step) for step in expected_steps],
+            [call(list(step.args)) for step in expected_steps],
         )
-        archive_overwritten.assert_called_once_with(task)
+        self.assertEqual(
+            archive_step.call_args_list,
+            [call(task, step) for step in expected_steps],
+        )
         collect_archives.assert_called_once_with(task)
 
 

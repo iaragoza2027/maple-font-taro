@@ -31,10 +31,10 @@ class NerdFontVariant:
             raise ValueError(
                 "Cannot build both `mono` and `propo` glyphs versions simultaneously."
             )
-        if mono or {"-s", "--mono", "--single-width-glyphs"} & args:
-            return cls("Mono")
         if propo or "--variable-width-glyphs" in args:
             return cls("Propo")
+        if mono or {"-s", "--mono", "--single-width-glyphs"} & args:
+            return cls("Mono")
         return cls()
 
     @property
@@ -45,6 +45,14 @@ class NerdFontVariant:
     @property
     def symbol(self) -> str:
         return f"NF{self.compact}"
+
+    @property
+    def directory_name(self) -> str:
+        """Return the stable output and archive directory label."""
+        return f"NF{self.suffix}"
+
+    def cjk_directory_name(self, locale: str) -> str:
+        return f"{self.directory_name}-{locale}"
 
     def base_path(self, source_dir: str | Path) -> Path:
         suffix = f"-{self.suffix}" if self.suffix else ""

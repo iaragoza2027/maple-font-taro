@@ -47,15 +47,19 @@ This directory implements `build.py` and `task.py`. The build pipeline is determ
 | Output                        | Produced by                             | Reused by                                                    |
 | ----------------------------- | --------------------------------------- | ------------------------------------------------------------ |
 | `fonts/Variable/`             | Base Variable stage                     | Variable consumers and CJK variable merges.                  |
-| `fonts/Variable-NF/`          | Variable Nerd Font stage                | Base variable fonts with Nerd Font glyphs.                   |
+| `fonts/Variable-NF/`          | Default variable Nerd Font stage        | Base variable fonts with Nerd Font glyphs.                   |
+| `fonts/NFMono/`, `fonts/NFPropo/` | Fixed/proportional NF stages         | Custom static NF variants; release jobs publish unhinted packages from both directories. |
+| `fonts/Variable-NFMono/`, `fonts/Variable-NFPropo/` | Custom variable NF stages | Local Mono/Propo variable builds; these variants are not published. |
 | `fonts/TTF/`, `fonts/OTF/`    | Base static stages                      | AutoHint, WOFF2, Nerd Font, CJK static merges, and archives. |
 | `fonts/TTF-AutoHint/`         | AutoHint stage                          | Nerd Font and hinted CJK static merges.                      |
 | `fonts/Woff2/`                | WOFF2 conversion stage                  | Web distribution and archives.                               |
 | `fonts/NF/`                   | Nerd Font stage                         | NF-CJK static or variable merges.                            |
 | `fonts/<LOCALE>/`             | Plain CJK integration stage             | Release archives and downstream consumers.                   |
-| `fonts/NF-<LOCALE>/`          | NF-CJK integration stage                | Release archives and downstream consumers.                   |
+| `fonts/NF-<LOCALE>/`          | Default NF-CJK integration stage        | Release archives and downstream consumers.                   |
+| `fonts/NFMono-<LOCALE>/`, `fonts/NFPropo-<LOCALE>/` | Custom NF-CJK integration stages | Local Mono/Propo CJK builds; these variants are not published. |
 | `fonts/Variable-<LOCALE>/`    | Plain CJK variable stage                | Release archives and downstream consumers.                   |
-| `fonts/Variable-NF-<LOCALE>/` | NF-CJK variable stage                   | Release archives and downstream consumers.                   |
+| `fonts/Variable-NF-<LOCALE>/` | Default NF-CJK variable stage           | Release archives and downstream consumers.                   |
+| `fonts/Variable-NFMono-<LOCALE>/`, `fonts/Variable-NFPropo-<LOCALE>/` | Custom NF-CJK variable stages | Local Mono/Propo CJK variable builds; these variants are not published. |
 | `fonts/build-config.json`     | Build start and successful finalization | Reproducing the resolved build inputs.                       |
 | `fonts/build-cache.json`      | Successful finalization only            | Independent stage reuse on the next cached build.            |
 

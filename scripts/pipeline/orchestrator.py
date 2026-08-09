@@ -352,7 +352,11 @@ class MapleBuildPipeline:
                 )
             output_locales: list[str] = []
             if include_nf:
-                output_locales.append(f"NF-{entry.locale_name}")
+                output_locales.append(
+                    self.font_config.get_nf_variant().cjk_directory_name(
+                        entry.locale_name
+                    )
+                )
             if not include_nf or self.font_config.use_cjk_both:
                 output_locales.append(entry.locale_name)
             for output_locale in output_locales:
@@ -370,14 +374,17 @@ class MapleBuildPipeline:
         raise ValueError(f"Unknown CJK stage: {stage}")
 
     def _cjk_stage_expected_paths(self, output_locale: str) -> list[Path]:
+        nf_directory_name = self.font_config.get_nf_variant().directory_name
+        nf_prefix = f"{nf_directory_name}-"
+        is_nf_output = output_locale.startswith(nf_prefix)
+        locale_name = output_locale.removeprefix(nf_prefix)
         if self.plan.cjk_mode == "variable":
             directory = variable_output_dir(
                 self.runtime_context.output_dir,
                 output_locale,
             )
-            locale_name = output_locale.removeprefix("NF-")
             prefix = f"{self.font_config.family_name_compact}-{locale_name}"
-            if output_locale.startswith("NF-"):
+            if is_nf_output:
                 prefix = (
                     f"{self.font_config.family_name_compact}-"
                     f"{self.font_config.get_nf_variant().symbol}-{locale_name}"
@@ -387,9 +394,8 @@ class MapleBuildPipeline:
                 for italic in (False, True)
             ]
         directory = static_output_dir(self.runtime_context.output_dir, output_locale)
-        locale_name = output_locale.removeprefix("NF-")
         prefix = f"{self.font_config.family_name_compact}-{locale_name}"
-        if output_locale.startswith("NF-"):
+        if is_nf_output:
             prefix = (
                 f"{self.font_config.family_name_compact}-"
                 f"{self.font_config.get_nf_variant().symbol}-{locale_name}"
@@ -859,7 +865,9 @@ class MapleBuildPipeline:
             if self.plan.cjk_mode == "variable":
                 upstream = "variable"
             dependencies[upstream] = self._stage_cache_identity(upstream)
-            if output_locale.startswith("NF-"):
+            if output_locale.startswith(
+                f"{self.font_config.get_nf_variant().directory_name}-"
+            ):
                 dependencies["nf"] = self._stage_cache_identity("nf")
             inputs = {
                 "entry": serialize_cjk_build_config(entry.build_config),
@@ -1016,11 +1024,14 @@ class MapleBuildPipeline:
                 for entry in self.font_config.get_selected_cjk_entries()
             }
             cjk_archive_dirs = {locale_name.upper() for locale_name in cjk_locale_names}
+            nf_directory_name = self.font_config.get_nf_variant().directory_name
             nf_cjk_archive_dirs = {
-                f"NF-{locale_name}".upper() for locale_name in cjk_locale_names
+                f"{nf_directory_name}-{locale_name}".upper()
+                for locale_name in cjk_locale_names
             }
             if (
-                file_name in {"NF", *cjk_archive_dirs, *nf_cjk_archive_dirs}
+                file_name
+                in {nf_directory_name, *cjk_archive_dirs, *nf_cjk_archive_dirs}
                 and not self.font_config.use_hinted
             ):
                 suffix = "-unhinted"

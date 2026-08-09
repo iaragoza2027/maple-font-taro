@@ -206,8 +206,10 @@ def build_cjk_extended_variable_fonts(
                 drop_font_tables(merged_font, ("HVAR", "VVAR"))
 
                 locale_suffix = output_locale or entry.locale_name
-                if locale_suffix.startswith("NF-"):
-                    locale_name = locale_suffix[3:]
+                nf_directory_name = font_config.get_nf_variant().directory_name
+                nf_prefix = f"{nf_directory_name}-"
+                if locale_suffix.startswith(nf_prefix):
+                    locale_name = locale_suffix.removeprefix(nf_prefix)
                     nf_symbol = font_config.get_nf_variant().symbol
                     family_name = f"{font_config.family_name} {nf_symbol} {locale_name}"
                     postscript_prefix = (
@@ -277,7 +279,8 @@ def cjk_static_base_profiles(
         runtime_context.is_nf_built and entry.common_options.with_nerd_font
     )
     if should_build_nf_cjk:
-        nf_suffix = font_config.get_nf_variant().symbol
+        nf_variant = font_config.get_nf_variant()
+        nf_suffix = nf_variant.symbol
         nf_font_config = deepcopy(font_config)
         nf_font_config.identity.family_name = f"{font_config.family_name} {nf_suffix}"
         nf_font_config.identity.family_name_compact = (
@@ -285,7 +288,7 @@ def cjk_static_base_profiles(
         )
         profiles.append(
             CJKStaticBaseProfile(
-                output_locale=f"NF-{entry.locale_name}",
+                output_locale=nf_variant.cjk_directory_name(entry.locale_name),
                 base_dir=runtime_context.output_nf,
                 family_name_compact=f"{font_config.family_name_compact}-{nf_suffix}",
                 font_config=nf_font_config,
@@ -580,7 +583,12 @@ def build_cjk_extended_variable_outputs(
         )
         profiles = []
         if include_nf:
-            profiles.append((f"NF-{entry.locale_name}", True))
+            profiles.append(
+                (
+                    font_config.get_nf_variant().cjk_directory_name(entry.locale_name),
+                    True,
+                )
+            )
         if not include_nf or font_config.use_cjk_both:
             profiles.append((entry.locale_name, False))
         if output_locales is not None:
@@ -646,7 +654,7 @@ def build_cjk_extended_static_outputs(
             built_any = True
             output_locales_for_count = output_locales or {
                 entry.locale_name,
-                f"NF-{entry.locale_name}",
+                font_config.get_nf_variant().cjk_directory_name(entry.locale_name),
             }
             output_count = sum(
                 len(
@@ -679,7 +687,9 @@ def build_cjk_extended_static_outputs(
                 locale_output_dir,
                 executor,
                 output_locale=profile.output_locale,
-                include_nerd_font=profile.output_locale.startswith("NF-"),
+                include_nerd_font=profile.output_locale.startswith(
+                    f"{font_config.get_nf_variant().directory_name}-"
+                ),
             )
             built_any = True
             instantiate_cjk_extended_static_fonts(

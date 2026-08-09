@@ -40,10 +40,11 @@ def build_cjk_postscript_prefix(font_config: ResolvedConfig, locale_suffix: str)
 
 def _cjk_locale_name(font_config: ResolvedConfig, locale_suffix: str) -> str:
     """Avoid repeating the NF profile marker in generated CJK names."""
-    if locale_suffix.startswith("NF-") and font_config.family_name_compact.endswith(
+    nf_prefix = f"{font_config.get_nf_variant().directory_name}-"
+    if locale_suffix.startswith(nf_prefix) and font_config.family_name_compact.endswith(
         f"-{font_config.get_nf_variant().symbol}"
     ):
-        return locale_suffix.removeprefix("NF-")
+        return locale_suffix.removeprefix(nf_prefix)
     return locale_suffix
 
 

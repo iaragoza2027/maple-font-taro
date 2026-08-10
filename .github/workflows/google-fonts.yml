@@ -38,4 +38,4 @@ jobs:
       - name: Build canonical variable fonts
         run: ./sources/build.sh
       - name: Run Google Fonts profile
-        run: uv run fontbakery check-googlefonts fonts/googlefonts/*.ttf
+        run: uv run fontbakery check-googlefonts fonts/*.ttf

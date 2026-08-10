@@ -393,7 +393,9 @@ def generate_designspaces(source_dir: Path, output_dir: Path) -> list[Path]:
         staged_paths: list[Path] = []
         seen_names: set[str] = set()
         for prepared in prepared_sources:
-            designspace_name = prepared.source_path.with_suffix(".designspace").name
+            designspace_name = prepared.source_path.with_suffix(
+                ".designspace"
+            ).name.replace("[wght]", "")
             designspace_path = write_designspace_source(
                 prepared,
                 staging_dir,

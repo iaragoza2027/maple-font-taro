@@ -15,3 +15,7 @@ __pycache__
 .venv
 .vscode
 *.backup
+
+.ninja_log
+build.ninja
+sources/instance_ufos

@@ -5,8 +5,8 @@ on:
     branches:
       - "variable"
     paths:
-      - "source/cjk/*/static-*.sha256"
-      - "source/cjk/*/variable-*.sha256"
+      - "sources/cjk/*/static-*.sha256"
+      - "sources/cjk/*/variable-*.sha256"
   workflow_dispatch:
     inputs:
       locale:
@@ -67,13 +67,13 @@ jobs:
             locales=(cn jp tc kr)
           elif [ "$EVENT_NAME" = "push" ]; then
             if [ "$EVENT_BEFORE" = "0000000000000000000000000000000000000000" ]; then
-              changed_files="$(git ls-files 'source/cjk/*/*-*.sha256')"
+              changed_files="$(git ls-files 'sources/cjk/*/*-*.sha256')"
             else
               changed_files="$(git diff --name-only "$EVENT_BEFORE" "$EVENT_SHA")"
             fi
             for locale in cn jp tc kr; do
               for kind in static variable; do
-                path="source/cjk/$locale/${kind}-$locale.sha256"
+                path="sources/cjk/$locale/${kind}-$locale.sha256"
                 if grep -Fqx "$path" <<< "$changed_files"; then
                   locales+=("$locale")
                   break
@@ -120,10 +120,10 @@ jobs:
           LOCALE: ${{ matrix.locale }}
         run: |
           set -euo pipefail
-          hash_file="source/cjk/$LOCALE/static-$LOCALE.sha256"
-          variable_hash_file="source/cjk/$LOCALE/variable-$LOCALE.sha256"
-          archive="source/cjk/$LOCALE/${LOCALE}-base-static.zip"
-          variable_archive="source/cjk/$LOCALE/${LOCALE}-base-variable.zip"
+          hash_file="sources/cjk/$LOCALE/static-$LOCALE.sha256"
+          variable_hash_file="sources/cjk/$LOCALE/variable-$LOCALE.sha256"
+          archive="sources/cjk/$LOCALE/${LOCALE}-base-static.zip"
+          variable_archive="sources/cjk/$LOCALE/${LOCALE}-base-variable.zip"
           uv run task.py cjk --preset "$LOCALE"
           git diff --exit-code -- "$hash_file" "$variable_hash_file"
           test -f "$archive"
@@ -167,7 +167,7 @@ jobs:
           while IFS= read -r locale; do
             for kind in static variable; do
               archive="cjk-base-artifacts/${locale}-base-${kind}.zip"
-              hash_file="source/cjk/$locale/${kind}-$locale.sha256"
+              hash_file="sources/cjk/$locale/${kind}-$locale.sha256"
               test -f "$archive"
               test -f "$hash_file"
               uv run task.py cjk cache-validate \

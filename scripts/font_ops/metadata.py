@@ -70,6 +70,7 @@ def set_monospace_metadata(font: TTFont) -> None:
     post = font.table("post")
 
     post.isFixedPitch = True
+    os2.fsType = 0
     os2.panose.bFamilyType = 2
     os2.panose.bProportion = 9
     hhea.advanceWidthMax = max(width for width, _ in metrics.values())

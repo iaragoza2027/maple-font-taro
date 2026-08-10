@@ -1,12 +1,12 @@
 FontPatcher
 fonts
 release
-source/cjk/**/*.ttf
-source/cjk/**/*.otf
-source/cjk/**/*.vfc
-!source/cjk/variable-source/MapleMono-CJK-Base-VF.vfc
-!source/cjk/variable-source/MapleMono-CJK-Base-VF.ttf
-source/*.glyphs
+sources/cjk/**/*.ttf
+sources/cjk/**/*.otf
+sources/cjk/**/*.vfc
+!sources/cjk/variable-source/MapleMono-CJK-Base-VF.vfc
+!sources/cjk/variable-source/MapleMono-CJK-Base-VF.ttf
+sources/*.glyphs
 cdn
 
 __pycache__

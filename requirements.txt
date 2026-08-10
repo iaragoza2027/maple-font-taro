@@ -43,7 +43,7 @@ glyphslib==6.13.1
     #   maple-font
 inflate64==1.0.4
     # via py7zr
-lxml==6.1.1 ; implementation_name == 'cpython'
+lxml==6.1.1
     # via fonttools
 multivolumefile==0.2.3
     # via py7zr

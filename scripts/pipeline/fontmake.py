@@ -326,6 +326,7 @@ def postprocess_variable_font_job(job: VariablePostprocessJob) -> Path:
         if is_italic:
             add_ital_axis_to_stat(font)
         alias_codepoints(font, job.font_config.codepoint_alias)
+        set_monospace_metadata(font)
         verify_glyph_width(
             font=font,
             expect_widths=job.font_config.get_valid_glyph_width_list(),

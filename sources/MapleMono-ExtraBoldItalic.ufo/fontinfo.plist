@@ -88,10 +88,6 @@
     <integer>350</integer>
     <key>openTypeOS2SuperscriptYSize</key>
     <integer>600</integer>
-    <key>openTypeOS2Type</key>
-    <array>
-      <integer>3</integer>
-    </array>
     <key>openTypeOS2TypoAscender</key>
     <integer>1020</integer>
     <key>openTypeOS2TypoDescender</key>

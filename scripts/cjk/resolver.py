@@ -328,7 +328,7 @@ def output_config_from_locale(locale_name: str) -> CJKOutputConfig:
     """Derive uncustomizable output paths from the locale suffix."""
     locale_dir = locale_name.lower()
     return CJKOutputConfig(
-        dir=Path("source/cjk") / locale_dir,
+        dir=Path("sources/cjk") / locale_dir,
         regular_variable=f"MapleMono-{locale_name}-VF.ttf",
         italic_variable=f"MapleMono-{locale_name}-Italic-VF.ttf",
         static_dir="static",
@@ -350,7 +350,7 @@ def naming_config_from_locale(locale_name: str) -> CJKNamingConfig:
 
 def temp_dir_from_locale(locale_name: str) -> Path:
     """Derive the uncustomizable temporary directory from the locale suffix."""
-    return Path("source/cjk") / locale_name.lower() / "temp"
+    return Path("sources/cjk") / locale_name.lower() / "temp"
 
 
 def resolve_config_path(base_dir: Path, value: str | None, default: str) -> Path:
@@ -359,7 +359,7 @@ def resolve_config_path(base_dir: Path, value: str | None, default: str) -> Path
     if raw.is_absolute():
         return raw
     repo_relative = Path.cwd() / raw
-    if repo_relative.exists() or str(raw).startswith("source/"):
+    if repo_relative.exists() or str(raw).startswith("sources/"):
         return repo_relative
     return base_dir / raw
 

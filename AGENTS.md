@@ -35,8 +35,8 @@ Maple Mono is an open-source monospace font project. Keep changes small, determi
 - `scripts/maintenance.md`: Maintainer workflow for source updates, CJK bases, validation, and releases.
 - `scripts/cjk/README.md`: CJK source, configuration, generation, and cache guide.
 - `scripts/feature/README.md`: OpenType feature AST and generation guide.
-- `source/`: Font sources, CJK assets, schema, and generated `.fea` output in `source/features/`.
-- `config.json`: Default build configuration, validated by `source/schema.json`.
+- `sources/`: Font sources, CJK assets, schema, and generated `.fea` output in `sources/features/`.
+- `config.json`: Default build configuration, validated by `sources/schema.json`.
 - `fonts/`: Generated build artifacts; never edit manually.
 - `maple-font-page/`: Astro 5, Solid 1.x, TypeScript, and UnoCSS landing-page submodule.
 
@@ -98,7 +98,7 @@ Ruff auto-fixes are limited to its default safe fixes. Pyrefly reports type diag
 
 ## Generated Outputs
 
-`uv run task.py fea` can update `source/features/`, `source/schema.json`, `config.json`, the localized READMEs, and `scripts/in_browser.py`. Keep these outputs synchronized when the feature source changes.
+`uv run task.py fea` can update `sources/features/`, `sources/schema.json`, `config.json`, the localized READMEs, and `scripts/in_browser.py`. Keep these outputs synchronized when the feature source changes.
 
 `uv run task.py page` writes generated data in `maple-font-page/`, including feature metadata, configuration, and the minified browser script. Run it only when those generated page artifacts are intended to change.
 

@@ -19,6 +19,7 @@ class PanoseTable(Protocol):
 
 
 class OS2Table(Protocol):
+    fsType: int
     fsSelection: int
     panose: PanoseTable
     sCapHeight: int

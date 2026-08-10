@@ -2,7 +2,7 @@
 
 Here is the check list and explaination of Maple Mono ligatures and features.
 
-For more details, please check out `.fea` files in [features](../source/features) and [OpenType Feature Spec](https://adobe-type-tools.github.io/afdko/OpenTypeFeatureFileSpecification.html).
+For more details, please check out `.fea` files in [features](../sources/features) and [OpenType Feature Spec](https://adobe-type-tools.github.io/afdko/OpenTypeFeatureFileSpecification.html).
 
 ## Ligatures
 

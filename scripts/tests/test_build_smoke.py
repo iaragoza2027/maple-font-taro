@@ -17,8 +17,8 @@ class ProductionBuildSmokeTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             worktree = Path(tmp)
             shutil.copy2(PROJECT_ROOT / "config.json", worktree / "config.json")
-            source_root = PROJECT_ROOT / "source"
-            source_copy = worktree / "source"
+            source_root = PROJECT_ROOT / "sources"
+            source_copy = worktree / "sources"
             source_copy.mkdir()
             for designspace_path in sorted(source_root.glob("*.designspace")):
                 shutil.copy2(designspace_path, source_copy / designspace_path.name)

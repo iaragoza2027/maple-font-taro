@@ -1,6 +1,6 @@
 # Maple Mono Feature Module
 
-The `scripts/feature/` package defines Maple Mono's OpenType feature rules as Python objects and compiles them into feature source. The compiler is the source of truth for generated feature behavior; `source/features/` contains the checked-in feature files used by the file-based build path.
+The `scripts/feature/` package defines Maple Mono's OpenType feature rules as Python objects and compiles them into feature source. The compiler is the source of truth for generated feature behavior; `sources/features/` contains the checked-in feature files used by the file-based build path.
 
 ## Module layout
 
@@ -16,7 +16,7 @@ The `scripts/feature/` package defines Maple Mono's OpenType feature rules as Py
 
 The normal build path prepares one feature source for each regular and italic Designspace before Fontmake runs. Enabled single substitutions copy the target glyph outline and advance width into the source glyph in every UFO master, so static and variable outputs use the same frozen outlines. Enabled contextual or ligature lookups are attached to `calt`, disabled feature rules are removed, and ignored features remain available as OpenType features.
 
-`--apply-fea-file` selects the second path. It applies the matching checked-in file, `source/features/regular.fea` or `source/features/italic.fea`, during the same source preparation step. Includes are resolved before freeze rules are applied. CJK static fonts select the corresponding `regular_cn.fea` or `italic_cn.fea` file after CJK glyphs are merged; only CJK-specific substitutions are frozen at that later boundary.
+`--apply-fea-file` selects the second path. It applies the matching checked-in file, `sources/features/regular.fea` or `sources/features/italic.fea`, during the same source preparation step. Includes are resolved before freeze rules are applied. CJK static fonts select the corresponding `regular_cn.fea` or `italic_cn.fea` file after CJK glyphs are merged; only CJK-specific substitutions are frozen at that later boundary.
 
 ## AST examples
 

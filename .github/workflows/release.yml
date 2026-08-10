@@ -48,7 +48,7 @@ jobs:
                 --clobber
               uv run task.py cjk cache-validate \
                 --archive "cjk-base-verify/$kind/$locale/$expected" \
-                --hash "source/cjk/$locale/${kind}-$locale.sha256" \
+                --hash "sources/cjk/$locale/${kind}-$locale.sha256" \
                 --kind "$kind"
             done
           done

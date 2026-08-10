@@ -45,8 +45,8 @@ class NerdFontHelpersTest(unittest.TestCase):
     def test_variant_builds_shared_paths(self) -> None:
         variant = NerdFontVariant.from_options(mono=True)
         self.assertEqual(
-            variant.base_path("source"),
-            Path("source/MapleMono-NF-Base-Mono.ttf"),
+            variant.base_path("sources"),
+            Path("sources/MapleMono-NF-Base-Mono.ttf"),
         )
         self.assertEqual(
             variant.patched_style_path("fonts", "MapleMono", "Italic"),
@@ -97,7 +97,7 @@ class NerdFontHelpersTest(unittest.TestCase):
             root = Path(directory)
             config = BuildConfigResolver().load_defaults()
             runtime_context = BuildRuntimeContext(
-                src_dir="source",
+                src_dir="sources",
                 output_root=str(root / "fonts"),
                 output_otf=str(root / "fonts" / "OTF"),
                 output_ttf=str(root / "fonts" / "TTF"),
@@ -150,7 +150,7 @@ class NerdFontHelpersTest(unittest.TestCase):
             config = BuildConfigResolver().load_defaults()
             config.nerd_font.variable = True
             runtime_context = BuildRuntimeContext(
-                src_dir="source",
+                src_dir="sources",
                 output_root=str(root / "fonts"),
                 output_otf=str(root / "fonts" / "OTF"),
                 output_ttf=str(root / "fonts" / "TTF"),

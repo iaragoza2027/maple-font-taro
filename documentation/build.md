@@ -1,6 +1,6 @@
 # Custom Build
 
-The [`config.json`](../config.json) file configures the build process. Check the [schema](../source/schema.json) and [OpenType feature documentation](./opentype-features.md) for the complete configuration surface.
+The [`config.json`](../config.json) file configures the build process. Check the [schema](../sources/schema.json) and [OpenType feature documentation](./opentype-features.md) for the complete configuration surface.
 
 CLI options override `config.json`. Run `python build.py --help` after installing dependencies to see the current options.
 

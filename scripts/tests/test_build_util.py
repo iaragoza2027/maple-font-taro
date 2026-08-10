@@ -21,7 +21,7 @@ from scripts.font_ops.fonttools import TTFont
 
 def make_runtime_context() -> BuildRuntimeContext:
     return BuildRuntimeContext(
-        src_dir="source",
+        src_dir="sources",
         output_root="fonts",
         output_otf="fonts/OTF",
         output_ttf="fonts/TTF",

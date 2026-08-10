@@ -82,15 +82,15 @@ CJK 빌드는 기본적으로 비활성화되어 있습니다. CJK 빌드 설정
 
 [Releases](https://github.com/subframe7536/maple-font/releases/latest)에서 글꼴 압축 파일을 다운로드할 수 있습니다.
 
-Scoop, Homebrew, AUR/Paru, NixPkgs 등의 패키지 관리자를 통해 Maple Mono를 설치할 수도 있습니다. 자세한 내용은 [설치 가이드](./docs/install.md)를 참고하세요.
+Scoop, Homebrew, AUR/Paru, NixPkgs 등의 패키지 관리자를 통해 Maple Mono를 설치할 수도 있습니다. 자세한 내용은 [설치 가이드](./documentation/install.md)를 참고하세요.
 
 ### 사용법 및 기능 설정
 
-사용법과 설정은 [사용 가이드](./docs/usage.md)를 참고하세요.
+사용법과 설정은 [사용 가이드](./documentation/usage.md)를 참고하세요.
 
 #### 이름 규칙 및 글꼴 선택
 
-Maple Mono는 사용자 피드백을 반영하여 여러 글꼴 형식과 문자 세트 범위를 제공합니다. 사용 목적에 맞는 글꼴 파일을 선택하려면 [글꼴 선택](./docs/choose.md)을 참고하세요.
+Maple Mono는 사용자 피드백을 반영하여 여러 글꼴 형식과 문자 세트 범위를 제공합니다. 사용 목적에 맞는 글꼴 파일을 선택하려면 [글꼴 선택](./documentation/choose.md)을 참고하세요.
 
 ### CDN
 
@@ -105,7 +105,7 @@ Maple Mono는 사용자 피드백을 반영하여 여러 글꼴 형식과 문자
 
 ### 사용자 정의 빌드
 
-Maple Mono는 높은 수준의 사용자 정의 빌드를 제공합니다. [`config.json`](./config.json)을 수정하거나 명령줄 인수를 추가하여 필요한 글꼴을 생성할 수 있습니다. 자세한 내용은 [사용자 정의 빌드](./docs/build.md)를 참고하세요.
+Maple Mono는 높은 수준의 사용자 정의 빌드를 제공합니다. [`config.json`](./config.json)을 수정하거나 명령줄 인수를 추가하여 필요한 글꼴을 생성할 수 있습니다. 자세한 내용은 [사용자 정의 빌드](./documentation/build.md)를 참고하세요.
 
 전체 [`build.py` 명령줄 옵션 목록](#buildpy-cli)을 확인하세요.
 
@@ -147,7 +147,7 @@ cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
 
 대부분의 글꼴은 사용자 정의 OpenType 기능을 지원하지 않지만 Maple Mono는 프로그래밍 방식으로 해당 기능을 정의할 수 있습니다.
 
-기본적으로 [`scripts/feature/`](./scripts/feature)의 Python 모듈이 OpenType 기능 코드를 생성하고 빌드 시 불러옵니다. 기능이나 라벨을 수정하려면 해당 모듈을 변경하세요. `.fea` 소스 파일을 직접 편집하려면 `build.py`에 `--apply-fea-file`을 추가하면 됩니다. 빌드 스크립트가 [`source/features/{regular,italic}{_cn,}.fea`](./source/features)를 읽습니다.
+기본적으로 [`scripts/feature/`](./scripts/feature)의 Python 모듈이 OpenType 기능 코드를 생성하고 빌드 시 불러옵니다. 기능이나 라벨을 수정하려면 해당 모듈을 변경하세요. `.fea` 소스 파일을 직접 편집하려면 `build.py`에 `--apply-fea-file`을 추가하면 됩니다. 빌드 스크립트가 [`sources/features/{regular,italic}{_cn,}.fea`](./sources/features)를 읽습니다.
 
 ### 무한 화살표 합자
 
@@ -270,7 +270,7 @@ Maple Mono 빌더 및 최적화 도구
                         (예: `--feat zero,cv01,ss07,ss08`). 문맥 규칙은 `calt`를
                         통해 활성화됩니다
   --apply-fea-file      일치하는
-                        `source/features/{regular,italic}{_cn,}.fea`를 정적 및 가변 글꼴에 적용합니다
+                        `sources/features/{regular,italic}{_cn,}.fea`를 정적 및 가변 글꼴에 적용합니다
   --hinted              NF/CJK/NF-CJK의 기본 글꼴로 힌팅된 글꼴을 사용합니다（기본값）
   --no-hinted           NF/CJK/NF-CJK의 기본 글꼴로 힌팅되지 않은 글꼴을 사용합니다
   --liga                모든 합자를 유지합니다（기본값）

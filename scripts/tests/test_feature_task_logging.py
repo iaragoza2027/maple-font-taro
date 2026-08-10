@@ -44,7 +44,7 @@ class FeatureTaskLoggingTest(unittest.TestCase):
                 f"Saved feature file to {join_path('generated', filename)}", messages
             )
         self.assertIn(
-            f"Synchronized feature schema: path={join_path('source', 'schema.json')}",
+            f"Synchronized feature schema: path={join_path('sources', 'schema.json')}",
             messages,
         )
         self.assertIn("Synchronized feature configuration: path=config.json", messages)

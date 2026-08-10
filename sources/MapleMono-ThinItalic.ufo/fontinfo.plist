@@ -88,10 +88,6 @@
     <integer>350</integer>
     <key>openTypeOS2SuperscriptYSize</key>
     <integer>600</integer>
-    <key>openTypeOS2Type</key>
-    <array>
-      <integer>3</integer>
-    </array>
     <key>openTypeOS2TypoAscender</key>
     <integer>1020</integer>
     <key>openTypeOS2TypoDescender</key>
@@ -117,24 +113,24 @@
     <true/>
     <key>postscriptStemSnapH</key>
     <array>
-      <integer>82</integer>
-      <integer>60</integer>
+      <integer>45</integer>
+      <integer>0</integer>
     </array>
     <key>postscriptStemSnapV</key>
     <array>
-      <integer>90</integer>
-      <integer>60</integer>
+      <integer>50</integer>
+      <integer>0</integer>
     </array>
     <key>postscriptUnderlinePosition</key>
     <integer>-155</integer>
     <key>postscriptUnderlineThickness</key>
     <integer>50</integer>
     <key>styleMapFamilyName</key>
-    <string>Maple Mono</string>
+    <string>Maple Mono Thin</string>
     <key>styleMapStyleName</key>
     <string>italic</string>
     <key>styleName</key>
-    <string>Italic</string>
+    <string>ThinItalic</string>
     <key>unitsPerEm</key>
     <integer>1000</integer>
     <key>versionMajor</key>

@@ -812,7 +812,7 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
             root = Path(tmp)
             output_path = root / "MapleMonoSL[wght].ttf"
             prepared = prepare_designspace_source(
-                "source/MapleMono[wght].designspace",
+                "sources/MapleMono[wght].designspace",
                 "regular",
                 target_width=500,
                 original_ref_width=600,

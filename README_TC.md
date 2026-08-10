@@ -82,15 +82,15 @@ CJK 建置預設關閉。你可以透過 CJK 建置設定選擇地區、靜態�
 
 你可以從 [Releases](https://github.com/subframe7536/maple-font/releases/latest) 下載字型壓縮包。
 
-你也可以透過 Scoop、Homebrew、AUR/Paru、NixPkgs 等套件管理器安裝 Maple Mono，詳情請參閱[安裝指南](./docs/install.md)。
+你也可以透過 Scoop、Homebrew、AUR/Paru、NixPkgs 等套件管理器安裝 Maple Mono，詳情請參閱[安裝指南](./documentation/install.md)。
 
 ### 使用與特性設定
 
-使用方法和設定說明請參閱[使用指南](./docs/usage.md)。
+使用方法和設定說明請參閱[使用指南](./documentation/usage.md)。
 
 #### 命名說明與字型選擇
 
-Maple Mono 根據使用者回饋，在發行版中提供多種字型格式和字元集範圍。你可以根據使用場景選擇合適的字型檔案，詳情請參閱[字型選擇](./docs/choose.md)。
+Maple Mono 根據使用者回饋，在發行版中提供多種字型格式和字元集範圍。你可以根據使用場景選擇合適的字型檔案，詳情請參閱[字型選擇](./documentation/choose.md)。
 
 ### CDN
 
@@ -105,7 +105,7 @@ Maple Mono 根據使用者回饋，在發行版中提供多種字型格式和字
 
 ### 自訂建置
 
-Maple Mono 提供高度可自訂的建置方式。你可以修改 [`config.json`](./config.json)，或在命令列中加入參數，產生符合需求的字型檔案，詳情請參閱[自訂建置](./docs/build.md)。
+Maple Mono 提供高度可自訂的建置方式。你可以修改 [`config.json`](./config.json)，或在命令列中加入參數，產生符合需求的字型檔案，詳情請參閱[自訂建置](./documentation/build.md)。
 
 查看完整的 [`build.py` 命令列選項](#buildpy-cli)。
 
@@ -147,7 +147,7 @@ cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
 
 絕大多數字型不支援自訂 OpenType 特性，而 Maple Mono 支援透過程式設計方式定製這些特性。
 
-預設情況下，[`scripts/feature/`](./scripts/feature) 中的 Python 模組會產生 OpenType 特性程式碼，並在建置時載入。你可以修改這些模組來調整功能或自訂標籤；如果希望直接編輯 OpenType 特性原始檔（`.fea`），請在執行 `build.py` 時加入 `--apply-fea-file` 參數，建置腳本會讀取並載入 [`source/features/{regular,italic}{_cn,}.fea`](./source/features) 中的特性檔案。
+預設情況下，[`scripts/feature/`](./scripts/feature) 中的 Python 模組會產生 OpenType 特性程式碼，並在建置時載入。你可以修改這些模組來調整功能或自訂標籤；如果希望直接編輯 OpenType 特性原始檔（`.fea`），請在執行 `build.py` 時加入 `--apply-fea-file` 參數，建置腳本會讀取並載入 [`sources/features/{regular,italic}{_cn,}.fea`](./sources/features) 中的特性檔案。
 
 ### 無限箭頭連字
 
@@ -272,7 +272,7 @@ Maple Mono 建置與最佳化工具
                         （例如 `--feat zero,cv01,ss07,ss08`）；上下文規則透過
                         `calt` 啟用
   --apply-fea-file      將符合的
-                        `source/features/{regular,italic}{_cn,}.fea` 套用到靜態與可變字型
+                        `sources/features/{regular,italic}{_cn,}.fea` 套用到靜態與可變字型
   --hinted              在 NF/CJK/NF-CJK 中使用 Hinted 字型作為基礎字型（預設）
   --no-hinted           在 NF/CJK/NF-CJK 中使用未加提示的字型作為基礎字型
   --liga                保留所有連字（預設）

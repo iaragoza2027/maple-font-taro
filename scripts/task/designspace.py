@@ -73,13 +73,13 @@ def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
     parser.add_argument(
         "--source-dir",
         type=Path,
-        default=Path("source"),
+        default=Path("sources"),
         help="Directory containing exported .glyphs files",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("source"),
+        default=Path("sources"),
         help="Directory for generated Designspace and UFO sources",
     )
     return parser

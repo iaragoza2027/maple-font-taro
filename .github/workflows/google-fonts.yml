@@ -1,0 +1,41 @@
+name: Google Fonts QA
+
+on:
+  push:
+    branches: [variable]
+    paths:
+      - "sources/**"
+      - "scripts/**"
+      - "build.py"
+      - "config.json"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/google-fonts.yml"
+  pull_request:
+    paths:
+      - "sources/**"
+      - "scripts/**"
+      - "build.py"
+      - "config.json"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/google-fonts.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  google-fonts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+          python-version: "3.12"
+      - run: uv sync --locked
+      - name: Build canonical variable fonts
+        run: ./sources/build.sh
+      - name: Run Google Fonts profile
+        run: uv run fontbakery check-googlefonts fonts/googlefonts/*.ttf

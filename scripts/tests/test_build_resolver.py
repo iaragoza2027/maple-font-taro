@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 
 def make_runtime_context(tmp_path: Path) -> BuildRuntimeContext:
     return BuildRuntimeContext(
-        src_dir="source",
+        src_dir="sources",
         output_root=str(tmp_path / "fonts"),
         output_otf=str(tmp_path / "fonts" / "OTF"),
         output_ttf=str(tmp_path / "fonts" / "TTF"),

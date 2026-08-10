@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from scripts.cjk.config import CJKBuildConfig
 
 CJKPresetId = Literal["cn", "jp", "tc", "kr"]
-DEFAULT_PRESET_ROOT = Path("source/cjk")
+DEFAULT_PRESET_ROOT = Path("sources/cjk")
 
 
 @dataclass(frozen=True)

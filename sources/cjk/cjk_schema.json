@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/subframe7536/maple-font/source/cjk/cjk_schema.json",
+  "$id": "https://github.com/subframe7536/maple-font/sources/cjk/cjk_schema.json",
   "title": "Maple Mono CJK Build Config",
   "description": "Agent-friendly CJK build config. Start with locale_name, source.path, and source.masters. Output paths and professional font names are generated from locale_name. Fields marked Advanced are only needed for unusual source fonts.",
   "type": "object",
@@ -156,7 +156,7 @@
     "path": {
       "type": "string",
       "minLength": 1,
-      "description": "Absolute path, repository-relative source/ path, or path relative to the JSON config file."
+      "description": "Absolute path, repository-relative sources/ path, or path relative to the JSON config file."
     },
     "axisTag": {
       "type": "string",

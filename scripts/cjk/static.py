@@ -121,7 +121,8 @@ def apply_cjk_width_transform(
     skip_verify = False
     if target_width or scale_factor:
         match_width = 2 * font_config.glyph_width
-        if target_width and font_config.get_width_name() != "slim":
+        is_slim = font_config.get_width_name() != "SL"
+        if target_width and is_slim:
             font.table("post").isFixedPitch = False
             os2 = font.table("OS/2")
             os2.panose.bProportion = 0
@@ -149,7 +150,7 @@ def apply_cjk_width_transform(
             scale_factor=scale_factor,
             special_names=special_scale_names,
         )
-        skip_verify = bool(target_width and font_config.get_width_name() != "slim")
+        skip_verify = bool(target_width and is_slim)
     elif font_config.get_width_name():
         change_glyph_width_or_scale(
             font=font,

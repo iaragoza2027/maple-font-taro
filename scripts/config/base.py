@@ -532,7 +532,7 @@ class ResolvedConfig:
     def get_target_width(self) -> int:
         return WIDTH_MAP.get(self.width, WIDTH_MAP["default"])
 
-    def get_width_name(self) -> str | None:
+    def get_width_name(self) -> Literal["NR", "SL"] | None:
         if self.width == "narrow":
             return "NR"
         if self.width == "slim":

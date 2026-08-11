@@ -37,5 +37,7 @@ jobs:
       - run: uv sync --locked
       - name: Build canonical variable fonts
         run: ./sources/build.sh
-      - name: Run Google Fonts profile
-        run: uv run fontbakery check-googlefonts fonts/*.ttf
+      - name: Run Google Fonts profile for variable fonts
+        run: uv run fontbakery check-googlefonts fonts/variable/*.ttf
+      - name: Run Google Fonts profile for static fonts
+        run: uv run fontbakery check-googlefonts fonts/otf/*.otf

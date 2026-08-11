@@ -613,8 +613,8 @@ class PipelineCachePolicyTest(unittest.TestCase):
                 "<key>dimension-a</key><dict/></dict>"
                 "</dict></lib></designspace>"
             )
-            designspace = source_dir / "MapleMono[wght].designspace"
-            italic_designspace = source_dir / "MapleMono-Italic[wght].designspace"
+            designspace = source_dir / "MapleMono.designspace"
+            italic_designspace = source_dir / "MapleMono-Italic.designspace"
             designspace.write_text(designspace_text, encoding="utf-8")
             italic_designspace.write_text(designspace_text, encoding="utf-8")
 

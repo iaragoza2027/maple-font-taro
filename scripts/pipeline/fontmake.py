@@ -205,8 +205,8 @@ def prepare_fontmake_sources(
     raw_ttf_dir = temp_path / "ttf"
     raw_otf_dir = temp_path / "otf"
     source_specs: tuple[tuple[Path, SourceStyle], ...] = (
-        (source_dir / "MapleMono[wght].designspace", "regular"),
-        (source_dir / "MapleMono-Italic[wght].designspace", "italic"),
+        (source_dir / "MapleMono.designspace", "regular"),
+        (source_dir / "MapleMono-Italic.designspace", "italic"),
     )
 
     shutil.rmtree(temp_path, ignore_errors=True)

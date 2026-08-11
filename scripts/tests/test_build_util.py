@@ -164,6 +164,22 @@ class PostprocessCJKStaticFontTest(unittest.TestCase):
 
         apply_meta_mock.assert_not_called()
 
+    def test_nf_propo_width_transform_marks_font_proportional(self) -> None:
+        font_config = BuildConfigResolver().load_defaults()
+        font_config.nerd_font.propo = True
+        font = MagicMock()
+
+        skip_verify = apply_cjk_width_transform(
+            font,
+            font_config,
+            CJKCommonBuildOptions(),
+        )
+
+        self.assertFalse(font.table("post").isFixedPitch)
+        self.assertEqual(font.table("OS/2").panose.bProportion, 0)
+        self.assertEqual(font.table("OS/2").panose.bSpacing, 0)
+        self.assertTrue(skip_verify)
+
 
 if __name__ == "__main__":
     unittest.main()

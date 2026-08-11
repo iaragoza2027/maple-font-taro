@@ -118,15 +118,11 @@ def apply_cjk_width_transform(
         "quotedblright.full",
     ]
 
-    skip_verify = False
+    skip_verify = font_config.get_nf_variant().suffix == "Propo"
     if target_width or scale_factor:
         match_width = 2 * font_config.glyph_width
         is_slim = font_config.get_width_name() != "SL"
         if target_width and is_slim:
-            font.table("post").isFixedPitch = False
-            os2 = font.table("OS/2")
-            os2.panose.bProportion = 0
-            os2.panose.bSpacing = 0
             font.table("hhea").advanceWidthMax = target_width
             logger.warning(
                 "Changed CJK glyph width; mark font as proportional and skip width checks"
@@ -150,7 +146,7 @@ def apply_cjk_width_transform(
             scale_factor=scale_factor,
             special_names=special_scale_names,
         )
-        skip_verify = bool(target_width and is_slim)
+        skip_verify = skip_verify or bool(target_width and is_slim)
     elif font_config.get_width_name():
         change_glyph_width_or_scale(
             font=font,
@@ -169,6 +165,12 @@ def apply_cjk_width_transform(
             scale_zero_width=False,
         )
         font.table("hhea").advanceWidthMax = previous_advance_width_max
+
+    if skip_verify:
+        font.table("post").isFixedPitch = False
+        os2 = font.table("OS/2")
+        os2.panose.bProportion = 0
+        os2.panose.bSpacing = 0
 
     return skip_verify
 

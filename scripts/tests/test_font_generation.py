@@ -624,7 +624,6 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
                 issue_fea_dir=tmp_path,
                 is_italic=False,
                 is_cn=False,
-                is_hinted=False,
                 fea_path=str(feature_path),
             )
             self.assertIn("GSUB", generated.keys())

@@ -89,12 +89,20 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
         action="store_false",
         help="Remove all the ligatures",
     )
-    feature_group.add_argument(
+    infinite_arrow_group = feature_group.add_mutually_exclusive_group()
+    infinite_arrow_group.add_argument(
         "--infinite-arrow",
         default=None,
         action="store_true",
         dest="infinite_arrow",
-        help="Enable infinite arrow ligatures (Disabled in hinted font by default)",
+        help="Add infinite arrow ligature support (default)",
+    )
+    infinite_arrow_group.add_argument(
+        "--no-infinite-arrow",
+        default=None,
+        action="store_false",
+        dest="infinite_arrow",
+        help="Do not add infinite arrow ligature support",
     )
     feature_group.add_argument(
         "--remove-tag-liga",

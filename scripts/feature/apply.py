@@ -40,7 +40,6 @@ def _feature_source(
     *,
     is_italic: bool,
     is_cn: bool,
-    is_hinted: bool,
     fea_path: str,
 ) -> tuple[str, Path | None]:
     if config.apply_fea_file:
@@ -50,9 +49,6 @@ def _feature_source(
         logger.debug("Load feature file: path=%s", path)
         return path.read_text(encoding="utf-8"), path
 
-    enable_infinite = (
-        config.infinite_arrow if config.infinite_arrow is not None else not is_hinted
-    )
     return (
         generate_fea_string(
             is_italic=is_italic,
@@ -62,7 +58,7 @@ def _feature_source(
             # parsed feature tree detaches them from calt without deleting
             # lookups referenced by other features.
             is_calt=True,
-            enable_infinite=enable_infinite,
+            enable_infinite=config.infinite_arrow,
             enable_tag=not config.remove_tag_liga,
             remove_italic_calt=config.feature_freeze["cv35"]
             .upper()
@@ -298,18 +294,13 @@ def prepare_feature_source(
     issue_fea_dir: str | Path,
     is_italic: bool,
     is_cn: bool,
-    is_hinted: bool,
     fea_path: str,
-) -> PreparedFeatureSource | None:
+) -> PreparedFeatureSource:
     """Resolve feature input, apply freeze policy, and collect outline mappings."""
-    if is_hinted and config.infinite_arrow and not config.apply_fea_file:
-        return None
-
     source, source_path = _feature_source(
         config,
         is_italic=is_italic,
         is_cn=is_cn,
-        is_hinted=is_hinted,
         fea_path=fea_path,
     )
     if not source:
@@ -474,11 +465,8 @@ def prepare_designspace_features(
         issue_fea_dir=issue_fea_dir,
         is_italic=is_italic,
         is_cn=False,
-        is_hinted=False,
         fea_path=fea_path,
     )
-    if prepared is None:
-        raise AssertionError("Base source feature preparation cannot be skipped")
     if config.feature.standard_zero:
         apply_standard_zero(designspace)
     apply_ufo_substitutions(designspace, prepared.substitutions)
@@ -519,7 +507,6 @@ def apply_binary_features(
     *,
     is_italic: bool,
     is_cn: bool,
-    is_hinted: bool,
     fea_path: str,
     outline_tags: frozenset[str] = frozenset(),
 ) -> None:
@@ -530,11 +517,8 @@ def apply_binary_features(
         issue_fea_dir=issue_fea_dir,
         is_italic=is_italic,
         is_cn=is_cn,
-        is_hinted=is_hinted,
         fea_path=fea_path,
     )
-    if prepared is None:
-        return
     if prepared.source:
         addOpenTypeFeaturesFromString(font, prepared.source)
     _apply_ttfont_substitutions(font, prepared.substitutions, outline_tags)

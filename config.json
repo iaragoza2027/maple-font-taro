@@ -12,7 +12,7 @@
   "pool_size": 4,
   "ttfautohint_param": {},
   "github_mirror": "github.com",
-  "infinite_arrow": null,
+  "infinite_arrow": true,
   "remove_tag_liga": false,
   "weight_mapping": {
     "thin": 100,

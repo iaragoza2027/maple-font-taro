@@ -36,16 +36,21 @@ def generate_fea_string(
     enable_infinite: bool = True,
     enable_tag: bool = True,
     remove_italic_calt: bool = False,
-):
-    """
-    Generates feature string.
+) -> str:
+    """Generate the complete OpenType feature source for one font variant.
 
     Args:
-        is_italic (bool): Whether to generate italic features
-        is_cn (bool): Whether to include Chinese-specific features
-        is_normal (bool): Whether to generate normal preset
-        is_calt (bool): Whether to enable calt
-        infinite (bool): Whether to add infinite arrow ligatures
+        is_italic: Whether to generate italic features.
+        is_cn: Whether to include Chinese-specific features.
+        is_normal: Whether to use the normal glyph preset.
+        is_calt: Whether to keep contextual ligature rules in ``calt``.
+        enable_infinite: Whether to include infinite arrow ligature rules.
+        enable_tag: Whether to include plain-text tag ligature rules.
+        remove_italic_calt: Whether to remove italic-only contextual rules.
+
+    Returns:
+        The serialized feature source, including glyph classes, language
+        systems, base features, stylistic variants, and contextual rules.
     """
     logger.debug(
         "Generate feature string: italic=%s, cn=%s, normal=%s, calt=%s, infinite=%s, tag=%s, remove_italic_calt=%s",

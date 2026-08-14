@@ -151,9 +151,9 @@ cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
 
 ### 無限矢印リガチャ
 
-Fira Code と Cascadia Code に着想を得て、Maple Mono は v7.3 から無限矢印リガチャに対応しています。描画上の問題により、Hinted フォントでは矢印リガチャがずれる場合があるため、v7.4 以降の Hinted 版ではデフォルトで無効になっています。
+Fira Code と Cascadia Code に着想を得て、Maple Mono は無限矢印リガチャに対応しています。
 
-`config.json` に `"infinite_arrow": true` を設定するか、コマンドラインに `--infinite-arrow` を追加して強制的に有効化できます。問題は[#508](https://github.com/subframe7536/maple-font/issues/508)でご相談ください。
+ビルド時は無限矢印サポートがデフォルトで有効です。無効にするには `config.json` に `"infinite_arrow": false` を設定するか、コマンドラインに `--no-infinite-arrow` を追加します。`--infinite-arrow` を追加すると、無効な設定を上書きできます。問題は [#508](https://github.com/subframe7536/maple-font/issues/508) でご相談ください。
 
 ![Infinite arrow ligatures](./resources/preview-infinite-arrows.webp)
 
@@ -238,7 +238,8 @@ Maple Mono は Nerd Font アイコンを内蔵し、その命名規則に従っ�
 ```text
 使い方: build.py [-h] [-v] [-d] [--debug] [-n] [--standard-zero] [--feat FEAT]
                  [--apply-fea-file] [--hinted | --no-hinted]
-                 [--liga | --no-liga] [--infinite-arrow] [--remove-tag-liga]
+                 [--liga | --no-liga]
+                 [--infinite-arrow | --no-infinite-arrow] [--remove-tag-liga]
                  [--line-height LINE_HEIGHT] [--width {default,narrow,slim}]
                  [--format FORMATS] [--least-styles] [--cache] [--archive]
                  [--nf | --no-nf] [--nf-mono] [--nf-propo] [--nf-variable]
@@ -271,7 +272,8 @@ Maple Mono のビルダーおよびオプティマイザー
   --no-hinted           NF/CJK/NF-CJK の基底フォントにヒンティングなしフォントを使用します
   --liga                すべてのリガチャを保持します（デフォルト）
   --no-liga             すべてのリガチャを削除します
-  --infinite-arrow      無限矢印リガチャを有効にします（Hinted フォントではデフォルトで無効）
+  --infinite-arrow      無限矢印リガチャのサポートを追加します（デフォルト）
+  --no-infinite-arrow   無限矢印リガチャのサポートを追加しません
   --remove-tag-liga     `[TODO]` のようなプレーンテキストのタグリガチャを削除します
   --line-height LINE_HEIGHT
                         行の高さの倍率（例: 1.1）

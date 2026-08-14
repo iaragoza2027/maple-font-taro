@@ -150,9 +150,9 @@ By default, the Python modules in [`scripts/feature/`](./scripts/feature) genera
 
 ### Infinite Arrow Ligatures
 
-Inspired by Fira Code and Cascadia Code, Maple Mono has supported infinite arrow ligatures since v7.3. Because of rendering issues, arrow ligatures may be misaligned in hinted fonts, so Hinted versions have disabled this feature by default since v7.4.
+Inspired by Fira Code and Cascadia Code, Maple Mono supports infinite arrow ligatures.
 
-Set `"infinite_arrow": true` in `config.json`, or pass `--infinite-arrow` on the command line to force-enable it. Discuss issues in [#508](https://github.com/subframe7536/maple-font/issues/508).
+Infinite arrow support is enabled by default during builds. Set `"infinite_arrow": false` in `config.json`, or pass `--no-infinite-arrow` on the command line, to disable it. Pass `--infinite-arrow` to override a disabled configuration. Discuss issues in [#508](https://github.com/subframe7536/maple-font/issues/508).
 
 ![Infinite arrow ligatures](./resources/preview-infinite-arrows.webp)
 
@@ -245,7 +245,8 @@ The build script automatically downloads required resources from GitHub. If a do
 ```text
 usage: build.py [-h] [-v] [-d] [--debug] [-n] [--standard-zero] [--feat FEAT]
                 [--apply-fea-file] [--hinted | --no-hinted]
-                [--liga | --no-liga] [--infinite-arrow] [--remove-tag-liga]
+                [--liga | --no-liga]
+                [--infinite-arrow | --no-infinite-arrow] [--remove-tag-liga]
                 [--line-height LINE_HEIGHT] [--width {default,narrow,slim}]
                 [--format FORMATS] [--least-styles] [--cache] [--archive]
                 [--nf | --no-nf] [--nf-mono] [--nf-propo] [--nf-variable]
@@ -280,8 +281,8 @@ Feature Options:
   --no-hinted           Use unhinted font as base font in NF / CJK / NF-CJK
   --liga                Preserve all the ligatures (default)
   --no-liga             Remove all the ligatures
-  --infinite-arrow      Enable infinite arrow ligatures (Disabled in hinted
-                        font by default)
+  --infinite-arrow      Add infinite arrow ligature support (default)
+  --no-infinite-arrow   Do not add infinite arrow ligature support
   --remove-tag-liga     Remove plain text tag ligatures like `[TODO]`
   --line-height LINE_HEIGHT
                         Scale factor for line height (e.g., 1.1)

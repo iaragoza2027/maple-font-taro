@@ -108,7 +108,6 @@ class FeatureApplicationTest(unittest.TestCase):
             issue_fea_dir=root,
             is_italic=False,
             is_cn=False,
-            is_hinted=False,
             fea_path=str(feature_path),
         )
         self.assertIsNotNone(prepared)
@@ -360,7 +359,6 @@ feature ss12 { lookup shared; } ss12;
                 issue_fea_dir=root,
                 is_italic=False,
                 is_cn=False,
-                is_hinted=False,
                 fea_path=str(root / "test.fea"),
             )
         self.assertIsNotNone(prepared)

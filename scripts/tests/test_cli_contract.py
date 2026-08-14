@@ -31,6 +31,7 @@ BUILD_OPTION_CONTRACT = {
     ("--liga",),
     ("--no-liga",),
     ("--infinite-arrow",),
+    ("--no-infinite-arrow",),
     ("--remove-tag-liga",),
     ("--line-height",),
     ("--width",),
@@ -73,6 +74,7 @@ VALID_BUILD_OPTION_CASES = (
     (["--liga"], "liga", True),
     (["--no-liga"], "liga", False),
     (["--infinite-arrow"], "infinite_arrow", True),
+    (["--no-infinite-arrow"], "infinite_arrow", False),
     (["--remove-tag-liga"], "remove_tag_liga", True),
     (["--line-height", "1.2"], "line_height", 1.2),
     (["--width", "slim"], "width", "slim"),
@@ -171,6 +173,7 @@ class PublicCliContractTest(unittest.TestCase):
             ["--cjk-scale-factor", "1,2,3"],
             ["--hinted", "--no-hinted"],
             ["--liga", "--no-liga"],
+            ["--infinite-arrow", "--no-infinite-arrow"],
             ["--nf", "--no-nf"],
             ["--cn", "--no-cn"],
         )

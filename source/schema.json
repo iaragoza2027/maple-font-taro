@@ -175,12 +175,9 @@
       "default": true
     },
     "infinite_arrow": {
-      "type": [
-        "boolean",
-        "null"
-      ],
-      "description": "Enable infinite arrow ligatures\n- null: disabled in hinted font, enabled in unhinted font\n- true: enabled\n- false: disabled",
-      "default": null
+      "type": "boolean",
+      "description": "Whether to add infinite arrow ligature support",
+      "default": true
     },
     "remove_tag_liga": {
       "type": "boolean",

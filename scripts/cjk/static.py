@@ -229,7 +229,6 @@ def postprocess_cjk_extended_static_font(
         issue_fea_dir=runtime_context.output_dir,
         is_italic="Italic" in style_compact,
         is_cn=True,
-        is_hinted=False,
         fea_path=runtime_context.feature_file_path("Italic" in style_compact, True),
         outline_tags=frozenset(feature.tag for feature in CJK_FEATURES),
     )

@@ -151,9 +151,9 @@ cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
 
 ### 무한 화살표 합자
 
-Fira Code와 Cascadia Code에서 영감을 받아 Maple Mono는 v7.3부터 무한 화살표 합자를 지원합니다. 렌더링 문제로 인해 Hinted 글꼴에서는 화살표 합자가 어긋날 수 있으므로 v7.4부터 Hinted 버전에서는 이 기능을 기본적으로 제거했습니다.
+Fira Code와 Cascadia Code에서 영감을 받아 Maple Mono는 무한 화살표 합자를 지원합니다.
 
-`config.json`에 `"infinite_arrow": true`를 설정하거나 명령줄에 `--infinite-arrow`를 추가하여 강제로 활성화할 수 있습니다. 문제는 [#508](https://github.com/subframe7536/maple-font/issues/508)에서 논의해 주세요.
+빌드 시 무한 화살표 지원은 기본적으로 활성화됩니다. 비활성화하려면 `config.json`에 `"infinite_arrow": false`를 설정하거나 명령줄에 `--no-infinite-arrow`를 추가하세요. `--infinite-arrow`를 추가하면 비활성화된 설정을 재정의할 수 있습니다. 문제는 [#508](https://github.com/subframe7536/maple-font/issues/508)에서 논의해 주세요.
 
 ![Infinite arrow ligatures](./resources/preview-infinite-arrows.webp)
 
@@ -242,7 +242,8 @@ Maple Mono는 전각 문장 부호를 가운데 정렬하는 `cpct` 기능을 �
 ```text
 사용법: build.py [-h] [-v] [-d] [--debug] [-n] [--standard-zero] [--feat FEAT]
                  [--apply-fea-file] [--hinted | --no-hinted]
-                 [--liga | --no-liga] [--infinite-arrow] [--remove-tag-liga]
+                 [--liga | --no-liga]
+                 [--infinite-arrow | --no-infinite-arrow] [--remove-tag-liga]
                  [--line-height LINE_HEIGHT] [--width {default,narrow,slim}]
                  [--format FORMATS] [--least-styles] [--cache] [--archive]
                  [--nf | --no-nf] [--nf-mono] [--nf-propo] [--nf-variable]
@@ -275,7 +276,8 @@ Maple Mono 빌더 및 최적화 도구
   --no-hinted           NF/CJK/NF-CJK의 기본 글꼴로 힌팅되지 않은 글꼴을 사용합니다
   --liga                모든 합자를 유지합니다（기본값）
   --no-liga             모든 합자를 제거합니다
-  --infinite-arrow      무한 화살표 합자를 활성화합니다（Hinted 글꼴에서는 기본적으로 비활성화）
+  --infinite-arrow      무한 화살표 합자 지원을 추가합니다（기본값）
+  --no-infinite-arrow   무한 화살표 합자 지원을 추가하지 않습니다
   --remove-tag-liga     `[TODO]`와 같은 일반 텍스트 태그 합자를 제거합니다
   --line-height LINE_HEIGHT
                         줄 높이 배율（예: 1.1）

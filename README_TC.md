@@ -151,9 +151,9 @@ cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
 
 ### 無限箭頭連字
 
-受 Fira Code 和 Cascadia Code 啟發，Maple Mono 從 v7.3 開始支援無限箭頭連字。由於渲染方面的未知原因，Hinted 字型中的箭頭連字可能發生錯位，因此 v7.4 起的 Hinted 版本預設移除了該特性。
+受 Fira Code 和 Cascadia Code 啟發，Maple Mono 支援無限箭頭連字。
 
-你可以在 `config.json` 中設定 `"infinite_arrow": true`，或在命令列中加入 `--infinite-arrow` 強制啟用該特性。遇到問題時，請在[#508](https://github.com/subframe7536/maple-font/issues/508)中討論。
+建置時預設啟用無限箭頭支援。你可以在 `config.json` 中設定 `"infinite_arrow": false`，或在命令列中加入 `--no-infinite-arrow` 來停用；加入 `--infinite-arrow` 可以覆寫已停用的設定。遇到問題時，請在 [#508](https://github.com/subframe7536/maple-font/issues/508) 中討論。
 
 ![Infinite arrow ligatures](./resources/preview-infinite-arrows.webp)
 
@@ -246,7 +246,8 @@ Maple Mono 支援 `cpct` 特性，讓全形標點置中顯示；也可以啟用 
 ```text
 用法：build.py [-h] [-v] [-d] [--debug] [-n] [--standard-zero] [--feat FEAT]
                [--apply-fea-file] [--hinted | --no-hinted]
-               [--liga | --no-liga] [--infinite-arrow] [--remove-tag-liga]
+               [--liga | --no-liga]
+               [--infinite-arrow | --no-infinite-arrow] [--remove-tag-liga]
                [--line-height LINE_HEIGHT] [--width {default,narrow,slim}]
                [--format FORMATS] [--least-styles] [--cache] [--archive]
                [--nf | --no-nf] [--nf-mono] [--nf-propo] [--nf-variable]
@@ -277,7 +278,8 @@ Maple Mono 建置與最佳化工具
   --no-hinted           在 NF/CJK/NF-CJK 中使用未加提示的字型作為基礎字型
   --liga                保留所有連字（預設）
   --no-liga             移除所有連字
-  --infinite-arrow      啟用無限箭頭連字（Hinted 字型預設停用）
+  --infinite-arrow      加入無限箭頭連字支援（預設）
+  --no-infinite-arrow   不加入無限箭頭連字支援
   --remove-tag-liga     移除類似 `[TODO]` 的純文字標籤連字
   --line-height LINE_HEIGHT
                         行高縮放因子（例如 1.1）

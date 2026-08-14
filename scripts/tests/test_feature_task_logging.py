@@ -56,7 +56,7 @@ class FeatureTaskLoggingTest(unittest.TestCase):
             "<!-- SS -->",
         ]:
             self.assertIn(
-                call(join_path("docs", "opentype-features.md"), border, ""),
+                call(join_path("documentation", "opentype-features.md"), border, ""),
                 replace_section.call_args_list,
             )
         self.assertIn(

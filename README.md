@@ -150,9 +150,9 @@ By default, the Python modules in [`scripts/feature/`](./scripts/feature) genera
 
 ### Infinite Arrow Ligatures
 
-Inspired by Fira Code and Cascadia Code, Maple Mono has supported infinite arrow ligatures since v7.3. Because of rendering issues, arrow ligatures may be misaligned in hinted fonts, so Hinted versions have disabled this feature by default since v7.4.
+Inspired by Fira Code and Cascadia Code, Maple Mono supports infinite arrow ligatures.
 
-Set `"infinite_arrow": true` in `config.json`, or pass `--infinite-arrow` on the command line to force-enable it. Discuss issues in [#508](https://github.com/subframe7536/maple-font/issues/508).
+Infinite arrow support is enabled by default during builds. Set `"infinite_arrow": false` in `config.json`, or pass `--no-infinite-arrow` on the command line, to disable it. Pass `--infinite-arrow` to override a disabled configuration. Discuss issues in [#508](https://github.com/subframe7536/maple-font/issues/508).
 
 ![Infinite arrow ligatures](./resources/preview-infinite-arrows.webp)
 
@@ -202,9 +202,9 @@ For example, make the regular weight slightly thinner by lowering `"weight_mappi
 
 ### Custom Nerd Font Configuration
 
-Maple Mono includes Nerd Font icons and follows its naming rules. By default, each icon occupies one Latin-character width.
+Maple Mono includes Nerd Font icons and follows its naming rules. By default, each icon uses a one-Latin-character advance width, while its glyph width may vary.
 
-- To make icons occupy two Latin-character widths (Nerd Font Mono), set `"nerd_font.mono": true` in `config.json`, or add `--nf-mono` to the build arguments.
+- To make icons occupy one Latin-character width (Nerd Font Mono), set `"nerd_font.mono": true` in `config.json`, or add `--nf-mono` to the build arguments.
 - To use variable-width icons (Nerd Font Propo), set `"nerd_font.propo": true` in `config.json`, or add `--nf-propo` to the build arguments.
 
 To customize `font-patcher` arguments, install `fontforge` (and possibly `python3-fontforge`). You may also need to change `"nerd_font.extra_args"` in [config.json](./config.json).
@@ -245,7 +245,8 @@ The build script automatically downloads required resources from GitHub. If a do
 ```text
 usage: build.py [-h] [-v] [-d] [--debug] [-n] [--standard-zero] [--feat FEAT]
                 [--apply-fea-file] [--hinted | --no-hinted]
-                [--liga | --no-liga] [--infinite-arrow] [--remove-tag-liga]
+                [--liga | --no-liga]
+                [--infinite-arrow | --no-infinite-arrow] [--remove-tag-liga]
                 [--line-height LINE_HEIGHT] [--width {default,narrow,slim}]
                 [--format FORMATS] [--least-styles] [--cache] [--archive]
                 [--nf | --no-nf] [--nf-mono] [--nf-propo] [--nf-variable]
@@ -280,8 +281,8 @@ Feature Options:
   --no-hinted           Use unhinted font as base font in NF / CJK / NF-CJK
   --liga                Preserve all the ligatures (default)
   --no-liga             Remove all the ligatures
-  --infinite-arrow      Enable infinite arrow ligatures (Disabled in hinted
-                        font by default)
+  --infinite-arrow      Add infinite arrow ligature support (default)
+  --no-infinite-arrow   Do not add infinite arrow ligature support
   --remove-tag-liga     Remove plain text tag ligatures like `[TODO]`
   --line-height LINE_HEIGHT
                         Scale factor for line height (e.g., 1.1)
@@ -355,11 +356,11 @@ If this font is helpful to you, please consider sponsoring me through [Afdian](h
 
 ## Star History
 
-<a href="https://www.star-history.com/#subframe7536/maple-font&type=date&legend=top-left">
+<a href="https://star-history.dera.page/#subframe7536/maple-font&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=subframe7536/maple-font&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=subframe7536/maple-font&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=subframe7536/maple-font&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://star-history.dera.page/svg?repos=subframe7536/maple-font&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://star-history.dera.page/svg?repos=subframe7536/maple-font&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=subframe7536/maple-font&type=date&legend=top-left" />
  </picture>
 </a>
 

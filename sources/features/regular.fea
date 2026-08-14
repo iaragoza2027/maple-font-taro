@@ -1066,6 +1066,27 @@ feature calt {
     sub less' asterisk greater by SPC;
   } less_asterisk_greater.liga;
 
+  # <=>
+  lookup less_equal_greater.liga {
+    ignore sub [less equal] less' equal greater;
+    ignore sub less' equal greater [greater equal];
+    ignore sub parenleft @Question less' equal greater;
+    sub SPC SPC greater' by less_equal_greater.liga;
+    sub SPC equal' greater by SPC;
+    sub less' equal greater by SPC;
+  } less_equal_greater.liga;
+
+  # <==>
+  lookup less_equal_equal_greater.liga {
+    ignore sub [less equal] less' equal equal greater;
+    ignore sub less' equal equal greater [greater equal];
+    ignore sub parenleft @Question less' equal equal greater;
+    sub SPC SPC SPC greater' by less_equal_equal_greater.liga;
+    sub SPC SPC equal' greater by SPC;
+    sub SPC equal' equal greater by SPC;
+    sub less' equal equal greater by SPC;
+  } less_equal_equal_greater.liga;
+
   # >=
   lookup greater_equal.liga {
     ignore sub [greater equal bar] greater' equal;
@@ -1082,6 +1103,37 @@ feature calt {
     sub SPC equal' by less_equal.liga;
     sub less' equal by SPC;
   } less_equal.liga;
+
+  # <==
+  lookup less_equal_equal.liga {
+    ignore sub [less equal] less' equal equal;
+    ignore sub less' equal equal [equal greater less];
+    ignore sub parenleft @Question less' equal equal;
+    sub SPC SPC equal' by less_equal_equal.liga;
+    sub SPC equal' equal by SPC;
+    sub less' equal equal by SPC;
+  } less_equal_equal.liga;
+
+  # ==>
+  lookup equal_equal_greater.liga {
+    ignore sub [bracketleft equal greater less] equal' equal greater;
+    ignore sub equal' equal greater [greater equal];
+    ignore sub parenleft @Question less equal' equal greater;
+    ignore sub parenleft @Question equal' equal greater;
+    sub SPC SPC greater' by equal_equal_greater.liga;
+    sub SPC equal' greater by SPC;
+    sub equal' equal greater by SPC;
+  } equal_equal_greater.liga;
+
+  # =>
+  lookup equal_greater.liga {
+    ignore sub [bracketleft equal greater bar] equal' greater;
+    ignore sub equal' greater [equal greater];
+    ignore sub parenleft @Question less equal' greater;
+    ignore sub parenleft @Question equal' greater;
+    sub SPC greater' by equal_greater.liga;
+    sub equal' greater by SPC;
+  } equal_greater.liga;
 
   # <=<
   lookup less_equal_less.liga {
@@ -1101,6 +1153,25 @@ feature calt {
     sub SPC equal' greater by SPC;
     sub greater' equal greater by SPC;
   } greater_equal_greater.liga;
+
+  # <=|
+  lookup less_equal_bar.liga {
+    ignore sub less less' equal bar;
+    ignore sub less' equal bar [less greater equal bar];
+    ignore sub parenleft @Question less' equal bar;
+    sub SPC SPC bar' by less_equal_bar.liga;
+    sub SPC equal' bar by SPC;
+    sub less' equal bar by SPC;
+  } less_equal_bar.liga;
+
+  # |=>
+  lookup bar_equal_greater.liga {
+    ignore sub [less greater equal bar] bar' equal greater;
+    ignore sub bar' equal greater greater;
+    sub SPC SPC greater' by bar_equal_greater.liga;
+    sub SPC equal' greater by SPC;
+    sub bar' equal greater by SPC;
+  } bar_equal_greater.liga;
 
   # ==
   lookup equal_equal.liga {
@@ -1175,6 +1246,26 @@ feature calt {
     sub SPC exclam' equal by SPC;
     sub equal' exclam equal by SPC;
   } equal_exclam_equal.liga;
+
+  # =<=
+  lookup equal_less_equal.liga {
+    ignore sub [equal greater less bar] equal' less equal;
+    ignore sub equal' less equal [equal less greater];
+    ignore sub parenleft @Question equal' greater equal;
+    sub SPC SPC equal' by equal_less_equal.liga;
+    sub SPC less' equal by SPC;
+    sub equal' less equal by SPC;
+  } equal_less_equal.liga;
+
+  # =>=
+  lookup equal_greater_equal.liga {
+    ignore sub [equal greater less bar] equal' greater equal;
+    ignore sub equal' greater equal [equal less greater bar];
+    ignore sub parenleft @Question equal' greater equal;
+    sub SPC SPC equal' by equal_greater_equal.liga;
+    sub SPC greater' equal by SPC;
+    sub equal' greater equal by SPC;
+  } equal_greater_equal.liga;
 
   # |=
   lookup bar_equal.liga {
@@ -1314,6 +1405,85 @@ feature calt {
     sub SPC exclam' hyphen hyphen hyphen hyphen greater by SPC;
     sub less' exclam hyphen hyphen hyphen hyphen greater by SPC;
   } xml_empty_comment.liga;
+
+  # <->
+  lookup less_hyphen_greater.liga {
+    ignore sub [less hyphen] less' hyphen greater;
+    ignore sub less' hyphen greater [greater hyphen];
+    sub SPC SPC greater' by less_hyphen_greater.liga;
+    sub SPC hyphen' greater by SPC;
+    sub less' hyphen greater by SPC;
+  } less_hyphen_greater.liga;
+
+  # ->
+  lookup hyphen_greater.liga {
+    ignore sub [hyphen less greater bar plus] hyphen' greater;
+    ignore sub hyphen' greater [greater hyphen];
+    sub SPC greater' by hyphen_greater.liga;
+    sub hyphen' greater by SPC;
+  } hyphen_greater.liga;
+
+  # <-
+  lookup less_hyphen.liga {
+    ignore sub [less hyphen] less' hyphen;
+    ignore sub less' hyphen [hyphen less greater bar plus slash @Digit];
+    sub SPC hyphen' by less_hyphen.liga;
+    sub less' hyphen by SPC;
+  } less_hyphen.liga;
+
+  # -->
+  lookup hyphen_hyphen_greater.liga {
+    ignore sub [hyphen less greater bar] hyphen' hyphen greater;
+    ignore sub hyphen' hyphen greater [greater hyphen];
+    sub SPC SPC greater' by hyphen_hyphen_greater.liga;
+    sub SPC hyphen' greater by SPC;
+    sub hyphen' hyphen greater by SPC;
+  } hyphen_hyphen_greater.liga;
+
+  # <--
+  lookup less_hyphen_hyphen.liga {
+    ignore sub [less bar] less' hyphen hyphen;
+    ignore sub less' hyphen hyphen [hyphen less greater bar];
+    sub SPC SPC hyphen' by less_hyphen_hyphen.liga;
+    sub SPC hyphen' hyphen by SPC;
+    sub less' hyphen hyphen by SPC;
+  } less_hyphen_hyphen.liga;
+
+  # <-<
+  lookup less_hyphen_less.liga {
+    ignore sub [less bar hyphen] less' hyphen less;
+    ignore sub less' hyphen less [less bar hyphen];
+    sub SPC SPC less' by less_hyphen_less.liga;
+    sub SPC hyphen' less by SPC;
+    sub less' hyphen less by SPC;
+  } less_hyphen_less.liga;
+
+  # >->
+  lookup greater_hyphen_greater.liga {
+    ignore sub [greater bar hyphen] greater' hyphen greater;
+    ignore sub greater' hyphen greater [greater bar hyphen];
+    sub SPC SPC greater' by greater_hyphen_greater.liga;
+    sub SPC hyphen' greater by SPC;
+    sub greater' hyphen greater by SPC;
+  } greater_hyphen_greater.liga;
+
+  # <-|
+  lookup less_hyphen_bar.liga {
+    ignore sub [less hyphen] less' hyphen bar;
+    ignore sub less' hyphen bar [bar hyphen];
+    sub SPC SPC bar' by less_hyphen_bar.liga;
+    sub SPC hyphen' bar by SPC;
+    sub less' hyphen bar by SPC;
+  } less_hyphen_bar.liga;
+
+  # |->
+  lookup bar_hyphen_greater.liga {
+    ignore sub [bar hyphen] bar' hyphen greater;
+    ignore sub bar' hyphen greater [greater hyphen];
+    sub SPC SPC greater' by bar_hyphen_greater.liga;
+    sub SPC hyphen' greater by SPC;
+    sub bar' hyphen greater by SPC;
+  } bar_hyphen_greater.liga;
 
   # <-> <--> -> <- --> <-- >-> <-< |-> <-| ------- >-- --<
   lookup infinite_hyphen {
@@ -1708,6 +1878,22 @@ feature cv01 {
   sub less_exclam_hyphen_hyphen.liga by less_exclam_hyphen_hyphen.liga.cv01;
   sub less_numbersign_hyphen_hyphen.liga by less_numbersign_hyphen_hyphen.liga.cv01;
   sub xml_empty_comment.liga by xml_empty_comment.liga.cv01;
+  sub equal_greater.liga by equal_greater.liga.cv01;
+  sub less_equal_equal.liga by less_equal_equal.liga.cv01;
+  sub equal_equal_greater.liga by equal_equal_greater.liga.cv01;
+  sub less_equal_greater.liga by less_equal_greater.liga.cv01;
+  sub less_equal_equal_greater.liga by less_equal_equal_greater.liga.cv01;
+  sub less_equal_bar.liga by less_equal_bar.liga.cv01;
+  sub bar_equal_greater.liga by bar_equal_greater.liga.cv01;
+  sub less_hyphen_bar.liga by less_hyphen_bar.liga.cv01;
+  sub bar_hyphen_greater.liga by bar_hyphen_greater.liga.cv01;
+  sub less_hyphen.liga by less_hyphen.liga.cv01;
+  sub hyphen_greater.liga by hyphen_greater.liga.cv01;
+  sub less_hyphen_hyphen.liga by less_hyphen_hyphen.liga.cv01;
+  sub hyphen_hyphen_greater.liga by hyphen_hyphen_greater.liga.cv01;
+  sub less_hyphen_less.liga by less_hyphen_less.liga.cv01;
+  sub greater_hyphen_greater.liga by greater_hyphen_greater.liga.cv01;
+  sub less_hyphen_greater.liga by less_hyphen_greater.liga.cv01;
   sub less_equal.sta.seq by less_equal.sta.seq.cv01;
   sub greater_equal.end.seq by greater_equal.end.seq.cv01;
   sub less_hyphen.sta.seq by less_hyphen.sta.seq.cv01;

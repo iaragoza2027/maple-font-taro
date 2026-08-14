@@ -1402,15 +1402,41 @@ class BuildConfigResolverJsonTest(unittest.TestCase):
 
         self.assertEqual(font_config.cjk.locales.builtin_enabled_locales(), ["cn"])
 
-    def test_infinite_arrow_accepts_boolean_or_null(self) -> None:
-        for value in (None, True, False):
+    def test_infinite_arrow_accepts_boolean(self) -> None:
+        for value in (True, False):
             with self.subTest(value=value):
                 font_config = self._resolve_with_config({"infinite_arrow": value})
 
             self.assertIs(font_config.feature.infinite_arrow, value)
 
-    def test_infinite_arrow_rejects_strings_and_integers(self) -> None:
-        for value in ("false", "true", 0, 1):
+    def test_infinite_arrow_defaults_to_true(self) -> None:
+        font_config = self._resolve_with_config({})
+
+        self.assertTrue(font_config.infinite_arrow)
+        self.assertTrue(font_config.to_build_record()["infinite_arrow"])
+
+    def test_infinite_arrow_schema_is_boolean_and_defaults_to_true(self) -> None:
+        schema = json.loads(Path("sources/schema.json").read_text(encoding="utf-8"))
+        infinite_arrow = schema["properties"]["infinite_arrow"]
+
+        self.assertEqual(infinite_arrow["type"], "boolean")
+        self.assertTrue(infinite_arrow["default"])
+
+    def test_infinite_arrow_cli_overrides_config(self) -> None:
+        disabled = self._resolve_with_config(
+            {"infinite_arrow": True},
+            ["--no-infinite-arrow"],
+        )
+        enabled = self._resolve_with_config(
+            {"infinite_arrow": False},
+            ["--infinite-arrow"],
+        )
+
+        self.assertFalse(disabled.infinite_arrow)
+        self.assertTrue(enabled.infinite_arrow)
+
+    def test_infinite_arrow_rejects_null_strings_and_integers(self) -> None:
+        for value in (None, "false", "true", 0, 1):
             with self.subTest(value=value), self.assertRaises(ValueError) as error:
                 self._resolve_with_config({"infinite_arrow": value})
 

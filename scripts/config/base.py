@@ -253,7 +253,7 @@ class FeatureBuildConfig:
     feat: list[str] = field(default_factory=list)
     hinted: bool = True
     liga: bool = True
-    infinite_arrow: bool | None = None
+    infinite_arrow: bool = True
     remove_tag_liga: bool = False
     line_height: float = 1.0
     width: str = "default"
@@ -476,7 +476,7 @@ class ResolvedConfig:
         return self.feature.liga
 
     @property
-    def infinite_arrow(self) -> bool | None:
+    def infinite_arrow(self) -> bool:
         return self.feature.infinite_arrow
 
     @property
@@ -633,9 +633,7 @@ class ResolvedConfig:
             "use_hinted": self.use_hinted,
             "ligature": self.enable_ligature,
             "remove_tag_liga": self.remove_tag_liga,
-            "infinite_arrow": "default"
-            if self.infinite_arrow is None
-            else self.infinite_arrow,
+            "infinite_arrow": self.infinite_arrow,
             "standard_zero": self.feature.standard_zero,
             "weight_mapping": dict(self.weight_mapping),
             "codepoint_alias": serialize_codepoint_alias(self.codepoint_alias),

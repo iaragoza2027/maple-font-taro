@@ -170,11 +170,9 @@ class BuildConfigResolver:
         if "ligature" in data:
             config.feature.liga = _require_bool(data["ligature"], "ligature")
         if "infinite_arrow" in data:
-            infinite_arrow = data["infinite_arrow"]
-            config.feature.infinite_arrow = (
-                None
-                if infinite_arrow is None
-                else _require_bool(infinite_arrow, "infinite_arrow")
+            config.feature.infinite_arrow = _require_bool(
+                data["infinite_arrow"],
+                "infinite_arrow",
             )
         if "line_height" in data:
             config.feature.line_height = float(data["line_height"])
@@ -449,8 +447,8 @@ class BuildConfigResolver:
             config.feature.hinted = bool(args.hinted)
         if args.liga is not None:
             config.feature.liga = bool(args.liga)
-        if args.infinite_arrow:
-            config.feature.infinite_arrow = True
+        if args.infinite_arrow is not None:
+            config.feature.infinite_arrow = bool(args.infinite_arrow)
         if args.remove_tag_liga:
             config.feature.remove_tag_liga = True
         if args.width is not None:

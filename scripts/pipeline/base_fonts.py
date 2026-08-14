@@ -9,7 +9,6 @@ from ttfautohint import ttfautohint
 
 from scripts.cjk.builder import get_ttfautohint_options
 from scripts.external.process import run_process_jobs
-from scripts.feature.apply import apply_binary_features
 from scripts.font_ops.conversion import convert_to_web
 from scripts.font_ops.fonttools import load_font
 from scripts.pipeline.artifacts import require_existing_files, require_unique_targets
@@ -34,7 +33,6 @@ class MonoAutohintJob:
     reference_path: Path
     output_path: Path
     font_config: ResolvedConfig
-    runtime_context: BuildRuntimeContext
 
 
 def build_mono_autohint(
@@ -42,23 +40,11 @@ def build_mono_autohint(
     reference_path: Path,
     output_path: Path,
     font_config: ResolvedConfig,
-    runtime_context: BuildRuntimeContext,
 ) -> Path:
-    style_compact = font_path.stem.rsplit("-", 1)[-1]
     logger.debug("Auto-hint font: %s", output_path.name)
 
     font = load_font(font_path)
     try:
-        is_italic = "Italic" in style_compact
-        apply_binary_features(
-            config=font_config,
-            font=font,
-            issue_fea_dir=runtime_context.output_dir,
-            is_italic=is_italic,
-            is_cn=False,
-            is_hinted=True,
-            fea_path=runtime_context.feature_file_path(is_italic),
-        )
         head = font.table("head")
         head.flags |= 1 << 2 | 1 << 3
         buffer = BytesIO()
@@ -85,7 +71,6 @@ def build_mono_autohint_job(job: MonoAutohintJob) -> Path:
         job.reference_path,
         job.output_path,
         job.font_config,
-        job.runtime_context,
     )
 
 
@@ -108,7 +93,6 @@ def build_base_fonts(
             reference_path=reference_path,
             output_path=Path(runtime_context.output_ttf_hinted) / font_path.name,
             font_config=font_config,
-            runtime_context=runtime_context,
         )
         for font_path in font_paths
     ]

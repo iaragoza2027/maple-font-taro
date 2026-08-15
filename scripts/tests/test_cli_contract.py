@@ -207,7 +207,10 @@ class PublicCliContractTest(unittest.TestCase):
         result = self.run_cli("task.py", "googlefonts", "--help")
 
         self.assertEqual(result.returncode, 0)
-        self.assertIn("usage: task.py googlefonts [-h] [--qa]", result.stdout)
+        self.assertIn(
+            "usage: task.py googlefonts [-h] [--rebuild] [--qa]", result.stdout
+        )
+        self.assertIn("--rebuild", result.stdout)
         self.assertIn("--qa", result.stdout)
 
     def test_page_command_contract_is_unchanged(self) -> None:

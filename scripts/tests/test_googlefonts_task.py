@@ -22,7 +22,13 @@ class GoogleFontsTaskTest(unittest.TestCase):
     def test_parser_defaults_to_build_only(self) -> None:
         args = self.parse_args()
 
+        self.assertFalse(args.rebuild)
         self.assertFalse(args.qa)
+
+    def test_parser_accepts_rebuild_flag(self) -> None:
+        args = self.parse_args("--rebuild")
+
+        self.assertTrue(args.rebuild)
 
     def test_parser_accepts_qa_flag(self) -> None:
         args = self.parse_args("--qa")
@@ -45,9 +51,30 @@ class GoogleFontsTaskTest(unittest.TestCase):
                 googlefonts.run(self.parse_args())
 
             self.assertTrue(stale_font.exists())
-            regenerate.assert_called_once_with()
+            regenerate.assert_not_called()
             run_builder.assert_called_once_with()
             run_fontbakery.assert_not_called()
+
+    def test_rebuild_regenerates_designspace_before_builder(self) -> None:
+        events: list[str] = []
+
+        with (
+            patch.object(
+                googlefonts,
+                "_regenerate_designspace",
+                side_effect=lambda: events.append("designspace"),
+            ) as regenerate,
+            patch.object(
+                googlefonts,
+                "_run_gftools_builder",
+                side_effect=lambda: events.append("builder"),
+            ) as run_builder,
+        ):
+            googlefonts.run(self.parse_args("--rebuild"))
+
+        regenerate.assert_called_once_with()
+        run_builder.assert_called_once_with()
+        self.assertEqual(events, ["designspace", "builder"])
 
     def test_qa_cleans_variable_output_before_running_builder_and_fontbakery(
         self,
@@ -60,11 +87,7 @@ class GoogleFontsTaskTest(unittest.TestCase):
 
             with (
                 patch.object(googlefonts, "VARIABLE_OUTPUT_DIR", variable_dir),
-                patch.object(
-                    googlefonts,
-                    "_regenerate_designspace",
-                    side_effect=lambda: events.append("designspace"),
-                ) as regenerate,
+                patch.object(googlefonts, "_regenerate_designspace") as regenerate,
                 patch.object(
                     googlefonts,
                     "_run_gftools_builder",
@@ -79,10 +102,37 @@ class GoogleFontsTaskTest(unittest.TestCase):
                 googlefonts.run(self.parse_args("--qa"))
 
             self.assertFalse(variable_dir.exists())
-            regenerate.assert_called_once_with()
+            regenerate.assert_not_called()
             run_builder.assert_called_once_with()
             run_fontbakery.assert_called_once_with()
-            self.assertEqual(events, ["designspace", "builder", "fontbakery"])
+            self.assertEqual(events, ["builder", "fontbakery"])
+
+    def test_qa_with_rebuild_regenerates_before_build_and_fontbakery(self) -> None:
+        events: list[str] = []
+
+        with (
+            patch.object(
+                googlefonts,
+                "_regenerate_designspace",
+                side_effect=lambda: events.append("designspace"),
+            ) as regenerate,
+            patch.object(
+                googlefonts,
+                "_run_gftools_builder",
+                side_effect=lambda: events.append("builder"),
+            ) as run_builder,
+            patch.object(
+                googlefonts,
+                "_run_fontbakery",
+                side_effect=lambda: events.append("fontbakery"),
+            ) as run_fontbakery,
+        ):
+            googlefonts.run(self.parse_args("--rebuild", "--qa"))
+
+        regenerate.assert_called_once_with()
+        run_builder.assert_called_once_with()
+        run_fontbakery.assert_called_once_with()
+        self.assertEqual(events, ["designspace", "builder", "fontbakery"])
 
     def test_qa_does_not_run_fontbakery_when_builder_fails(self) -> None:
         with (
@@ -103,7 +153,7 @@ class GoogleFontsTaskTest(unittest.TestCase):
         ):
             googlefonts.run(self.parse_args("--qa"))
 
-        regenerate.assert_called_once_with()
+        regenerate.assert_not_called()
         run_builder.assert_called_once_with()
         run_fontbakery.assert_not_called()
 
@@ -118,7 +168,7 @@ class GoogleFontsTaskTest(unittest.TestCase):
             patch.object(googlefonts, "_run_fontbakery") as run_fontbakery,
             self.assertRaisesRegex(RuntimeError, "designspace failed"),
         ):
-            googlefonts.run(self.parse_args("--qa"))
+            googlefonts.run(self.parse_args("--rebuild", "--qa"))
 
         regenerate.assert_called_once_with()
         run_builder.assert_not_called()

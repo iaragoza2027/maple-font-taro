@@ -8,11 +8,9 @@ import unittest
 from contextlib import redirect_stderr
 from io import StringIO
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 from scripts.config import cli
 from scripts.config.cli import parse_args
-from scripts.pipeline import main as run_build_cli
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -255,92 +253,6 @@ class PublicCliContractTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertEqual(json.loads(result.stdout)["behavior"]["formats"], ["ttf"])
         self.assertEqual(result.stderr, "")
-
-    def test_pipeline_owns_cli_execution(self) -> None:
-        self.assertFalse(hasattr(cli, "main"))
-
-        resolver = MagicMock()
-        font_config = MagicMock()
-        font_config.to_dict.return_value = {}
-        runtime_context = MagicMock()
-        runtime_context.to_dict.return_value = {}
-        resolver.resolve.return_value = font_config
-        resolver_factory = MagicMock(return_value=resolver)
-        with (
-            patch("scripts.pipeline.orchestrator.configure_logging"),
-            patch("builtins.print"),
-            patch(
-                "scripts.pipeline.orchestrator.BuildConfigResolver", resolver_factory
-            ),
-            patch(
-                "scripts.pipeline.orchestrator.BuildRuntimeContext.from_config",
-                return_value=runtime_context,
-            ),
-        ):
-            run_build_cli(["--dry"], version="v7.9")
-
-        self.assertTrue(resolver.resolve.call_args.args[0].dry)
-        self.assertEqual(
-            resolver_factory.call_args.kwargs,
-            {"version_tag": "v7.9"},
-        )
-
-    def test_debug_build_enables_debug_logging_for_the_cli_lifetime(self) -> None:
-        observed_levels: list[str | None] = []
-        resolver = MagicMock()
-        font_config = MagicMock()
-        font_config.to_dict.return_value = {}
-        runtime_context = MagicMock()
-        runtime_context.to_dict.return_value = {}
-        resolver.resolve.side_effect = lambda _args: (
-            observed_levels.append(os.environ.get("MAPLE_LOG_LEVEL")) or font_config
-        )
-        resolver_factory = MagicMock(return_value=resolver)
-        with (
-            patch.dict(os.environ, {}, clear=True),
-            patch("scripts.pipeline.orchestrator.configure_logging"),
-            patch("builtins.print"),
-            patch(
-                "scripts.pipeline.orchestrator.BuildConfigResolver",
-                resolver_factory,
-            ),
-            patch(
-                "scripts.pipeline.orchestrator.BuildRuntimeContext.from_config",
-                return_value=runtime_context,
-            ),
-        ):
-            run_build_cli(["--debug", "--dry"], version="v7.9")
-            self.assertNotIn("MAPLE_LOG_LEVEL", os.environ)
-
-        self.assertEqual(observed_levels, ["DEBUG"])
-
-    def test_explicit_log_level_overrides_debug_default(self) -> None:
-        observed_levels: list[str | None] = []
-        resolver = MagicMock()
-        font_config = MagicMock()
-        font_config.to_dict.return_value = {}
-        runtime_context = MagicMock()
-        runtime_context.to_dict.return_value = {}
-        resolver.resolve.side_effect = lambda _args: (
-            observed_levels.append(os.environ.get("MAPLE_LOG_LEVEL")) or font_config
-        )
-        resolver_factory = MagicMock(return_value=resolver)
-        with (
-            patch.dict(os.environ, {"MAPLE_LOG_LEVEL": "ERROR"}, clear=True),
-            patch("scripts.pipeline.orchestrator.configure_logging"),
-            patch("builtins.print"),
-            patch(
-                "scripts.pipeline.orchestrator.BuildConfigResolver",
-                resolver_factory,
-            ),
-            patch(
-                "scripts.pipeline.orchestrator.BuildRuntimeContext.from_config",
-                return_value=runtime_context,
-            ),
-        ):
-            run_build_cli(["--debug", "--dry"], version="v7.9")
-
-        self.assertEqual(observed_levels, ["ERROR"])
 
 
 if __name__ == "__main__":

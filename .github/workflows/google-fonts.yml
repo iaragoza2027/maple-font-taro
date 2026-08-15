@@ -9,19 +9,51 @@ on:
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/google-fonts.yml"
-  pull_request:
-    paths:
-      - "sources/**"
-      - "!sources/cjk/**"
-      - "pyproject.toml"
-      - "uv.lock"
-      - ".github/workflows/google-fonts.yml"
+  pull_request: {}
 
 permissions:
   contents: read
 
 jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.changes.outputs.should_run }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - id: changes
+        name: Detect Fonts Source changes
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          should_run=false
+          while IFS= read -r path; do
+            case "$path" in
+              sources/cjk/*)
+                ;;
+              sources/*|pyproject.toml|uv.lock|.github/workflows/google-fonts.yml)
+                should_run=true
+                break
+                ;;
+            esac
+          done < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+
+          echo "should_run=$should_run" >> "$GITHUB_OUTPUT"
+
   google-fonts:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -31,8 +63,7 @@ jobs:
           enable-cache: true
           python-version: "3.12"
       - run: uv sync --locked
-      - name: Build and run Google Fonts QA
-        run: uv run task.py googlefonts --qa
+      - run: uv run task.py googlefonts --qa
       - name: Publish Google Fonts QA report
         if: always()
         run: test ! -f fonts/report.md || cat fonts/report.md >> "$GITHUB_STEP_SUMMARY"

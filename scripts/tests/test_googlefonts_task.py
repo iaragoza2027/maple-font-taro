@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import sys
 import tempfile
@@ -126,16 +127,28 @@ class GoogleFontsTaskTest(unittest.TestCase):
     def test_fontbakery_uses_documented_argv_and_restores_process_argv(self) -> None:
         original_argv = sys.argv
         observed_argv: list[str] = []
+        interpolatable_logger = logging.getLogger(
+            googlefonts.INTERPOLATABLE_LOGGER_NAME
+        )
+        previous_log_level = interpolatable_logger.level
+        observed_log_levels: list[int] = []
 
         def fake_main() -> int:
             observed_argv.extend(sys.argv)
+            observed_log_levels.append(interpolatable_logger.level)
             return 0
 
-        with patch("fontbakery.cli.main", side_effect=fake_main):
-            googlefonts._run_fontbakery()
+        try:
+            interpolatable_logger.setLevel(logging.INFO)
+            with patch("fontbakery.cli.main", side_effect=fake_main):
+                googlefonts._run_fontbakery()
+        finally:
+            interpolatable_logger.setLevel(previous_log_level)
 
         self.assertIs(sys.argv, original_argv)
         self.assertEqual(observed_argv, ["fontbakery", *googlefonts.FONTBAKERY_ARGS])
+        self.assertEqual(observed_log_levels, [logging.WARNING])
+        self.assertEqual(interpolatable_logger.level, previous_log_level)
 
     def test_gftools_uses_documented_config_and_restores_process_cwd(self) -> None:
         original_cwd = Path.cwd()

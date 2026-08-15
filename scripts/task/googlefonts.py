@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import shutil
 import sys
@@ -21,12 +22,18 @@ FONTBAKERY_ARGS = (
     "fonts/report.md",
     "fonts/variable/*.ttf",
 )
+INTERPOLATABLE_LOGGER_NAME = "fontTools.varLib.interpolatable"
 
 
 def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):
     parser = subparsers.add_parser(
         "googlefonts",
         help="Regenerate designspaces and build Google Fonts assets",
+    )
+    parser.add_argument(
+        "--rebuild",
+        action="store_true",
+        help="Rebuild UFO + designspace from Glyphs source files before building variable fonts",
     )
     parser.add_argument(
         "--qa",
@@ -65,19 +72,24 @@ def _run_fontbakery() -> None:
     """Run FontBakery with argv equivalent to the documented command."""
     from fontbakery.cli import main as fontbakery_main
 
+    interpolatable_logger = logging.getLogger(INTERPOLATABLE_LOGGER_NAME)
+    previous_log_level = interpolatable_logger.level
+    interpolatable_logger.setLevel(logging.WARNING)
     original_argv = sys.argv
     try:
         sys.argv = ["fontbakery", *FONTBAKERY_ARGS]
         result = fontbakery_main()
     finally:
         sys.argv = original_argv
+        interpolatable_logger.setLevel(previous_log_level)
 
     if result:
         raise SystemExit(result)
 
 
 def run(args: argparse.Namespace) -> None:
-    _regenerate_designspace()
+    if args.rebuild:
+        _regenerate_designspace()
 
     if args.qa and VARIABLE_OUTPUT_DIR.exists():
         logger.info("Clean Google Fonts variable output: path=%s", VARIABLE_OUTPUT_DIR)

@@ -1629,9 +1629,14 @@ class BuildConfigResolverCodepointAliasTest(unittest.TestCase):
             with self.subTest(mapping=mapping), self.assertRaises(ValueError):
                 self._resolve(mapping)
 
-    def test_rejects_overriding_builtin_alias(self) -> None:
-        with self.assertRaisesRegex(ValueError, "built in"):
-            self._resolve({"0x212A": "0x0041"})
+    def test_resolves_configured_compatibility_alias(self) -> None:
+        font_config = self._resolve({"0x212A": "0x0041"})
+
+        self.assertEqual(font_config.codepoint_alias, {0x212A: 0x0041})
+        self.assertEqual(
+            font_config.to_dict()["metrics"]["codepoint_alias"],
+            {"0x212A": "0x0041"},
+        )
 
 
 class NerdFontDependencyTest(unittest.TestCase):

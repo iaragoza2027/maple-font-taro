@@ -3,21 +3,52 @@
   <advance width="600"/>
   <unicode hex="22B5"/>
   <outline>
-    <component base="normalsubgroorequalup" xScale="-1" xOffset="440"/>
+    <contour>
+      <point x="113.4" y="639" type="curve" smooth="yes"/>
+      <point x="55.212" y="309" type="line" smooth="yes"/>
+      <point x="45.691" y="255"/>
+      <point x="67.869" y="239"/>
+      <point x="120.572" y="260" type="curve" smooth="yes"/>
+      <point x="475.963" y="404" type="line" smooth="yes"/>
+      <point x="509.256" y="417"/>
+      <point x="528.311" y="440"/>
+      <point x="534.306" y="474" type="curve" smooth="yes"/>
+      <point x="540.301" y="508"/>
+      <point x="529.357" y="531"/>
+      <point x="500.649" y="544" type="curve" smooth="yes"/>
+      <point x="196.04" y="688" type="line" smooth="yes"/>
+      <point x="150.743" y="709"/>
+      <point x="122.922" y="693"/>
+    </contour>
+    <contour>
+      <point x="415.248" y="468" type="curve" smooth="yes"/>
+      <point x="159.263" y="366" type="line" smooth="yes"/>
+      <point x="146.381" y="361"/>
+      <point x="141.087" y="365"/>
+      <point x="143.379" y="378" type="curve" smooth="yes"/>
+      <point x="177.763" y="573" type="line" smooth="yes"/>
+      <point x="180.055" y="586"/>
+      <point x="186.76" y="590"/>
+      <point x="197.879" y="585" type="curve" smooth="yes"/>
+      <point x="418.07" y="484" type="line" smooth="yes"/>
+      <point x="429.188" y="479"/>
+      <point x="428.13" y="473"/>
+    </contour>
+    <contour>
+      <point x="55.715" y="85" type="curve" smooth="yes"/>
+      <point x="415.715" y="85" type="line" smooth="yes"/>
+      <point x="445.715" y="85"/>
+      <point x="462.36" y="100"/>
+      <point x="468.65" y="130" type="curve"/>
+      <point x="473.94" y="160"/>
+      <point x="461.585" y="175"/>
+      <point x="431.585" y="175" type="curve" smooth="yes"/>
+      <point x="71.585" y="175" type="line" smooth="yes"/>
+      <point x="41.585" y="175"/>
+      <point x="23.94" y="160"/>
+      <point x="18.65" y="130" type="curve"/>
+      <point x="12.36" y="100"/>
+      <point x="25.715" y="85"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>normalsubgroorequalup</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

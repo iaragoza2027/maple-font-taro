@@ -2,33 +2,71 @@
 <glyph name="estimates" format="2">
   <advance width="600"/>
   <unicode hex="2259"/>
-  <anchor x="398.6" y="955.7" name="top"/>
-  <anchor x="483.96" y="609.2" name="bottom"/>
+  <anchor x="389" y="956" name="bottom"/>
+  <anchor x="328" y="609" name="top"/>
   <outline>
-    <component base="equal"/>
-    <component base="logicaland" xScale="0.8" yScale="0.7" xOffset="145" yOffset="570"/>
+    <contour>
+      <point x="438" y="185" type="curve" smooth="yes"/>
+      <point x="68" y="185" type="line" smooth="yes"/>
+      <point x="51" y="185"/>
+      <point x="44" y="193"/>
+      <point x="47" y="210" type="curve" smooth="yes"/>
+      <point x="50" y="227"/>
+      <point x="59" y="235"/>
+      <point x="76" y="235" type="curve" smooth="yes"/>
+      <point x="446" y="235" type="line" smooth="yes"/>
+      <point x="463" y="235"/>
+      <point x="470" y="227"/>
+      <point x="467" y="210" type="curve" smooth="yes"/>
+      <point x="464" y="193"/>
+      <point x="455" y="185"/>
+    </contour>
+    <contour>
+      <point x="480" y="425" type="curve" smooth="yes"/>
+      <point x="110" y="425" type="line" smooth="yes"/>
+      <point x="93" y="425"/>
+      <point x="86" y="433"/>
+      <point x="89" y="450" type="curve" smooth="yes"/>
+      <point x="92" y="467"/>
+      <point x="102" y="475"/>
+      <point x="119" y="475" type="curve" smooth="yes"/>
+      <point x="489" y="475" type="line" smooth="yes"/>
+      <point x="506" y="475"/>
+      <point x="512" y="467"/>
+      <point x="509" y="450" type="curve" smooth="yes"/>
+      <point x="506" y="433"/>
+      <point x="497" y="425"/>
+    </contour>
+    <contour>
+      <point x="144" y="621" type="curve"/>
+      <point x="353" y="944" type="line"/>
+      <point x="362" y="956"/>
+      <point x="372" y="962"/>
+      <point x="390" y="962" type="curve" smooth="yes"/>
+      <point x="407" y="962"/>
+      <point x="415" y="956"/>
+      <point x="420" y="944" type="curve"/>
+      <point x="463" y="844"/>
+      <point x="497" y="734"/>
+      <point x="517" y="621" type="curve" smooth="yes"/>
+      <point x="518" y="611"/>
+      <point x="503" y="603"/>
+      <point x="494" y="603" type="curve" smooth="yes"/>
+      <point x="483" y="603"/>
+      <point x="471" y="606"/>
+      <point x="469" y="615" type="curve"/>
+      <point x="453" y="713"/>
+      <point x="425" y="807"/>
+      <point x="387" y="893" type="curve" smooth="yes"/>
+      <point x="383" y="903"/>
+      <point x="377" y="903"/>
+      <point x="370" y="893" type="curve" smooth="yes"/>
+      <point x="188" y="615" type="line"/>
+      <point x="183" y="606"/>
+      <point x="171" y="603"/>
+      <point x="159" y="603" type="curve" smooth="yes"/>
+      <point x="151" y="603"/>
+      <point x="137" y="611"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>equal</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>logicaland</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

@@ -3,21 +3,75 @@
   <advance width="600"/>
   <unicode hex="22DB"/>
   <outline>
-    <component base="lessequalorgreater" xScale="-1" xOffset="440"/>
+    <contour>
+      <point x="159.633" y="400" type="curve" smooth="yes"/>
+      <point x="482.024" y="544" type="line" smooth="yes"/>
+      <point x="521.198" y="562"/>
+      <point x="544.135" y="590"/>
+      <point x="551.188" y="630" type="curve" smooth="yes"/>
+      <point x="558.417" y="671"/>
+      <point x="545.354" y="699"/>
+      <point x="512.352" y="716" type="curve" smooth="yes"/>
+      <point x="240.743" y="860" type="line" smooth="yes"/>
+      <point x="186.857" y="889"/>
+      <point x="152.977" y="867"/>
+      <point x="142.221" y="806" type="curve" smooth="yes"/>
+      <point x="137.461" y="779"/>
+      <point x="144.816" y="764"/>
+      <point x="163.229" y="755" type="curve" smooth="yes"/>
+      <point x="366.714" y="650" type="line" smooth="yes"/>
+      <point x="385.951" y="640"/>
+      <point x="383.601" y="621"/>
+      <point x="359.838" y="611" type="curve" smooth="yes"/>
+      <point x="119.5" y="507" type="line" smooth="yes"/>
+      <point x="97.913" y="498"/>
+      <point x="85.268" y="483"/>
+      <point x="80.507" y="456" type="curve" smooth="yes"/>
+      <point x="69.751" y="395"/>
+      <point x="94.519" y="371"/>
+    </contour>
+    <contour>
+      <point x="88.592" y="275" type="curve" smooth="yes"/>
+      <point x="448.592" y="275" type="line" smooth="yes"/>
+      <point x="485.592" y="275"/>
+      <point x="506.766" y="293"/>
+      <point x="513.29" y="330" type="curve" smooth="yes"/>
+      <point x="519.814" y="367"/>
+      <point x="504.988" y="385"/>
+      <point x="467.988" y="385" type="curve" smooth="yes"/>
+      <point x="107.988" y="385" type="line" smooth="yes"/>
+      <point x="70.988" y="385"/>
+      <point x="49.814" y="367"/>
+      <point x="43.29" y="330" type="curve" smooth="yes"/>
+      <point x="36.766" y="293"/>
+      <point x="51.592" y="275"/>
+    </contour>
+    <contour>
+      <point x="44.228" y="-56" type="curve" smooth="yes"/>
+      <point x="315.837" y="-200" type="line" smooth="yes"/>
+      <point x="370.723" y="-229"/>
+      <point x="403.955" y="-205"/>
+      <point x="414.711" y="-144" type="curve" smooth="yes"/>
+      <point x="419.472" y="-117"/>
+      <point x="412.117" y="-102"/>
+      <point x="393.703" y="-93" type="curve" smooth="yes"/>
+      <point x="190.042" y="11" type="line" smooth="yes"/>
+      <point x="169.805" y="21"/>
+      <point x="174.155" y="40"/>
+      <point x="196.918" y="50" type="curve" smooth="yes"/>
+      <point x="437.433" y="155" type="line" smooth="yes"/>
+      <point x="459.02" y="164"/>
+      <point x="471.664" y="179"/>
+      <point x="476.425" y="206" type="curve" smooth="yes"/>
+      <point x="487.181" y="267"/>
+      <point x="461.06" y="289"/>
+      <point x="396.947" y="260" type="curve" smooth="yes"/>
+      <point x="74.556" y="116" type="line" smooth="yes"/>
+      <point x="35.558" y="99"/>
+      <point x="12.621" y="71"/>
+      <point x="5.392" y="30" type="curve" smooth="yes"/>
+      <point x="-1.661" y="-10"/>
+      <point x="11.401" y="-38"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>lessequalorgreater</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

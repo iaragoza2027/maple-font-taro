@@ -3,21 +3,34 @@
   <advance width="600"/>
   <unicode hex="21E2"/>
   <outline>
-    <component base="arrowleftdashed" xScale="-1" xOffset="440"/>
+    <contour>
+      <point x="585.065" y="369" type="line"/>
+      <point x="439.27" y="580" type="line"/>
+      <point x="271.27" y="580" type="line"/>
+      <point x="339.813" y="481" type="line" smooth="yes"/>
+      <point x="352.639" y="463"/>
+      <point x="374.171" y="449"/>
+      <point x="388.289" y="444" type="curve"/>
+      <point x="308.289" y="444" type="line"/>
+      <point x="282.545" y="298" type="line"/>
+      <point x="359.545" y="298" type="line"/>
+      <point x="345.84" y="294"/>
+      <point x="319.548" y="281"/>
+      <point x="301.374" y="263" type="curve" smooth="yes"/>
+      <point x="194.212" y="160" type="line"/>
+      <point x="365.212" y="160" type="line"/>
+    </contour>
+    <contour>
+      <point x="258.289" y="444" type="line"/>
+      <point x="158.289" y="444" type="line"/>
+      <point x="132.545" y="298" type="line"/>
+      <point x="232.545" y="298" type="line"/>
+    </contour>
+    <contour>
+      <point x="108.289" y="444" type="line"/>
+      <point x="8.289" y="444" type="line"/>
+      <point x="-17.455" y="298" type="line"/>
+      <point x="82.545" y="298" type="line"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>arrowleftdashed</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

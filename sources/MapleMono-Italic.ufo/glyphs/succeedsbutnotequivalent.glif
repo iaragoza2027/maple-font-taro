@@ -3,39 +3,88 @@
   <advance width="600"/>
   <unicode hex="22E9"/>
   <outline>
-    <component base="ustraightstroke-cy.decorator" xScale="0.6524430310126145" xyScale="0.8656639597921776" yxScale="-0.7362935156165938" yScale="0.554937707189696" xOffset="69.0" yOffset="-61.0"/>
-    <component base="precedes" xScale="-1" xOffset="466" yOffset="149"/>
-    <component base="similar" xOffset="-35" yOffset="-200"/>
+    <contour>
+      <point x="361" y="212" type="curve" smooth="yes"/>
+      <point x="181" y="-27" type="line" smooth="yes"/>
+      <point x="165" y="-49"/>
+      <point x="147" y="-53"/>
+      <point x="128" y="-41" type="curve" smooth="yes"/>
+      <point x="109" y="-28"/>
+      <point x="106" y="-12"/>
+      <point x="123" y="10" type="curve" smooth="yes"/>
+      <point x="303" y="249" type="line" smooth="yes"/>
+      <point x="319" y="271"/>
+      <point x="337" y="275"/>
+      <point x="356" y="262" type="curve" smooth="yes"/>
+      <point x="376" y="250"/>
+      <point x="377" y="233"/>
+    </contour>
+    <contour>
+      <point x="110" y="275" type="curve" smooth="yes"/>
+      <point x="69" y="240"/>
+      <point x="52" y="248"/>
+      <point x="61" y="297" type="curve" smooth="yes"/>
+      <point x="66" y="322"/>
+      <point x="80" y="341"/>
+      <point x="100" y="358" type="curve" smooth="yes"/>
+      <point x="179" y="423"/>
+      <point x="261" y="452"/>
+      <point x="383" y="470" type="curve" smooth="yes"/>
+      <point x="409" y="474"/>
+      <point x="411" y="484"/>
+      <point x="386" y="488" type="curve" smooth="yes"/>
+      <point x="271" y="506"/>
+      <point x="199" y="535"/>
+      <point x="143" y="600" type="curve" smooth="yes"/>
+      <point x="129" y="617"/>
+      <point x="121" y="636"/>
+      <point x="125" y="661" type="curve" smooth="yes"/>
+      <point x="134" y="710"/>
+      <point x="153" y="718"/>
+      <point x="182" y="683" type="curve" smooth="yes"/>
+      <point x="259" y="589"/>
+      <point x="331" y="563"/>
+      <point x="481" y="534" type="curve" smooth="yes"/>
+      <point x="509" y="529"/>
+      <point x="520" y="509"/>
+      <point x="515" y="479" type="curve" smooth="yes"/>
+      <point x="510" y="449"/>
+      <point x="491" y="429"/>
+      <point x="461" y="424" type="curve" smooth="yes"/>
+      <point x="301" y="395"/>
+      <point x="220" y="369"/>
+    </contour>
+    <contour>
+      <point x="72" y="94" type="curve" smooth="yes"/>
+      <point x="48" y="74"/>
+      <point x="31" y="74"/>
+      <point x="16" y="93" type="curve" smooth="yes"/>
+      <point x="-1" y="113"/>
+      <point x="1" y="134"/>
+      <point x="22" y="153" type="curve" smooth="yes"/>
+      <point x="66" y="192"/>
+      <point x="116" y="216"/>
+      <point x="162" y="216" type="curve" smooth="yes"/>
+      <point x="250" y="216"/>
+      <point x="274" y="116"/>
+      <point x="329" y="116" type="curve" smooth="yes"/>
+      <point x="354" y="116"/>
+      <point x="380" y="134"/>
+      <point x="405" y="157" type="curve" smooth="yes"/>
+      <point x="429" y="179"/>
+      <point x="448" y="181"/>
+      <point x="466" y="164" type="curve" smooth="yes"/>
+      <point x="486" y="146"/>
+      <point x="484" y="124"/>
+      <point x="462" y="103" type="curve" smooth="yes"/>
+      <point x="418" y="60"/>
+      <point x="367" y="30"/>
+      <point x="307" y="30" type="curve" smooth="yes"/>
+      <point x="211" y="30"/>
+      <point x="198" y="131"/>
+      <point x="140" y="131" type="curve" smooth="yes"/>
+      <point x="119" y="131"/>
+      <point x="95" y="114"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>ustraightstroke-cy.decorator</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>precedes</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>2</integer>
-          <key>name</key>
-          <string>similar</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

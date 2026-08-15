@@ -3,21 +3,40 @@
   <advance width="600"/>
   <unicode hex="21E3"/>
   <outline>
-    <component base="arrowupdashed" yScale="-1" xOffset="130" yOffset="740"/>
+    <contour>
+      <point x="217.518" y="0" type="line"/>
+      <point x="404.027" y="139" type="line"/>
+      <point x="414.078" y="196" type="line"/>
+      <point x="296.209" y="106" type="line" smooth="yes"/>
+      <point x="277.74" y="92"/>
+      <point x="260.448" y="79"/>
+      <point x="253.685" y="69" type="curve"/>
+      <point x="271.494" y="170" type="line"/>
+      <point x="227.494" y="170" type="line"/>
+      <point x="209.685" y="69" type="line"/>
+      <point x="206.095" y="77"/>
+      <point x="194.74" y="92"/>
+      <point x="178.561" y="108" type="curve" smooth="yes"/>
+      <point x="94.078" y="196" type="line"/>
+      <point x="83.851" y="138" type="line"/>
+    </contour>
+    <contour>
+      <point x="283.837" y="240" type="line"/>
+      <point x="304.996" y="360" type="line"/>
+      <point x="260.996" y="360" type="line"/>
+      <point x="239.837" y="240" type="line"/>
+    </contour>
+    <contour>
+      <point x="317.339" y="430" type="line"/>
+      <point x="338.498" y="550" type="line"/>
+      <point x="294.498" y="550" type="line"/>
+      <point x="273.339" y="430" type="line"/>
+    </contour>
+    <contour>
+      <point x="350.841" y="620" type="line"/>
+      <point x="372" y="740" type="line"/>
+      <point x="328" y="740" type="line"/>
+      <point x="306.841" y="620" type="line"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>arrowupdashed</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

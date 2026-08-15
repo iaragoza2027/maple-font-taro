@@ -3,30 +3,89 @@
   <advance width="600"/>
   <unicode hex="224E"/>
   <outline>
-    <component base="geo.decorator"/>
-    <component base="geo.decorator" yScale="-1" xOffset="116" yOffset="660"/>
+    <contour>
+      <point x="384.888" y="368" type="curve" smooth="yes"/>
+      <point x="476.888" y="368" type="line" smooth="yes"/>
+      <point x="518.888" y="368"/>
+      <point x="543.591" y="389"/>
+      <point x="550.997" y="431" type="curve" smooth="yes"/>
+      <point x="558.403" y="473"/>
+      <point x="541.106" y="494"/>
+      <point x="499.106" y="494" type="curve" smooth="yes"/>
+      <point x="472.106" y="494" type="line" smooth="yes"/>
+      <point x="456.106" y="494"/>
+      <point x="446.34" y="501"/>
+      <point x="440.161" y="517" type="curve" smooth="yes"/>
+      <point x="420.33" y="569"/>
+      <point x="374.267" y="597"/>
+      <point x="325.267" y="597" type="curve" smooth="yes"/>
+      <point x="272.267" y="597"/>
+      <point x="218.33" y="569"/>
+      <point x="181.161" y="517" type="curve" smooth="yes"/>
+      <point x="170.34" y="501"/>
+      <point x="158.106" y="494"/>
+      <point x="142.106" y="494" type="curve" smooth="yes"/>
+      <point x="115.106" y="494" type="line" smooth="yes"/>
+      <point x="73.106" y="494"/>
+      <point x="48.403" y="473"/>
+      <point x="40.997" y="431" type="curve" smooth="yes"/>
+      <point x="33.591" y="389"/>
+      <point x="50.888" y="368"/>
+      <point x="92.888" y="368" type="curve" smooth="yes"/>
+      <point x="184.888" y="368" type="line" smooth="yes"/>
+      <point x="208.888" y="368"/>
+      <point x="227.181" y="381"/>
+      <point x="255.352" y="416" type="curve" smooth="yes"/>
+      <point x="266.821" y="430"/>
+      <point x="281.408" y="439"/>
+      <point x="297.408" y="439" type="curve" smooth="yes"/>
+      <point x="313.408" y="439"/>
+      <point x="324.821" y="430"/>
+      <point x="331.352" y="416" type="curve" smooth="yes"/>
+      <point x="347.181" y="381"/>
+      <point x="360.888" y="368"/>
+    </contour>
+    <contour>
+      <point x="463.487" y="292" type="curve" smooth="yes"/>
+      <point x="371.487" y="292" type="line" smooth="yes"/>
+      <point x="347.487" y="292"/>
+      <point x="329.195" y="279"/>
+      <point x="301.024" y="244" type="curve" smooth="yes"/>
+      <point x="289.555" y="230"/>
+      <point x="274.968" y="221"/>
+      <point x="258.968" y="221" type="curve" smooth="yes"/>
+      <point x="242.968" y="221"/>
+      <point x="231.555" y="230"/>
+      <point x="225.024" y="244" type="curve" smooth="yes"/>
+      <point x="209.195" y="279"/>
+      <point x="195.487" y="292"/>
+      <point x="171.487" y="292" type="curve" smooth="yes"/>
+      <point x="79.487" y="292" type="line" smooth="yes"/>
+      <point x="37.487" y="292"/>
+      <point x="12.785" y="271"/>
+      <point x="5.379" y="229" type="curve" smooth="yes"/>
+      <point x="-2.027" y="187"/>
+      <point x="15.27" y="166"/>
+      <point x="57.27" y="166" type="curve" smooth="yes"/>
+      <point x="84.27" y="166" type="line" smooth="yes"/>
+      <point x="100.27" y="166"/>
+      <point x="110.036" y="159"/>
+      <point x="115.215" y="143" type="curve" smooth="yes"/>
+      <point x="134.046" y="91"/>
+      <point x="178.109" y="63"/>
+      <point x="231.109" y="63" type="curve" smooth="yes"/>
+      <point x="280.109" y="63"/>
+      <point x="336.046" y="91"/>
+      <point x="374.215" y="143" type="curve" smooth="yes"/>
+      <point x="386.036" y="159"/>
+      <point x="398.27" y="166"/>
+      <point x="414.27" y="166" type="curve" smooth="yes"/>
+      <point x="441.27" y="166" type="line" smooth="yes"/>
+      <point x="483.27" y="166"/>
+      <point x="507.973" y="187"/>
+      <point x="515.379" y="229" type="curve" smooth="yes"/>
+      <point x="522.785" y="271"/>
+      <point x="505.487" y="292"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>geo.decorator</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>geo.decorator</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

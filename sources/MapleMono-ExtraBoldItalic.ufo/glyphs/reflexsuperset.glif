@@ -3,21 +3,51 @@
   <advance width="600"/>
   <unicode hex="2287"/>
   <outline>
-    <component base="reflexsubset" xScale="-1" xOffset="440"/>
+    <contour>
+      <point x="329.441" y="645" type="curve" smooth="yes"/>
+      <point x="149.441" y="645" type="line" smooth="yes"/>
+      <point x="102.441" y="645"/>
+      <point x="75.386" y="622"/>
+      <point x="67.098" y="575" type="curve" smooth="yes"/>
+      <point x="58.811" y="528"/>
+      <point x="77.755" y="505"/>
+      <point x="124.755" y="505" type="curve" smooth="yes"/>
+      <point x="300.755" y="505" type="line" smooth="yes"/>
+      <point x="364.755" y="505"/>
+      <point x="413.231" y="468"/>
+      <point x="399.478" y="390" type="curve" smooth="yes"/>
+      <point x="384.843" y="307"/>
+      <point x="320.2" y="275"/>
+      <point x="260.2" y="275" type="curve" smooth="yes"/>
+      <point x="84.2" y="275" type="line" smooth="yes"/>
+      <point x="37.2" y="275"/>
+      <point x="10.145" y="252"/>
+      <point x="1.857" y="205" type="curve" smooth="yes"/>
+      <point x="-6.43" y="158"/>
+      <point x="12.514" y="135"/>
+      <point x="59.514" y="135" type="curve" smooth="yes"/>
+      <point x="239.514" y="135" type="line" smooth="yes"/>
+      <point x="414.514" y="135"/>
+      <point x="516.265" y="230"/>
+      <point x="544.478" y="390" type="curve" smooth="yes"/>
+      <point x="572.69" y="550"/>
+      <point x="504.441" y="645"/>
+    </contour>
+    <contour>
+      <point x="27.775" y="-45" type="curve" smooth="yes"/>
+      <point x="397.775" y="-45" type="line" smooth="yes"/>
+      <point x="447.775" y="-45"/>
+      <point x="477.184" y="-20"/>
+      <point x="486" y="30" type="curve" smooth="yes"/>
+      <point x="494.816" y="80"/>
+      <point x="473.225" y="105"/>
+      <point x="423.225" y="105" type="curve" smooth="yes"/>
+      <point x="53.225" y="105" type="line" smooth="yes"/>
+      <point x="3.225" y="105"/>
+      <point x="-25.184" y="80"/>
+      <point x="-34" y="30" type="curve" smooth="yes"/>
+      <point x="-42.816" y="-20"/>
+      <point x="-22.225" y="-45"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>reflexsubset</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

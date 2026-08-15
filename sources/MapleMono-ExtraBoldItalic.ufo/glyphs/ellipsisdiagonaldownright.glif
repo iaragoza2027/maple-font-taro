@@ -3,21 +3,47 @@
   <advance width="600"/>
   <unicode hex="22F1"/>
   <outline>
-    <component base="ellipsisdiagonalupright" xScale="-1" xOffset="440"/>
+    <contour>
+      <point x="76.461" y="479" type="curve" smooth="yes"/>
+      <point x="124.461" y="479"/>
+      <point x="164.279" y="512"/>
+      <point x="172.743" y="560" type="curve" smooth="yes"/>
+      <point x="181.207" y="608"/>
+      <point x="153.026" y="641"/>
+      <point x="105.026" y="641" type="curve" smooth="yes"/>
+      <point x="57.026" y="641"/>
+      <point x="17.207" y="608"/>
+      <point x="8.743" y="560" type="curve" smooth="yes"/>
+      <point x="0.279" y="512"/>
+      <point x="28.461" y="479"/>
+    </contour>
+    <contour>
+      <point x="264.611" y="253" type="curve" smooth="yes"/>
+      <point x="312.611" y="253"/>
+      <point x="352.43" y="286"/>
+      <point x="360.893" y="334" type="curve" smooth="yes"/>
+      <point x="369.357" y="382"/>
+      <point x="341.176" y="415"/>
+      <point x="293.176" y="415" type="curve" smooth="yes"/>
+      <point x="245.176" y="415"/>
+      <point x="205.357" y="382"/>
+      <point x="196.893" y="334" type="curve" smooth="yes"/>
+      <point x="188.43" y="286"/>
+      <point x="216.611" y="253"/>
+    </contour>
+    <contour>
+      <point x="452.761" y="27" type="curve" smooth="yes"/>
+      <point x="500.761" y="27"/>
+      <point x="540.58" y="60"/>
+      <point x="549.043" y="108" type="curve" smooth="yes"/>
+      <point x="557.507" y="156"/>
+      <point x="529.326" y="189"/>
+      <point x="481.326" y="189" type="curve" smooth="yes"/>
+      <point x="433.326" y="189"/>
+      <point x="393.507" y="156"/>
+      <point x="385.043" y="108" type="curve" smooth="yes"/>
+      <point x="376.58" y="60"/>
+      <point x="404.761" y="27"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>ellipsisdiagonalupright</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

@@ -2149,10 +2149,6 @@ feature cv12 {
   sub ucaron by ucaron.cv12;
   sub ucircumflex by ucircumflex.cv12;
   sub udieresis by udieresis.cv12;
-  sub udieresisacute by udieresisacute.cv12;
-  sub udieresiscaron by udieresiscaron.cv12;
-  sub udieresisgrave by udieresisgrave.cv12;
-  sub udieresismacron by udieresismacron.cv12;
   sub udotbelow by udotbelow.cv12;
   sub ugrave by ugrave.cv12;
   sub uhookabove by uhookabove.cv12;

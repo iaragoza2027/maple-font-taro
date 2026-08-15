@@ -3,28 +3,31 @@
   <advance width="600"/>
   <unicode hex="207D"/>
   <outline>
-    <component base="parenleft" xScale="0.7" yScale="0.7" xOffset="138" yOffset="410"/>
+    <contour>
+      <point x="376.827" y="340.7" type="curve" smooth="yes"/>
+      <point x="387.986" y="328.1"/>
+      <point x="386.546" y="315.5"/>
+      <point x="371.764" y="302.2" type="curve" smooth="yes"/>
+      <point x="356.282" y="288.9"/>
+      <point x="342.241" y="288.2"/>
+      <point x="330.299" y="299.4" type="curve" smooth="yes"/>
+      <point x="237.648" y="390.4"/>
+      <point x="200.749" y="501.0"/>
+      <point x="228.0" y="655.0" type="curve" smooth="yes"/>
+      <point x="255.251" y="809.0"/>
+      <point x="325.535" y="909.1"/>
+      <point x="449.06" y="998.0" type="curve" smooth="yes"/>
+      <point x="465.86" y="1009.9"/>
+      <point x="479.818" y="1009.2"/>
+      <point x="490.237" y="995.9" type="curve" smooth="yes"/>
+      <point x="500.655" y="982.6"/>
+      <point x="497.197" y="971.4"/>
+      <point x="481.056" y="958.8" type="curve" smooth="yes"/>
+      <point x="379.189" y="881.1"/>
+      <point x="303.717" y="788.0"/>
+      <point x="281.9" y="655.0" type="curve" smooth="yes"/>
+      <point x="258.683" y="522.0"/>
+      <point x="301.758" y="421.2"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>parenleft</string>
-        </dict>
-      </array>
-      <key>com.schriftgestaltung.componentsSmartComponentValues</key>
-      <array>
-        <dict>
-          <key>Wt</key>
-          <integer>250</integer>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

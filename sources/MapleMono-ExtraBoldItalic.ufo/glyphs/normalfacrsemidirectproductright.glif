@@ -3,21 +3,43 @@
   <advance width="600"/>
   <unicode hex="22CA"/>
   <outline>
-    <component base="normalfacrsemidirectproductleft" xScale="-1" xOffset="443"/>
+    <contour>
+      <point x="560.055" y="437" type="curve" smooth="yes"/>
+      <point x="502.749" y="112" type="line" smooth="yes"/>
+      <point x="490.935" y="45"/>
+      <point x="463.819" y="33"/>
+      <point x="419.225" y="75" type="curve" smooth="yes"/>
+      <point x="262.674" y="225" type="line"/>
+      <point x="32.756" y="61" type="line" smooth="yes"/>
+      <point x="-13.063" y="28"/>
+      <point x="-30.3" y="38"/>
+      <point x="-21.307" y="89" type="curve" smooth="yes"/>
+      <point x="-16.722" y="115"/>
+      <point x="-3.196" y="135"/>
+      <point x="19.625" y="151" type="curve" smooth="yes"/>
+      <point x="195.49" y="275" type="line"/>
+      <point x="63.178" y="398" type="line" smooth="yes"/>
+      <point x="45.999" y="414"/>
+      <point x="39.526" y="434"/>
+      <point x="44.11" y="460" type="curve" smooth="yes"/>
+      <point x="53.103" y="511"/>
+      <point x="73.866" y="521"/>
+      <point x="108.048" y="488" type="curve" smooth="yes"/>
+      <point x="280.13" y="324" type="line"/>
+      <point x="489.579" y="474" type="line" smooth="yes"/>
+      <point x="548.985" y="516"/>
+      <point x="571.869" y="504"/>
+    </contour>
+    <contour>
+      <point x="346.49" y="275" type="line"/>
+      <point x="413.558" y="213" type="line" smooth="yes"/>
+      <point x="424.794" y="203"/>
+      <point x="431.147" y="205"/>
+      <point x="434.145" y="222" type="curve" smooth="yes"/>
+      <point x="452.659" y="327" type="line" smooth="yes"/>
+      <point x="455.656" y="344"/>
+      <point x="449.009" y="346"/>
+      <point x="434.246" y="336" type="curve" smooth="yes"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>normalfacrsemidirectproductleft</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

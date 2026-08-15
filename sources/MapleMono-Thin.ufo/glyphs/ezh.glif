@@ -2,6 +2,7 @@
 <glyph name="ezh" format="2">
   <advance width="600"/>
   <unicode hex="0292"/>
+  <unicode hex="04E1"/>
   <outline>
     <contour>
       <point x="72" y="-142" type="curve" smooth="yes"/>

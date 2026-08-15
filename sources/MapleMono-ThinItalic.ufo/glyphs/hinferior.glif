@@ -2,32 +2,46 @@
 <glyph name="hinferior" format="2">
   <advance width="600"/>
   <unicode hex="2095"/>
-  <anchor x="210.1" y="-60.0" name="bottom"/>
-  <anchor x="248.82" y="160.825" name="center"/>
-  <anchor x="188.32" y="381.65" name="top"/>
+  <anchor x="210" y="-60" name="bottom"/>
+  <anchor x="249" y="161" name="center"/>
+  <anchor x="188" y="382" name="top"/>
   <outline>
-    <component base="h" xScale="0.605" yScale="0.605" xOffset="77" yOffset="-60"/>
+    <contour>
+      <point x="172" y="139" type="curve" smooth="yes"/>
+      <point x="139" y="-43" type="line" smooth="yes"/>
+      <point x="137" y="-58"/>
+      <point x="128" y="-66"/>
+      <point x="112" y="-66" type="curve" smooth="yes"/>
+      <point x="96" y="-66"/>
+      <point x="90" y="-58"/>
+      <point x="93" y="-43" type="curve" smooth="yes"/>
+      <point x="165" y="365" type="line" smooth="yes"/>
+      <point x="168" y="380"/>
+      <point x="177" y="388"/>
+      <point x="193" y="388" type="curve" smooth="yes"/>
+      <point x="208" y="388"/>
+      <point x="214" y="380"/>
+      <point x="211" y="365" type="curve" smooth="yes"/>
+      <point x="185" y="215" type="line"/>
+      <point x="205" y="255"/>
+      <point x="238" y="279"/>
+      <point x="282" y="279" type="curve" smooth="yes"/>
+      <point x="346" y="279"/>
+      <point x="381" y="231"/>
+      <point x="369" y="163" type="curve" smooth="yes"/>
+      <point x="333" y="-43" type="line" smooth="yes"/>
+      <point x="330" y="-58"/>
+      <point x="321" y="-66"/>
+      <point x="306" y="-66" type="curve" smooth="yes"/>
+      <point x="290" y="-66"/>
+      <point x="284" y="-58"/>
+      <point x="287" y="-43" type="curve" smooth="yes"/>
+      <point x="321" y="151" type="line" smooth="yes"/>
+      <point x="329" y="195"/>
+      <point x="312" y="235"/>
+      <point x="266" y="235" type="curve" smooth="yes"/>
+      <point x="223" y="235"/>
+      <point x="179" y="179"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>h</string>
-        </dict>
-      </array>
-      <key>com.schriftgestaltung.componentsSmartComponentValues</key>
-      <array>
-        <dict>
-          <key>Wt</key>
-          <integer>300</integer>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

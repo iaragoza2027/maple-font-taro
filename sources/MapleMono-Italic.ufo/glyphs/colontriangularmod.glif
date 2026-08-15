@@ -3,30 +3,33 @@
   <advance width="600"/>
   <unicode hex="02D0"/>
   <outline>
-    <component base="triangularbullet" xScale="0.08821327425480065" xyScale="0.5002823385302017" yxScale="-0.4845254144820063" yScale="0.08543490341212977" xOffset="389.0" yOffset="-60.0"/>
-    <component base="triangularbullet" xScale="-0.08821327425480059" xyScale="-0.5002823385302017" yxScale="0.4845254144820063" yScale="-0.08543490341212971" xOffset="148.0" yOffset="610.0"/>
+    <contour>
+      <point x="255" y="0" type="curve" smooth="yes"/>
+      <point x="185" y="0" type="line" smooth="yes"/>
+      <point x="158" y="0"/>
+      <point x="153" y="12"/>
+      <point x="168" y="36" type="curve" smooth="yes"/>
+      <point x="217" y="110" type="line" smooth="yes"/>
+      <point x="233" y="135"/>
+      <point x="253" y="135"/>
+      <point x="261" y="110" type="curve" smooth="yes"/>
+      <point x="283" y="36" type="line" smooth="yes"/>
+      <point x="291" y="12"/>
+      <point x="282" y="0"/>
+    </contour>
+    <contour>
+      <point x="282" y="550" type="curve" smooth="yes"/>
+      <point x="352" y="550" type="line" smooth="yes"/>
+      <point x="379" y="550"/>
+      <point x="384" y="538"/>
+      <point x="369" y="514" type="curve" smooth="yes"/>
+      <point x="320" y="440" type="line" smooth="yes"/>
+      <point x="304" y="415"/>
+      <point x="284" y="415"/>
+      <point x="276" y="440" type="curve" smooth="yes"/>
+      <point x="254" y="514" type="line" smooth="yes"/>
+      <point x="246" y="538"/>
+      <point x="255" y="550"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>triangularbullet</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>triangularbullet</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

@@ -3,21 +3,33 @@
   <advance width="600"/>
   <unicode hex="21C6"/>
   <outline>
-    <component base="rightarrowoverleftarrow" xScale="-1" xOffset="440"/>
+    <contour>
+      <point x="604.386" y="592" type="line"/>
+      <point x="595.569" y="542" type="line"/>
+      <point x="73.569" y="542" type="line"/>
+      <point x="82.386" y="592" type="line"/>
+    </contour>
+    <contour>
+      <point x="313.074" y="715" type="line"/>
+      <point x="113.977" y="567" type="line"/>
+      <point x="260.881" y="419" type="line"/>
+      <point x="215.886" y="385" type="line"/>
+      <point x="39.977" y="567" type="line"/>
+      <point x="281.069" y="749" type="line"/>
+    </contour>
+    <contour>
+      <point x="463.512" y="122" type="line"/>
+      <point x="-38.488" y="122" type="line"/>
+      <point x="-29.672" y="172" type="line"/>
+      <point x="472.328" y="172" type="line"/>
+    </contour>
+    <contour>
+      <point x="252.824" y="-1" type="line"/>
+      <point x="451.92" y="147" type="line"/>
+      <point x="305.016" y="295" type="line"/>
+      <point x="349.012" y="329" type="line"/>
+      <point x="525.92" y="147" type="line"/>
+      <point x="285.829" y="-35" type="line"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>rightarrowoverleftarrow</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

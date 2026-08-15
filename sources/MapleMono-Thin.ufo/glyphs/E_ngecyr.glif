@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="Engecyr" format="2">
+  <advance width="600"/>
+  <unicode hex="04A4"/>
+  <outline>
+    <contour>
+      <point x="555" y="680" type="curve" smooth="yes"/>
+      <point x="440" y="680" type="line" smooth="yes"/>
+      <point x="433" y="680"/>
+      <point x="430" y="677"/>
+      <point x="430" y="670" type="curve" smooth="yes"/>
+      <point x="430" y="15" type="line" smooth="yes"/>
+      <point x="430" y="-2"/>
+      <point x="422" y="-10"/>
+      <point x="405" y="-10" type="curve" smooth="yes"/>
+      <point x="388" y="-10"/>
+      <point x="380" y="-2"/>
+      <point x="380" y="15" type="curve" smooth="yes"/>
+      <point x="380" y="355" type="line"/>
+      <point x="140" y="355" type="line"/>
+      <point x="140" y="15" type="line" smooth="yes"/>
+      <point x="140" y="-2"/>
+      <point x="132" y="-10"/>
+      <point x="115" y="-10" type="curve" smooth="yes"/>
+      <point x="98" y="-10"/>
+      <point x="90" y="-2"/>
+      <point x="90" y="15" type="curve" smooth="yes"/>
+      <point x="90" y="715" type="line" smooth="yes"/>
+      <point x="90" y="732"/>
+      <point x="98" y="740"/>
+      <point x="115" y="740" type="curve" smooth="yes"/>
+      <point x="132" y="740"/>
+      <point x="140" y="732"/>
+      <point x="140" y="715" type="curve" smooth="yes"/>
+      <point x="140" y="405" type="line"/>
+      <point x="380" y="405" type="line"/>
+      <point x="380" y="705" type="line" smooth="yes"/>
+      <point x="380" y="720"/>
+      <point x="388" y="730"/>
+      <point x="404" y="730" type="curve" smooth="yes"/>
+      <point x="555" y="730" type="line" smooth="yes"/>
+      <point x="572" y="730"/>
+      <point x="580" y="722"/>
+      <point x="580" y="705" type="curve" smooth="yes"/>
+      <point x="580" y="688"/>
+      <point x="572" y="680"/>
+    </contour>
+  </outline>
+</glyph>

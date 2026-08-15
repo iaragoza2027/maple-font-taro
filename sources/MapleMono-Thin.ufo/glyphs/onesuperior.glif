@@ -3,28 +3,49 @@
   <advance width="600"/>
   <unicode hex="00B9"/>
   <outline>
-    <component base="one" xScale="0.602" yScale="0.602" xOffset="120" yOffset="440"/>
+    <contour>
+      <point x="343" y="461" type="line"/>
+      <point x="297" y="461" type="line"/>
+      <point x="297" y="817" type="line" smooth="yes"/>
+      <point x="297" y="826"/>
+      <point x="295" y="831"/>
+      <point x="290" y="831" type="curve" smooth="yes"/>
+      <point x="288" y="831"/>
+      <point x="284" y="829"/>
+      <point x="280" y="825" type="curve" smooth="yes"/>
+      <point x="213" y="773" type="line" smooth="yes"/>
+      <point x="204" y="766"/>
+      <point x="196" y="762"/>
+      <point x="190" y="762" type="curve" smooth="yes"/>
+      <point x="182" y="762"/>
+      <point x="178" y="770"/>
+      <point x="178" y="786" type="curve" smooth="yes"/>
+      <point x="178" y="801"/>
+      <point x="182" y="808"/>
+      <point x="190" y="814" type="curve" smooth="yes"/>
+      <point x="264" y="873" type="line" smooth="yes"/>
+      <point x="276" y="882"/>
+      <point x="288" y="885"/>
+      <point x="302" y="885" type="curve" smooth="yes"/>
+      <point x="330" y="885"/>
+      <point x="343" y="872"/>
+      <point x="343" y="845" type="curve" smooth="yes"/>
+    </contour>
+    <contour>
+      <point x="426" y="440" type="curve" smooth="yes"/>
+      <point x="191" y="440" type="line" smooth="yes"/>
+      <point x="176" y="440"/>
+      <point x="168" y="448"/>
+      <point x="168" y="463" type="curve" smooth="yes"/>
+      <point x="168" y="479"/>
+      <point x="176" y="486"/>
+      <point x="191" y="486" type="curve" smooth="yes"/>
+      <point x="426" y="486" type="line" smooth="yes"/>
+      <point x="441" y="486"/>
+      <point x="449" y="479"/>
+      <point x="449" y="463" type="curve" smooth="yes"/>
+      <point x="449" y="448"/>
+      <point x="441" y="440"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>one</string>
-        </dict>
-      </array>
-      <key>com.schriftgestaltung.componentsSmartComponentValues</key>
-      <array>
-        <dict>
-          <key>Wt</key>
-          <integer>300</integer>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

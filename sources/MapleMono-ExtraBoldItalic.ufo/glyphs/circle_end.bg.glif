@@ -2,21 +2,16 @@
 <glyph name="circle_end.bg" format="2">
   <advance width="600"/>
   <outline>
-    <component base="circle_start.bg" xScale="-1" xOffset="440"/>
+    <contour>
+      <point x="583.478" y="360" type="curve" smooth="yes"/>
+      <point x="660.356" y="796"/>
+      <point x="449.854" y="1020"/>
+      <point x="119.854" y="1020" type="curve" smooth="yes"/>
+      <point x="59.854" y="1020" type="line"/>
+      <point x="-172.898" y="-300" type="line"/>
+      <point x="-112.898" y="-300" type="line" smooth="yes"/>
+      <point x="217.102" y="-300"/>
+      <point x="506.599" y="-76"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>circle_start.bg</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

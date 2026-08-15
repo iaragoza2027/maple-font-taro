@@ -3,21 +3,75 @@
   <advance width="600"/>
   <unicode hex="2279"/>
   <outline>
-    <component base="neirlessnorgreater" xScale="-1" xOffset="440"/>
+    <contour>
+      <point x="128.043" y="308" type="curve" smooth="yes"/>
+      <point x="481.2" y="445" type="line" smooth="yes"/>
+      <point x="519.845" y="460"/>
+      <point x="542.135" y="490"/>
+      <point x="549.188" y="530" type="curve" smooth="yes"/>
+      <point x="556.241" y="570"/>
+      <point x="544.354" y="599"/>
+      <point x="511.176" y="615" type="curve"/>
+      <point x="206.332" y="752" type="line" smooth="yes"/>
+      <point x="151.564" y="776"/>
+      <point x="119.39" y="758"/>
+      <point x="108.635" y="697" type="curve" smooth="yes"/>
+      <point x="104.226" y="672"/>
+      <point x="112.052" y="654"/>
+      <point x="129.818" y="647" type="curve" smooth="yes"/>
+      <point x="365.538" y="549" type="line" smooth="yes"/>
+      <point x="385.127" y="541"/>
+      <point x="383.248" y="519"/>
+      <point x="358.838" y="511" type="curve"/>
+      <point x="88.734" y="414" type="line" smooth="yes"/>
+      <point x="68.5" y="407"/>
+      <point x="54.502" y="390"/>
+      <point x="50.094" y="365" type="curve" smooth="yes"/>
+      <point x="39.162" y="303"/>
+      <point x="63.635" y="283"/>
+    </contour>
+    <contour>
+      <point x="45.669" y="45" type="curve" smooth="yes"/>
+      <point x="350.513" y="-92" type="line" smooth="yes"/>
+      <point x="406.104" y="-117"/>
+      <point x="437.631" y="-97"/>
+      <point x="448.563" y="-35" type="curve" smooth="yes"/>
+      <point x="452.971" y="-10"/>
+      <point x="444.969" y="7"/>
+      <point x="427.203" y="14" type="curve" smooth="yes"/>
+      <point x="191.307" y="111" type="line"/>
+      <point x="169.718" y="119"/>
+      <point x="175.597" y="141"/>
+      <point x="198.007" y="149" type="curve" smooth="yes"/>
+      <point x="468.287" y="247" type="line" smooth="yes"/>
+      <point x="488.522" y="254"/>
+      <point x="502.696" y="272"/>
+      <point x="507.104" y="297" type="curve" smooth="yes"/>
+      <point x="517.86" y="358"/>
+      <point x="492.034" y="376"/>
+      <point x="428.802" y="352" type="curve" smooth="yes"/>
+      <point x="75.645" y="215" type="line"/>
+      <point x="36.824" y="199"/>
+      <point x="14.71" y="170"/>
+      <point x="7.657" y="130" type="curve" smooth="yes"/>
+      <point x="0.604" y="90"/>
+      <point x="12.314" y="60"/>
+    </contour>
+    <contour>
+      <point x="250.747" y="-85" type="curve"/>
+      <point x="400.625" y="765" type="line" smooth="yes"/>
+      <point x="405.915" y="795"/>
+      <point x="393.559" y="810"/>
+      <point x="363.559" y="810" type="curve" smooth="yes"/>
+      <point x="333.559" y="810"/>
+      <point x="315.915" y="795"/>
+      <point x="310.625" y="765" type="curve" smooth="yes"/>
+      <point x="160.747" y="-85" type="line"/>
+      <point x="154.457" y="-115"/>
+      <point x="167.812" y="-130"/>
+      <point x="197.812" y="-130" type="curve" smooth="yes"/>
+      <point x="227.812" y="-130"/>
+      <point x="244.457" y="-115"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>neirlessnorgreater</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

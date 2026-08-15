@@ -358,7 +358,7 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
                 self.assertIn(0x004B, source.font["K"].unicodes)
                 self.assertNotIn(0x212A, source.font["K"].unicodes)
 
-    def test_runtime_aliases_include_builtins_and_configured_extras(self) -> None:
+    def test_runtime_aliases_include_configured_extras_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             source_path = root / "Fixture.glyphs"
@@ -376,7 +376,7 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
                 alias_codepoints(font, {0xE000: 0x004B})
                 cmap = font.getBestCmap()
                 assert cmap is not None
-                self.assertEqual(cmap[0x212A], "K")
+                self.assertNotIn(0x212A, cmap)
                 self.assertEqual(cmap[0xE000], "K")
             finally:
                 font.close()

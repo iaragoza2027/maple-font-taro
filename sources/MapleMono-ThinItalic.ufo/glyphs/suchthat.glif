@@ -3,21 +3,46 @@
   <advance width="600"/>
   <unicode hex="220B"/>
   <outline>
-    <component base="element" xScale="-1" xOffset="447"/>
+    <contour>
+      <point x="-8.957" y="108" type="curve" smooth="yes"/>
+      <point x="-11.602" y="93"/>
+      <point x="-5.012" y="85"/>
+      <point x="9.988" y="85" type="curve" smooth="yes"/>
+      <point x="276.988" y="85" type="line" smooth="yes"/>
+      <point x="406.988" y="85"/>
+      <point x="490.212" y="160"/>
+      <point x="521.901" y="283" type="curve" smooth="yes"/>
+      <point x="534.893" y="334"/>
+      <point x="544.062" y="386"/>
+      <point x="549.055" y="437" type="curve" smooth="yes"/>
+      <point x="560.743" y="560"/>
+      <point x="503.968" y="635"/>
+      <point x="373.968" y="635" type="curve" smooth="yes"/>
+      <point x="106.968" y="635" type="line" smooth="yes"/>
+      <point x="91.968" y="635"/>
+      <point x="82.733" y="628"/>
+      <point x="80.088" y="613" type="curve" smooth="yes"/>
+      <point x="77.444" y="598"/>
+      <point x="84.033" y="590"/>
+      <point x="99.033" y="590" type="curve" smooth="yes"/>
+      <point x="366.033" y="590" type="line" smooth="yes"/>
+      <point x="487.033" y="590"/>
+      <point x="514.458" y="496"/>
+      <point x="493.357" y="382" type="curve"/>
+      <point x="61.357" y="382" type="line" smooth="yes"/>
+      <point x="46.357" y="382"/>
+      <point x="38.123" y="375"/>
+      <point x="35.478" y="360" type="curve" smooth="yes"/>
+      <point x="32.833" y="345"/>
+      <point x="38.599" y="338"/>
+      <point x="53.599" y="338" type="curve" smooth="yes"/>
+      <point x="485.599" y="338" type="line"/>
+      <point x="466.497" y="224"/>
+      <point x="405.923" y="130"/>
+      <point x="284.923" y="130" type="curve" smooth="yes"/>
+      <point x="17.923" y="130" type="line" smooth="yes"/>
+      <point x="2.923" y="130"/>
+      <point x="-6.312" y="123"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>element</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

@@ -6,18 +6,6 @@
     <array>
       <dict>
         <key>class</key>
-        <string>CursFeatureWriter</string>
-      </dict>
-      <dict>
-        <key>class</key>
-        <string>KernFeatureWriter</string>
-      </dict>
-      <dict>
-        <key>class</key>
-        <string>MarkFeatureWriter</string>
-      </dict>
-      <dict>
-        <key>class</key>
         <string>GdefFeatureWriter</string>
       </dict>
     </array>
@@ -483,10 +471,6 @@
       <string>ucaron</string>
       <string>ucircumflex</string>
       <string>udieresis</string>
-      <string>udieresisacute</string>
-      <string>udieresiscaron</string>
-      <string>udieresisgrave</string>
-      <string>udieresismacron</string>
       <string>udotbelow</string>
       <string>ugrave</string>
       <string>uhookabove</string>
@@ -791,7 +775,21 @@
       <string>four-gujarati</string>
       <string>Sigmalunatesymbol</string>
       <string>Omicronasper</string>
+      <string>Ohm</string>
+      <string>kelvin</string>
+      <string>angstrom</string>
+      <string>Oopen</string>
+      <string>Ismall-latin</string>
+      <string>Ereversed</string>
+      <string>Dafrican</string>
+      <string>Ezh</string>
+      <string>Upsilonafrican</string>
+      <string>Vturned</string>
+      <string>sigmalunatesymbol</string>
+      <string>omicronasper</string>
       <string>Omegalenisacute</string>
+      <string>omegalenisacute</string>
+      <string>dtail</string>
       <string>zero</string>
       <string>one</string>
       <string>two</string>
@@ -1972,10 +1970,6 @@
       <string>ucaron.cv12</string>
       <string>ucircumflex.cv12</string>
       <string>udieresis.cv12</string>
-      <string>udieresisacute.cv12</string>
-      <string>udieresiscaron.cv12</string>
-      <string>udieresisgrave.cv12</string>
-      <string>udieresismacron.cv12</string>
       <string>udotbelow.cv12</string>
       <string>ugrave.cv12</string>
       <string>uhookabove.cv12</string>
@@ -2530,6 +2524,22 @@
       <string>greaterThanWithCircleInside</string>
       <string>doubleSucceeds</string>
       <string>tripleNestedGreaterThan</string>
+      <string>Gehookcyr</string>
+      <string>gehookcyr</string>
+      <string>Zetailcyr</string>
+      <string>zetailcyr</string>
+      <string>Kaverticalstrokecyr</string>
+      <string>kaverticalstrokecyr</string>
+      <string>Kabashkcyr</string>
+      <string>kabashkcyr</string>
+      <string>Engecyr</string>
+      <string>engecyr</string>
+      <string>Estailcyr</string>
+      <string>estailcyr</string>
+      <string>Chevertcyr</string>
+      <string>chevertcyr</string>
+      <string>Palochkacyr</string>
+      <string>palochkacyr</string>
     </array>
     <key>public.postscriptNames</key>
     <dict>
@@ -2571,6 +2581,10 @@
       <string>uni04B6</string>
       <key>Chedieresis-cy</key>
       <string>uni04F4</string>
+      <key>Chevertcyr</key>
+      <string>uni04B8</string>
+      <key>Dafrican</key>
+      <string>uni0189</string>
       <key>De-cy</key>
       <string>uni0414</string>
       <key>De-cy.loclBGR</key>
@@ -2615,24 +2629,34 @@
       <string>uni041D</string>
       <key>Endescender-cy</key>
       <string>uni04A2</string>
+      <key>Engecyr</key>
+      <string>uni04A4</string>
       <key>Eopen</key>
       <string>uni0190</string>
       <key>Er-cy</key>
       <string>uni0420</string>
+      <key>Ereversed</key>
+      <string>uni018E</string>
       <key>Ereversed-cy</key>
       <string>uni042D</string>
       <key>Ereverseddieresiscyr</key>
       <string>uni04EC</string>
       <key>Es-cy</key>
       <string>uni0421</string>
+      <key>Estailcyr</key>
+      <string>uni04AA</string>
       <key>Etilde</key>
       <string>uni1EBC</string>
+      <key>Ezh</key>
+      <string>uni01B7</string>
       <key>Gacute</key>
       <string>uni01F4</string>
       <key>Gcommaaccent</key>
       <string>uni0122</string>
       <key>Ge-cy</key>
       <string>uni0413</string>
+      <key>Gehookcyr</key>
+      <string>uni0494</string>
       <key>Germandbls</key>
       <string>uni1E9E</string>
       <key>Ghestroke-cy</key>
@@ -2687,6 +2711,8 @@
       <string>uni0401</string>
       <key>Ismall</key>
       <string>uni026A</string>
+      <key>Ismall-latin</key>
+      <string>uniA7AE</string>
       <key>Iu-cy</key>
       <string>uni042E</string>
       <key>Je-cy</key>
@@ -2695,10 +2721,14 @@
       <string>uni0408.cv07</string>
       <key>Ka-cy</key>
       <string>uni041A</string>
+      <key>Kabashkcyr</key>
+      <string>uni04A0</string>
       <key>Kadescender-cy</key>
       <string>uni049A</string>
       <key>KaiSymbol</key>
       <string>uni03CF</string>
+      <key>Kaverticalstrokecyr</key>
+      <string>uni049C</string>
       <key>Kcommaaccent</key>
       <string>uni0136</string>
       <key>Kje-cy</key>
@@ -2733,6 +2763,8 @@
       <string>uni04E6</string>
       <key>Odotbelow</key>
       <string>uni1ECC</string>
+      <key>Ohm</key>
+      <string>uni2126</string>
       <key>Ohookabove</key>
       <string>uni1ECE</string>
       <key>Ohornacute</key>
@@ -2753,6 +2785,10 @@
       <string>uni1F49</string>
       <key>Oogonek</key>
       <string>uni01EA</string>
+      <key>Oopen</key>
+      <string>uni0186</string>
+      <key>Palochkacyr</key>
+      <string>uni04C0</string>
       <key>Pe-cy</key>
       <string>uni041F</string>
       <key>Rcommaaccent</key>
@@ -2809,6 +2845,8 @@
       <string>uni1EEE</string>
       <key>Umacroncyr</key>
       <string>uni04EE</string>
+      <key>Upsilonafrican</key>
+      <string>uni01B1</string>
       <key>Ushort-cy</key>
       <string>uni040E</string>
       <key>Ustraight-cy</key>
@@ -2817,6 +2855,8 @@
       <string>uni04B0</string>
       <key>Ve-cy</key>
       <string>uni0412</string>
+      <key>Vturned</key>
+      <string>uni0245</string>
       <key>Ydotbelow</key>
       <string>uni1EF4</string>
       <key>Yeru-cy</key>
@@ -2835,6 +2875,8 @@
       <string>uni0417</string>
       <key>Zedieresis-cy</key>
       <string>uni04DE</string>
+      <key>Zetailcyr</key>
+      <string>uni0498</string>
       <key>Zhe-cy</key>
       <string>uni0416</string>
       <key>Zhedescender-cy</key>
@@ -2913,6 +2955,8 @@
       <string>uni0252</string>
       <key>anglearcright</key>
       <string>uni22BE</string>
+      <key>angstrom</key>
+      <string>uni212B</string>
       <key>apostrophemod</key>
       <string>uni02BC</string>
       <key>approacheslimit</key>
@@ -3277,6 +3321,8 @@
       <string>uni04B7</string>
       <key>chedieresis-cy</key>
       <string>uni04F5</string>
+      <key>chevertcyr</key>
+      <string>uni04B9</string>
       <key>circledasteriskoperator</key>
       <string>uni229B</string>
       <key>circleddash</key>
@@ -3429,6 +3475,8 @@
       <string>arrowdbldown</string>
       <key>downFrombarArrow</key>
       <string>uni21A7</string>
+      <key>dtail</key>
+      <string>uni0256</string>
       <key>dze-cy</key>
       <string>uni0455</string>
       <key>dzhe-cy</key>
@@ -3493,6 +3541,8 @@
       <string>uni043D</string>
       <key>endescender-cy</key>
       <string>uni04A3</string>
+      <key>engecyr</key>
+      <string>uni04A5</string>
       <key>eopen</key>
       <string>uni025B</string>
       <key>eopenreversed</key>
@@ -3531,6 +3581,8 @@
       <string>uni0441</string>
       <key>esh</key>
       <string>uni0283</string>
+      <key>estailcyr</key>
+      <string>uni04AB</string>
       <key>estimates</key>
       <string>uni2259</string>
       <key>etilde</key>
@@ -3573,6 +3625,8 @@
       <string>uni0433</string>
       <key>ge-cy.loclBGR</key>
       <string>uni0433.loclBGR</string>
+      <key>gehookcyr</key>
+      <string>uni0495</string>
       <key>geometricallyequal</key>
       <string>uni2251</string>
       <key>geometricallyequivalent</key>
@@ -3731,12 +3785,18 @@
       <string>uni043A</string>
       <key>ka-cy.loclBGR</key>
       <string>uni043A.loclBGR</string>
+      <key>kabashkcyr</key>
+      <string>uni04A1</string>
       <key>kadescender-cy</key>
       <string>uni049B</string>
       <key>kaiSymbol</key>
       <string>uni03D7</string>
+      <key>kaverticalstrokecyr</key>
+      <string>uni049D</string>
       <key>kcommaaccent</key>
       <string>uni0137</string>
+      <key>kelvin</key>
+      <string>uni212A</string>
       <key>kinferior</key>
       <string>uni2096</string>
       <key>kje-cy</key>
@@ -4017,6 +4077,10 @@
       <string>uni1EE1</string>
       <key>oinferior</key>
       <string>uni2092</string>
+      <key>omegalenisacute</key>
+      <string>uni1F64</string>
+      <key>omicronasper</key>
+      <string>uni1F41</string>
       <key>oneinferior</key>
       <string>uni2081</string>
       <key>oneinferior.cv04</key>
@@ -4037,6 +4101,8 @@
       <string>uni21DF</string>
       <key>pageup</key>
       <string>uni21DE</string>
+      <key>palochkacyr</key>
+      <string>uni04CF</string>
       <key>parallel</key>
       <string>uni2225</string>
       <key>parenleft.inferior</key>
@@ -4211,6 +4277,8 @@
       <string>uni04BB</string>
       <key>sigmafinal</key>
       <string>uni03C2</string>
+      <key>sigmalunatesymbol</key>
+      <string>uni03F2</string>
       <key>sinewave</key>
       <string>uni223F</string>
       <key>sinferior</key>
@@ -4343,24 +4411,8 @@
       <string>uni01D4</string>
       <key>ucaron.cv12</key>
       <string>uni01D4.cv12</string>
-      <key>udieresisacute</key>
-      <string>uni01D8</string>
-      <key>udieresisacute.cv12</key>
-      <string>uni01D8.cv12</string>
-      <key>udieresiscaron</key>
-      <string>uni01DA</string>
-      <key>udieresiscaron.cv12</key>
-      <string>uni01DA.cv12</string>
       <key>udieresiscyr</key>
       <string>uni04F1</string>
-      <key>udieresisgrave</key>
-      <string>uni01DC</string>
-      <key>udieresisgrave.cv12</key>
-      <string>uni01DC.cv12</string>
-      <key>udieresismacron</key>
-      <string>uni01D6</string>
-      <key>udieresismacron.cv12</key>
-      <string>uni01D6.cv12</string>
       <key>udotbelow</key>
       <string>uni1EE5</string>
       <key>udotbelow.cv12</key>
@@ -4501,6 +4553,8 @@
       <string>uni2070</string>
       <key>zerosuperior.zero</key>
       <string>uni2070.zero</string>
+      <key>zetailcyr</key>
+      <string>uni0499</string>
       <key>zhe-cy</key>
       <string>uni0436</string>
       <key>zhe-cy.loclBGR</key>

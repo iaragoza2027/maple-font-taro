@@ -198,9 +198,17 @@ class PublicCliContractTest(unittest.TestCase):
             "release",
             "page",
             "cjk",
+            "googlefonts",
             "publish",
         ):
             self.assertIn(command, result.stdout)
+
+    def test_googlefonts_command_contract_is_exposed(self) -> None:
+        result = self.run_cli("task.py", "googlefonts", "--help")
+
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("usage: task.py googlefonts [-h] [--qa]", result.stdout)
+        self.assertIn("--qa", result.stdout)
 
     def test_page_command_contract_is_unchanged(self) -> None:
         result = self.run_cli("task.py", "page", "--help")

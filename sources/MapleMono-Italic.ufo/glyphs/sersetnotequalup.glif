@@ -3,30 +3,67 @@
   <advance width="600"/>
   <unicode hex="228B"/>
   <outline>
-    <component base="ustraightstroke-cy.decorator" xScale="0.6524430310126145" xyScale="0.8656639597921776" yxScale="-0.7362935156165938" yScale="0.554937707189696" xOffset="57.0" yOffset="-131.0"/>
-    <component base="reflexsuperset"/>
+    <contour>
+      <point x="349" y="142" type="curve" smooth="yes"/>
+      <point x="169" y="-97" type="line" smooth="yes"/>
+      <point x="153" y="-119"/>
+      <point x="135" y="-123"/>
+      <point x="116" y="-111" type="curve" smooth="yes"/>
+      <point x="97" y="-98"/>
+      <point x="94" y="-82"/>
+      <point x="111" y="-60" type="curve" smooth="yes"/>
+      <point x="291" y="179" type="line" smooth="yes"/>
+      <point x="307" y="201"/>
+      <point x="325" y="205"/>
+      <point x="344" y="192" type="curve" smooth="yes"/>
+      <point x="364" y="180"/>
+      <point x="365" y="163"/>
+    </contour>
+    <contour>
+      <point x="124" y="631" type="curve" smooth="yes"/>
+      <point x="341" y="631" type="line" smooth="yes"/>
+      <point x="487" y="631"/>
+      <point x="569" y="556"/>
+      <point x="539" y="390" type="curve" smooth="yes"/>
+      <point x="512" y="233"/>
+      <point x="402" y="149"/>
+      <point x="256" y="149" type="curve" smooth="yes"/>
+      <point x="39" y="149" type="line" smooth="yes"/>
+      <point x="10" y="149"/>
+      <point x="-1" y="164"/>
+      <point x="4" y="193" type="curve" smooth="yes"/>
+      <point x="9" y="221"/>
+      <point x="25" y="236"/>
+      <point x="54" y="236" type="curve" smooth="yes"/>
+      <point x="271" y="236" type="line" smooth="yes"/>
+      <point x="357" y="236"/>
+      <point x="436" y="284"/>
+      <point x="454" y="390" type="curve" smooth="yes"/>
+      <point x="474" y="500"/>
+      <point x="412" y="544"/>
+      <point x="326" y="544" type="curve" smooth="yes"/>
+      <point x="109" y="544" type="line" smooth="yes"/>
+      <point x="80" y="544"/>
+      <point x="68" y="559"/>
+      <point x="73" y="587" type="curve" smooth="yes"/>
+      <point x="78" y="616"/>
+      <point x="95" y="631"/>
+    </contour>
+    <contour>
+      <point x="427" y="-15" type="curve" smooth="yes"/>
+      <point x="7" y="-15" type="line" smooth="yes"/>
+      <point x="-23" y="-15"/>
+      <point x="-35" y="0"/>
+      <point x="-29" y="30" type="curve"/>
+      <point x="-25" y="60"/>
+      <point x="-7" y="75"/>
+      <point x="23" y="75" type="curve" smooth="yes"/>
+      <point x="443" y="75" type="line" smooth="yes"/>
+      <point x="473" y="75"/>
+      <point x="485" y="60"/>
+      <point x="481" y="30" type="curve"/>
+      <point x="475" y="0"/>
+      <point x="457" y="-15"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>ustraightstroke-cy.decorator</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>reflexsuperset</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

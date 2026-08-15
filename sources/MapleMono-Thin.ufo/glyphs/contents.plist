@@ -94,12 +94,16 @@
     <string>C_hedescender-cy.glif</string>
     <key>Chedieresis-cy</key>
     <string>C_hedieresis-cy.glif</string>
+    <key>Chevertcyr</key>
+    <string>C_hevertcyr.glif</string>
     <key>Chi</key>
     <string>C_hi.glif</string>
     <key>D</key>
     <string>D_.glif</string>
     <key>D.bg</key>
     <string>D_.bg.glif</string>
+    <key>Dafrican</key>
+    <string>D_african.glif</string>
     <key>Dcaron</key>
     <string>D_caron.glif</string>
     <key>Dcroat</key>
@@ -172,6 +176,8 @@
     <string>E_ng.glif</string>
     <key>Eng.decorator</key>
     <string>E_ng.decorator.glif</string>
+    <key>Engecyr</key>
+    <string>E_ngecyr.glif</string>
     <key>Eogonek</key>
     <string>E_ogonek.glif</string>
     <key>Eopen</key>
@@ -182,12 +188,16 @@
     <string>E_psilontonos.glif</string>
     <key>Er-cy</key>
     <string>E_r-cy.glif</string>
+    <key>Ereversed</key>
+    <string>E_reversed.glif</string>
     <key>Ereversed-cy</key>
     <string>E_reversed-cy.glif</string>
     <key>Ereverseddieresiscyr</key>
     <string>E_reverseddieresiscyr.glif</string>
     <key>Es-cy</key>
     <string>E_s-cy.glif</string>
+    <key>Estailcyr</key>
+    <string>E_stailcyr.glif</string>
     <key>Eta</key>
     <string>E_ta.glif</string>
     <key>Etatonos</key>
@@ -198,6 +208,8 @@
     <string>E_th.decorator.glif</string>
     <key>Etilde</key>
     <string>E_tilde.glif</string>
+    <key>Ezh</key>
+    <string>E_zh.glif</string>
     <key>F</key>
     <string>F_.glif</string>
     <key>F.bg</key>
@@ -222,6 +234,8 @@
     <string>G_dotaccent.glif</string>
     <key>Ge-cy</key>
     <string>G_e-cy.glif</string>
+    <key>Gehookcyr</key>
+    <string>G_ehookcyr.glif</string>
     <key>Germandbls</key>
     <string>G_ermandbls.glif</string>
     <key>Ghestroke-cy</key>
@@ -316,6 +330,8 @@
     <string>I_otatonos.glif</string>
     <key>Ismall</key>
     <string>I_small.glif</string>
+    <key>Ismall-latin</key>
+    <string>I_small-latin.glif</string>
     <key>Itilde</key>
     <string>I_tilde.glif</string>
     <key>Iu-cy</key>
@@ -342,12 +358,16 @@
     <string>K_.bg.glif</string>
     <key>Ka-cy</key>
     <string>K_a-cy.glif</string>
+    <key>Kabashkcyr</key>
+    <string>K_abashkcyr.glif</string>
     <key>Kadescender-cy</key>
     <string>K_adescender-cy.glif</string>
     <key>KaiSymbol</key>
     <string>K_aiS_ymbol.glif</string>
     <key>Kappa</key>
     <string>K_appa.glif</string>
+    <key>Kaverticalstrokecyr</key>
+    <string>K_averticalstrokecyr.glif</string>
     <key>Kcommaaccent</key>
     <string>K_commaaccent.glif</string>
     <key>Kje-cy</key>
@@ -434,6 +454,8 @@
     <string>O_dotbelow.glif</string>
     <key>Ograve</key>
     <string>O_grave.glif</string>
+    <key>Ohm</key>
+    <string>O_hm.glif</string>
     <key>Ohookabove</key>
     <string>O_hookabove.glif</string>
     <key>Ohorn</key>
@@ -466,6 +488,8 @@
     <string>O_microntonos.glif</string>
     <key>Oogonek</key>
     <string>O_ogonek.glif</string>
+    <key>Oopen</key>
+    <string>O_open.glif</string>
     <key>Oslash</key>
     <string>O_slash.glif</string>
     <key>Oslashacute</key>
@@ -476,6 +500,8 @@
     <string>P_.glif</string>
     <key>P.bg</key>
     <string>P_.bg.glif</string>
+    <key>Palochkacyr</key>
+    <string>P_alochkacyr.glif</string>
     <key>Pe-cy</key>
     <string>P_e-cy.glif</string>
     <key>Phi</key>
@@ -612,6 +638,8 @@
     <string>U_ogonek.glif</string>
     <key>Upsilon</key>
     <string>U_psilon.glif</string>
+    <key>Upsilonafrican</key>
+    <string>U_psilonafrican.glif</string>
     <key>Upsilondieresis</key>
     <string>U_psilondieresis.glif</string>
     <key>Upsilontonos</key>
@@ -632,6 +660,8 @@
     <string>V_.bg.glif</string>
     <key>Ve-cy</key>
     <string>V_e-cy.glif</string>
+    <key>Vturned</key>
+    <string>V_turned.glif</string>
     <key>W</key>
     <string>W_.glif</string>
     <key>W.bg</key>
@@ -702,6 +732,8 @@
     <string>Z_edieresis-cy.glif</string>
     <key>Zeta</key>
     <string>Z_eta.glif</string>
+    <key>Zetailcyr</key>
+    <string>Z_etailcyr.glif</string>
     <key>Zhe-cy</key>
     <string>Z_he-cy.glif</string>
     <key>Zhedescender-cy</key>
@@ -858,6 +890,8 @@
     <string>anglearcright.glif</string>
     <key>anglearcright.decorator</key>
     <string>anglearcright.decorator.glif</string>
+    <key>angstrom</key>
+    <string>angstrom.glif</string>
     <key>anoteleia</key>
     <string>anoteleia.glif</string>
     <key>aogonek</key>
@@ -1508,6 +1542,8 @@
     <string>chedescender-cy.glif</string>
     <key>chedieresis-cy</key>
     <string>chedieresis-cy.glif</string>
+    <key>chevertcyr</key>
+    <string>chevertcyr.glif</string>
     <key>chevronsnowflakeheavy</key>
     <string>chevronsnowflakeheavy.glif</string>
     <key>chi</key>
@@ -1802,6 +1838,8 @@
     <string>downW_hiteS_mallT_riangle.glif</string>
     <key>downWhiteTriangle</key>
     <string>downW_hiteT_riangle.glif</string>
+    <key>dtail</key>
+    <string>dtail.glif</string>
     <key>dze-cy</key>
     <string>dze-cy.glif</string>
     <key>dzhe-cy</key>
@@ -1912,6 +1950,8 @@
     <string>eng.glif</string>
     <key>eng.decorator</key>
     <string>eng.decorator.glif</string>
+    <key>engecyr</key>
+    <string>engecyr.glif</string>
     <key>eogonek</key>
     <string>eogonek.glif</string>
     <key>eopen</key>
@@ -2008,6 +2048,8 @@
     <string>es-cy.glif</string>
     <key>esh</key>
     <string>esh.glif</string>
+    <key>estailcyr</key>
+    <string>estailcyr.glif</string>
     <key>estimated</key>
     <string>estimated.glif</string>
     <key>estimates</key>
@@ -2136,6 +2178,8 @@
     <string>ge-cy.glif</string>
     <key>ge-cy.loclBGR</key>
     <string>ge-cy.loclB_G_R_.glif</string>
+    <key>gehookcyr</key>
+    <string>gehookcyr.glif</string>
     <key>geo.decorator</key>
     <string>geo.decorator.glif</string>
     <key>geometricallyequal</key>
@@ -2540,14 +2584,20 @@
     <string>ka-cy.glif</string>
     <key>ka-cy.loclBGR</key>
     <string>ka-cy.loclB_G_R_.glif</string>
+    <key>kabashkcyr</key>
+    <string>kabashkcyr.glif</string>
     <key>kadescender-cy</key>
     <string>kadescender-cy.glif</string>
     <key>kaiSymbol</key>
     <string>kaiS_ymbol.glif</string>
     <key>kappa</key>
     <string>kappa.glif</string>
+    <key>kaverticalstrokecyr</key>
+    <string>kaverticalstrokecyr.glif</string>
     <key>kcommaaccent</key>
     <string>kcommaaccent.glif</string>
+    <key>kelvin</key>
+    <string>kelvin.glif</string>
     <key>kgreenlandic</key>
     <string>kgreenlandic.glif</string>
     <key>kinferior</key>
@@ -3126,10 +3176,14 @@
     <string>omacron.glif</string>
     <key>omega</key>
     <string>omega.glif</string>
+    <key>omegalenisacute</key>
+    <string>omegalenisacute.glif</string>
     <key>omegatonos</key>
     <string>omegatonos.glif</string>
     <key>omicron</key>
     <string>omicron.glif</string>
+    <key>omicronasper</key>
+    <string>omicronasper.glif</string>
     <key>omicrontonos</key>
     <string>omicrontonos.glif</string>
     <key>one</key>
@@ -3192,6 +3246,8 @@
     <string>pagedown.glif</string>
     <key>pageup</key>
     <string>pageup.glif</string>
+    <key>palochkacyr</key>
+    <string>palochkacyr.glif</string>
     <key>paragraph</key>
     <string>paragraph.glif</string>
     <key>paragraphseparator-ethi</key>
@@ -3592,6 +3648,8 @@
     <string>sigma.glif</string>
     <key>sigmafinal</key>
     <string>sigmafinal.glif</string>
+    <key>sigmalunatesymbol</key>
+    <string>sigmalunatesymbol.glif</string>
     <key>similar</key>
     <string>similar.glif</string>
     <key>sinewave</key>
@@ -3904,24 +3962,8 @@
     <string>udieresis.glif</string>
     <key>udieresis.cv12</key>
     <string>udieresis.cv12.glif</string>
-    <key>udieresisacute</key>
-    <string>udieresisacute.glif</string>
-    <key>udieresisacute.cv12</key>
-    <string>udieresisacute.cv12.glif</string>
-    <key>udieresiscaron</key>
-    <string>udieresiscaron.glif</string>
-    <key>udieresiscaron.cv12</key>
-    <string>udieresiscaron.cv12.glif</string>
     <key>udieresiscyr</key>
     <string>udieresiscyr.glif</string>
-    <key>udieresisgrave</key>
-    <string>udieresisgrave.glif</string>
-    <key>udieresisgrave.cv12</key>
-    <string>udieresisgrave.cv12.glif</string>
-    <key>udieresismacron</key>
-    <string>udieresismacron.glif</string>
-    <key>udieresismacron.cv12</key>
-    <string>udieresismacron.cv12.glif</string>
     <key>udotbelow</key>
     <string>udotbelow.glif</string>
     <key>udotbelow.cv12</key>
@@ -4766,6 +4808,8 @@
     <string>zerosuperior.zero.glif</string>
     <key>zeta</key>
     <string>zeta.glif</string>
+    <key>zetailcyr</key>
+    <string>zetailcyr.glif</string>
     <key>zhe-cy</key>
     <string>zhe-cy.glif</string>
     <key>zhe-cy.loclBGR</key>

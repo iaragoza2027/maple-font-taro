@@ -2,25 +2,42 @@
 <glyph name="universal" format="2">
   <advance width="600"/>
   <unicode hex="2200"/>
-  <anchor x="349" y="730" name="top"/>
+  <anchor x="349" y="730" name="bottom"/>
   <anchor x="514" y="730" name="ogonek"/>
-  <anchor x="478" y="0" name="bottom"/>
+  <anchor x="221" y="0" name="top"/>
   <outline>
-    <component base="A" yScale="-1" xOffset="129" yOffset="730"/>
+    <contour>
+      <point x="250" y="194" type="curve"/>
+      <point x="234" y="445" type="line"/>
+      <point x="362" y="445" type="line"/>
+      <point x="260" y="194" type="line" smooth="yes"/>
+      <point x="256" y="185"/>
+      <point x="250" y="185"/>
+    </contour>
+    <contour>
+      <point x="463" y="691" type="curve" smooth="yes"/>
+      <point x="412" y="565" type="line"/>
+      <point x="228" y="565" type="line"/>
+      <point x="221" y="691" type="line" smooth="yes"/>
+      <point x="220" y="726"/>
+      <point x="201" y="740"/>
+      <point x="160" y="740" type="curve" smooth="yes"/>
+      <point x="99" y="740"/>
+      <point x="67" y="708"/>
+      <point x="72" y="643" type="curve" smooth="yes"/>
+      <point x="116" y="83" type="line" smooth="yes"/>
+      <point x="121" y="20"/>
+      <point x="154" y="-10"/>
+      <point x="218" y="-10" type="curve" smooth="yes"/>
+      <point x="282" y="-10"/>
+      <point x="327" y="20"/>
+      <point x="354" y="83" type="curve" smooth="yes"/>
+      <point x="594" y="643" type="line" smooth="yes"/>
+      <point x="623" y="708"/>
+      <point x="600" y="740"/>
+      <point x="541" y="740" type="curve" smooth="yes"/>
+      <point x="500" y="740"/>
+      <point x="477" y="724"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>A</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

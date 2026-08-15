@@ -38,18 +38,18 @@
       <point x="394.2" y="694" type="curve" smooth="yes"/>
     </contour>
     <contour>
-      <point x="370.8" y="809.8" type="qcurve" smooth="yes"/>
-      <point x="348.6" y="809.8"/>
-      <point x="326.7" y="832.6"/>
-      <point x="330.3" y="852.1" type="qcurve" smooth="yes"/>
-      <point x="333.6" y="871.9"/>
-      <point x="363.9" y="895"/>
-      <point x="386.1" y="895" type="qcurve" smooth="yes"/>
-      <point x="408.3" y="895"/>
-      <point x="430.2" y="871.9"/>
-      <point x="426.9" y="852.1" type="qcurve" smooth="yes"/>
-      <point x="423.3" y="832.6"/>
-      <point x="393" y="809.8"/>
+      <point x="371" y="810" type="curve"/>
+      <point x="341" y="810"/>
+      <point x="325" y="826"/>
+      <point x="330" y="852" type="curve" smooth="yes"/>
+      <point x="335" y="878"/>
+      <point x="356" y="895"/>
+      <point x="386" y="895" type="curve" smooth="yes"/>
+      <point x="416" y="895"/>
+      <point x="431" y="878"/>
+      <point x="427" y="852" type="curve" smooth="yes"/>
+      <point x="422" y="826"/>
+      <point x="400" y="810"/>
     </contour>
   </outline>
 </glyph>

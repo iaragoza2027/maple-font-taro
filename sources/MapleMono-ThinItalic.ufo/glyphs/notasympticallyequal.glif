@@ -3,30 +3,69 @@
   <advance width="600"/>
   <unicode hex="2244"/>
   <outline>
-    <component base="asympticallyequal"/>
-    <component base="slashlongcomb" xOffset="607" yOffset="40"/>
+    <contour>
+      <point x="114.956" y="396" type="curve" smooth="yes"/>
+      <point x="100.664" y="383"/>
+      <point x="89.664" y="383"/>
+      <point x="78.78" y="395" type="curve" smooth="yes"/>
+      <point x="68.072" y="408"/>
+      <point x="69.364" y="421"/>
+      <point x="82.656" y="434" type="curve" smooth="yes"/>
+      <point x="120.004" y="470"/>
+      <point x="166.707" y="491"/>
+      <point x="210.707" y="491" type="curve" smooth="yes"/>
+      <point x="292.707" y="491"/>
+      <point x="313.074" y="391"/>
+      <point x="377.074" y="391" type="curve" smooth="yes"/>
+      <point x="411.074" y="391"/>
+      <point x="441.777" y="412"/>
+      <point x="467.185" y="437" type="curve" smooth="yes"/>
+      <point x="481.654" y="451"/>
+      <point x="495.007" y="453"/>
+      <point x="507.067" y="442" type="curve" smooth="yes"/>
+      <point x="519.951" y="430"/>
+      <point x="518.483" y="416"/>
+      <point x="505.014" y="402" type="curve" smooth="yes"/>
+      <point x="466.137" y="363"/>
+      <point x="418.2" y="335"/>
+      <point x="360.2" y="335" type="curve" smooth="yes"/>
+      <point x="270.2" y="335"/>
+      <point x="262.009" y="436"/>
+      <point x="194.009" y="436" type="curve" smooth="yes"/>
+      <point x="165.009" y="436"/>
+      <point x="137.659" y="417"/>
+    </contour>
+    <contour>
+      <point x="443.041" y="215" type="curve" smooth="yes"/>
+      <point x="73.041" y="215" type="line" smooth="yes"/>
+      <point x="56.041" y="215"/>
+      <point x="49.451" y="223"/>
+      <point x="52.449" y="240" type="curve" smooth="yes"/>
+      <point x="55.447" y="257"/>
+      <point x="64.857" y="265"/>
+      <point x="81.857" y="265" type="curve" smooth="yes"/>
+      <point x="451.857" y="265" type="line" smooth="yes"/>
+      <point x="468.857" y="265"/>
+      <point x="475.447" y="257"/>
+      <point x="472.449" y="240" type="curve" smooth="yes"/>
+      <point x="469.451" y="223"/>
+      <point x="460.041" y="215"/>
+    </contour>
+    <contour>
+      <point x="50.788" y="-70" type="curve" smooth="yes"/>
+      <point x="35.788" y="-70"/>
+      <point x="32.022" y="-63"/>
+      <point x="40.491" y="-49" type="curve" smooth="yes"/>
+      <point x="464.857" y="679" type="line" smooth="yes"/>
+      <point x="473.325" y="693"/>
+      <point x="484.559" y="700"/>
+      <point x="499.559" y="700" type="curve" smooth="yes"/>
+      <point x="514.559" y="700"/>
+      <point x="519.325" y="693"/>
+      <point x="510.857" y="679" type="curve" smooth="yes"/>
+      <point x="86.491" y="-49" type="line" smooth="yes"/>
+      <point x="78.022" y="-63"/>
+      <point x="65.788" y="-70"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>asympticallyequal</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>slashlongcomb</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

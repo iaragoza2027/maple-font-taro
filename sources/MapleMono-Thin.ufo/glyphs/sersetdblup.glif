@@ -3,7 +3,7 @@
   <advance width="600"/>
   <unicode hex="22D1"/>
   <outline>
-    <component base="uniondbl" xScale="0" yScale="0" xOffset="575" yOffset="-25"/>
+    <component base="subsetdbl" xScale="-1" xOffset="600"/>
   </outline>
   <lib>
     <dict>
@@ -15,7 +15,7 @@
           <key>index</key>
           <integer>0</integer>
           <key>name</key>
-          <string>uniondbl</string>
+          <string>subsetdbl</string>
         </dict>
       </array>
     </dict>

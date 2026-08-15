@@ -3,30 +3,49 @@
   <advance width="600"/>
   <unicode hex="22BE"/>
   <outline>
-    <component base="quarter_cirle.decorator" xScale="0.9965491621039573" xyScale="0.35828866505919554" yxScale="-0.3193810196561668" yScale="0.8883308867102321" xOffset="-99.0" yOffset="-21.0"/>
-    <component base="anglearcright.decorator"/>
+    <contour>
+      <point x="282.944" y="51.875" type="curve" smooth="yes"/>
+      <point x="265.611" y="47.65"/>
+      <point x="256.696" y="54.477"/>
+      <point x="253.402" y="70.348" type="curve" smooth="yes"/>
+      <point x="224.921" y="207.584"/>
+      <point x="158.116" y="286.9"/>
+      <point x="43.41" y="338.961" type="curve" smooth="yes"/>
+      <point x="28.127" y="345.505"/>
+      <point x="25.802" y="356.708"/>
+      <point x="34.248" y="372.787" type="curve" smooth="yes"/>
+      <point x="42.5" y="389.799"/>
+      <point x="54.461" y="394.099"/>
+      <point x="69.55" y="388.489" type="curve" smooth="yes"/>
+      <point x="202.945" y="334.117"/>
+      <point x="274.621" y="236.489"/>
+      <point x="306.397" y="83.381" type="curve" smooth="yes"/>
+      <point x="309.691" y="67.511"/>
+      <point x="301.273" y="56.458"/>
+    </contour>
+    <contour>
+      <point x="426.864" y="65.495" type="curve" smooth="yes"/>
+      <point x="422.986" y="48.049"/>
+      <point x="413.987" y="39.798"/>
+      <point x="396.877" y="39.665" type="curve" smooth="yes"/>
+      <point x="27.222" y="40.195" type="line" smooth="yes"/>
+      <point x="-13.368" y="39.647"/>
+      <point x="-29.37" y="59.978"/>
+      <point x="-22.584" y="99.537" type="curve" smooth="yes"/>
+      <point x="42.948" y="470.219" type="line" smooth="yes"/>
+      <point x="45.219" y="485.081"/>
+      <point x="54.218" y="493.333"/>
+      <point x="69.335" y="492.748" type="curve" smooth="yes"/>
+      <point x="84.259" y="493.098"/>
+      <point x="90.987" y="486.487"/>
+      <point x="87.719" y="471.267" type="curve" smooth="yes"/>
+      <point x="25.676" y="119.898" type="line" smooth="yes"/>
+      <point x="22.38" y="99.652"/>
+      <point x="30.88" y="89.665"/>
+      <point x="51.175" y="89.939" type="curve" smooth="yes"/>
+      <point x="405.712" y="89.994" type="line" smooth="yes"/>
+      <point x="422.823" y="90.127"/>
+      <point x="429.744" y="82.583"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>quarter_cirle.decorator</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>anglearcright.decorator</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

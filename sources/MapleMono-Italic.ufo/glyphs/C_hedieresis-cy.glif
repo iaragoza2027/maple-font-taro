@@ -2,7 +2,6 @@
 <glyph name="Chedieresis-cy" format="2">
   <advance width="600"/>
   <unicode hex="04F4"/>
-  <anchor x="500" y="0" name="bottomright"/>
   <anchor x="387" y="945" name="top"/>
   <outline>
     <component base="Che-cy"/>

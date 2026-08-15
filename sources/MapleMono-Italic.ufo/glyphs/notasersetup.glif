@@ -3,30 +3,51 @@
   <advance width="600"/>
   <unicode hex="2285"/>
   <outline>
-    <component base="propersuperset"/>
-    <component base="slashlongcomb" xOffset="566" yOffset="90"/>
+    <contour>
+      <point x="339.973" y="601" type="curve" smooth="yes"/>
+      <point x="122.973" y="601" type="line" smooth="yes"/>
+      <point x="93.973" y="601"/>
+      <point x="77.328" y="586"/>
+      <point x="72.214" y="557" type="curve" smooth="yes"/>
+      <point x="67.277" y="529"/>
+      <point x="78.632" y="514"/>
+      <point x="107.632" y="514" type="curve" smooth="yes"/>
+      <point x="324.632" y="514" type="line" smooth="yes"/>
+      <point x="410.632" y="514"/>
+      <point x="472.874" y="470"/>
+      <point x="453.478" y="360" type="curve" smooth="yes"/>
+      <point x="434.787" y="254"/>
+      <point x="356.323" y="206"/>
+      <point x="270.323" y="206" type="curve" smooth="yes"/>
+      <point x="53.323" y="206" type="line" smooth="yes"/>
+      <point x="24.323" y="206"/>
+      <point x="7.678" y="191"/>
+      <point x="2.741" y="163" type="curve" smooth="yes"/>
+      <point x="-2.372" y="134"/>
+      <point x="8.983" y="119"/>
+      <point x="37.983" y="119" type="curve" smooth="yes"/>
+      <point x="254.983" y="119" type="line" smooth="yes"/>
+      <point x="400.983" y="119"/>
+      <point x="510.794" y="203"/>
+      <point x="538.478" y="360" type="curve" smooth="yes"/>
+      <point x="567.748" y="526"/>
+      <point x="485.973" y="601"/>
+    </contour>
+    <contour>
+      <point x="8.473" y="-20" type="curve" smooth="yes"/>
+      <point x="29.473" y="-20"/>
+      <point x="45.06" y="-11"/>
+      <point x="56.587" y="9" type="curve" smooth="yes"/>
+      <point x="475.132" y="721" type="line" smooth="yes"/>
+      <point x="486.658" y="741"/>
+      <point x="481.245" y="750"/>
+      <point x="460.245" y="750" type="curve" smooth="yes"/>
+      <point x="439.245" y="750"/>
+      <point x="423.658" y="741"/>
+      <point x="412.132" y="721" type="curve" smooth="yes"/>
+      <point x="-6.413" y="9" type="line" smooth="yes"/>
+      <point x="-17.94" y="-11"/>
+      <point x="-12.527" y="-20"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>propersuperset</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>slashlongcomb</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

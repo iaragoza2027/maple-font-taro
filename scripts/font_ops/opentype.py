@@ -138,21 +138,15 @@ def remove_target_glyph(font: TTFont, glyph_name_suffix: str):
     )
 
 
-DEFAULT_COMPAT_ALIASES: dict[int, int] = {
-    0x2126: 0x03A9,
-    0x212A: 0x004B,
-    0x212B: 0x00C5,
-}
-
-
 def alias_codepoints(
     font: TTFont,
-    extra_mapping: dict[int, int] | None = None,
+    code_mapping: dict[int, int] | None = None,
 ) -> None:
-    mapping = {**(extra_mapping or {}), **DEFAULT_COMPAT_ALIASES}
+    if code_mapping is None:
+        return
 
     dst_glyphs: dict[int, str] = {}
-    for source, destination in mapping.items():
+    for source, destination in code_mapping.items():
         glyph = next(
             (
                 table.cmap[destination]

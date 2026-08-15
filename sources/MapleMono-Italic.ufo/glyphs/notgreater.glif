@@ -3,30 +3,48 @@
   <advance width="600"/>
   <unicode hex="226F"/>
   <outline>
-    <component base="less_math.decorator" xScale="-1" xOffset="440"/>
-    <component base="slashlongcomb" xOffset="596" yOffset="90"/>
+    <contour>
+      <point x="94.98" y="136" type="curve" smooth="yes"/>
+      <point x="441.608" y="270" type="line" smooth="yes"/>
+      <point x="469.548" y="281"/>
+      <point x="485.251" y="302"/>
+      <point x="490.188" y="330" type="curve" smooth="yes"/>
+      <point x="495.125" y="358"/>
+      <point x="485.652" y="378"/>
+      <point x="462.768" y="390" type="curve"/>
+      <point x="163.219" y="523" type="line" smooth="yes"/>
+      <point x="121.393" y="541"/>
+      <point x="101.806" y="532"/>
+      <point x="94.753" y="492" type="curve" smooth="yes"/>
+      <point x="90.874" y="470"/>
+      <point x="96.581" y="457"/>
+      <point x="108.7" y="452" type="curve" smooth="yes"/>
+      <point x="364.185" y="347" type="line" smooth="yes"/>
+      <point x="380.127" y="341"/>
+      <point x="377.425" y="320"/>
+      <point x="358.19" y="313" type="curve" smooth="yes"/>
+      <point x="65.852" y="209" type="line" smooth="yes"/>
+      <point x="51.971" y="204"/>
+      <point x="41.678" y="191"/>
+      <point x="37.799" y="169" type="curve" smooth="yes"/>
+      <point x="30.746" y="129"/>
+      <point x="46.63" y="117"/>
+    </contour>
+    <contour>
+      <point x="38.473" y="-20" type="curve" smooth="yes"/>
+      <point x="59.473" y="-20"/>
+      <point x="75.06" y="-11"/>
+      <point x="86.587" y="9" type="curve" smooth="yes"/>
+      <point x="505.132" y="721" type="line" smooth="yes"/>
+      <point x="516.658" y="741"/>
+      <point x="511.245" y="750"/>
+      <point x="490.245" y="750" type="curve" smooth="yes"/>
+      <point x="469.245" y="750"/>
+      <point x="453.658" y="741"/>
+      <point x="442.132" y="721" type="curve" smooth="yes"/>
+      <point x="23.587" y="9" type="line" smooth="yes"/>
+      <point x="12.06" y="-11"/>
+      <point x="17.473" y="-20"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>less_math.decorator</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>slashlongcomb</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

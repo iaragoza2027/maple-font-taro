@@ -3,21 +3,49 @@
   <advance width="600"/>
   <unicode hex="0252"/>
   <outline>
-    <component base="alpha-ipa" xScale="-1" xOffset="440"/>
+    <contour>
+      <point x="228.237" y="-10" type="curve" smooth="yes"/>
+      <point x="352.237" y="-10"/>
+      <point x="447.633" y="100"/>
+      <point x="478.49" y="275" type="curve" smooth="yes"/>
+      <point x="509.347" y="450"/>
+      <point x="452.743" y="560"/>
+      <point x="326.743" y="560" type="curve" smooth="yes"/>
+      <point x="190.743" y="560"/>
+      <point x="114.347" y="450"/>
+      <point x="84.019" y="278" type="curve" smooth="yes"/>
+      <point x="52.633" y="100"/>
+      <point x="95.237" y="-10"/>
+    </contour>
+    <contour>
+      <point x="227.053" y="40" type="curve" smooth="yes"/>
+      <point x="126.053" y="40"/>
+      <point x="82.923" y="130"/>
+      <point x="109.019" y="278" type="curve" smooth="yes"/>
+      <point x="134.057" y="420"/>
+      <point x="203.927" y="510"/>
+      <point x="307.927" y="510" type="curve" smooth="yes"/>
+      <point x="410.927" y="510"/>
+      <point x="454.057" y="420"/>
+      <point x="428.49" y="275" type="curve" smooth="yes"/>
+      <point x="402.923" y="130"/>
+      <point x="329.053" y="40"/>
+    </contour>
+    <contour>
+      <point x="62.645" y="15" type="curve" smooth="yes"/>
+      <point x="154.335" y="535" type="line" smooth="yes"/>
+      <point x="157.332" y="552"/>
+      <point x="150.743" y="560"/>
+      <point x="133.743" y="560" type="curve" smooth="yes"/>
+      <point x="116.743" y="560"/>
+      <point x="107.332" y="552"/>
+      <point x="104.335" y="535" type="curve" smooth="yes"/>
+      <point x="12.645" y="15" type="line" smooth="yes"/>
+      <point x="9.647" y="-2"/>
+      <point x="16.237" y="-10"/>
+      <point x="33.237" y="-10" type="curve" smooth="yes"/>
+      <point x="50.237" y="-10"/>
+      <point x="59.647" y="-2"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>alpha-ipa</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

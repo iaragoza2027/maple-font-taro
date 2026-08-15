@@ -3,28 +3,48 @@
   <advance width="600"/>
   <unicode hex="2076"/>
   <outline>
-    <component base="six" xScale="0.6" yScale="0.6" xOffset="165" yOffset="436"/>
+    <contour>
+      <point x="376.844" y="865.0" type="curve" smooth="yes"/>
+      <point x="389.125" y="873.4"/>
+      <point x="402.889" y="880.0"/>
+      <point x="416.689" y="880.0" type="curve" smooth="yes"/>
+      <point x="435.889" y="880.0"/>
+      <point x="438.504" y="860.8"/>
+      <point x="422.199" y="850.0" type="curve" smooth="yes"/>
+      <point x="342.584" y="796.6"/>
+      <point x="281.605" y="726.4"/>
+      <point x="248.545" y="658.0" type="curve"/>
+      <point x="275.329" y="687.4"/>
+      <point x="314.749" y="710.2"/>
+      <point x="365.149" y="710.2" type="curve" smooth="yes"/>
+      <point x="440.149" y="710.2"/>
+      <point x="474.216" y="655.0"/>
+      <point x="459.087" y="569.2" type="curve" smooth="yes"/>
+      <point x="443.112" y="478.6"/>
+      <point x="376.942" y="430.0"/>
+      <point x="296.542" y="430.0" type="curve" smooth="yes"/>
+      <point x="213.742" y="430.0"/>
+      <point x="166.017" y="479.2"/>
+      <point x="181.993" y="569.8" type="curve" smooth="yes"/>
+      <point x="189.398" y="611.8"/>
+      <point x="199.063" y="649.6"/>
+      <point x="219.634" y="688.0" type="curve" smooth="yes"/>
+      <point x="254.778" y="754.6"/>
+      <point x="304.957" y="814.6"/>
+    </contour>
+    <contour>
+      <point x="304.088" y="476.2" type="curve" smooth="yes"/>
+      <point x="359.888" y="476.2"/>
+      <point x="403.225" y="511.0"/>
+      <point x="413.487" y="569.2" type="curve" smooth="yes"/>
+      <point x="424.595" y="632.2"/>
+      <point x="396.743" y="668.2"/>
+      <point x="337.943" y="668.2" type="curve" smooth="yes"/>
+      <point x="281.543" y="668.2"/>
+      <point x="236.797" y="622.0"/>
+      <point x="227.169" y="567.4" type="curve" smooth="yes"/>
+      <point x="217.648" y="513.4"/>
+      <point x="248.288" y="476.2"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>six</string>
-        </dict>
-      </array>
-      <key>com.schriftgestaltung.componentsSmartComponentValues</key>
-      <array>
-        <dict>
-          <key>Wt</key>
-          <integer>300</integer>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

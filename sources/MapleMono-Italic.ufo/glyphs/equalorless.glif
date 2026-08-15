@@ -3,21 +3,48 @@
   <advance width="600"/>
   <unicode hex="22DC"/>
   <outline>
-    <component base="lessequal" yScale="-1" xOffset="142" yOffset="804"/>
+    <contour>
+      <point x="460.02" y="519" type="curve" smooth="yes"/>
+      <point x="113.392" y="385" type="line" smooth="yes"/>
+      <point x="85.452" y="374"/>
+      <point x="69.749" y="353"/>
+      <point x="64.812" y="325" type="curve" smooth="yes"/>
+      <point x="59.875" y="297"/>
+      <point x="69.348" y="277"/>
+      <point x="92.232" y="265" type="curve"/>
+      <point x="391.781" y="132" type="line" smooth="yes"/>
+      <point x="433.607" y="114"/>
+      <point x="453.194" y="123"/>
+      <point x="460.247" y="163" type="curve" smooth="yes"/>
+      <point x="464.126" y="185"/>
+      <point x="458.419" y="198"/>
+      <point x="446.3" y="203" type="curve" smooth="yes"/>
+      <point x="190.815" y="308" type="line" smooth="yes"/>
+      <point x="174.873" y="314"/>
+      <point x="177.575" y="335"/>
+      <point x="196.81" y="342" type="curve" smooth="yes"/>
+      <point x="489.148" y="446" type="line" smooth="yes"/>
+      <point x="503.029" y="451"/>
+      <point x="513.322" y="464"/>
+      <point x="517.201" y="486" type="curve" smooth="yes"/>
+      <point x="524.254" y="526"/>
+      <point x="508.37" y="538"/>
+    </contour>
+    <contour>
+      <point x="526.285" y="719" type="curve" smooth="yes"/>
+      <point x="166.285" y="719" type="line" smooth="yes"/>
+      <point x="136.285" y="719"/>
+      <point x="119.64" y="704"/>
+      <point x="113.35" y="674" type="curve"/>
+      <point x="108.06" y="644"/>
+      <point x="120.415" y="629"/>
+      <point x="150.415" y="629" type="curve" smooth="yes"/>
+      <point x="510.415" y="629" type="line" smooth="yes"/>
+      <point x="540.415" y="629"/>
+      <point x="558.06" y="644"/>
+      <point x="563.35" y="674" type="curve"/>
+      <point x="569.64" y="704"/>
+      <point x="556.285" y="719"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>lessequal</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

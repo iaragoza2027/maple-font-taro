@@ -3,39 +3,53 @@
   <advance width="600"/>
   <unicode hex="2261"/>
   <outline>
-    <component base="hyphen"/>
-    <component base="hyphen" xOffset="28" yOffset="160"/>
-    <component base="hyphen" xOffset="-28" yOffset="-160"/>
+    <contour>
+      <point x="459" y="305" type="curve" smooth="yes"/>
+      <point x="89" y="305" type="line" smooth="yes"/>
+      <point x="72" y="305"/>
+      <point x="65" y="313"/>
+      <point x="68" y="330" type="curve" smooth="yes"/>
+      <point x="71" y="347"/>
+      <point x="81" y="355"/>
+      <point x="98" y="355" type="curve" smooth="yes"/>
+      <point x="468" y="355" type="line" smooth="yes"/>
+      <point x="485" y="355"/>
+      <point x="491" y="347"/>
+      <point x="488" y="330" type="curve" smooth="yes"/>
+      <point x="485" y="313"/>
+      <point x="476" y="305"/>
+    </contour>
+    <contour>
+      <point x="487" y="465" type="curve" smooth="yes"/>
+      <point x="117" y="465" type="line" smooth="yes"/>
+      <point x="100" y="465"/>
+      <point x="93" y="473"/>
+      <point x="96" y="490" type="curve" smooth="yes"/>
+      <point x="99" y="507"/>
+      <point x="109" y="515"/>
+      <point x="126" y="515" type="curve" smooth="yes"/>
+      <point x="496" y="515" type="line" smooth="yes"/>
+      <point x="513" y="515"/>
+      <point x="519" y="507"/>
+      <point x="516" y="490" type="curve" smooth="yes"/>
+      <point x="513" y="473"/>
+      <point x="504" y="465"/>
+    </contour>
+    <contour>
+      <point x="431" y="145" type="curve" smooth="yes"/>
+      <point x="61" y="145" type="line" smooth="yes"/>
+      <point x="44" y="145"/>
+      <point x="37" y="153"/>
+      <point x="40" y="170" type="curve" smooth="yes"/>
+      <point x="43" y="187"/>
+      <point x="53" y="195"/>
+      <point x="70" y="195" type="curve" smooth="yes"/>
+      <point x="440" y="195" type="line" smooth="yes"/>
+      <point x="457" y="195"/>
+      <point x="463" y="187"/>
+      <point x="460" y="170" type="curve" smooth="yes"/>
+      <point x="457" y="153"/>
+      <point x="448" y="145"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>hyphen</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>hyphen</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>2</integer>
-          <key>name</key>
-          <string>hyphen</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

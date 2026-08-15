@@ -3,38 +3,53 @@
   <advance width="600"/>
   <unicode hex="2226"/>
   <outline>
-    <component base="parallel"/>
-    <component base="lslash.decorator" xScale="1.3" yScale="1.3" xOffset="-66" yOffset="-140"/>
+    <contour>
+      <point x="118.237" y="-10" type="curve" smooth="yes"/>
+      <point x="88.237" y="-10"/>
+      <point x="75.882" y="5"/>
+      <point x="81.171" y="35" type="curve" smooth="yes"/>
+      <point x="197.547" y="695" type="line" smooth="yes"/>
+      <point x="202.837" y="725"/>
+      <point x="220.482" y="740"/>
+      <point x="250.482" y="740" type="curve" smooth="yes"/>
+      <point x="280.482" y="740"/>
+      <point x="292.837" y="725"/>
+      <point x="287.547" y="695" type="curve" smooth="yes"/>
+      <point x="171.171" y="35" type="line" smooth="yes"/>
+      <point x="165.882" y="5"/>
+      <point x="148.237" y="-10"/>
+    </contour>
+    <contour>
+      <point x="318.237" y="-10" type="curve" smooth="yes"/>
+      <point x="288.237" y="-10"/>
+      <point x="275.882" y="5"/>
+      <point x="281.171" y="35" type="curve" smooth="yes"/>
+      <point x="397.547" y="695" type="line" smooth="yes"/>
+      <point x="402.837" y="725"/>
+      <point x="420.482" y="740"/>
+      <point x="450.482" y="740" type="curve" smooth="yes"/>
+      <point x="480.482" y="740"/>
+      <point x="492.837" y="725"/>
+      <point x="487.547" y="695" type="curve" smooth="yes"/>
+      <point x="371.171" y="35" type="line" smooth="yes"/>
+      <point x="365.882" y="5"/>
+      <point x="348.237" y="-10"/>
+    </contour>
+    <contour>
+      <point x="521.816" y="464" type="curve" smooth="yes"/>
+      <point x="69.502" y="190" type="line" smooth="yes"/>
+      <point x="33.623" y="168"/>
+      <point x="18.678" y="191"/>
+      <point x="24.674" y="225" type="curve"/>
+      <point x="27.376" y="246"/>
+      <point x="40.785" y="271"/>
+      <point x="59.724" y="282" type="curve" smooth="yes"/>
+      <point x="512.214" y="557" type="line" smooth="yes"/>
+      <point x="548.093" y="579"/>
+      <point x="562.861" y="555"/>
+      <point x="557.043" y="522" type="curve"/>
+      <point x="554.34" y="501"/>
+      <point x="540.932" y="476"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>parallel</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>lslash.decorator</string>
-        </dict>
-      </array>
-      <key>com.schriftgestaltung.componentsSmartComponentValues</key>
-      <array>
-        <dict/>
-        <dict>
-          <key>Wt</key>
-          <integer>300</integer>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

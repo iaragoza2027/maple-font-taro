@@ -6,6 +6,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from fontTools.designspaceLib import AxisDescriptor, DesignSpaceDocument
+from ufo2ft.constants import FEATURE_WRITERS_KEY
+from ufoLib2 import Font as UFOFont
 
 from scripts.font_ops.constant import INSTANCE_WEIGHT_MAPPING
 from scripts.font_ops.glyphs import (
@@ -66,6 +68,8 @@ class DesignspaceTaskTest(unittest.TestCase):
 
             self.assertEqual(len(generated), 8)
             self.assertTrue(all(path.exists() for path in generated))
+            for ufo_path in sorted(output_dir.glob("*.ufo")):
+                self.assertEqual(UFOFont.open(ufo_path).info.openTypeOS2Type, [])
             italic = DesignSpaceDocument.fromfile(
                 output_dir / "Fixture-Italic.designspace"
             )
@@ -86,6 +90,45 @@ class DesignspaceTaskTest(unittest.TestCase):
             self.assertIsNotNone(default_source)
             assert default_source is not None
             self.assertEqual(default_source.styleName, "Italic")
+
+    def test_task_preserves_features_without_gpos_writers(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source_dir = root / "exports"
+            output_dir = root / "generated"
+            source_dir.mkdir()
+            write_glyphs_fixture(
+                source_dir / "Fixture.glyphs",
+                {".notdef": ("Thin", "Regular", "ExtraBold")},
+            )
+            feature_source = "feature liga { sub f i by f_i; } liga;"
+
+            with (
+                patch(
+                    "scripts.task.designspace.generate_fea_string",
+                    return_value=feature_source,
+                ),
+                patch(
+                    "scripts.task.designspace.SOURCE_ISSUE_REPORT",
+                    root / "fonts" / "source-issues.json",
+                ),
+            ):
+                generate_designspaces(source_dir, output_dir)
+
+            designspace = DesignSpaceDocument.fromfile(
+                output_dir / "Fixture.designspace"
+            )
+            default_source = designspace.findDefault()
+            self.assertIsNotNone(default_source)
+            assert default_source is not None
+            self.assertTrue(default_source.copyFeatures)
+            for ufo_path in sorted(output_dir.glob("*.ufo")):
+                ufo = UFOFont.open(ufo_path)
+                self.assertEqual(ufo.features.text, feature_source)
+                self.assertEqual(
+                    [writer["class"] for writer in ufo.lib[FEATURE_WRITERS_KEY]],
+                    ["GdefFeatureWriter"],
+                )
 
     def test_build_preparation_loads_ufo_and_applies_current_config(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

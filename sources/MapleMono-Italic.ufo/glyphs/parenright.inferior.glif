@@ -3,21 +3,31 @@
   <advance width="600"/>
   <unicode hex="208E"/>
   <outline>
-    <component base="parenleft.inferior" xScale="-1" xOffset="440"/>
+    <contour>
+      <point x="88" y="-176" type="curve" smooth="yes"/>
+      <point x="67" y="-193"/>
+      <point x="63" y="-210"/>
+      <point x="76" y="-228" type="curve" smooth="yes"/>
+      <point x="89" y="-246"/>
+      <point x="109" y="-247"/>
+      <point x="130" y="-231" type="curve" smooth="yes"/>
+      <point x="250" y="-142"/>
+      <point x="330" y="-29"/>
+      <point x="357" y="125" type="curve" smooth="yes"/>
+      <point x="384" y="279"/>
+      <point x="346" y="381"/>
+      <point x="258" y="469" type="curve" smooth="yes"/>
+      <point x="242" y="485"/>
+      <point x="223" y="483"/>
+      <point x="201" y="466" type="curve"/>
+      <point x="182" y="448"/>
+      <point x="181" y="433"/>
+      <point x="196" y="416" type="curve" smooth="yes"/>
+      <point x="262" y="346"/>
+      <point x="306" y="250"/>
+      <point x="284" y="125" type="curve" smooth="yes"/>
+      <point x="261" y="1"/>
+      <point x="180" y="-101"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>parenleft.inferior</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

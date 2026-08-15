@@ -2555,10 +2555,6 @@ feature cv45 {
   sub ucaron by ucaron.cv45;
   sub ucircumflex by ucircumflex.cv45;
   sub udieresis by udieresis.cv45;
-  sub udieresisacute by udieresisacute.cv45;
-  sub udieresiscaron by udieresiscaron.cv45;
-  sub udieresisgrave by udieresisgrave.cv45;
-  sub udieresismacron by udieresismacron.cv45;
   sub udotbelow by udotbelow.cv45;
   sub ugrave by ugrave.cv45;
   sub uhookabove by uhookabove.cv45;

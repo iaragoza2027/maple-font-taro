@@ -3,21 +3,36 @@
   <advance width="600"/>
   <unicode hex="21B3"/>
   <outline>
-    <component base="leftHookArrow" xScale="-1" xOffset="440"/>
+    <contour>
+      <point x="485.508" y="432" type="curve" smooth="yes"/>
+      <point x="402.841" y="570" type="line"/>
+      <point x="459.841" y="570" type="line"/>
+      <point x="576.339" y="380" type="line"/>
+      <point x="392.837" y="190" type="line"/>
+      <point x="335.837" y="190" type="line"/>
+      <point x="465.641" y="325" type="line" smooth="yes"/>
+      <point x="483.991" y="344"/>
+      <point x="500.459" y="358"/>
+      <point x="506.812" y="360" type="curve"/>
+      <point x="222.812" y="360" type="line" smooth="yes"/>
+      <point x="115.812" y="360"/>
+      <point x="29.94" y="287"/>
+      <point x="11.073" y="180" type="curve" smooth="yes"/>
+      <point x="-7.794" y="73"/>
+      <point x="52.334" y="0"/>
+      <point x="159.334" y="0" type="curve" smooth="yes"/>
+      <point x="217.334" y="0" type="line"/>
+      <point x="210.281" y="-40" type="line"/>
+      <point x="152.281" y="-40" type="line" smooth="yes"/>
+      <point x="16.281" y="-40"/>
+      <point x="-61.849" y="50"/>
+      <point x="-38.927" y="180" type="curve" smooth="yes"/>
+      <point x="-16.004" y="310"/>
+      <point x="93.865" y="400"/>
+      <point x="229.865" y="400" type="curve" smooth="yes"/>
+      <point x="513.865" y="400" type="line"/>
+      <point x="505.57" y="404"/>
+      <point x="494.863" y="417"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>leftHookArrow</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

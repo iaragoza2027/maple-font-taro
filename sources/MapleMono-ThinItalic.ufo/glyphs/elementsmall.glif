@@ -3,28 +3,46 @@
   <advance width="600"/>
   <unicode hex="220A"/>
   <outline>
-    <component base="element" xScale="0.6" yScale="0.6" xOffset="109" yOffset="120"/>
+    <contour>
+      <point x="411.532" y="185.4" type="curve" smooth="yes"/>
+      <point x="409.098" y="171.6"/>
+      <point x="401.335" y="165.0"/>
+      <point x="387.535" y="165.0" type="curve" smooth="yes"/>
+      <point x="227.935" y="165.0" type="line" smooth="yes"/>
+      <point x="151.735" y="165.0"/>
+      <point x="108.245" y="217.8"/>
+      <point x="116.458" y="291.6" type="curve" smooth="yes"/>
+      <point x="119.242" y="321.0"/>
+      <point x="124.532" y="351.0"/>
+      <point x="132.116" y="380.4" type="curve" smooth="yes"/>
+      <point x="149.928" y="454.2"/>
+      <point x="212.039" y="507.0"/>
+      <point x="288.239" y="507.0" type="curve" smooth="yes"/>
+      <point x="447.839" y="507.0" type="line" smooth="yes"/>
+      <point x="461.639" y="507.0"/>
+      <point x="467.075" y="500.4"/>
+      <point x="464.641" y="486.6" type="curve" smooth="yes"/>
+      <point x="462.208" y="472.8"/>
+      <point x="454.444" y="466.2"/>
+      <point x="440.644" y="466.2" type="curve" smooth="yes"/>
+      <point x="281.044" y="466.2" type="line" smooth="yes"/>
+      <point x="216.244" y="466.2"/>
+      <point x="177.746" y="414.6"/>
+      <point x="167.484" y="356.4" type="curve"/>
+      <point x="421.284" y="356.4" type="line" smooth="yes"/>
+      <point x="435.084" y="356.4"/>
+      <point x="440.52" y="349.8"/>
+      <point x="438.087" y="336.0" type="curve" smooth="yes"/>
+      <point x="435.653" y="322.2"/>
+      <point x="427.89" y="315.6"/>
+      <point x="414.09" y="315.6" type="curve" smooth="yes"/>
+      <point x="160.29" y="315.6" type="line"/>
+      <point x="150.027" y="257.4"/>
+      <point x="170.329" y="205.8"/>
+      <point x="235.129" y="205.8" type="curve" smooth="yes"/>
+      <point x="394.729" y="205.8" type="line" smooth="yes"/>
+      <point x="408.529" y="205.8"/>
+      <point x="413.965" y="199.2"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>element</string>
-        </dict>
-      </array>
-      <key>com.schriftgestaltung.componentsSmartComponentValues</key>
-      <array>
-        <dict>
-          <key>Wt</key>
-          <integer>300</integer>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

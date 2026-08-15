@@ -3,21 +3,46 @@
   <advance width="600"/>
   <unicode hex="22D7"/>
   <outline>
-    <component base="lessdot" xScale="-1" xOffset="440"/>
+    <contour>
+      <point x="492.606" y="287" type="curve" smooth="yes"/>
+      <point x="17.816" y="50" type="line" smooth="yes"/>
+      <point x="-7.3" y="38"/>
+      <point x="-17.771" y="41"/>
+      <point x="-13.01" y="68" type="curve" smooth="yes"/>
+      <point x="-10.718" y="81"/>
+      <point x="-2.602" y="93"/>
+      <point x="11.633" y="100" type="curve" smooth="yes"/>
+      <point x="445.719" y="316" type="line" smooth="yes"/>
+      <point x="462.13" y="324"/>
+      <point x="463.246" y="336"/>
+      <point x="450.656" y="344" type="curve" smooth="yes"/>
+      <point x="92.33" y="569" type="line" smooth="yes"/>
+      <point x="82.388" y="575"/>
+      <point x="78.504" y="587"/>
+      <point x="80.796" y="600" type="curve" smooth="yes"/>
+      <point x="85.557" y="627"/>
+      <point x="97.262" y="631"/>
+      <point x="117.97" y="618" type="curve" smooth="yes"/>
+      <point x="507.417" y="371" type="line" smooth="yes"/>
+      <point x="521.83" y="362"/>
+      <point x="526.185" y="347"/>
+      <point x="523.012" y="329" type="curve" smooth="yes"/>
+      <point x="519.838" y="311"/>
+      <point x="510.193" y="296"/>
+    </contour>
+    <contour>
+      <point x="158.893" y="334" type="curve" smooth="yes"/>
+      <point x="154.132" y="307"/>
+      <point x="128.43" y="286"/>
+      <point x="102.43" y="286" type="curve" smooth="yes"/>
+      <point x="75.43" y="286"/>
+      <point x="58.132" y="307"/>
+      <point x="62.893" y="334" type="curve" smooth="yes"/>
+      <point x="67.478" y="360"/>
+      <point x="92.357" y="382"/>
+      <point x="119.357" y="382" type="curve" smooth="yes"/>
+      <point x="145.357" y="382"/>
+      <point x="163.478" y="360"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>lessdot</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

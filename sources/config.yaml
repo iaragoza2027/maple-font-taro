@@ -5,7 +5,7 @@ axisOrder:
   - wght
   - ital
 familyName: Maple Mono
-removeOutlineOverlaps: false
+reverseOutlineDirection: false
 stat:
   MapleMono[wght].ttf:
   - name: Weight

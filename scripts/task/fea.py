@@ -93,7 +93,7 @@ def build_fea(output: str) -> None:
         write_text(fea_path, f"# {banner}\n\n{content}")
         logger.info("Saved feature file to %s", fea_path)
 
-    md_path = join_path("docs", "opentype-features.md")
+    md_path = join_path("documentation", "opentype-features.md")
     sections = {
         "<!-- CALT -->": get_all_calt_text(),
         "<!-- CV -->": get_cv_desc(),

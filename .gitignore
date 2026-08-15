@@ -16,6 +16,6 @@ __pycache__
 .vscode
 *.backup
 
-.ninja_log
+.ninja_*
 build.ninja
 sources/instance_ufos

@@ -1,18 +1,22 @@
 # Google Fonts build and QA
 
-The Google Fonts profile builds only the canonical Maple Mono Latin Regular and
-Italic variable TTFs. It deliberately disables Nerd Font injection, CJK merging,
-hinting, OTF, and WOFF2 output without changing the normal release defaults.
+The Google Fonts build uses the gftools recipe in `sources/config.yaml`. Its
+canonical variable TTFs are written to `fonts/variable/`; the recipe also emits
+the static, OTF, and webfont targets enabled by gftools defaults.
 
 From the repository root, run:
 
 ```sh
-./sources/build.sh
-uv run fontbakery check-googlefonts fonts/googlefonts/*.ttf
+uv run task.py googlefonts
+uv run task.py googlefonts --qa
 ```
 
-The first command writes `MapleMono[wght].ttf` and
-`MapleMono-Italic[wght].ttf` to `fonts/googlefonts/` and checks embedding,
-monospace, variable-axis, naming, licensing, and vertical-metric metadata.
+The task imports and calls `gftools.builder` directly; `uv run` only selects the
+project environment for the outer task command.
+
+Before every gftools build, the task regenerates the Designspace/UFO sources
+from the exported `.glyphs` files. The `--qa` variant then removes the existing
+`fonts/variable/` output, rebuilds it, and calls FontBakery directly with the
+Google Fonts profile. Its markdown report is written to `fonts/report.md`.
 FontBakery remains the authoritative Google Fonts profile, including Latin Core
 coverage. Warnings must be reviewed rather than automatically suppressed.

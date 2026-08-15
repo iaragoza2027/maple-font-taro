@@ -367,7 +367,3 @@ If this font is helpful to you, please consider sponsoring me through [Afdian](h
 ## License
 
 SIL Open Font License 1.1
-
-## Google Fonts development build
-
-The canonical unhinted Latin variable fonts and metadata checks are produced with `./sources/build.sh`. Run `uv run fontbakery check-googlefonts fonts/googlefonts/*.ttf` for the complete Google Fonts profile; see [`documentation/google-fonts.md`](./documentation/google-fonts.md). This profile does not change normal release, Nerd Font, or CJK defaults.

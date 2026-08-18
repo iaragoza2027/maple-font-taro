@@ -14,7 +14,7 @@ from scripts.cjk.static import (
 )
 from scripts.config.resolver import BuildConfigResolver
 from scripts.font_ops.fonttools import TTFont, newTable
-from scripts.font_ops.names import get_font_name, update_font_names
+from scripts.font_ops.names import get_font_name, set_font_name, update_font_names
 
 
 def make_font() -> TTFont:
@@ -131,6 +131,84 @@ class FontNameTest(unittest.TestCase):
         self.assertEqual(build_cjk_family_name(config, "NF-CN"), "Maple Mono NF CN")
         self.assertEqual(
             build_cjk_postscript_prefix(config, "NF-CN"), "MapleMono-NF-CN"
+        )
+
+    def test_skip_subfamily_removes_stale_name_ids_16_and_17(self) -> None:
+        font = make_font()
+        # Pre-seed stale base-font values to simulate what NF merging inherits
+        set_font_name(font, "Maple Mono", 16)
+        set_font_name(font, "Bold", 17)
+        config = make_font_config()
+
+        update_font_names(
+            font=font,
+            font_config=config,
+            family_name="Maple Mono NF",
+            style_name="Bold",
+            full_name="Maple Mono NF Bold",
+            postscript_name="MapleMono-NF-Bold",
+            is_skip_subfamily=True,
+        )
+
+        self.assertIsNone(font["name"].getName(nameID=16, platformID=3, platEncID=1, langID=0x409))
+        self.assertIsNone(font["name"].getName(nameID=17, platformID=3, platEncID=1, langID=0x409))
+
+    def test_skip_subfamily_writes_name_ids_16_and_17_for_variable(self) -> None:
+        font = make_font()
+        font["fvar"] = newTable("fvar")
+        font["fvar"].axes = []
+        font["fvar"].instances = []
+        config = make_font_config()
+
+        # With explicit preferred names
+        update_font_names(
+            font=font,
+            font_config=config,
+            family_name="Maple Mono NF",
+            style_name="Regular",
+            full_name="Maple Mono NF Regular",
+            postscript_name="MapleMono-NF-Regular",
+            is_skip_subfamily=True,
+            preferred_family_name="Maple Mono NF",
+            preferred_style_name="Regular",
+            variable=True,
+        )
+
+        self.assertEqual(
+            font["name"].getName(nameID=16, platformID=3, platEncID=1, langID=0x409).toUnicode(),
+            "Maple Mono NF",
+        )
+        self.assertEqual(
+            font["name"].getName(nameID=17, platformID=3, platEncID=1, langID=0x409).toUnicode(),
+            "Regular",
+        )
+
+    def test_variable_falls_back_to_family_name_for_ids_16_and_17(self) -> None:
+        font = make_font()
+        font["fvar"] = newTable("fvar")
+        font["fvar"].axes = []
+        font["fvar"].instances = []
+        config = make_font_config()
+
+        # Without preferred names — should fall back to family_name / style_name
+        update_font_names(
+            font=font,
+            font_config=config,
+            family_name="Maple Mono NF",
+            style_name="Bold",
+            full_name="Maple Mono NF Bold",
+            postscript_name="MapleMono-NF-Bold",
+            is_skip_subfamily=True,
+            variable=True,
+        )
+
+        self.assertEqual(
+            font["name"].getName(nameID=16, platformID=3, platEncID=1, langID=0x409).toUnicode(),
+            "Maple Mono NF",
+        )
+        self.assertEqual(
+            font["name"].getName(nameID=17, platformID=3, platEncID=1, langID=0x409).toUnicode(),
+            "Bold",
         )
 
 

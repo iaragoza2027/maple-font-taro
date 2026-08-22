@@ -6,8 +6,8 @@ from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING
 from zipfile import BadZipFile, ZipFile, ZipInfo
 
-from scripts.cache.digest import digest_paths, digest_tree
 from scripts.font_ops.fonttools import load_font
+from scripts.utils.hashing import hash_directory, hash_files
 
 if TYPE_CHECKING:
     from scripts.cjk.config import CJKBuildConfig
@@ -16,11 +16,6 @@ HASH_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 VARIABLE_NAME_PATTERN = re.compile(
     r"^MapleMono-(?P<locale>[A-Za-z0-9]+)(?P<italic>-Italic)?-VF\.ttf$"
 )
-
-
-def get_directory_hash(directory: str) -> str:
-    """Use the canonical digest behind the legacy CJK sidecar file format."""
-    return digest_tree(Path(directory))
 
 
 def static_hash_path(config: CJKBuildConfig) -> Path:
@@ -43,7 +38,7 @@ def variable_paths(config: CJKBuildConfig) -> tuple[Path, Path]:
 
 def write_static_hash(config: CJKBuildConfig, static_dir: Path) -> None:
     """Write one directory digest for the complete static CJK stage."""
-    digest = get_directory_hash(str(static_dir))
+    digest = hash_directory(static_dir)
     hash_path = static_hash_path(config)
     hash_path.parent.mkdir(parents=True, exist_ok=True)
     temporary = hash_path.with_name(f".{hash_path.name}.tmp")
@@ -60,7 +55,7 @@ def write_variable_hash(config: CJKBuildConfig) -> None:
             "Variable CJK base output is missing: "
             + ", ".join(str(path) for path in missing)
         )
-    digest = digest_paths(config.output.dir, list(paths))
+    digest = hash_files({path.name: path for path in paths})
     hash_path = variable_hash_path(config)
     hash_path.parent.mkdir(parents=True, exist_ok=True)
     temporary = hash_path.with_name(f".{hash_path.name}.tmp")
@@ -116,9 +111,9 @@ def verify_static_archive(
                     prefix="cjk-static-verify-"
                 ) as extract_dir:
                     archive.extractall(extract_dir)
-                    actual_hash = get_directory_hash(extract_dir)
+                    actual_hash = hash_directory(Path(extract_dir))
             else:
-                actual_hash = get_directory_hash(str(extracted_dir))
+                actual_hash = hash_directory(extracted_dir)
     except BadZipFile as error:
         raise ValueError(f"Invalid static archive: {archive_path}") from error
 
@@ -143,7 +138,7 @@ def _verify_variable_directory(names: list[str], extracted_dir: Path) -> str:
                 raise ValueError(f"Variable archive member is not variable: {name}")
         finally:
             font.close()
-    return digest_tree(extracted_dir)
+    return hash_directory(extracted_dir)
 
 
 def verify_variable_archive(
@@ -235,7 +230,7 @@ def has_valid_cjk_static_cache(
         return False
     try:
         expected = hash_path.read_text(encoding="utf-8").strip()
-        actual = get_directory_hash(str(static_dir))
+        actual = hash_directory(static_dir)
     except Exception:
         return False
     return bool(expected) and expected == actual

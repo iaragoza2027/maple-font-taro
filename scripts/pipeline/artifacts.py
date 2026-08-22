@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import shutil
 from os import makedirs
 from pathlib import Path
@@ -10,6 +9,7 @@ from fontTools.designspaceLib import DesignSpaceDocument
 
 from scripts.font_ops.constant import DEFAULT_NAMING_MAPPING
 from scripts.font_ops.fonttools import load_font
+from scripts.utils.hashing import hash_files
 
 if TYPE_CHECKING:
     from scripts.config.base import ResolvedConfig
@@ -74,13 +74,6 @@ def require_unique_targets(paths: list[Path], stage: str) -> None:
         raise ValueError(f"Duplicate {stage} output paths: {formatted}")
 
 
-def _hash_file(hasher: Any, path: Path, relative_to: Path) -> None:
-    hasher.update(path.relative_to(relative_to).as_posix().encode("utf-8"))
-    with path.open("rb") as source:
-        while chunk := source.read(1024 * 1024):
-            hasher.update(chunk)
-
-
 def _dimensions_identity(source_dir: Path) -> dict[str, object]:
     identity: dict[str, object] = {}
     for path in sorted(source_dir.glob("*.designspace")):
@@ -105,12 +98,11 @@ def _dimensions_identity(source_dir: Path) -> dict[str, object]:
 
 def _feature_fingerprint(source_dir: Path) -> str:
     root = Path(source_dir)
-    paths = sorted((root / "features").glob("*.fea"))
-
-    hasher = hashlib.sha256()
-    for path in paths:
-        _hash_file(hasher, path, root)
-    return hasher.hexdigest()
+    files = {
+        path.relative_to(root).as_posix(): path
+        for path in (root / "features").glob("*.fea")
+    }
+    return hash_files(files)
 
 
 def base_cache_identity(

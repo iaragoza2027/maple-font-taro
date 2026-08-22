@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import shutil
 import stat
@@ -11,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 from zipfile import ZIP_BZIP2, ZIP_DEFLATED, ZipFile, ZipInfo
 
+from scripts.utils.hashing import hash_file
 from scripts.utils.logging import logger
 
 if TYPE_CHECKING:
@@ -191,11 +191,7 @@ def archive_fonts(
                 ZIP_DEFLATED,
             )
 
-    sha256 = hashlib.sha256()
-    with Path(zip_path).open("rb") as zip_file:
-        while data := zip_file.read(1024 * 1024):
-            sha256.update(data)
-    return sha256.hexdigest(), zip_name_without_ext
+    return hash_file(Path(zip_path)), zip_name_without_ext
 
 
 def archive_output_label(source_folder_name: str) -> str:
@@ -213,10 +209,3 @@ def archive_font_readme(archive_name: str, font_files: list[str]) -> str:
         for font_file in sorted(font_files)
     )
     return "\n".join(lines) + "\n"
-
-
-def get_directory_hash(dir_path: str) -> str:
-    """Return the canonical tree digest (kept for archive-task compatibility)."""
-    from scripts.cache.digest import digest_tree
-
-    return digest_tree(Path(dir_path))

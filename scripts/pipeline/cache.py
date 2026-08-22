@@ -5,8 +5,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from scripts.cache.digest import digest_paths
-from scripts.cache.fingerprint import Fingerprint
+from scripts.utils.hashing import hash_files, hash_json
 from scripts.utils.logging import logger
 
 CACHE_SCHEMA = 3
@@ -17,22 +16,19 @@ def cache_record_path(output_root: str | Path) -> Path:
     return Path(output_root) / CACHE_FILE_NAME
 
 
-def _digest(value: Any) -> str:
-    return Fingerprint().add_json("value", value).digest()
-
-
 def stage_identity(
     build_identity: dict[str, Any],
     stage: str,
     dependencies: dict[str, str] | None = None,
 ) -> str:
     """Return a stable key for one stage and its upstream keys."""
-    fingerprint = (
-        Fingerprint().add_value("stage", stage).add_json("inputs", build_identity)
+    return hash_json(
+        {
+            "stage": stage,
+            "inputs": build_identity,
+            "dependencies": dependencies or {},
+        }
     )
-    for name, identity in sorted((dependencies or {}).items()):
-        fingerprint = fingerprint.add_upstream(name, identity)
-    return fingerprint.digest()
 
 
 def relative_cache_path(root: Path, path: Path) -> str:
@@ -40,8 +36,9 @@ def relative_cache_path(root: Path, path: Path) -> str:
 
 
 def stage_digest(root: Path, paths: list[Path]) -> str:
-    """Hash one stage, including relative names and file contents."""
-    return digest_paths(root, tuple(path for path in paths if path.is_file()))
+    """Hash one stage from its ordered output file contents."""
+    files = {relative_cache_path(root, path): path for path in paths if path.is_file()}
+    return hash_files(files)
 
 
 def output_snapshot(

@@ -9,6 +9,7 @@ from zipfile import ZipFile
 
 from scripts.config.paths import static_output_dir, variable_output_dir
 from scripts.utils.files import archive_fonts, archive_output_label
+from scripts.utils.hashing import hash_file
 
 
 class FontArchiveTest(unittest.TestCase):
@@ -114,6 +115,7 @@ class FontArchiveTest(unittest.TestCase):
                 )
 
             self.assertEqual(digest_after, digest_before)
+            self.assertEqual(digest_after, hash_file(archive_path))
             self.assertEqual(archive_path.read_bytes(), bytes_before)
 
     def test_archive_bytes_ignore_source_creation_order(self) -> None:

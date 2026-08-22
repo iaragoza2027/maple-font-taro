@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="sharp_end.bg" format="2">
+  <advance width="600"/>
+  <outline>
+    <contour>
+      <point x="59.854" y="1020" type="line"/>
+      <point x="-172.898" y="-300" type="line"/>
+      <point x="-112.898" y="-300" type="line"/>
+      <point x="583.478" y="360" type="line"/>
+      <point x="119.854" y="1020" type="line"/>
+    </contour>
+  </outline>
+</glyph>

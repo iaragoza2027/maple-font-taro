@@ -31,7 +31,6 @@ from scripts.config.base import (
 )
 from scripts.config.runtime import BuildRuntimeContext
 from scripts.feature.compiler import normal_enabled_features
-from scripts.font_ops.opentype import DEFAULT_COMPAT_ALIASES
 from scripts.utils.logging import logger
 from scripts.utils.version import font_version_for_core, parse_font_version
 
@@ -145,16 +144,9 @@ class BuildConfigResolver:
                 **dict(data["weight_mapping"]),
             }
         if "codepoint_alias" in data:
-            codepoint_alias = parse_codepoint_alias(data["codepoint_alias"])
-            builtin_aliases = sorted(
-                set(codepoint_alias).intersection(DEFAULT_COMPAT_ALIASES)
+            config.metrics.codepoint_alias = parse_codepoint_alias(
+                data["codepoint_alias"]
             )
-            if builtin_aliases:
-                aliases = ", ".join(f"0x{value:04X}" for value in builtin_aliases)
-                raise ValueError(
-                    f"Codepoint aliases are built in and cannot be changed: {aliases}"
-                )
-            config.metrics.codepoint_alias = codepoint_alias
 
     def _apply_feature_json_config(
         self,

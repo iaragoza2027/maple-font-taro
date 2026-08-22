@@ -4,12 +4,10 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from scripts.pipeline.fontmake import (
-    FontmakeBuildContext,
     PreparedFontmakeSource,
-    compile_fontmake_formats,
     prepare_fontmake_sources,
 )
 from scripts.tests.pipeline_fixtures import (
@@ -59,54 +57,6 @@ class PipelineFontmakeTest(unittest.TestCase):
                 },
             )
             self.assertTrue(all(job.font_config is font_config for job in jobs))
-
-    def test_fontmake_formats_compile_all_branches_in_one_batch(self) -> None:
-        context = FontmakeBuildContext(
-            Path("temp"),
-            Path("temp/variable"),
-            Path("temp/ttf"),
-            Path("temp/otf"),
-            (
-                PreparedFontmakeSource(
-                    "regular",
-                    "regular.designspace",
-                    (1020, -300),
-                ),
-                PreparedFontmakeSource(
-                    "italic",
-                    "italic.designspace",
-                    (1020, -300),
-                ),
-            ),
-            (500, 600),
-        )
-        executor = cast("Executor", MagicMock())
-
-        with patch(
-            "scripts.pipeline.fontmake.compile_fontmake_branches"
-        ) as compile_branches:
-            compile_fontmake_formats(
-                context,
-                ("variable", "ttf", "otf"),
-                executor,
-                target_styles=["Regular", "Bold", "Italic", "BoldItalic"],
-            )
-            jobs = compile_branches.call_args.args[0]
-
-        compile_branches.assert_called_once()
-        self.assertEqual(len(jobs), 6)
-        variable_jobs = [job for job in jobs if job.output == "variable"]
-        static_jobs = [job for job in jobs if job.output != "variable"]
-        self.assertEqual(
-            {job.interpolate for job in static_jobs},
-            {r".* (?:Regular|Bold|Italic|BoldItalic)"},
-        )
-        self.assertEqual({job.interpolate for job in variable_jobs}, {False})
-        self.assertEqual({job.output for job in jobs}, {"variable", "ttf", "otf"})
-        self.assertEqual(
-            {job.width_transform for job in jobs},
-            {(500, 600)},
-        )
 
 
 if __name__ == "__main__":

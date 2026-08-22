@@ -8,7 +8,7 @@ Maple Mono is an open-source monospace font project. Keep changes small, determi
 
 - Write code, comments, documentation, and commit messages in English. Reply to the repository owner in Chinese unless asked otherwise.
 - Preserve unrelated user changes. Run `git status --short` before broad edits and inspect the final diff before finishing.
-- Do not add dependencies or change package managers without a clear need. Use `uv` for Python and Bun for `maple-font-page/`.
+- Do not add dependencies or change package managers without a clear need. Use `uv` for Python.
 - Do not manually edit font binaries, UFO sources, or generated outputs when the repository provides a generator.
 - Avoid changing font names, versioning, release packaging, or output layout unless the request explicitly requires it.
 - When adding or changing a `build.py` CLI flag, update the complete translated `build.py --help` section in every root README (`README.md`, `README_CN.md`, `README_TC.md`, `README_JP.md`, and `README_KR.md`) in the same change.
@@ -35,10 +35,9 @@ Maple Mono is an open-source monospace font project. Keep changes small, determi
 - `scripts/maintenance.md`: Maintainer workflow for source updates, CJK bases, validation, and releases.
 - `scripts/cjk/README.md`: CJK source, configuration, generation, and cache guide.
 - `scripts/feature/README.md`: OpenType feature AST and generation guide.
-- `source/`: Font sources, CJK assets, schema, and generated `.fea` output in `source/features/`.
-- `config.json`: Default build configuration, validated by `source/schema.json`.
+- `sources/`: Font sources, CJK assets, schema, and generated `.fea` output in `sources/features/`.
+- `config.json`: Default build configuration, validated by `sources/schema.json`.
 - `fonts/`: Generated build artifacts; never edit manually.
-- `maple-font-page/`: Astro 5, Solid 1.x, TypeScript, and UnoCSS landing-page submodule.
 
 ## Setup and Commands
 
@@ -62,16 +61,7 @@ uv run task.py fea
 uv run task.py page
 ```
 
-For landing-page work:
-
-```sh
-cd maple-font-page
-bun install
-bun run format
-bun run build
-```
-
-`maple-font-page/` and the downloaded `FontPatcher/` tool are intentionally excluded from root Python Ruff and Pyrefly checks. Validate landing-page code with its Bun commands instead; never lint, format, or type-check FontPatcher as project code.
+The downloaded `FontPatcher/` tool are intentionally excluded from root Python Ruff and Pyrefly checks.
 
 ## Validation by Change Type
 
@@ -80,7 +70,6 @@ bun run build
 - **Feature changes under `scripts/feature/`:** Run `uv run task.py fea`, then inspect all generated changes before keeping them.
 - **Build configuration or pipeline changes:** Start with `uv run build.py --dry`. Use `--debug`, `--ttf-only`, and `--least-styles` before attempting a full build.
 - **CJK changes:** Avoid full CJK builds unless required; they may download large source archives and take a long time.
-- **Landing-page changes:** Run Bun formatting and build from `maple-font-page/`. Do not rely on root Python checks for this submodule.
 
 ## Safe Auto-fix Workflow
 
@@ -98,9 +87,7 @@ Ruff auto-fixes are limited to its default safe fixes. Pyrefly reports type diag
 
 ## Generated Outputs
 
-`uv run task.py fea` can update `source/features/`, `source/schema.json`, `config.json`, the localized READMEs, and `scripts/in_browser.py`. Keep these outputs synchronized when the feature source changes.
-
-`uv run task.py page` writes generated data in `maple-font-page/`, including feature metadata, configuration, and the minified browser script. Run it only when those generated page artifacts are intended to change.
+`uv run task.py fea` can update `sources/features/`, `sources/schema.json`, `config.json`, the localized READMEs, and `scripts/in_browser.py`. Keep these outputs synchronized when the feature source changes.
 
 Treat `fonts/` as disposable build output. Do not commit generated churn unless it is necessary for the requested source change.
 

@@ -82,15 +82,15 @@ CJK ビルドはデフォルトで無効です。CJK ビルド設定で対象地
 
 [Releases](https://github.com/subframe7536/maple-font/releases/latest) からフォントのアーカイブをダウンロードできます。
 
-Scoop、Homebrew、AUR/Paru、NixPkgs などのパッケージマネージャーから Maple Mono をインストールすることもできます。詳しくは[インストールガイド](./docs/install.md)をご覧ください。
+Scoop、Homebrew、AUR/Paru、NixPkgs などのパッケージマネージャーから Maple Mono をインストールすることもできます。詳しくは[インストールガイド](./documentation/install.md)をご覧ください。
 
 ### 使用方法と機能設定
 
-使用方法と設定については[使用ガイド](./docs/usage.md)をご覧ください。
+使用方法と設定については[使用ガイド](./documentation/usage.md)をご覧ください。
 
 #### 命名規則とフォントの選択
 
-Maple Mono はユーザーからのフィードバックをもとに、複数のフォント形式と文字セット範囲を提供しています。用途に合ったフォントファイルを選択してください。詳しくは[フォントの選択](./docs/choose.md)をご覧ください。
+Maple Mono はユーザーからのフィードバックをもとに、複数のフォント形式と文字セット範囲を提供しています。用途に合ったフォントファイルを選択してください。詳しくは[フォントの選択](./documentation/choose.md)をご覧ください。
 
 ### CDN
 
@@ -105,7 +105,7 @@ Maple Mono はユーザーからのフィードバックをもとに、複数の
 
 ### カスタムビルド
 
-Maple Mono は高いカスタマイズ性を備えています。[`config.json`](./config.json) を変更するか、コマンドライン引数を追加して、必要なフォントを生成できます。詳しくは[カスタムビルド](./docs/build.md)をご覧ください。
+Maple Mono は高いカスタマイズ性を備えています。[`config.json`](./config.json) を変更するか、コマンドライン引数を追加して、必要なフォントを生成できます。詳しくは[カスタムビルド](./documentation/build.md)をご覧ください。
 
 完全な [`build.py` コマンドラインオプション一覧](#buildpy-cli)も参照してください。
 
@@ -147,7 +147,7 @@ cv01, cv02, cv33, cv34, cv35, cv36, cv61, cv62, ss05, ss06, ss07, ss08
 
 ほとんどのフォントはカスタム OpenType 機能に対応していませんが、Maple Mono ではプログラムで定義できます。
 
-デフォルトでは、[`scripts/feature/`](./scripts/feature) の Python モジュールが OpenType 機能コードを生成し、ビルド時に読み込みます。これらのモジュールを変更して機能やラベルをカスタマイズできます。`.fea` ソースを直接編集する場合は、`build.py` に `--apply-fea-file` を追加してください。ビルドスクリプトは [`source/features/{regular,italic}{_cn,}.fea`](./source/features) を読み込みます。
+デフォルトでは、[`scripts/feature/`](./scripts/feature) の Python モジュールが OpenType 機能コードを生成し、ビルド時に読み込みます。これらのモジュールを変更して機能やラベルをカスタマイズできます。`.fea` ソースを直接編集する場合は、`build.py` に `--apply-fea-file` を追加してください。ビルドスクリプトは [`sources/features/{regular,italic}{_cn,}.fea`](./sources/features) を読み込みます。
 
 ### 無限矢印リガチャ
 
@@ -267,7 +267,7 @@ Maple Mono のビルダーおよびオプティマイザー
                         （例: `--feat zero,cv01,ss07,ss08`）。コンテキストルールは
                         `calt` で有効になります
   --apply-fea-file      対応する
-                        `source/features/{regular,italic}{_cn,}.fea` を静的・可変フォントに適用します
+                        `sources/features/{regular,italic}{_cn,}.fea` を静的・可変フォントに適用します
   --hinted              NF/CJK/NF-CJK の基底フォントにヒンティング済みフォントを使用します（デフォルト）
   --no-hinted           NF/CJK/NF-CJK の基底フォントにヒンティングなしフォントを使用します
   --liga                すべてのリガチャを保持します（デフォルト）

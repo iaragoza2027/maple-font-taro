@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="pagedown" format="2">
+  <advance width="600"/>
+  <unicode hex="21DF"/>
+  <outline>
+    <contour>
+      <point x="264.211" y="493" type="line"/>
+      <point x="248.517" y="404" type="line"/>
+      <point x="101.517" y="404" type="line"/>
+      <point x="87.411" y="324" type="line"/>
+      <point x="234.411" y="324" type="line"/>
+      <point x="212.194" y="198" type="line"/>
+      <point x="55.194" y="198" type="line"/>
+      <point x="220.991" y="-30" type="line"/>
+      <point x="455.194" y="198" type="line"/>
+      <point x="298.194" y="198" type="line"/>
+      <point x="320.411" y="324" type="line"/>
+      <point x="467.411" y="324" type="line"/>
+      <point x="481.517" y="404" type="line"/>
+      <point x="334.517" y="404" type="line"/>
+      <point x="350.211" y="493" type="line"/>
+      <point x="497.211" y="493" type="line"/>
+      <point x="511.317" y="573" type="line"/>
+      <point x="364.317" y="573" type="line"/>
+      <point x="392.176" y="731" type="line"/>
+      <point x="306.176" y="731" type="line"/>
+      <point x="278.317" y="573" type="line"/>
+      <point x="131.317" y="573" type="line"/>
+      <point x="117.211" y="493" type="line"/>
+    </contour>
+  </outline>
+</glyph>

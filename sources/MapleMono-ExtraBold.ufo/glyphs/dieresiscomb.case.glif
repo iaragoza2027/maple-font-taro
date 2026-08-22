@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="dieresiscomb.case" format="2">
+  <anchor x="-300" y="730" name="_top"/>
+  <anchor x="-300" y="958" name="top"/>
+  <outline>
+    <contour>
+      <point x="-178" y="802" type="curve" smooth="yes"/>
+      <point x="-227" y="802"/>
+      <point x="-258" y="832"/>
+      <point x="-258" y="880" type="curve" smooth="yes"/>
+      <point x="-258" y="928"/>
+      <point x="-227" y="958"/>
+      <point x="-178" y="958" type="curve" smooth="yes"/>
+      <point x="-129" y="958"/>
+      <point x="-98" y="928"/>
+      <point x="-98" y="880" type="curve" smooth="yes"/>
+      <point x="-98" y="832"/>
+      <point x="-129" y="802"/>
+    </contour>
+    <contour>
+      <point x="-422" y="802" type="curve" smooth="yes"/>
+      <point x="-471" y="802"/>
+      <point x="-502" y="832"/>
+      <point x="-502" y="880" type="curve" smooth="yes"/>
+      <point x="-502" y="928"/>
+      <point x="-471" y="958"/>
+      <point x="-422" y="958" type="curve" smooth="yes"/>
+      <point x="-373" y="958"/>
+      <point x="-342" y="928"/>
+      <point x="-342" y="880" type="curve" smooth="yes"/>
+      <point x="-342" y="832"/>
+      <point x="-373" y="802"/>
+    </contour>
+  </outline>
+</glyph>

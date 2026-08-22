@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]):
     parser = subparsers.add_parser("fea", help="Build fea files")
     parser.add_argument(
-        "--output", type=str, default="./source/features", help="Output directory"
+        "--output", type=str, default="./sources/features", help="Output directory"
     )
     return parser
 
@@ -93,7 +93,7 @@ def build_fea(output: str) -> None:
         write_text(fea_path, f"# {banner}\n\n{content}")
         logger.info("Saved feature file to %s", fea_path)
 
-    md_path = join_path("docs", "opentype-features.md")
+    md_path = join_path("documentation", "opentype-features.md")
     sections = {
         "<!-- CALT -->": get_all_calt_text(),
         "<!-- CV -->": get_cv_desc(),
@@ -106,10 +106,10 @@ def build_fea(output: str) -> None:
     logger.info("Synchronized feature documentation: path=%s", md_path)
 
     features = get_total_feat_dict()
-    update_schema(join_path("source", "schema.json"), features)
+    update_schema(join_path("sources", "schema.json"), features)
     update_feature_freeze("config.json", features)
     logger.info(
-        "Synchronized feature schema: path=%s", join_path("source", "schema.json")
+        "Synchronized feature schema: path=%s", join_path("sources", "schema.json")
     )
     logger.info("Synchronized feature configuration: path=config.json")
 

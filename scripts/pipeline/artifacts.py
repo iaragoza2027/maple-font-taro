@@ -93,8 +93,8 @@ def _dimensions_identity(source_dir: Path) -> dict[str, object]:
             )
         identity[path.name] = dimensions
     if set(identity) != {
-        "MapleMono[wght].designspace",
-        "MapleMono-Italic[wght].designspace",
+        "MapleMono.designspace",
+        "MapleMono-Italic.designspace",
     }:
         raise ValueError(
             "Expected regular and italic Maple Mono designspaces with "

@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="semidirectproductright" format="2">
+  <advance width="600"/>
+  <unicode hex="22CC"/>
+  <outline>
+    <contour>
+      <point x="484.459" y="82" type="curve" smooth="yes"/>
+      <point x="479.698" y="55"/>
+      <point x="468.816" y="50"/>
+      <point x="450.814" y="67" type="curve" smooth="yes"/>
+      <point x="263.2" y="245" type="line"/>
+      <point x="12.814" y="67" type="line" smooth="yes"/>
+      <point x="-11.184" y="50"/>
+      <point x="-20.302" y="55"/>
+      <point x="-15.541" y="82" type="curve" smooth="yes"/>
+      <point x="-13.249" y="95"/>
+      <point x="-6.309" y="106"/>
+      <point x="5.278" y="115" type="curve" smooth="yes"/>
+      <point x="525.048" y="488" type="line" smooth="yes"/>
+      <point x="549.045" y="505"/>
+      <point x="558.163" y="500"/>
+      <point x="553.403" y="473" type="curve" smooth="yes"/>
+      <point x="551.11" y="460"/>
+      <point x="542.994" y="448"/>
+      <point x="531.584" y="440" type="curve" smooth="yes"/>
+      <point x="301.843" y="277" type="line"/>
+      <point x="474.278" y="115" type="line" smooth="yes"/>
+      <point x="482.867" y="107"/>
+      <point x="486.751" y="95"/>
+    </contour>
+  </outline>
+</glyph>

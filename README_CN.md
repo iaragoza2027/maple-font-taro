@@ -82,15 +82,15 @@ CJK 构建默认关闭。你可以通过 CJK 构建配置选择地区、静态�
 
 你可以从 [Releases](https://github.com/subframe7536/maple-font/releases/latest) 下载字体压缩包。
 
-你也可以通过 Scoop、Homebrew、AUR/Paru、NixPkgs 等包管理器安装 Maple Mono，详情见[安装指南](./docs/install.md)。
+你也可以通过 Scoop、Homebrew、AUR/Paru、NixPkgs 等包管理器安装 Maple Mono，详情见[安装指南](./documentation/install.md)。
 
 ### 使用与特性配置
 
-使用方法和配置说明请参阅[使用指南](./docs/usage.md)。
+使用方法和配置说明请参阅[使用指南](./documentation/usage.md)。
 
 #### 命名说明与字体选择
 
-Maple Mono 根据用户反馈，在发行版中提供了多种字体格式和字符集范围。你可以根据使用场景选择合适的字体文件，详情见[字体选择](./docs/choose.md)。
+Maple Mono 根据用户反馈，在发行版中提供了多种字体格式和字符集范围。你可以根据使用场景选择合适的字体文件，详情见[字体选择](./documentation/choose.md)。
 
 ### CDN
 
@@ -111,7 +111,7 @@ Maple Mono 根据用户反馈，在发行版中提供了多种字体格式和字
 
 ### 自定义构建
 
-Maple Mono 提供了高度可定制的构建方式。你可以修改 [`config.json`](./config.json)，或在命令行中添加参数，生成符合需求的字体文件，详情见[自定义构建](./docs/build.md)。
+Maple Mono 提供了高度可定制的构建方式。你可以修改 [`config.json`](./config.json)，或在命令行中添加参数，生成符合需求的字体文件，详情见[自定义构建](./documentation/build.md)。
 
 查看完整的 [`build.py` 命令行选项](#buildpy-cli)。
 
@@ -147,7 +147,7 @@ Maple Mono 的默认字形设计偏向独特和个性化，可能不适合所有
 
 绝大多数字体不支持自定义 OpenType 特性，而 Maple Mono 支持通过编程方式定制这些特性。
 
-默认情况下，[`scripts/feature/`](./scripts/feature) 中的 Python 模块会生成 OpenType 特性代码，并在构建时加载。你可以修改这些模块来调整功能或自定义标签；如果希望直接编辑 OpenType 特性源文件（`.fea`），请在运行 `build.py` 时添加 `--apply-fea-file` 参数，构建脚本会读取并加载 [`source/features/{regular,italic}{_cn,}.fea`](./source/features) 中的特性文件。
+默认情况下，[`scripts/feature/`](./scripts/feature) 中的 Python 模块会生成 OpenType 特性代码，并在构建时加载。你可以修改这些模块来调整功能或自定义标签；如果希望直接编辑 OpenType 特性源文件（`.fea`），请在运行 `build.py` 时添加 `--apply-fea-file` 参数，构建脚本会读取并加载 [`sources/features/{regular,italic}{_cn,}.fea`](./sources/features) 中的特性文件。
 
 ### 无限箭头连字
 
@@ -277,7 +277,7 @@ Maple Mono 构建与优化工具
                         （例如 `--feat zero,cv01,ss07,ss08`）；上下文规则通过
                         `calt` 启用
   --apply-fea-file      将匹配的
-                        `source/features/{regular,italic}{_cn,}.fea` 应用到静态和可变字体
+                        `sources/features/{regular,italic}{_cn,}.fea` 应用到静态和可变字体
   --hinted              在 NF/CJK/NF-CJK 中使用 Hinted 字体作为基础字体（默认）
   --no-hinted           在 NF/CJK/NF-CJK 中使用未加提示的字体作为基础字体
   --liga                保留所有连字（默认）

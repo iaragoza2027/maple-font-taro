@@ -10,11 +10,11 @@ This directory implements `build.py` and `task.py`. The build pipeline is determ
 | Build release outputs      | `uv run build.py`                          | Runs the complete pipeline selected by the resolved configuration.                                                             |
 | Build a focused format     | `uv run build.py --format ttf --debug`     | Selects a requested base format and the debug style/output policy.                                                             |
 | Build CJK base assets      | `uv run task.py cjk --preset cn`           | Rebuilds the standalone CJK variable bases and variable archive/hash, then static bases unless `--vf-only` is set.              |
-| Run a repository task      | `uv run task.py <name>`                    | Dispatches feature, designspace, Nerd Font, page, release, and publish workflows.                                              |
+| Run a repository task      | `uv run task.py <name>`                    | Dispatches feature, designspace, Google Fonts, Nerd Font, page, release, and publish workflows.                                |
 | Follow maintenance steps   | [`maintenance.md`](maintenance.md)         | Covers source updates, generated files, CJK base refreshes, validation, and release procedures.                                |
 | Trace pipeline state       | [`pipeline/README.md`](pipeline/README.md) | Documents stage selection, cache transitions, failure state, and executor ownership.                                           |
 
-`build.py` owns final outputs under `fonts/`. `task.py cjk` owns reusable CJK inputs under `source/cjk/`; its cache is independent of
+`build.py` owns final outputs under `fonts/`. `task.py cjk` owns reusable CJK inputs under `sources/cjk/`; its cache is independent of
 `fonts/build-cache.json`.
 
 ## Ownership map
@@ -29,7 +29,7 @@ This directory implements `build.py` and `task.py`. The build pipeline is determ
 | Nerd Font              | `pipeline/nerd_fonts.py`, `font_ops/nerd_font.py`       | Build from prebuilt Nerd Font assets or Font Patcher, then apply Maple naming and metrics.                               |
 | CJK integration        | `pipeline/cjk_outputs.py`, `cjk/`                       | Resolve CJK bases, merge them with Maple or NF fonts, and publish static or variable profiles.                           |
 | Shared font operations | `font_ops/`                                             | Keep naming, metrics, glyph transforms, OpenType edits, merging, subsetting, and FontTools boundaries reusable.          |
-| OpenType features      | `feature/`                                              | Generate and apply rules; checked-in `.fea` files live under `source/features/`.                                         |
+| OpenType features      | `feature/`                                              | Generate and apply rules; checked-in `.fea` files live under `sources/features/`.                                         |
 | Task adapters          | `task/`                                                 | Keep repository maintenance workflows thin and separate from the release pipeline.                                       |
 | Infrastructure         | `utils/`                                                | Provide filesystem, process, archive, download, logging, error, and version helpers.                                     |
 
@@ -71,4 +71,4 @@ The main cache is opt-in and lives at `fonts/build-cache.json`. A cache hit requ
 
 Stage identities contain only the related resolved configuration, target styles, the regular and italic Designspace dimension dictionaries, the generated feature file fingerprint, and upstream stage identities. They do not include generator source code, dependency versions, UFO outline contents, or CJK base contents. After changing any of those untracked identity inputs, run without `--cache` so the result cannot be mistaken for a valid cached build.
 
-The CJK base cache under `source/cjk/` is separate. `build.py --cache` controls final outputs under `fonts/`; `cjk.clean_cache` controls reuse of CJK variable or source fallback work, but it does not delete files and does not bypass a valid static directory digest.
+The CJK base cache under `sources/cjk/` is separate. `build.py --cache` controls final outputs under `fonts/`; `cjk.clean_cache` controls reuse of CJK variable or source fallback work, but it does not delete files and does not bypass a valid static directory digest.

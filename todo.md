@@ -74,3 +74,24 @@
 - [x] figure out why maplemono-nf-tc-vf size is too large
 - [x] freeze `cv99` for tc. (via a new `freeze_feature` option in `config-<locale>.json`)
 - [ ] cjk hint effect test
+
+## Google Fonts QA
+
+`uv run fontbakery check-googlefonts fonts/variable/*.ttf` to check variable fonts, and `uv run fontbakery check-googlefonts fonts/*.ttf` to check static fonts.
+
+- [x] verify glyphs in UFO
+- [x] unify curve type, fix rotate issues
+- [x] decompose glyphs that have different font weight(UFO does not support)
+- [x] fix `fsType` to 0 for all fonts
+
+### FAIL revalidation
+
+The following items are based on `uv run fontbakery check-googlefonts fonts/variable/*.ttf`.
+At baseline, each check failed for both the regular and italic variable fonts; the
+checkboxes below reflect the latest revalidation.
+
+- [x] `case_mapping` — add the missing case-swapping counterparts for U+01D5/U+01D7/U+01D9/U+01DB, U+0186, U+A7AE, U+01A9, U+01B1, U+0245, U+01B7, U+03F2, U+1F41, and U+1F64.
+- [ ] `family/win_ascent_and_descent` — set `OS/2.usWinAscent` to at least 1120 and `OS/2.usWinDescent` to at least 400 after confirming the intended line-spacing behavior.
+- [x] `legacy_accents` — remove the GDEF mark class assignment from `dieresis`, `macron`, `acute`, `cedilla`, `circumflex`, `caron`, `breve`, `dotaccent`, `ring`, `ogonek`, `tilde`, and `hungarumlaut`.
+- [x] `googlefonts/glyphsets/shape_languages` — add the mandatory missing Cyrillic characters required by `GF_Phonetics_SinoExt`, including Bashkir, Chuvash, Azerbaijani Cyrillic, Kabardian/Adyghe/Dargwa/Lezghian/Ingush, Chechen, Avaric, Mari, and Sakha.
+- [ ] `dotted_circle` — add dotted-circle attachment anchors for `acutecomb`, `dotbelowcomb`, `gravecomb`, `hookabovecomb`, `tildecomb`, U+0302, U+0304, U+0305, U+0306, U+0307, U+0308, U+030A, U+030B, U+030C, U+030F, U+0312, U+031B, U+0325, U+0326, U+0327, U+0328, U+0336, U+0337, and U+0338.

@@ -4,9 +4,6 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-from scripts.font_ops.merge import merge_ttfonts
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -26,38 +23,6 @@ class FontOpsBoundaryTest(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-
-
-class FontMergeOwnershipTest(unittest.TestCase):
-    def test_success_closes_extra_font_and_transfers_base_font(self) -> None:
-        base_font = MagicMock()
-        extra_font = MagicMock()
-        base_font.getGlyphOrder.return_value = [".notdef"]
-        extra_font.getGlyphOrder.return_value = [".notdef"]
-
-        with patch(
-            "scripts.font_ops.merge.load_font",
-            side_effect=(base_font, extra_font),
-        ):
-            result = merge_ttfonts("base.ttf", "extra.ttf")
-
-        self.assertIs(result, base_font)
-        base_font.close.assert_not_called()
-        extra_font.close.assert_called_once_with()
-
-    def test_failure_closes_base_font(self) -> None:
-        base_font = MagicMock()
-
-        with (
-            patch(
-                "scripts.font_ops.merge.load_font",
-                side_effect=(base_font, RuntimeError("open failed")),
-            ),
-            self.assertRaisesRegex(RuntimeError, "open failed"),
-        ):
-            merge_ttfonts("base.ttf", "extra.ttf")
-
-        base_font.close.assert_called_once_with()
 
 
 if __name__ == "__main__":

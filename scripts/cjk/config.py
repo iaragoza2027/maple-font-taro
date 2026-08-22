@@ -93,7 +93,9 @@ DEFAULT_KR_RANGES: tuple[tuple[int, int], ...] = (
     (0xFE30, 0xFE6F),
     (0xFF00, 0xFFEF),
 )
-DEFAULT_FEATURE_FONT_PATH = Path("source/cjk/variable-source/MapleMono-CJK-Base-VF.ttf")
+DEFAULT_FEATURE_FONT_PATH = Path(
+    "sources/cjk/variable-source/MapleMono-CJK-Base-VF.ttf"
+)
 
 
 @dataclass(frozen=True)
@@ -155,7 +157,7 @@ class CJKTransformConfig:
 class CJKOutputConfig:
     """Output file layout."""
 
-    dir: Path = Path("source/cjk")
+    dir: Path = Path("sources/cjk")
     regular_variable: str = "MapleMono-CJK-VF.ttf"
     italic_variable: str = "MapleMono-CJK-Italic-VF.ttf"
     static_dir: str = "static"
@@ -186,7 +188,7 @@ class CJKBuildConfig:
     naming: CJKNamingConfig = field(default_factory=CJKNamingConfig)
     unicode: CJKUnicodeConfig = field(default_factory=CJKUnicodeConfig)
     transform: CJKTransformConfig = field(default_factory=CJKTransformConfig)
-    temp_dir: Path = Path("source/cjk/temp")
+    temp_dir: Path = Path("sources/cjk/temp")
     hhea_metrics: dict[str, int] = field(
         default_factory=lambda: dict(DEFAULT_MAPLE_HHEA_METRICS)
     )

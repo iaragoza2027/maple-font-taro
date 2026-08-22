@@ -57,7 +57,7 @@ def build_parser(version: str | None = None) -> argparse.ArgumentParser:
         "--apply-fea-file",
         default=None,
         action="store_true",
-        help="Apply matching `source/features/{regular,italic}{_cn,}.fea` to static and variable fonts",
+        help="Apply matching `sources/features/{regular,italic}{_cn,}.fea` to static and variable fonts",
     )
     hint_group = feature_group.add_mutually_exclusive_group()
     hint_group.add_argument(

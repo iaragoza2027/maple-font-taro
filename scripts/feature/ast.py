@@ -444,8 +444,8 @@ def subst_liga(
         source: The glyphs to form the ligature (e.g., "!=" or ["!", "="]).
         target: The ligature glyph name; defaults to ``gly(source)``.
         lookup_name: Name of the lookup block; defaults to ``target``.
-        desc: Content of comment before the lookup block; defaults to ``source``,
-            or ``lookup_name`` if ``source`` is ``list``.
+        desc: Content of comment before the lookup block; defaults to ``sources``,
+            or ``lookup_name`` if ``sources`` is ``list``.
         surround: List of (prefix, suffix) tuples specifying contexts for substitution.
             Each prefix/suffix is ``Sequence[str | Clazz]``.
             If empty, generates basic substitution rules without context.

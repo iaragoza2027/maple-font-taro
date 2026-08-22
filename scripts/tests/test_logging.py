@@ -12,7 +12,6 @@ from scripts.utils.logging import (
     configure_logging,
     log_progress,
     log_task,
-    log_task_complete,
     logger,
     set_log_task,
 )
@@ -92,24 +91,6 @@ class LoggingConfigurationTest(unittest.TestCase):
         self.assertEqual(
             stderr.getvalue(),
             "[prepare] Preparing sources\n\n[ttf] Building TTF fonts\n",
-        )
-
-    def test_task_completion_includes_duration_and_summary(self) -> None:
-        stderr = StringIO()
-        with (
-            redirect_stderr(stderr),
-            patch(
-                "scripts.utils.logging.time.monotonic",
-                side_effect=(10.0, 12.5),
-            ),
-        ):
-            configure_logging()
-            started_at = log_task(TaskName.PREPARE, "Prepare font sources")
-            log_task_complete(started_at, "2 sources")
-
-        self.assertEqual(
-            stderr.getvalue(),
-            "[prepare] Prepare font sources\n[prepare] Done in 2.50s (2 sources)\n",
         )
 
     def test_debug_uses_the_compact_prefix(self) -> None:

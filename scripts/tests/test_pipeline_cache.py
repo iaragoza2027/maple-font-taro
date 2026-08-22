@@ -5,7 +5,6 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import cast
-from unittest.mock import patch
 
 from scripts.pipeline.cache import (
     CACHE_SCHEMA,
@@ -86,37 +85,6 @@ class PipelineCacheTest(unittest.TestCase):
                 validated["snapshot"],
                 stage_record["snapshot"],
             )
-
-    def test_cache_logs_compact_hit_and_miss_messages(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            output = root / "TTF" / "MapleMono-Regular.ttf"
-            output.parent.mkdir()
-            output.write_bytes(b"font")
-            identity = stage_identity({"source": "one"}, "ttf")
-
-            with patch("scripts.pipeline.cache.logger.info") as log_info:
-                self.assertFalse(validate_stage(root, {}, "ttf", identity, [output]))
-                self.assertEqual(
-                    log_info.call_args.args,
-                    ("Cache miss: stage=%s, reason=missing-record", "ttf"),
-                )
-
-                record = {
-                    "schema": CACHE_SCHEMA,
-                    "stages": {
-                        "ttf": {
-                            "key": identity,
-                            "snapshot": output_snapshot(root, "ttf", [output]),
-                        }
-                    },
-                }
-                log_info.reset_mock()
-                self.assertTrue(validate_stage(root, record, "ttf", identity, [output]))
-                self.assertEqual(
-                    log_info.call_args.args,
-                    ("Cache hit: stage=%s", "ttf"),
-                )
 
     def test_cache_record_is_written_atomically(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

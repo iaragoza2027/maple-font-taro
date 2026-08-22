@@ -30,6 +30,14 @@ def make_font_config():
     return config
 
 
+def get_unicode_name(font: TTFont, name_id: int) -> str:
+    record = font["name"].getName(
+        nameID=name_id, platformID=3, platEncID=1, langID=0x409
+    )
+    assert record is not None
+    return record.toUnicode()
+
+
 class FontNameTest(unittest.TestCase):
     def test_variable_instances_have_unique_names(self) -> None:
         font = make_font()
@@ -150,8 +158,12 @@ class FontNameTest(unittest.TestCase):
             is_skip_subfamily=True,
         )
 
-        self.assertIsNone(font["name"].getName(nameID=16, platformID=3, platEncID=1, langID=0x409))
-        self.assertIsNone(font["name"].getName(nameID=17, platformID=3, platEncID=1, langID=0x409))
+        self.assertIsNone(
+            font["name"].getName(nameID=16, platformID=3, platEncID=1, langID=0x409)
+        )
+        self.assertIsNone(
+            font["name"].getName(nameID=17, platformID=3, platEncID=1, langID=0x409)
+        )
 
     def test_skip_subfamily_writes_name_ids_16_and_17_for_variable(self) -> None:
         font = make_font()
@@ -175,11 +187,11 @@ class FontNameTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            font["name"].getName(nameID=16, platformID=3, platEncID=1, langID=0x409).toUnicode(),
+            get_unicode_name(font, 16),
             "Maple Mono NF",
         )
         self.assertEqual(
-            font["name"].getName(nameID=17, platformID=3, platEncID=1, langID=0x409).toUnicode(),
+            get_unicode_name(font, 17),
             "Regular",
         )
 
@@ -203,11 +215,11 @@ class FontNameTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            font["name"].getName(nameID=16, platformID=3, platEncID=1, langID=0x409).toUnicode(),
+            get_unicode_name(font, 16),
             "Maple Mono NF",
         )
         self.assertEqual(
-            font["name"].getName(nameID=17, platformID=3, platEncID=1, langID=0x409).toUnicode(),
+            get_unicode_name(font, 17),
             "Bold",
         )
 

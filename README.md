@@ -82,15 +82,15 @@ CJK builds are disabled by default. Use the CJK build configuration to select on
 
 Download the font archives from [Releases](https://github.com/subframe7536/maple-font/releases/latest).
 
-You can also install Maple Mono through Scoop, Homebrew, AUR/Paru, NixPkgs, and other package managers. See the [installation guide](./docs/install.md) for details.
+You can also install Maple Mono through Scoop, Homebrew, AUR/Paru, NixPkgs, and other package managers. See the [installation guide](./documentation/install.md) for details.
 
 ### Usage and Feature Configuration
 
-See the [usage guide](./docs/usage.md) for usage and configuration instructions.
+See the [usage guide](./documentation/usage.md) for usage and configuration instructions.
 
 #### Naming and Font Selection
 
-Maple Mono provides multiple font formats and character-set ranges in its releases based on user feedback. Choose the font file that fits your use case; see [font selection](./docs/choose.md) for details.
+Maple Mono provides multiple font formats and character-set ranges in its releases based on user feedback. Choose the font file that fits your use case; see [font selection](./documentation/choose.md) for details.
 
 ### CDN
 
@@ -110,7 +110,7 @@ You can preview all highlights on the [page#todo]().
 
 ### Custom Builds
 
-Maple Mono provides highly customizable builds. Modify [`config.json`](./config.json) or add command-line arguments to generate the font you need; see [custom builds](./docs/build.md) for details.
+Maple Mono provides highly customizable builds. Modify [`config.json`](./config.json) or add command-line arguments to generate the font you need; see [custom builds](./documentation/build.md) for details.
 
 See the [full `build.py` CLI reference](#buildpy-cli).
 
@@ -146,7 +146,7 @@ Maple Mono's default glyph design is distinctive and personalized, which may not
 
 Most fonts do not support custom OpenType features, while Maple Mono supports defining them programmatically.
 
-By default, the Python modules in [`scripts/feature/`](./scripts/feature) generate the OpenType feature code loaded during the build. Modify those modules to adjust behavior or customize labels. To edit `.fea` source files directly, pass `--apply-fea-file` to `build.py`; the build script will load [`source/features/{regular,italic}{_cn,}.fea`](./source/features).
+By default, the Python modules in [`scripts/feature/`](./scripts/feature) generate the OpenType feature code loaded during the build. Modify those modules to adjust behavior or customize labels. To edit `.fea` source files directly, pass `--apply-fea-file` to `build.py`; the build script will load [`sources/features/{regular,italic}{_cn,}.fea`](./sources/features).
 
 ### Infinite Arrow Ligatures
 
@@ -274,7 +274,7 @@ Feature Options:
                         (e.g. `--feat zero,cv01,ss07,ss08`); contextual rules
                         are enabled through `calt`
   --apply-fea-file      Apply matching
-                        `source/features/{regular,italic}{_cn,}.fea` to static
+                        `sources/features/{regular,italic}{_cn,}.fea` to static
                         and variable fonts
   --hinted              Use hinted font as base font in NF / CJK / NF-CJK
                         (default)

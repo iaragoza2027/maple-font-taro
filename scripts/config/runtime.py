@@ -88,7 +88,7 @@ class BuildRuntimeContext:
         output_ttf_hinted = join_path(output_root, "TTF-AutoHint")
         nf_variant = config.get_nf_variant()
         return cls(
-            src_dir="source",
+            src_dir="sources",
             output_root=output_root,
             output_otf=join_path(output_root, "OTF"),
             output_ttf=output_ttf,

@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="tripleNestedGreaterThan" format="2">
+  <advance width="600"/>
+  <unicode hex="2AF8"/>
+  <outline>
+    <contour>
+      <point x="41" y="546" type="line"/>
+      <point x="548" y="282" type="line"/>
+      <point x="-52" y="19" type="line"/>
+      <point x="-42" y="75" type="line"/>
+      <point x="429" y="282" type="line"/>
+      <point x="32" y="491" type="line"/>
+    </contour>
+    <contour>
+      <point x="25" y="455" type="line"/>
+      <point x="367" y="278" type="line"/>
+      <point x="-37" y="102" type="line"/>
+      <point x="-29" y="150" type="line"/>
+      <point x="264" y="279" type="line"/>
+      <point x="17" y="407" type="line"/>
+    </contour>
+    <contour>
+      <point x="205" y="278" type="line"/>
+      <point x="-22" y="187" type="line"/>
+      <point x="-14" y="232" type="line"/>
+      <point x="95" y="278" type="line"/>
+      <point x="2" y="325" type="line"/>
+      <point x="10" y="371" type="line"/>
+    </contour>
+  </outline>
+</glyph>

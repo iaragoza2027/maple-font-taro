@@ -1,15 +1,10 @@
 from __future__ import annotations
 
-import json
 import tempfile
 import unittest
 from pathlib import Path
-from threading import Barrier, current_thread
 from typing import TYPE_CHECKING
-from unittest.mock import patch
 
-from fontmake.font_project import CFFOptimization, FontProject
-from fontTools.designspaceLib import DesignSpaceDocument
 from glyphsLib import load
 from glyphsLib.classes import (
     GSComponent,
@@ -22,7 +17,6 @@ from glyphsLib.classes import (
     GSNode,
     GSPath,
 )
-from ufoLib2 import Font as UFOFont
 
 from scripts.config.base import ResolvedConfig
 from scripts.feature.apply import apply_binary_features
@@ -44,16 +38,15 @@ from scripts.font_ops.opentype import (
     alias_codepoints,
 )
 from scripts.task.designspace import (
-    SourceCompatibilityError,
     convert_glyphs_source,
     prepare_static_source,
-    validate_source_reports,
     write_designspace_source,
-    write_source_issue_report,
 )
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+    from ufoLib2 import Font as UFOFont
 
 
 def write_glyphs_fixture(
@@ -206,88 +199,6 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
                 all(source.font is None for source in prepared.designspace.sources)
             )
 
-    def test_materialization_failure_closes_every_ufo_reader(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            source_path = root / "Fixture.glyphs"
-            write_glyphs_fixture(
-                source_path,
-                {".notdef": ("Thin", "Regular", "ExtraBold")},
-            )
-            prepared = prepare_glyphs_fixture(source_path, "regular")
-            fonts = [source.font for source in prepared.designspace.sources]
-
-            with (
-                patch.object(UFOFont, "save", side_effect=OSError("save failed")),
-                self.assertRaisesRegex(OSError, "save failed"),
-            ):
-                materialize_prepared_source(prepared, root / "prepared")
-
-            self.assert_ufo_readers_closed(fonts)
-            self.assertTrue(
-                all(source.font is None for source in prepared.designspace.sources)
-            )
-
-    def test_designspace_write_failure_closes_every_ufo_reader(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            source_path = root / "Fixture.glyphs"
-            write_glyphs_fixture(
-                source_path,
-                {".notdef": ("Thin", "Regular", "ExtraBold")},
-            )
-            prepared = prepare_glyphs_fixture(source_path, "regular")
-            fonts = [source.font for source in prepared.designspace.sources]
-
-            with (
-                patch.object(
-                    DesignSpaceDocument,
-                    "write",
-                    side_effect=OSError("designspace write failed"),
-                ),
-                self.assertRaisesRegex(OSError, "designspace write failed"),
-            ):
-                materialize_prepared_source(prepared, root / "prepared")
-
-            self.assert_ufo_readers_closed(fonts)
-            self.assertTrue(
-                all(source.font is None for source in prepared.designspace.sources)
-            )
-
-    def test_preparation_failure_closes_every_opened_ufo_reader(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            source_path = root / "Fixture.glyphs"
-            write_glyphs_fixture(
-                source_path,
-                {".notdef": ("Thin", "Regular", "ExtraBold")},
-            )
-            static_source = prepare_static_fixture(source_path, "regular")
-            designspace_path = write_designspace_source(
-                static_source,
-                root / "generated",
-                "Fixture.designspace",
-            )
-            designspace = DesignSpaceDocument.fromfile(designspace_path)
-            designspace.axes = []
-            designspace.write(designspace_path)
-            opened_fonts: list[UFOFont] = []
-            original_open = UFOFont.open
-
-            def track_open(path):
-                font = original_open(path)
-                opened_fonts.append(font)
-                return font
-
-            with (
-                patch.object(UFOFont, "open", side_effect=track_open),
-                self.assertRaisesRegex(ValueError, "continuous named wght axis"),
-            ):
-                prepare_designspace_source(designspace_path, "regular")
-
-            self.assertEqual(len(opened_fonts), 3)
-            self.assert_ufo_readers_closed(opened_fonts)
-
     def test_fontmake_compiles_prepared_variable_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -358,7 +269,7 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
                 self.assertIn(0x004B, source.font["K"].unicodes)
                 self.assertNotIn(0x212A, source.font["K"].unicodes)
 
-    def test_runtime_aliases_include_builtins_and_configured_extras(self) -> None:
+    def test_runtime_aliases_include_configured_extras_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             source_path = root / "Fixture.glyphs"
@@ -376,26 +287,10 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
                 alias_codepoints(font, {0xE000: 0x004B})
                 cmap = font.getBestCmap()
                 assert cmap is not None
-                self.assertEqual(cmap[0x212A], "K")
+                self.assertNotIn(0x212A, cmap)
                 self.assertEqual(cmap[0xE000], "K")
             finally:
                 font.close()
-
-    def test_regular_layer_is_reused_without_creating_an_issue_report(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            tmp_path = Path(tmp)
-            source_path = tmp_path / "Fixture.glyphs"
-            write_glyphs_fixture(source_path, {"A.bg": ("Regular",)})
-
-            prepared = prepare_static_fixture(source_path, "regular")
-
-            self.assertEqual(prepared.errors, ())
-            for source in prepared.designspace.sources:
-                assert source.font is not None
-                self.assertIn("A.bg", source.font)
-            report_path = tmp_path / "fonts" / "source-issues.json"
-            with patch("scripts.task.designspace.SOURCE_ISSUE_REPORT", report_path):
-                self.assertIsNone(write_source_issue_report((prepared,)))
 
     def test_missing_regular_layer_is_a_fatal_source_error(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -415,93 +310,6 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
                     },
                 ),
             )
-
-    def test_issue_report_contains_all_glyphs_without_console_listing(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            tmp_path = Path(tmp)
-            regular_path = tmp_path / "Regular.glyphs"
-            italic_path = tmp_path / "Italic.glyphs"
-            write_glyphs_fixture(
-                regular_path,
-                {"B.bg": ("Thin",), "A.bg": ("Thin",)},
-            )
-            write_glyphs_fixture(italic_path, {"orphan": ("Thin",)})
-            prepared = (
-                prepare_static_fixture(regular_path, "regular"),
-                prepare_static_fixture(italic_path, "italic"),
-            )
-
-            expected_report = tmp_path / "fonts" / "source-issues.json"
-            with (
-                patch("scripts.task.designspace.SOURCE_ISSUE_REPORT", expected_report),
-                self.assertLogs("scripts", level="INFO") as logs,
-            ):
-                report_path = write_source_issue_report(prepared)
-
-            self.assertEqual(report_path, expected_report)
-            assert report_path is not None
-            report = json.loads(report_path.read_text(encoding="utf-8"))
-            self.assertEqual(
-                [item["glyph"] for item in report["regular"]["errors"]],
-                ["A.bg", "B.bg"],
-            )
-            self.assertEqual(report["regular"]["reused_regular_master_layers"], [])
-            self.assertEqual(
-                [item["glyph"] for item in report["italic"]["errors"]],
-                ["orphan"],
-            )
-            self.assertNotIn("A.bg", "\n".join(logs.output))
-            self.assertNotIn("orphan", "\n".join(logs.output))
-
-    def test_regular_and_italic_errors_are_aggregated_before_generation(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            tmp_path = Path(tmp)
-            regular_path = tmp_path / "Regular.glyphs"
-            italic_path = tmp_path / "Italic.glyphs"
-            write_glyphs_fixture(regular_path, {"regularOrphan": ("Thin",)})
-            write_glyphs_fixture(italic_path, {"italicOrphan": ("ExtraBold",)})
-
-            reports = (
-                prepare_static_fixture(regular_path, "regular"),
-                prepare_static_fixture(italic_path, "italic"),
-            )
-            report_path = tmp_path / "fonts" / "source-issues.json"
-            with (
-                patch("scripts.task.designspace.SOURCE_ISSUE_REPORT", report_path),
-                self.assertRaises(SourceCompatibilityError),
-            ):
-                validate_source_reports(reports)
-
-            report = json.loads(report_path.read_text(encoding="utf-8"))
-            self.assertEqual(
-                [item["glyph"] for item in report["regular"]["errors"]],
-                ["regularOrphan"],
-            )
-            self.assertEqual(
-                [item["glyph"] for item in report["italic"]["errors"]],
-                ["italicOrphan"],
-            )
-
-    def test_clean_sources_remove_a_stale_issue_report(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            tmp_path = Path(tmp)
-            source_path = tmp_path / "Fixture.glyphs"
-            write_glyphs_fixture(
-                source_path,
-                {"A": ("Thin", "Regular", "ExtraBold")},
-            )
-            output_dir = tmp_path / "fonts"
-            output_dir.mkdir()
-            stale_report = output_dir / "source-issues.json"
-            stale_report.write_text("stale", encoding="utf-8")
-
-            with patch("scripts.task.designspace.SOURCE_ISSUE_REPORT", stale_report):
-                report_path = write_source_issue_report(
-                    (prepare_static_fixture(source_path, "regular"),)
-                )
-
-            self.assertIsNone(report_path)
-            self.assertFalse(stale_report.exists())
 
     def test_incompatible_components_are_reported_without_console_output(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -681,64 +489,6 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
             ttf.close()
             otf.close()
 
-    def test_fontmake_branches_interpolate_and_use_default_subroutinizer(
-        self,
-    ) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            source_path = root / "Fixture.glyphs"
-            write_glyphs_fixture(
-                source_path,
-                {".notdef": ("Thin", "Regular", "ExtraBold")},
-            )
-            prepared = prepare_glyphs_fixture(source_path, "regular")
-            designspace_path = materialize_prepared_source(prepared, root / "prepared")
-
-            barrier = Barrier(3)
-            thread_names: set[str] = set()
-
-            def record_branch(*_args, **_kwargs) -> None:
-                thread_names.add(current_thread().name)
-                barrier.wait(timeout=2)
-
-            with patch.object(
-                FontProject,
-                "run_from_designspace",
-                autospec=True,
-                side_effect=record_branch,
-            ) as run_from_designspace:
-                compile_fontmake_branches(
-                    [
-                        FontmakeBranchJob(
-                            designspace_path, "variable", root / "variable.ttf"
-                        ),
-                        FontmakeBranchJob(
-                            designspace_path, "ttf", root / "ttf", interpolate=True
-                        ),
-                        FontmakeBranchJob(
-                            designspace_path, "otf", root / "otf", interpolate=True
-                        ),
-                    ]
-                )
-
-            self.assertEqual(run_from_designspace.call_count, 3)
-            self.assertEqual(len(thread_names), 3)
-            designspace_paths = {
-                call.args[1] for call in run_from_designspace.call_args_list
-            }
-            self.assertEqual(len(designspace_paths), 1)
-            otf_call = next(
-                call
-                for call in run_from_designspace.call_args_list
-                if call.kwargs["output"] == ("otf",)
-            )
-            self.assertIs(otf_call.kwargs["interpolate"], True)
-            self.assertEqual(
-                otf_call.kwargs["optimize_cff"],
-                CFFOptimization.SUBROUTINIZE,
-            )
-            self.assertNotIn("subroutinizer", otf_call.kwargs)
-
     def test_fontmake_accepts_static_filter_without_filtering_variable_names(
         self,
     ) -> None:
@@ -811,7 +561,7 @@ class DesignspaceVariableSourceTest(unittest.TestCase):
             root = Path(tmp)
             output_path = root / "MapleMonoSL[wght].ttf"
             prepared = prepare_designspace_source(
-                "source/MapleMono[wght].designspace",
+                "sources/MapleMono.designspace",
                 "regular",
                 target_width=500,
                 original_ref_width=600,

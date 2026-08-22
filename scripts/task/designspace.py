@@ -9,7 +9,9 @@ from typing import TYPE_CHECKING, Any, Literal
 from fontmake.compatibility import CompatibilityChecker
 from fontTools.designspaceLib import AxisDescriptor, DesignSpaceDocument
 from glyphsLib import load, to_designspace
+from ufo2ft.constants import FEATURE_WRITERS_KEY
 
+from scripts.feature.compiler import generate_fea_string
 from scripts.utils.files import write_json
 from scripts.utils.logging import TaskName, log_task, logger
 
@@ -73,13 +75,13 @@ def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
     parser.add_argument(
         "--source-dir",
         type=Path,
-        default=Path("source"),
+        default=Path("sources"),
         help="Directory containing exported .glyphs files",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("source"),
+        default=Path("sources"),
         help="Directory for generated Designspace and UFO sources",
     )
     return parser
@@ -93,12 +95,16 @@ def infer_source_style(source_path: str | Path) -> SourceStyle:
 def convert_glyphs_source(
     source_path: str | Path,
     style: SourceStyle | None = None,
+    *,
+    feature_source: str = "",
 ) -> ConvertedGlyphsSource:
-    """Convert one exported Glyphs source without applying build configuration."""
+    """Convert one Glyphs export and attach the provided OpenType feature source."""
     path = Path(source_path)
     resolved_style = style or infer_source_style(path)
     with path.open(encoding="utf-8") as source_file:
         glyphs_font = load(source_file)
+    # Project-generated features are authoritative and also avoid GlyphsLib
+    # interpreting FontLab-specific tokens embedded in exported feature names.
     glyphs_font.classes = []
     glyphs_font.featurePrefixes = []
     glyphs_font.features = []
@@ -109,6 +115,10 @@ def convert_glyphs_source(
         store_editor_state=False,
         write_skipexportglyphs=True,
     )
+    for source in designspace.sources:
+        if source.font is None:
+            raise ValueError(f"Glyphs source master has no UFO font: {path}")
+        source.font.features.text = feature_source
 
     weight_axis = next((axis for axis in designspace.axes if axis.tag == "wght"), None)
     if weight_axis is None:
@@ -168,9 +178,9 @@ def prepare_static_source(converted: ConvertedGlyphsSource) -> PreparedGlyphsSou
         source.copyInfo = is_default
         if source.font is None:
             raise ValueError(f"Glyphs source master has no UFO font: {path}")
-        source.font.features.text = ""
         info = source.font.info
         info.postscriptIsFixedPitch = True
+        info.openTypeOS2Type = []
         panose: list[int] = list(info.openTypeOS2Panose or (0,) * 10)
         panose[0] = 2
         panose[3] = 9
@@ -180,6 +190,11 @@ def prepare_static_source(converted: ConvertedGlyphsSource) -> PreparedGlyphsSou
                 "rangeMaxPPEM": 65535,
                 "rangeGaspBehavior": [0, 1, 2, 3],
             }
+        ]
+        source.font.lib[FEATURE_WRITERS_KEY] = [
+            writer
+            for writer in source.font.lib.get(FEATURE_WRITERS_KEY, [])
+            if writer.get("class") == "GdefFeatureWriter"
         ]
 
     skip_export = set(designspace.lib.get("public.skipExportGlyphs", ()))
@@ -385,7 +400,20 @@ def generate_designspaces(source_dir: Path, output_dir: Path) -> list[Path]:
     prepared_list: list[PreparedGlyphsSource] = []
     for glyphs_path in glyphs_paths:
         log_task(TaskName.DESIGNSPACE, "Converting %s", glyphs_path.name)
-        prepared_list.append(prepare_static_source(convert_glyphs_source(glyphs_path)))
+        style = infer_source_style(glyphs_path)
+        feature_source = generate_fea_string(
+            is_italic=style == "italic",
+            is_cn=False,
+        )
+        prepared_list.append(
+            prepare_static_source(
+                convert_glyphs_source(
+                    glyphs_path,
+                    style,
+                    feature_source=feature_source,
+                )
+            )
+        )
     prepared_sources = tuple(prepared_list)
     validate_source_reports(prepared_sources)
     with tempfile.TemporaryDirectory(prefix=".designspace-", dir=output_dir) as tmp:
@@ -393,7 +421,9 @@ def generate_designspaces(source_dir: Path, output_dir: Path) -> list[Path]:
         staged_paths: list[Path] = []
         seen_names: set[str] = set()
         for prepared in prepared_sources:
-            designspace_name = prepared.source_path.with_suffix(".designspace").name
+            designspace_name = prepared.source_path.with_suffix(
+                ".designspace"
+            ).name.replace("[wght]", "")
             designspace_path = write_designspace_source(
                 prepared,
                 staging_dir,

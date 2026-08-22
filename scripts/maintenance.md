@@ -11,20 +11,20 @@ git status --short
 uv sync
 ```
 
-The FontLab `.vfc` files, CJK preset JSON files, and feature source modules are inputs. Designspace/UFO sources, `.fea` files, release archives, and files under `fonts/` are generated outputs. Regenerate them with the task that owns them instead of editing them by hand. Exported root `source/*.glyphs` files are local intermediates and are ignored.
+The FontLab `.vfc` files, CJK preset JSON files, and feature source modules are inputs. Designspace/UFO sources, `.fea` files, release archives, and files under `fonts/` are generated outputs. Regenerate them with the task that owns them instead of editing them by hand. Exported root `sources/*.glyphs` files are local intermediates and are ignored.
 
 Do not run a release, publish, push, or page synchronization command until the generated diff has been reviewed. `uv run task.py page --sync` updates and commits the landing-page submodule, while `uv run task.py release ...` commits and pushes a version tag.
 
 ## Update the Maple Mono source
 
-1. Edit the tracked regular or italic `.vfc` source in FontLab, then export the matching `source/MapleMono[wght].glyphs` or `source/MapleMono-Italic[wght].glyphs` file for each changed style. The exports are temporary inputs for conversion and must not be committed.
+1. Edit the tracked regular or italic `.vfc` source in FontLab, then export the matching `sources/MapleMono[wght].glyphs` or `sources/MapleMono-Italic[wght].glyphs` file for each changed style. The exports are temporary inputs for conversion and must not be committed.
 2. Regenerate the committed Designspace and UFO sources:
 
    ```sh
    uv run task.py designspace
    ```
 
-   Review the complete diff under `source/*.designspace` and `source/*.ufo/`. If conversion reports compatibility errors, inspect `fonts/source-issues.json` before continuing.
+   Review the complete diff under `sources/*.designspace` and `sources/*.ufo/`. If conversion reports compatibility errors, inspect `fonts/source-issues.json` before continuing.
 
 3. If feature definitions or feature configuration changed in scripts/feature, regenerate all derived feature data:
 
@@ -44,18 +44,18 @@ Do not run a release, publish, push, or page synchronization command until the g
 
 Feature generation updates these tracked outputs:
 
-- `source/features/regular.fea`
-- `source/features/italic.fea`
-- `source/features/cn.fea`
-- `source/features/regular_cn.fea`
-- `source/features/italic_cn.fea`
-- `docs/opentype-features.md`
-- `source/schema.json` and the feature-freeze section in `config.json`
+- `sources/features/regular.fea`
+- `sources/features/italic.fea`
+- `sources/features/cn.fea`
+- `sources/features/regular_cn.fea`
+- `sources/features/italic_cn.fea`
+- `documentation/opentype-features.md`
+- `sources/schema.json` and the feature-freeze section in `config.json`
 - The moving-rule list in `scripts/in_browser.py`
 
 For landing-page data, run `uv run task.py page` only when those generated files are part of the change. Use `--woff2` to regenerate web fonts; reserve `--sync` for an intentional remote submodule update and commit.
 
-When deliberately adopting a new Nerd Font upstream release, build a base TTF first and run `uv run task.py nf`. The task checks the upstream release, updates `nerd_font.version` in `config.json`, downloads the matching patcher, and writes the three tracked NF base fonts under `source/`. Use `uv run task.py nf --no-update` when the configured version is already correct and only the local NF outputs need rebuilding.
+When deliberately adopting a new Nerd Font upstream release, build a base TTF first and run `uv run task.py nf`. The task checks the upstream release, updates `nerd_font.version` in `config.json`, downloads the matching patcher, and writes the three tracked NF base fonts under `sources/`. Use `uv run task.py nf --no-update` when the configured version is already correct and only the local NF outputs need rebuilding.
 
 ## Update CJK base fonts
 
@@ -63,16 +63,16 @@ The four source URLs are maintained manually. Update the `source.download.url` v
 
 | Locale | Preset                         |
 | ------ | ------------------------------ |
-| CN     | `source/cjk/cn/config-cn.json` |
-| TC     | `source/cjk/tc/config-tc.json` |
-| JP     | `source/cjk/jp/config-jp.json` |
-| KR     | `source/cjk/kr/config-kr.json` |
+| CN     | `sources/cjk/cn/config-cn.json` |
+| TC     | `sources/cjk/tc/config-tc.json` |
+| JP     | `sources/cjk/jp/config-jp.json` |
+| KR     | `sources/cjk/kr/config-kr.json` |
 
 Keep the URL pinned to the intended upstream release or ref. The committed static and variable hashes are the source of truth for the generated archive contents; CI does not look up a latest release or store a separate manifest.
 
 ### Published update (recommended)
 
-1. Update the `source.download.url` value in the relevant preset and run `uv run task.py cjk --preset <locale>` locally. Review the generated fonts, then commit the config and matching `source/cjk/<locale>/static-<locale>.sha256` and `variable-<locale>.sha256` files together.
+1. Update the `source.download.url` value in the relevant preset and run `uv run task.py cjk --preset <locale>` locally. Review the generated fonts, then commit the config and matching `sources/cjk/<locale>/static-<locale>.sha256` and `variable-<locale>.sha256` files together.
 2. Pushing one or more static or variable hash files triggers **Update CJK Base Fonts**. The workflow rebuilds the selected locales and validates both ZIPs, including root-level members, variable `fvar` tables, ZIP integrity, and the corresponding committed hash.
 3. For a rebuild without a hash change, run the workflow manually and choose `all`, `cn`, `tc`, `jp`, or `kr`. Use `all` when bootstrapping a missing release or repairing an incomplete release; the workflow refuses to leave the release with fewer than eight locale/kind assets.
 4. The workflow deletes and replaces both static and variable archives for only the changed locales. After upload it downloads the published ZIPs again and repeats the eight-asset validation.
@@ -88,7 +88,7 @@ uv run task.py cjk --help
 uv run task.py cjk --preset cn
 ```
 
-The task rebuilds the regular and italic variable bases, writes their standalone variable ZIP/hash, and writes the static instances unless `--vf-only` is selected. Generated CJK fonts, temporary source files, and ZIPs under `source/cjk/` are disposable; the tracked `static-<locale>.sha256` and `variable-<locale>.sha256` files are updated by the local task and committed with the matching config, so do not hand-edit either digest. Avoid a full CJK build unless the source URL, outline conversion, or generated base artifacts are part of the requested change.
+The task rebuilds the regular and italic variable bases, writes their standalone variable ZIP/hash, and writes the static instances unless `--vf-only` is selected. Generated CJK fonts, temporary source files, and ZIPs under `sources/cjk/` are disposable; the tracked `static-<locale>.sha256` and `variable-<locale>.sha256` files are updated by the local task and committed with the matching config, so do not hand-edit either digest. Avoid a full CJK build unless the source URL, outline conversion, or generated base artifacts are part of the requested change.
 
 ## Create a Maple Mono release
 

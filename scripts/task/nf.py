@@ -149,7 +149,7 @@ def subset(mono: bool, propo: bool, unicodes: list[int]):
     subset_to_codepoints(font, unicodes)
 
     variant = NerdFontVariant.from_options(mono, propo, reject_conflict=True)
-    output_path = str(variant.base_path("source"))
+    output_path = str(variant.base_path("sources"))
 
     if not propo:
         set_monospace_metadata(font)

@@ -205,8 +205,8 @@ def prepare_fontmake_sources(
     raw_ttf_dir = temp_path / "ttf"
     raw_otf_dir = temp_path / "otf"
     source_specs: tuple[tuple[Path, SourceStyle], ...] = (
-        (source_dir / "MapleMono[wght].designspace", "regular"),
-        (source_dir / "MapleMono-Italic[wght].designspace", "italic"),
+        (source_dir / "MapleMono.designspace", "regular"),
+        (source_dir / "MapleMono-Italic.designspace", "italic"),
     )
 
     shutil.rmtree(temp_path, ignore_errors=True)
@@ -326,6 +326,7 @@ def postprocess_variable_font_job(job: VariablePostprocessJob) -> Path:
         if is_italic:
             add_ital_axis_to_stat(font)
         alias_codepoints(font, job.font_config.codepoint_alias)
+        set_monospace_metadata(font)
         verify_glyph_width(
             font=font,
             expect_widths=job.font_config.get_valid_glyph_width_list(),

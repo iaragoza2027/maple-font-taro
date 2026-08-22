@@ -2,22 +2,44 @@
 <glyph name="palochkacyr" format="2">
   <advance width="600"/>
   <unicode hex="04CF"/>
+  <anchor x="235" y="0" name="bottom"/>
+  <anchor x="250" y="0" name="ogonek"/>
+  <anchor x="332" y="550" name="top"/>
   <outline>
-    <component base="idotless"/>
+    <contour>
+      <point x="47.816" y="50" type="curve" smooth="yes"/>
+      <point x="438.816" y="50" type="line" smooth="yes"/>
+      <point x="453.816" y="50"/>
+      <point x="462.053" y="40"/>
+      <point x="459.408" y="25" type="curve" smooth="yes"/>
+      <point x="456.763" y="10"/>
+      <point x="446" y="0"/>
+      <point x="431" y="0" type="curve" smooth="yes"/>
+      <point x="39" y="0" type="line" smooth="yes"/>
+      <point x="24" y="0"/>
+      <point x="16.763" y="10"/>
+      <point x="19.408" y="25" type="curve" smooth="yes"/>
+      <point x="22.053" y="40"/>
+      <point x="32.816" y="50"/>
+    </contour>
+    <contour>
+      <point x="270.408" y="25" type="line"/>
+      <point x="220.408" y="25" type="line"/>
+      <point x="295.347" y="450" type="line" smooth="yes"/>
+      <point x="298.874" y="470"/>
+      <point x="290.637" y="480"/>
+      <point x="270.637" y="480" type="curve" smooth="yes"/>
+      <point x="149.637" y="480" type="line" smooth="yes"/>
+      <point x="134.637" y="480"/>
+      <point x="126.4" y="490"/>
+      <point x="129.045" y="505" type="curve" smooth="yes"/>
+      <point x="131.69" y="520"/>
+      <point x="143.453" y="530"/>
+      <point x="158.453" y="530" type="curve" smooth="yes"/>
+      <point x="299.453" y="530" type="line" smooth="yes"/>
+      <point x="339.453" y="530"/>
+      <point x="355.927" y="510"/>
+      <point x="348.874" y="470" type="curve" smooth="yes"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>idotless</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

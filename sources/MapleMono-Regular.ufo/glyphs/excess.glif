@@ -3,54 +3,49 @@
   <advance width="600"/>
   <unicode hex="2239"/>
   <outline>
-    <component base="Eth.decorator" xOffset="50" yOffset="-50"/>
-    <component base="period" xOffset="200" yOffset="90"/>
-    <component base="period" xOffset="200" yOffset="440"/>
+    <contour>
+      <point x="323" y="285" type="curve" smooth="yes"/>
+      <point x="93" y="285" type="line" smooth="yes"/>
+      <point x="69" y="285"/>
+      <point x="50" y="296"/>
+      <point x="50" y="328" type="curve" smooth="yes"/>
+      <point x="50" y="360"/>
+      <point x="69" y="370"/>
+      <point x="93" y="370" type="curve" smooth="yes"/>
+      <point x="323" y="370" type="line" smooth="yes"/>
+      <point x="347" y="370"/>
+      <point x="365" y="360"/>
+      <point x="365" y="328" type="curve" smooth="yes"/>
+      <point x="365" y="296"/>
+      <point x="347" y="285"/>
+    </contour>
+    <contour>
+      <point x="423" y="157" type="curve" smooth="yes"/>
+      <point x="423" y="199"/>
+      <point x="458" y="233"/>
+      <point x="500" y="233" type="curve" smooth="yes"/>
+      <point x="542" y="233"/>
+      <point x="577" y="199"/>
+      <point x="577" y="157" type="curve" smooth="yes"/>
+      <point x="577" y="115"/>
+      <point x="542" y="80"/>
+      <point x="500" y="80" type="curve" smooth="yes"/>
+      <point x="458" y="80"/>
+      <point x="423" y="115"/>
+    </contour>
+    <contour>
+      <point x="423" y="507" type="curve" smooth="yes"/>
+      <point x="423" y="549"/>
+      <point x="458" y="583"/>
+      <point x="500" y="583" type="curve" smooth="yes"/>
+      <point x="542" y="583"/>
+      <point x="577" y="549"/>
+      <point x="577" y="507" type="curve" smooth="yes"/>
+      <point x="577" y="465"/>
+      <point x="542" y="430"/>
+      <point x="500" y="430" type="curve" smooth="yes"/>
+      <point x="458" y="430"/>
+      <point x="423" y="465"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>Eth.decorator</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>period</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>2</integer>
-          <key>name</key>
-          <string>period</string>
-        </dict>
-      </array>
-      <key>com.schriftgestaltung.componentsSmartComponentValues</key>
-      <array>
-        <dict>
-          <key>Wt</key>
-          <integer>600</integer>
-        </dict>
-        <dict>
-          <key>Wt</key>
-          <integer>300</integer>
-        </dict>
-        <dict>
-          <key>Wt</key>
-          <integer>300</integer>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

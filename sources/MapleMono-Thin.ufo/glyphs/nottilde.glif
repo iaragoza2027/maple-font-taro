@@ -3,30 +3,53 @@
   <advance width="600"/>
   <unicode hex="2241"/>
   <outline>
-    <component base="ustraightstroke-cy.decorator" xScale="0.5000000000000001" xyScale="0.8660254037844386" yxScale="-0.8660254037844386" yScale="0.5000000000000001" xOffset="130" yOffset="70"/>
-    <component base="similar"/>
+    <contour>
+      <point x="390" y="431" type="curve" smooth="yes"/>
+      <point x="247" y="183" type="line" smooth="yes"/>
+      <point x="240" y="170"/>
+      <point x="230" y="168"/>
+      <point x="217" y="175" type="curve" smooth="yes"/>
+      <point x="204" y="183"/>
+      <point x="201" y="193"/>
+      <point x="209" y="206" type="curve" smooth="yes"/>
+      <point x="352" y="454" type="line" smooth="yes"/>
+      <point x="359" y="467"/>
+      <point x="369" y="469"/>
+      <point x="382" y="461" type="curve" smooth="yes"/>
+      <point x="395" y="454"/>
+      <point x="398" y="444"/>
+    </contour>
+    <contour>
+      <point x="125" y="306" type="curve" smooth="yes"/>
+      <point x="113" y="293"/>
+      <point x="102" y="293"/>
+      <point x="89" y="305" type="curve" smooth="yes"/>
+      <point x="76" y="318"/>
+      <point x="75" y="331"/>
+      <point x="86" y="344" type="curve" smooth="yes"/>
+      <point x="117" y="380"/>
+      <point x="160" y="401"/>
+      <point x="204" y="401" type="curve" smooth="yes"/>
+      <point x="286" y="401"/>
+      <point x="324" y="301"/>
+      <point x="388" y="301" type="curve" smooth="yes"/>
+      <point x="422" y="301"/>
+      <point x="449" y="322"/>
+      <point x="470" y="347" type="curve" smooth="yes"/>
+      <point x="482" y="361"/>
+      <point x="495" y="363"/>
+      <point x="509" y="352" type="curve" smooth="yes"/>
+      <point x="524" y="340"/>
+      <point x="525" y="326"/>
+      <point x="514" y="312" type="curve" smooth="yes"/>
+      <point x="482" y="273"/>
+      <point x="439" y="245"/>
+      <point x="381" y="245" type="curve" smooth="yes"/>
+      <point x="291" y="245"/>
+      <point x="265" y="346"/>
+      <point x="197" y="346" type="curve" smooth="yes"/>
+      <point x="168" y="346"/>
+      <point x="144" y="327"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>ustraightstroke-cy.decorator</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>similar</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

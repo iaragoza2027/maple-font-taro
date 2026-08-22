@@ -2,8 +2,6 @@
 <glyph name="minferior" format="2">
   <advance width="600"/>
   <unicode hex="2098"/>
-  <anchor x="209" y="-60" name="bottom"/>
-  <anchor x="267" y="270" name="top"/>
   <outline>
     <contour>
       <point x="61" y="-29" type="curve" smooth="yes"/>
@@ -15,9 +13,9 @@
       <point x="114" y="276"/>
       <point x="133" y="276" type="curve" smooth="yes"/>
       <point x="153" y="276"/>
-      <point x="166" y="266"/>
-      <point x="172" y="246" type="curve"/>
-      <point x="175" y="241"/>
+      <point x="165" y="266"/>
+      <point x="172" y="246" type="curve" smooth="yes"/>
+      <point x="174" y="241"/>
       <point x="175" y="235"/>
       <point x="174" y="230" type="curve"/>
       <point x="186" y="258"/>

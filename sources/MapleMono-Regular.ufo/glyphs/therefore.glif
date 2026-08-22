@@ -3,39 +3,47 @@
   <advance width="600"/>
   <unicode hex="2234"/>
   <outline>
-    <component base="period" xOffset="-200"/>
-    <component base="period" xOffset="200"/>
-    <component base="period" yOffset="400"/>
+    <contour>
+      <point x="15" y="75" type="curve" smooth="yes"/>
+      <point x="15" y="122"/>
+      <point x="53" y="160"/>
+      <point x="100" y="160" type="curve" smooth="yes"/>
+      <point x="147" y="160"/>
+      <point x="185" y="122"/>
+      <point x="185" y="75" type="curve" smooth="yes"/>
+      <point x="185" y="29"/>
+      <point x="147" y="-10"/>
+      <point x="100" y="-10" type="curve" smooth="yes"/>
+      <point x="53" y="-10"/>
+      <point x="15" y="29"/>
+    </contour>
+    <contour>
+      <point x="415" y="75" type="curve" smooth="yes"/>
+      <point x="415" y="122"/>
+      <point x="453" y="160"/>
+      <point x="500" y="160" type="curve" smooth="yes"/>
+      <point x="547" y="160"/>
+      <point x="585" y="122"/>
+      <point x="585" y="75" type="curve" smooth="yes"/>
+      <point x="585" y="29"/>
+      <point x="547" y="-10"/>
+      <point x="500" y="-10" type="curve" smooth="yes"/>
+      <point x="453" y="-10"/>
+      <point x="415" y="29"/>
+    </contour>
+    <contour>
+      <point x="215" y="475" type="curve" smooth="yes"/>
+      <point x="215" y="522"/>
+      <point x="253" y="560"/>
+      <point x="300" y="560" type="curve" smooth="yes"/>
+      <point x="347" y="560"/>
+      <point x="385" y="522"/>
+      <point x="385" y="475" type="curve" smooth="yes"/>
+      <point x="385" y="429"/>
+      <point x="347" y="390"/>
+      <point x="300" y="390" type="curve" smooth="yes"/>
+      <point x="253" y="390"/>
+      <point x="215" y="429"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>period</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>period</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>2</integer>
-          <key>name</key>
-          <string>period</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

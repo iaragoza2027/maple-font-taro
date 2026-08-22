@@ -2,33 +2,49 @@
 <glyph name="nand" format="2">
   <advance width="600"/>
   <unicode hex="22BC"/>
-  <anchor x="300" y="550" name="top"/>
-  <anchor x="300" y="0" name="bottom"/>
   <outline>
-    <component base="v" yScale="-1" yOffset="550"/>
-    <component base="hyphen" yOffset="360"/>
+    <contour>
+      <point x="206" y="488" type="curve" smooth="yes"/>
+      <point x="56" y="68" type="line" smooth="yes"/>
+      <point x="38" y="18"/>
+      <point x="82" y="-10"/>
+      <point x="120" y="-10" type="curve" smooth="yes"/>
+      <point x="152" y="-10"/>
+      <point x="177" y="10"/>
+      <point x="188" y="42" type="curve" smooth="yes"/>
+      <point x="281" y="317" type="line" smooth="yes"/>
+      <point x="289" y="340"/>
+      <point x="311" y="340"/>
+      <point x="319" y="317" type="curve" smooth="yes"/>
+      <point x="412" y="42" type="line" smooth="yes"/>
+      <point x="423" y="10"/>
+      <point x="448" y="-10"/>
+      <point x="480" y="-10" type="curve" smooth="yes"/>
+      <point x="518" y="-10"/>
+      <point x="562" y="18"/>
+      <point x="544" y="68" type="curve" smooth="yes"/>
+      <point x="394" y="488" type="line" smooth="yes"/>
+      <point x="377" y="535"/>
+      <point x="350" y="560"/>
+      <point x="300" y="560" type="curve" smooth="yes"/>
+      <point x="250" y="560"/>
+      <point x="223" y="535"/>
+    </contour>
+    <contour>
+      <point x="120" y="625" type="curve" smooth="yes"/>
+      <point x="480" y="625" type="line" smooth="yes"/>
+      <point x="524" y="625"/>
+      <point x="545" y="646"/>
+      <point x="545" y="690" type="curve" smooth="yes"/>
+      <point x="545" y="734"/>
+      <point x="524" y="755"/>
+      <point x="480" y="755" type="curve" smooth="yes"/>
+      <point x="120" y="755" type="line" smooth="yes"/>
+      <point x="76" y="755"/>
+      <point x="55" y="734"/>
+      <point x="55" y="690" type="curve" smooth="yes"/>
+      <point x="55" y="646"/>
+      <point x="76" y="625"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>v</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>hyphen</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

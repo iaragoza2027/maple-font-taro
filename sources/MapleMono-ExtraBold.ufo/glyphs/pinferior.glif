@@ -2,8 +2,6 @@
 <glyph name="pinferior" format="2">
   <advance width="600"/>
   <unicode hex="209A"/>
-  <anchor x="300" y="-60" name="bottom"/>
-  <anchor x="300" y="270" name="top"/>
   <outline>
     <contour>
       <point x="199" y="276" type="curve" smooth="yes"/>

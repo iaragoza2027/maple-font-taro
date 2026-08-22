@@ -2,30 +2,46 @@
 <glyph name="bar_bar_hyphen.liga.cv67" format="2">
   <advance width="600"/>
   <outline>
-    <component base="bar_hyphen.liga.cv67"/>
-    <component base="bar_lines.decorator.cv67" xOffset="-1000"/>
+    <contour>
+      <point x="-398.2" y="-245" type="curve" smooth="yes"/>
+      <point x="-301.22" y="305" type="line"/>
+      <point x="458.78" y="305" type="line" smooth="yes"/>
+      <point x="475.78" y="305"/>
+      <point x="485.19" y="313"/>
+      <point x="488.188" y="330" type="curve" smooth="yes"/>
+      <point x="491.185" y="347"/>
+      <point x="484.596" y="355"/>
+      <point x="467.596" y="355" type="curve" smooth="yes"/>
+      <point x="-292.404" y="355" type="line"/>
+      <point x="-195.424" y="905" type="line" smooth="yes"/>
+      <point x="-192.427" y="922"/>
+      <point x="-199.016" y="930"/>
+      <point x="-216.016" y="930" type="curve" smooth="yes"/>
+      <point x="-233.016" y="930"/>
+      <point x="-242.427" y="922"/>
+      <point x="-245.424" y="905" type="curve" smooth="yes"/>
+      <point x="-448.2" y="-245" type="line" smooth="yes"/>
+      <point x="-451.198" y="-262"/>
+      <point x="-444.608" y="-270"/>
+      <point x="-427.608" y="-270" type="curve" smooth="yes"/>
+      <point x="-410.608" y="-270"/>
+      <point x="-401.198" y="-262"/>
+    </contour>
+    <contour>
+      <point x="-645.424" y="905" type="curve" smooth="yes"/>
+      <point x="-848.2" y="-245" type="line" smooth="yes"/>
+      <point x="-851.198" y="-262"/>
+      <point x="-844.608" y="-270"/>
+      <point x="-827.608" y="-270" type="curve" smooth="yes"/>
+      <point x="-810.608" y="-270"/>
+      <point x="-801.198" y="-262"/>
+      <point x="-798.2" y="-245" type="curve" smooth="yes"/>
+      <point x="-595.424" y="905" type="line" smooth="yes"/>
+      <point x="-592.427" y="922"/>
+      <point x="-599.016" y="930"/>
+      <point x="-616.016" y="930" type="curve" smooth="yes"/>
+      <point x="-633.016" y="930"/>
+      <point x="-642.427" y="922"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>bar_hyphen.liga.cv67</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>bar_lines.decorator.cv67</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

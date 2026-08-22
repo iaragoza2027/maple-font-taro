@@ -3,21 +3,19 @@
   <advance width="600"/>
   <unicode hex="02D1"/>
   <outline>
-    <component base="triangularbullet" xScale="-0.08821327425480059" xyScale="-0.5002823385302017" yxScale="0.4845254144820063" yScale="-0.08543490341212971" xOffset="148.0" yOffset="610.0"/>
+    <contour>
+      <point x="275.031" y="564.804" type="curve" smooth="yes"/>
+      <point x="365.096" y="565.174" type="line" smooth="yes"/>
+      <point x="398.579" y="565.081"/>
+      <point x="404.95" y="550.167"/>
+      <point x="385.15" y="520.111" type="curve" smooth="yes"/>
+      <point x="320.996" y="422.823" type="line" smooth="yes"/>
+      <point x="301.284" y="393.267"/>
+      <point x="278.362" y="393.711"/>
+      <point x="269.054" y="423.154" type="curve" smooth="yes"/>
+      <point x="239.107" y="519.867" type="line" smooth="yes"/>
+      <point x="229.887" y="549.81"/>
+      <point x="241.547" y="564.897"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>triangularbullet</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

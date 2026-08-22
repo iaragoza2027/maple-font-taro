@@ -3,21 +3,30 @@
   <advance width="600"/>
   <unicode hex="22CC"/>
   <outline>
-    <component base="semidirectproductleft" xScale="-1" xOffset="600"/>
+    <contour>
+      <point x="560" y="87" type="curve" smooth="yes"/>
+      <point x="560" y="37"/>
+      <point x="541" y="28"/>
+      <point x="502" y="60" type="curve" smooth="yes"/>
+      <point x="300" y="225" type="line"/>
+      <point x="98" y="60" type="line" smooth="yes"/>
+      <point x="59" y="28"/>
+      <point x="40" y="37"/>
+      <point x="40" y="87" type="curve" smooth="yes"/>
+      <point x="40" y="112"/>
+      <point x="49" y="132"/>
+      <point x="69" y="148" type="curve" smooth="yes"/>
+      <point x="495" y="488" type="line" smooth="yes"/>
+      <point x="539" y="523"/>
+      <point x="560" y="513"/>
+      <point x="560" y="457" type="curve" smooth="yes"/>
+      <point x="560" y="429"/>
+      <point x="549" y="407"/>
+      <point x="527" y="390" type="curve" smooth="yes"/>
+      <point x="375" y="275" type="line"/>
+      <point x="531" y="149" type="line" smooth="yes"/>
+      <point x="551" y="133"/>
+      <point x="560" y="112"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>semidirectproductleft</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

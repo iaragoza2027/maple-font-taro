@@ -2,21 +2,42 @@
 <glyph name="less_bar.liga.cv66" format="2">
   <advance width="600"/>
   <outline>
-    <component base="bar_greater.liga.cv66" xScale="-1" xOffset="-160"/>
+    <contour>
+      <point x="254.197" y="676" type="curve" smooth="yes"/>
+      <point x="132.708" y="-13" type="line" smooth="yes"/>
+      <point x="130.768" y="-24"/>
+      <point x="124.063" y="-28"/>
+      <point x="115.121" y="-22" type="curve" smooth="yes"/>
+      <point x="-329.281" y="316" type="line" smooth="yes"/>
+      <point x="-342.517" y="326"/>
+      <point x="-340.107" y="334"/>
+      <point x="-324.344" y="344" type="curve" smooth="yes"/>
+      <point x="239.96" y="686" type="line" smooth="yes"/>
+      <point x="248.842" y="691"/>
+      <point x="255.96" y="686"/>
+    </contour>
+    <contour>
+      <point x="-386.394" y="287" type="curve" smooth="yes"/>
+      <point x="94.775" y="-75" type="line" smooth="yes"/>
+      <point x="106.189" y="-84"/>
+      <point x="115.012" y="-85"/>
+      <point x="140.012" y="-85" type="curve" smooth="yes"/>
+      <point x="157.012" y="-85"/>
+      <point x="171.423" y="-77"/>
+      <point x="174.42" y="-60" type="curve" smooth="yes"/>
+      <point x="312.837" y="725" type="line" smooth="yes"/>
+      <point x="315.835" y="742"/>
+      <point x="304.245" y="750"/>
+      <point x="287.245" y="750" type="curve" smooth="yes"/>
+      <point x="265.245" y="750"/>
+      <point x="253.893" y="748"/>
+      <point x="240.482" y="740" type="curve" smooth="yes"/>
+      <point x="-371.583" y="371" type="line" smooth="yes"/>
+      <point x="-389.522" y="360"/>
+      <point x="-398.815" y="347"/>
+      <point x="-401.988" y="329" type="curve" smooth="yes"/>
+      <point x="-405.162" y="311"/>
+      <point x="-400.631" y="297"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>bar_greater.liga.cv66</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

@@ -2,28 +2,43 @@
 <glyph name="kinferior.cv34" format="2">
   <advance width="600"/>
   <outline>
-    <component base="k.cv34" xScale="0.605" yScale="0.605" xOffset="77" yOffset="-60"/>
+    <contour>
+      <point x="214" y="365" type="curve" smooth="yes"/>
+      <point x="142" y="-43" type="line" smooth="yes"/>
+      <point x="140" y="-58"/>
+      <point x="131" y="-66"/>
+      <point x="115" y="-66" type="curve" smooth="yes"/>
+      <point x="99" y="-66"/>
+      <point x="93" y="-58"/>
+      <point x="96" y="-43" type="curve" smooth="yes"/>
+      <point x="168" y="365" type="line" smooth="yes"/>
+      <point x="171" y="380"/>
+      <point x="179" y="388"/>
+      <point x="195" y="388" type="curve" smooth="yes"/>
+      <point x="211" y="388"/>
+      <point x="217" y="380"/>
+    </contour>
+    <contour>
+      <point x="379" y="245" type="curve"/>
+      <point x="145" y="42" type="line"/>
+      <point x="157" y="108" type="line"/>
+      <point x="342" y="267" type="line" smooth="yes"/>
+      <point x="352" y="275"/>
+      <point x="360" y="279"/>
+      <point x="369" y="279" type="curve" smooth="yes"/>
+      <point x="389" y="279"/>
+      <point x="395" y="259"/>
+    </contour>
+    <contour>
+      <point x="225" y="125" type="line"/>
+      <point x="264" y="157" type="line"/>
+      <point x="344" y="-37" type="line" smooth="yes"/>
+      <point x="351" y="-52"/>
+      <point x="337" y="-66"/>
+      <point x="324" y="-66" type="curve" smooth="yes"/>
+      <point x="313" y="-66"/>
+      <point x="302" y="-65"/>
+      <point x="297" y="-52" type="curve" smooth="yes"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>k.cv34</string>
-        </dict>
-      </array>
-      <key>com.schriftgestaltung.componentsSmartComponentValues</key>
-      <array>
-        <dict>
-          <key>Wt</key>
-          <integer>300</integer>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

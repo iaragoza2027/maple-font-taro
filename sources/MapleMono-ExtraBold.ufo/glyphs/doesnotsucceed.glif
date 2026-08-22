@@ -2,32 +2,57 @@
 <glyph name="doesnotsucceed" format="2">
   <advance width="600"/>
   <unicode hex="2281"/>
-  <anchor x="280" y="315" name="_center"/>
   <outline>
-    <component base="slashlongcomb" xOffset="580" yOffset="40"/>
-    <component base="succeeds"/>
+    <contour>
+      <point x="130" y="-70" type="curve" smooth="yes"/>
+      <point x="100" y="-70"/>
+      <point x="90" y="-56"/>
+      <point x="101" y="-28" type="curve" smooth="yes"/>
+      <point x="368" y="658" type="line" smooth="yes"/>
+      <point x="379" y="686"/>
+      <point x="399" y="700"/>
+      <point x="429" y="700" type="curve" smooth="yes"/>
+      <point x="459" y="700"/>
+      <point x="470" y="686"/>
+      <point x="459" y="658" type="curve" smooth="yes"/>
+      <point x="192" y="-28" type="line" smooth="yes"/>
+      <point x="181" y="-56"/>
+      <point x="160" y="-70"/>
+    </contour>
+    <contour>
+      <point x="145" y="90" type="curve" smooth="yes"/>
+      <point x="95" y="45"/>
+      <point x="69" y="69"/>
+      <point x="69" y="135" type="curve" smooth="yes"/>
+      <point x="69" y="171"/>
+      <point x="79" y="211"/>
+      <point x="108" y="236" type="curve" smooth="yes"/>
+      <point x="166" y="286"/>
+      <point x="239" y="304"/>
+      <point x="330" y="318" type="curve" smooth="yes"/>
+      <point x="363" y="323"/>
+      <point x="363" y="337"/>
+      <point x="330" y="342" type="curve" smooth="yes"/>
+      <point x="239" y="356"/>
+      <point x="166" y="374"/>
+      <point x="108" y="424" type="curve" smooth="yes"/>
+      <point x="84" y="445"/>
+      <point x="69" y="479"/>
+      <point x="69" y="515" type="curve" smooth="yes"/>
+      <point x="69" y="574"/>
+      <point x="83" y="625"/>
+      <point x="145" y="570" type="curve" smooth="yes"/>
+      <point x="238" y="487"/>
+      <point x="330" y="451"/>
+      <point x="458" y="424" type="curve" smooth="yes"/>
+      <point x="508" y="413"/>
+      <point x="531" y="380"/>
+      <point x="531" y="330" type="curve" smooth="yes"/>
+      <point x="531" y="280"/>
+      <point x="508" y="247"/>
+      <point x="458" y="236" type="curve" smooth="yes"/>
+      <point x="330" y="209"/>
+      <point x="238" y="173"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>slashlongcomb</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>succeeds</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

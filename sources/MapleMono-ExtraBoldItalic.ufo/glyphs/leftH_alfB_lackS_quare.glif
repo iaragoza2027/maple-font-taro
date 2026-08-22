@@ -3,21 +3,17 @@
   <advance width="600"/>
   <unicode hex="25E7"/>
   <outline>
-    <component base="rightHalfBlackSquare" xScale="-1" xOffset="440"/>
+    <contour>
+      <point x="36.376" y="660" type="line"/>
+      <point x="-69.42" y="60" type="line"/>
+      <point x="530.58" y="60" type="line"/>
+      <point x="636.376" y="660" type="line"/>
+    </contour>
+    <contour>
+      <point x="317.559" y="610" type="line"/>
+      <point x="577.559" y="610" type="line"/>
+      <point x="489.396" y="110" type="line"/>
+      <point x="229.396" y="110" type="line"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>rightHalfBlackSquare</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

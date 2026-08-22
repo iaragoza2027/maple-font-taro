@@ -2,21 +2,48 @@
 <glyph name="less_bar.liga" format="2">
   <advance width="600"/>
   <outline>
-    <component base="bar_greater.liga" xScale="-1" xOffset="-160"/>
+    <contour>
+      <point x="-424.032" y="221" type="curve" smooth="yes"/>
+      <point x="-60.116" y="-12" type="line" smooth="yes"/>
+      <point x="-7.111" y="-46"/>
+      <point x="25.415" y="-26"/>
+      <point x="37.229" y="41" type="curve" smooth="yes"/>
+      <point x="44.282" y="81"/>
+      <point x="41.514" y="105"/>
+      <point x="8.394" y="127" type="curve" smooth="yes"/>
+      <point x="-264.22" y="305" type="line" smooth="yes"/>
+      <point x="-292.046" y="323"/>
+      <point x="-289.578" y="337"/>
+      <point x="-255.404" y="355" type="curve" smooth="yes"/>
+      <point x="80.335" y="535" type="line" smooth="yes"/>
+      <point x="111.332" y="552"/>
+      <point x="131.388" y="575"/>
+      <point x="137.383" y="609" type="curve" smooth="yes"/>
+      <point x="149.197" y="676"/>
+      <point x="141.779" y="719"/>
+      <point x="61.197" y="676" type="curve" smooth="yes"/>
+      <point x="-385.592" y="439" type="line" smooth="yes"/>
+      <point x="-433.001" y="414"/>
+      <point x="-458.348" y="378"/>
+      <point x="-466.812" y="330" type="curve" smooth="yes"/>
+      <point x="-475.276" y="282"/>
+      <point x="-462.624" y="246"/>
+    </contour>
+    <contour>
+      <point x="253.237" y="-10" type="curve" smooth="yes"/>
+      <point x="374.021" y="675" type="line" smooth="yes"/>
+      <point x="382.837" y="725"/>
+      <point x="362.245" y="750"/>
+      <point x="312.245" y="750" type="curve" smooth="yes"/>
+      <point x="262.245" y="750"/>
+      <point x="232.837" y="725"/>
+      <point x="224.021" y="675" type="curve" smooth="yes"/>
+      <point x="103.237" y="-10" type="line" smooth="yes"/>
+      <point x="94.42" y="-60"/>
+      <point x="115.012" y="-85"/>
+      <point x="165.012" y="-85" type="curve" smooth="yes"/>
+      <point x="215.012" y="-85"/>
+      <point x="244.42" y="-60"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>bar_greater.liga</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

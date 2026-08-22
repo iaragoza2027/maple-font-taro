@@ -3,30 +3,53 @@
   <advance width="600"/>
   <unicode hex="2214"/>
   <outline>
-    <component base="plus" yScale="-1" yOffset="558"/>
-    <component base="period" yScale="-1" yOffset="630"/>
+    <contour>
+      <point x="300" y="460" type="curve" smooth="yes"/>
+      <point x="283" y="460"/>
+      <point x="275" y="452"/>
+      <point x="275" y="435" type="curve" smooth="yes"/>
+      <point x="275" y="253" type="line"/>
+      <point x="100" y="253" type="line" smooth="yes"/>
+      <point x="83" y="253"/>
+      <point x="75" y="245"/>
+      <point x="75" y="228" type="curve" smooth="yes"/>
+      <point x="75" y="211"/>
+      <point x="83" y="203"/>
+      <point x="100" y="203" type="curve" smooth="yes"/>
+      <point x="275" y="203" type="line"/>
+      <point x="275" y="20" type="line" smooth="yes"/>
+      <point x="275" y="3"/>
+      <point x="283" y="-5"/>
+      <point x="300" y="-5" type="curve" smooth="yes"/>
+      <point x="317" y="-5"/>
+      <point x="325" y="3"/>
+      <point x="325" y="20" type="curve" smooth="yes"/>
+      <point x="325" y="203" type="line"/>
+      <point x="500" y="203" type="line" smooth="yes"/>
+      <point x="517" y="203"/>
+      <point x="525" y="211"/>
+      <point x="525" y="228" type="curve" smooth="yes"/>
+      <point x="525" y="245"/>
+      <point x="517" y="253"/>
+      <point x="500" y="253" type="curve" smooth="yes"/>
+      <point x="325" y="253" type="line"/>
+      <point x="325" y="435" type="line" smooth="yes"/>
+      <point x="325" y="452"/>
+      <point x="317" y="460"/>
+    </contour>
+    <contour>
+      <point x="240" y="580" type="curve" smooth="yes"/>
+      <point x="240" y="547"/>
+      <point x="267" y="520"/>
+      <point x="300" y="520" type="curve" smooth="yes"/>
+      <point x="333" y="520"/>
+      <point x="360" y="547"/>
+      <point x="360" y="580" type="curve" smooth="yes"/>
+      <point x="360" y="613"/>
+      <point x="333" y="640"/>
+      <point x="300" y="640" type="curve" smooth="yes"/>
+      <point x="267" y="640"/>
+      <point x="240" y="613"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>plus</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>period</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

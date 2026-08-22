@@ -2,41 +2,73 @@
 <glyph name="baht-thai" format="2">
   <advance width="600"/>
   <unicode hex="0E3F"/>
-  <anchor x="300" y="0" name="bottom"/>
-  <anchor x="300" y="730" name="top"/>
   <outline>
-    <component base="B"/>
-    <component base="bar" yOffset="30"/>
+    <contour>
+      <point x="174" y="730" type="curve" smooth="yes"/>
+      <point x="301" y="730" type="line" smooth="yes"/>
+      <point x="433" y="730"/>
+      <point x="513" y="659"/>
+      <point x="513" y="547" type="curve" smooth="yes"/>
+      <point x="513" y="456"/>
+      <point x="461" y="396"/>
+      <point x="385" y="381" type="curve"/>
+      <point x="471" y="370"/>
+      <point x="530" y="305"/>
+      <point x="530" y="201" type="curve" smooth="yes"/>
+      <point x="530" y="78"/>
+      <point x="448" y="0"/>
+      <point x="315" y="0" type="curve" smooth="yes"/>
+      <point x="174" y="0" type="line" smooth="yes"/>
+      <point x="119" y="0"/>
+      <point x="93" y="26"/>
+      <point x="93" y="80" type="curve" smooth="yes"/>
+      <point x="93" y="650" type="line" smooth="yes"/>
+      <point x="93" y="704"/>
+      <point x="119" y="730"/>
+    </contour>
+    <contour>
+      <point x="305" y="335" type="curve" smooth="yes"/>
+      <point x="182" y="335" type="line"/>
+      <point x="182" y="130" type="line" smooth="yes"/>
+      <point x="182" y="103"/>
+      <point x="195" y="90"/>
+      <point x="222" y="90" type="curve" smooth="yes"/>
+      <point x="305" y="90" type="line" smooth="yes"/>
+      <point x="389" y="90"/>
+      <point x="441" y="130"/>
+      <point x="441" y="208" type="curve" smooth="yes"/>
+      <point x="441" y="287"/>
+      <point x="389" y="335"/>
+    </contour>
+    <contour>
+      <point x="182" y="600" type="curve" smooth="yes"/>
+      <point x="182" y="425" type="line"/>
+      <point x="300" y="425" type="line" smooth="yes"/>
+      <point x="377" y="425"/>
+      <point x="424" y="463"/>
+      <point x="424" y="534" type="curve" smooth="yes"/>
+      <point x="424" y="605"/>
+      <point x="378" y="640"/>
+      <point x="301" y="640" type="curve" smooth="yes"/>
+      <point x="222" y="640" type="line" smooth="yes"/>
+      <point x="195" y="640"/>
+      <point x="182" y="627"/>
+    </contour>
+    <contour>
+      <point x="262" y="-58" type="curve" smooth="yes"/>
+      <point x="262" y="798" type="line" smooth="yes"/>
+      <point x="262" y="824"/>
+      <point x="274" y="837"/>
+      <point x="300" y="837" type="curve" smooth="yes"/>
+      <point x="326" y="837"/>
+      <point x="338" y="824"/>
+      <point x="338" y="798" type="curve" smooth="yes"/>
+      <point x="338" y="-58" type="line" smooth="yes"/>
+      <point x="338" y="-84"/>
+      <point x="326" y="-97"/>
+      <point x="300" y="-97" type="curve" smooth="yes"/>
+      <point x="274" y="-97"/>
+      <point x="262" y="-84"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>B</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>bar</string>
-        </dict>
-      </array>
-      <key>com.schriftgestaltung.componentsSmartComponentValues</key>
-      <array>
-        <dict/>
-        <dict>
-          <key>Wt</key>
-          <integer>300</integer>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

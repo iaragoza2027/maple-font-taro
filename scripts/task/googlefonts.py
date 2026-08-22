@@ -7,6 +7,8 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from scripts.font_ops.fonttools import load_font, save_font_atomic
+from scripts.font_ops.metadata import set_meta_table
 from scripts.utils.logging import logger
 
 if TYPE_CHECKING:
@@ -14,6 +16,16 @@ if TYPE_CHECKING:
 
 
 VARIABLE_OUTPUT_DIR = Path("fonts/variable")
+GOOGLEFONTS_OUTPUT_DIRS = (
+    VARIABLE_OUTPUT_DIR,
+    Path("fonts/ttf"),
+    Path("fonts/otf"),
+    Path("fonts/webfonts"),
+)
+GOOGLEFONTS_FAMILY_NAME = "Maple Mono"
+GOOGLEFONTS_FONT_SUFFIXES = frozenset({".ttf", ".otf", ".woff2"})
+DESIGN_LANGUAGES = "Latn"
+SUPPORTED_LANGUAGES = "Latn, Cyrl, Grek"
 SOURCE_DIR = Path("sources")
 BUILDER_CONFIG = Path("sources/config.yaml")
 FONTBAKERY_ARGS = (
@@ -43,14 +55,14 @@ def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
     return parser
 
 
-def _regenerate_designspace() -> None:
+def regenerate_designspace() -> None:
     """Regenerate the gftools input designspaces from the exported Glyphs files."""
     from scripts.task.designspace import generate_designspaces
 
     generate_designspaces(SOURCE_DIR, SOURCE_DIR)
 
 
-def _run_gftools_builder() -> None:
+def run_gftools_builder() -> None:
     """Run gftools' builder entrypoint without spawning a second uv process."""
     from gftools.builder import main as builder_main
 
@@ -68,7 +80,46 @@ def _run_gftools_builder() -> None:
         raise SystemExit(exit_code)
 
 
-def _run_fontbakery() -> None:
+def apply_googlefonts_meta(
+    output_dirs: tuple[Path, ...] = GOOGLEFONTS_OUTPUT_DIRS,
+    family_name: str = GOOGLEFONTS_FAMILY_NAME,
+) -> list[Path]:
+    """Apply META ScriptLangTags to Google Fonts artifacts in place."""
+    updated_paths: list[Path] = []
+    for output_dir in output_dirs:
+        if not output_dir.is_dir():
+            continue
+        for font_path in sorted(output_dir.iterdir()):
+            if (
+                not font_path.is_file()
+                or font_path.suffix not in GOOGLEFONTS_FONT_SUFFIXES
+            ):
+                continue
+            font = load_font(font_path)
+            try:
+                font_family_name = font["name"].getDebugName(1)
+                if not _is_googlefonts_family(font_family_name, family_name):
+                    continue
+                set_meta_table(font, DESIGN_LANGUAGES, SUPPORTED_LANGUAGES)
+                save_font_atomic(font, font_path)
+                updated_paths.append(font_path)
+            finally:
+                font.close()
+    logger.info("Applied Google Fonts META table to %s fonts", len(updated_paths))
+    return updated_paths
+
+
+def _is_googlefonts_family(font_family_name: str | None, family_name: str) -> bool:
+    if font_family_name == family_name:
+        return True
+    return (
+        font_family_name is not None
+        and font_family_name.startswith(f"{family_name} ")
+        and font_family_name != f"{family_name} Debug"
+    )
+
+
+def run_fontbakery() -> None:
     """Run FontBakery with argv equivalent to the documented command."""
     from fontbakery.cli import main as fontbakery_main
 
@@ -89,13 +140,14 @@ def _run_fontbakery() -> None:
 
 def run(args: argparse.Namespace) -> None:
     if args.rebuild:
-        _regenerate_designspace()
+        regenerate_designspace()
 
     if args.qa and VARIABLE_OUTPUT_DIR.exists():
         logger.info("Clean Google Fonts variable output: path=%s", VARIABLE_OUTPUT_DIR)
         shutil.rmtree(VARIABLE_OUTPUT_DIR)
 
-    _run_gftools_builder()
+    run_gftools_builder()
+    apply_googlefonts_meta()
 
     if args.qa:
-        _run_fontbakery()
+        run_fontbakery()

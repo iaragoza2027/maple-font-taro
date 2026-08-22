@@ -2,9 +2,6 @@
 <glyph name="linferior" format="2">
   <advance width="600"/>
   <unicode hex="2097"/>
-  <anchor x="312" y="-60" name="bottom"/>
-  <anchor x="300" y="159" name="center"/>
-  <anchor x="264" y="378" name="top"/>
   <outline>
     <contour>
       <point x="318" y="318" type="curve" smooth="yes"/>

@@ -2,24 +2,41 @@
 <glyph name="curlylogicaland" format="2">
   <advance width="600"/>
   <unicode hex="22CF"/>
-  <anchor x="300" y="550" name="top"/>
-  <anchor x="300" y="0" name="bottom"/>
   <outline>
-    <component base="curlylogicalor" yScale="-1" yOffset="550"/>
+    <contour>
+      <point x="56" y="68" type="curve" smooth="yes"/>
+      <point x="25" y="23"/>
+      <point x="82" y="-10"/>
+      <point x="120" y="-10" type="curve" smooth="yes"/>
+      <point x="152" y="-10"/>
+      <point x="169" y="13"/>
+      <point x="188" y="42" type="curve" smooth="yes"/>
+      <point x="249" y="133"/>
+      <point x="285" y="226"/>
+      <point x="291" y="317" type="curve" smooth="yes"/>
+      <point x="293" y="341"/>
+      <point x="307" y="341"/>
+      <point x="309" y="317" type="curve" smooth="yes"/>
+      <point x="315" y="226"/>
+      <point x="351" y="133"/>
+      <point x="412" y="42" type="curve" smooth="yes"/>
+      <point x="431" y="13"/>
+      <point x="448" y="-10"/>
+      <point x="480" y="-10" type="curve" smooth="yes"/>
+      <point x="518" y="-10"/>
+      <point x="575" y="22"/>
+      <point x="544" y="68" type="curve" smooth="yes"/>
+      <point x="450" y="207"/>
+      <point x="404" y="349"/>
+      <point x="394" y="488" type="curve" smooth="yes"/>
+      <point x="390" y="538"/>
+      <point x="350" y="560"/>
+      <point x="300" y="560" type="curve" smooth="yes"/>
+      <point x="250" y="560"/>
+      <point x="209" y="538"/>
+      <point x="206" y="488" type="curve" smooth="yes"/>
+      <point x="197" y="349"/>
+      <point x="150" y="207"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>curlylogicalor</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

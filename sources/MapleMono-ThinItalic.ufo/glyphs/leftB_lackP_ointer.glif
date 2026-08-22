@@ -3,21 +3,10 @@
   <advance width="600"/>
   <unicode hex="25C4"/>
   <outline>
-    <component base="rightBlackPointer" xScale="-1" xOffset="440"/>
+    <contour>
+      <point x="609.927" y="510" type="line"/>
+      <point x="-26.522" y="360" type="line"/>
+      <point x="557.029" y="210" type="line"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>rightBlackPointer</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

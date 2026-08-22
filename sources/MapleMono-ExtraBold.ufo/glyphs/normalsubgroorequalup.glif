@@ -3,30 +3,52 @@
   <advance width="600"/>
   <unicode hex="22B4"/>
   <outline>
-    <component base="normalsubgroup" yOffset="150"/>
-    <component base="hyphen" yOffset="-200"/>
+    <contour>
+      <point x="555" y="670" type="curve" smooth="yes"/>
+      <point x="555" y="290" type="line" smooth="yes"/>
+      <point x="555" y="223"/>
+      <point x="525" y="203"/>
+      <point x="463" y="229" type="curve" smooth="yes"/>
+      <point x="111" y="380" type="line" smooth="yes"/>
+      <point x="67" y="399"/>
+      <point x="45" y="432"/>
+      <point x="45" y="480" type="curve" smooth="yes"/>
+      <point x="45" y="528"/>
+      <point x="67" y="560"/>
+      <point x="111" y="579" type="curve" smooth="yes"/>
+      <point x="463" y="731" type="line" smooth="yes"/>
+      <point x="525" y="757"/>
+      <point x="555" y="737"/>
+    </contour>
+    <contour>
+      <point x="210" y="470" type="curve" smooth="yes"/>
+      <point x="412" y="385" type="line" smooth="yes"/>
+      <point x="427" y="379"/>
+      <point x="435" y="383"/>
+      <point x="435" y="400" type="curve" smooth="yes"/>
+      <point x="435" y="561" type="line" smooth="yes"/>
+      <point x="435" y="578"/>
+      <point x="427" y="582"/>
+      <point x="412" y="576" type="curve" smooth="yes"/>
+      <point x="210" y="490" type="line" smooth="yes"/>
+      <point x="195" y="484"/>
+      <point x="195" y="476"/>
+    </contour>
+    <contour>
+      <point x="480" y="65" type="curve" smooth="yes"/>
+      <point x="120" y="65" type="line" smooth="yes"/>
+      <point x="76" y="65"/>
+      <point x="55" y="86"/>
+      <point x="55" y="130" type="curve" smooth="yes"/>
+      <point x="55" y="174"/>
+      <point x="76" y="195"/>
+      <point x="120" y="195" type="curve" smooth="yes"/>
+      <point x="480" y="195" type="line" smooth="yes"/>
+      <point x="524" y="195"/>
+      <point x="545" y="174"/>
+      <point x="545" y="130" type="curve" smooth="yes"/>
+      <point x="545" y="86"/>
+      <point x="524" y="65"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>normalsubgroup</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>hyphen</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

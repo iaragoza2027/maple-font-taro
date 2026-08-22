@@ -2,21 +2,67 @@
 <glyph name="equal_equal_greater.liga" format="2">
   <advance width="600"/>
   <outline>
-    <component base="less_equal_equal.liga" xScale="-1" xOffset="-769"/>
+    <contour>
+      <point x="321.994" y="448" type="curve" smooth="yes"/>
+      <point x="401.891" y="351" type="line" smooth="yes"/>
+      <point x="413.422" y="337"/>
+      <point x="410.954" y="323"/>
+      <point x="394.485" y="309" type="curve" smooth="yes"/>
+      <point x="280.381" y="212" type="line" smooth="yes"/>
+      <point x="272.147" y="205"/>
+      <point x="264.971" y="204"/>
+      <point x="259.205" y="211" type="curve" smooth="yes"/>
+      <point x="247.674" y="225" type="line" smooth="yes"/>
+      <point x="241.908" y="232"/>
+      <point x="233.437" y="235"/>
+      <point x="223.437" y="235" type="curve" smooth="yes"/>
+      <point x="-1132.563" y="235" type="line" smooth="yes"/>
+      <point x="-1149.563" y="235"/>
+      <point x="-1158.974" y="227"/>
+      <point x="-1161.971" y="210" type="curve" smooth="yes"/>
+      <point x="-1164.969" y="193"/>
+      <point x="-1158.38" y="185"/>
+      <point x="-1141.38" y="185" type="curve" smooth="yes"/>
+      <point x="213.62" y="185" type="line" smooth="yes"/>
+      <point x="227.62" y="185"/>
+      <point x="233.328" y="172"/>
+      <point x="218.036" y="159" type="curve" smooth="yes"/>
+      <point x="127.459" y="82" type="line" smooth="yes"/>
+      <point x="113.343" y="70"/>
+      <point x="110.403" y="59"/>
+      <point x="120.287" y="47" type="curve" smooth="yes"/>
+      <point x="130.171" y="35"/>
+      <point x="142.171" y="35"/>
+      <point x="156.287" y="47" type="curve" smooth="yes"/>
+      <point x="438.606" y="287" type="line" smooth="yes"/>
+      <point x="472.719" y="316"/>
+      <point x="477.656" y="344"/>
+      <point x="453.77" y="373" type="curve" smooth="yes"/>
+      <point x="256.088" y="613" type="line" smooth="yes"/>
+      <point x="246.204" y="625"/>
+      <point x="234.381" y="626"/>
+      <point x="220.265" y="614" type="curve" smooth="yes"/>
+      <point x="206.149" y="602"/>
+      <point x="205.033" y="590"/>
+      <point x="214.917" y="578" type="curve" smooth="yes"/>
+      <point x="278.34" y="501" type="line" smooth="yes"/>
+      <point x="287.4" y="490"/>
+      <point x="278.755" y="475"/>
+      <point x="264.755" y="475" type="curve" smooth="yes"/>
+      <point x="-1090.245" y="475" type="line" smooth="yes"/>
+      <point x="-1107.245" y="475"/>
+      <point x="-1116.655" y="467"/>
+      <point x="-1119.653" y="450" type="curve" smooth="yes"/>
+      <point x="-1122.65" y="433"/>
+      <point x="-1116.061" y="425"/>
+      <point x="-1099.061" y="425" type="curve" smooth="yes"/>
+      <point x="256.939" y="425" type="line" smooth="yes"/>
+      <point x="266.939" y="425"/>
+      <point x="276.468" y="428"/>
+      <point x="284.702" y="435" type="curve" smooth="yes"/>
+      <point x="301.171" y="449" type="line" smooth="yes"/>
+      <point x="309.405" y="456"/>
+      <point x="316.229" y="455"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>less_equal_equal.liga</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

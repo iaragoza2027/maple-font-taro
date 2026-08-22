@@ -3,38 +3,35 @@
   <advance width="600"/>
   <unicode hex="2238"/>
   <outline>
-    <component base="endash"/>
-    <component base="period" yOffset="470"/>
+    <contour>
+      <point x="505" y="285" type="curve" smooth="yes"/>
+      <point x="95" y="285" type="line" smooth="yes"/>
+      <point x="65" y="285"/>
+      <point x="50" y="300"/>
+      <point x="50" y="330" type="curve" smooth="yes"/>
+      <point x="50" y="360"/>
+      <point x="65" y="375"/>
+      <point x="95" y="375" type="curve" smooth="yes"/>
+      <point x="505" y="375" type="line" smooth="yes"/>
+      <point x="535" y="375"/>
+      <point x="550" y="360"/>
+      <point x="550" y="330" type="curve" smooth="yes"/>
+      <point x="550" y="300"/>
+      <point x="535" y="285"/>
+    </contour>
+    <contour>
+      <point x="223" y="537" type="curve" smooth="yes"/>
+      <point x="223" y="579"/>
+      <point x="258" y="613"/>
+      <point x="300" y="613" type="curve" smooth="yes"/>
+      <point x="342" y="613"/>
+      <point x="377" y="579"/>
+      <point x="377" y="537" type="curve" smooth="yes"/>
+      <point x="377" y="495"/>
+      <point x="342" y="460"/>
+      <point x="300" y="460" type="curve" smooth="yes"/>
+      <point x="258" y="460"/>
+      <point x="223" y="495"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>endash</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>period</string>
-        </dict>
-      </array>
-      <key>com.schriftgestaltung.componentsSmartComponentValues</key>
-      <array>
-        <dict/>
-        <dict>
-          <key>Wt</key>
-          <integer>300</integer>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

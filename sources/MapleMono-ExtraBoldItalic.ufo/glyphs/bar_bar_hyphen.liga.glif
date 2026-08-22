@@ -2,30 +2,46 @@
 <glyph name="bar_bar_hyphen.liga" format="2">
   <advance width="600"/>
   <outline>
-    <component base="bar_hyphen.liga"/>
-    <component base="bar_lines.decorator" xOffset="-1000"/>
+    <contour>
+      <point x="-312.935" y="-45" type="curve" smooth="yes"/>
+      <point x="-258.273" y="265" type="line"/>
+      <point x="446.727" y="265" type="line" smooth="yes"/>
+      <point x="490.727" y="265"/>
+      <point x="515.43" y="286"/>
+      <point x="523.188" y="330" type="curve" smooth="yes"/>
+      <point x="530.946" y="374"/>
+      <point x="513.649" y="395"/>
+      <point x="469.649" y="395" type="curve" smooth="yes"/>
+      <point x="-235.351" y="395" type="line"/>
+      <point x="-180.689" y="705" type="line" smooth="yes"/>
+      <point x="-171.873" y="755"/>
+      <point x="-192.465" y="780"/>
+      <point x="-242.465" y="780" type="curve" smooth="yes"/>
+      <point x="-292.465" y="780"/>
+      <point x="-321.873" y="755"/>
+      <point x="-330.689" y="705" type="curve" smooth="yes"/>
+      <point x="-462.935" y="-45" type="line" smooth="yes"/>
+      <point x="-471.751" y="-95"/>
+      <point x="-451.159" y="-120"/>
+      <point x="-401.159" y="-120" type="curve" smooth="yes"/>
+      <point x="-351.159" y="-120"/>
+      <point x="-321.751" y="-95"/>
+    </contour>
+    <contour>
+      <point x="-730.689" y="705" type="curve" smooth="yes"/>
+      <point x="-862.935" y="-45" type="line" smooth="yes"/>
+      <point x="-871.751" y="-95"/>
+      <point x="-851.159" y="-120"/>
+      <point x="-801.159" y="-120" type="curve" smooth="yes"/>
+      <point x="-751.159" y="-120"/>
+      <point x="-721.751" y="-95"/>
+      <point x="-712.935" y="-45" type="curve" smooth="yes"/>
+      <point x="-580.689" y="705" type="line" smooth="yes"/>
+      <point x="-571.873" y="755"/>
+      <point x="-592.465" y="780"/>
+      <point x="-642.465" y="780" type="curve" smooth="yes"/>
+      <point x="-692.465" y="780"/>
+      <point x="-721.873" y="755"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>bar_hyphen.liga</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>bar_lines.decorator</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

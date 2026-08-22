@@ -3,30 +3,51 @@
   <advance width="600"/>
   <unicode hex="2285"/>
   <outline>
-    <component base="propersuperset"/>
-    <component base="slashlongcomb" xOffset="550" yOffset="90"/>
+    <contour>
+      <point x="295" y="615" type="curve" smooth="yes"/>
+      <point x="115" y="615" type="line" smooth="yes"/>
+      <point x="68" y="615"/>
+      <point x="45" y="592"/>
+      <point x="45" y="545" type="curve" smooth="yes"/>
+      <point x="45" y="498"/>
+      <point x="68" y="475"/>
+      <point x="115" y="475" type="curve" smooth="yes"/>
+      <point x="291" y="475" type="line" smooth="yes"/>
+      <point x="355" y="475"/>
+      <point x="410" y="438"/>
+      <point x="410" y="360" type="curve" smooth="yes"/>
+      <point x="410" y="277"/>
+      <point x="351" y="245"/>
+      <point x="291" y="245" type="curve" smooth="yes"/>
+      <point x="115" y="245" type="line" smooth="yes"/>
+      <point x="68" y="245"/>
+      <point x="45" y="222"/>
+      <point x="45" y="175" type="curve" smooth="yes"/>
+      <point x="45" y="128"/>
+      <point x="68" y="105"/>
+      <point x="115" y="105" type="curve" smooth="yes"/>
+      <point x="295" y="105" type="line" smooth="yes"/>
+      <point x="470" y="105"/>
+      <point x="555" y="200"/>
+      <point x="555" y="360" type="curve" smooth="yes"/>
+      <point x="555" y="520"/>
+      <point x="470" y="615"/>
+    </contour>
+    <contour>
+      <point x="100" y="-20" type="curve" smooth="yes"/>
+      <point x="130" y="-20"/>
+      <point x="151" y="-6"/>
+      <point x="162" y="22" type="curve" smooth="yes"/>
+      <point x="429" y="708" type="line" smooth="yes"/>
+      <point x="440" y="736"/>
+      <point x="429" y="750"/>
+      <point x="399" y="750" type="curve" smooth="yes"/>
+      <point x="369" y="750"/>
+      <point x="349" y="736"/>
+      <point x="338" y="708" type="curve" smooth="yes"/>
+      <point x="71" y="22" type="line" smooth="yes"/>
+      <point x="60" y="-6"/>
+      <point x="70" y="-20"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>propersuperset</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>slashlongcomb</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

@@ -2,15 +2,12 @@
 <glyph name="einferior" format="2">
   <advance width="600"/>
   <unicode hex="2091"/>
-  <anchor x="267" y="270" name="top"/>
-  <anchor x="209" y="-60" name="bottom"/>
-  <anchor x="242" y="-60" name="ogonek"/>
   <outline>
     <contour>
       <point x="341" y="17" type="curve" smooth="yes"/>
       <point x="354" y="-1"/>
       <point x="350" y="-20"/>
-      <point x="336" y="-31" type="curve"/>
+      <point x="336" y="-31" type="curve" smooth="yes"/>
       <point x="301" y="-60"/>
       <point x="262" y="-66"/>
       <point x="211" y="-66" type="curve" smooth="yes"/>
@@ -28,13 +25,13 @@
       <point x="164" y="76" type="curve"/>
       <point x="164" y="69"/>
       <point x="163" y="62"/>
-      <point x="163" y="53" type="curve"/>
+      <point x="163" y="53" type="curve" smooth="yes"/>
       <point x="165" y="20"/>
       <point x="191" y="0"/>
       <point x="221" y="0" type="curve" smooth="yes"/>
       <point x="257" y="0"/>
       <point x="276" y="6"/>
-      <point x="301" y="22" type="curve"/>
+      <point x="301" y="22" type="curve" smooth="yes"/>
       <point x="315" y="31"/>
       <point x="331" y="32"/>
     </contour>

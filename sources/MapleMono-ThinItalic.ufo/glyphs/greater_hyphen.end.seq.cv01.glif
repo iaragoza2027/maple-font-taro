@@ -2,21 +2,35 @@
 <glyph name="greater_hyphen.end.seq.cv01" format="2">
   <advance width="600"/>
   <outline>
-    <component base="less_hyphen.sta.seq.cv01" xScale="-1" xOffset="440"/>
+    <contour>
+      <point x="-36.22" y="305" type="line"/>
+      <point x="443.78" y="305" type="line"/>
+      <point x="452.596" y="355" type="line"/>
+      <point x="-27.404" y="355" type="line"/>
+    </contour>
+    <contour>
+      <point x="472.77" y="373" type="curve" smooth="yes"/>
+      <point x="275.088" y="613" type="line" smooth="yes"/>
+      <point x="265.204" y="625"/>
+      <point x="253.381" y="626"/>
+      <point x="239.265" y="614" type="curve" smooth="yes"/>
+      <point x="225.149" y="602"/>
+      <point x="224.033" y="590"/>
+      <point x="233.917" y="578" type="curve" smooth="yes"/>
+      <point x="420.891" y="351" type="line" smooth="yes"/>
+      <point x="432.422" y="337"/>
+      <point x="429.954" y="323"/>
+      <point x="413.485" y="309" type="curve" smooth="yes"/>
+      <point x="146.459" y="82" type="line" smooth="yes"/>
+      <point x="132.343" y="70"/>
+      <point x="129.403" y="59"/>
+      <point x="139.287" y="47" type="curve" smooth="yes"/>
+      <point x="149.171" y="35"/>
+      <point x="161.171" y="35"/>
+      <point x="175.287" y="47" type="curve" smooth="yes"/>
+      <point x="457.606" y="287" type="line" smooth="yes"/>
+      <point x="491.719" y="316"/>
+      <point x="496.656" y="344"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>less_hyphen.sta.seq.cv01</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

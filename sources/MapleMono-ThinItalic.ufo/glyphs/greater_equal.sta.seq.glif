@@ -2,21 +2,41 @@
 <glyph name="greater_equal.sta.seq" format="2">
   <advance width="600"/>
   <outline>
-    <component base="less_equal.end.seq" xScale="-1" xOffset="440"/>
+    <contour>
+      <point x="372.77" y="373" type="curve" smooth="yes"/>
+      <point x="175.088" y="613" type="line" smooth="yes"/>
+      <point x="165.204" y="625"/>
+      <point x="153.381" y="626"/>
+      <point x="139.265" y="614" type="curve" smooth="yes"/>
+      <point x="125.149" y="602"/>
+      <point x="124.033" y="590"/>
+      <point x="133.917" y="578" type="curve" smooth="yes"/>
+      <point x="320.891" y="351" type="line" smooth="yes"/>
+      <point x="332.422" y="337"/>
+      <point x="329.954" y="323"/>
+      <point x="313.485" y="309" type="curve" smooth="yes"/>
+      <point x="46.459" y="82" type="line" smooth="yes"/>
+      <point x="32.343" y="70"/>
+      <point x="29.403" y="59"/>
+      <point x="39.287" y="47" type="curve" smooth="yes"/>
+      <point x="49.171" y="35"/>
+      <point x="61.171" y="35"/>
+      <point x="75.287" y="47" type="curve" smooth="yes"/>
+      <point x="357.606" y="287" type="line" smooth="yes"/>
+      <point x="391.719" y="316"/>
+      <point x="396.656" y="344"/>
+    </contour>
+    <contour>
+      <point x="222.62" y="185" type="line"/>
+      <point x="562.62" y="185" type="line"/>
+      <point x="571.437" y="235" type="line"/>
+      <point x="231.437" y="235" type="line"/>
+    </contour>
+    <contour>
+      <point x="264.939" y="425" type="line"/>
+      <point x="604.939" y="425" type="line"/>
+      <point x="613.755" y="475" type="line"/>
+      <point x="273.755" y="475" type="line"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>less_equal.end.seq</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

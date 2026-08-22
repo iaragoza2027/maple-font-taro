@@ -2,9 +2,6 @@
 <glyph name="ainferior" format="2">
   <advance width="600"/>
   <unicode hex="2090"/>
-  <anchor x="260" y="273" name="top"/>
-  <anchor x="202" y="-60" name="bottom"/>
-  <anchor x="307" y="-60" name="ogonek"/>
   <outline>
     <contour>
       <point x="175" y="-66" type="curve" smooth="yes"/>

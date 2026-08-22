@@ -2,8 +2,6 @@
 <glyph name="kinferior" format="2">
   <advance width="600"/>
   <unicode hex="2096"/>
-  <anchor x="302" y="-60" name="bottom"/>
-  <anchor x="302" y="382" name="top"/>
   <outline>
     <contour>
       <point x="231" y="365" type="curve" smooth="yes"/>
@@ -22,7 +20,7 @@
       <point x="231" y="380"/>
     </contour>
     <contour>
-      <point x="416" y="245" type="curve"/>
+      <point x="416" y="245" type="curve" smooth="yes"/>
       <point x="219" y="42" type="line"/>
       <point x="219" y="108" type="line"/>
       <point x="376" y="267" type="line" smooth="yes"/>
@@ -41,7 +39,7 @@
       <point x="416" y="-66" type="curve" smooth="yes"/>
       <point x="406" y="-66"/>
       <point x="394" y="-65"/>
-      <point x="387" y="-52" type="curve"/>
+      <point x="387" y="-52" type="curve" smooth="yes"/>
     </contour>
   </outline>
 </glyph>

@@ -3,30 +3,37 @@
   <advance width="600"/>
   <unicode hex="2224"/>
   <outline>
-    <component base="divides"/>
-    <component base="lslash.decorator" xOffset="15"/>
+    <contour>
+      <point x="300" y="-10" type="curve" smooth="yes"/>
+      <point x="283" y="-10"/>
+      <point x="275" y="-2"/>
+      <point x="275" y="15" type="curve" smooth="yes"/>
+      <point x="275" y="715" type="line" smooth="yes"/>
+      <point x="275" y="732"/>
+      <point x="283" y="740"/>
+      <point x="300" y="740" type="curve" smooth="yes"/>
+      <point x="317" y="740"/>
+      <point x="325" y="732"/>
+      <point x="325" y="715" type="curve" smooth="yes"/>
+      <point x="325" y="15" type="line" smooth="yes"/>
+      <point x="325" y="-2"/>
+      <point x="317" y="-10"/>
+    </contour>
+    <contour>
+      <point x="470" y="485" type="curve" smooth="yes"/>
+      <point x="145" y="261" type="line" smooth="yes"/>
+      <point x="125" y="247"/>
+      <point x="115" y="252"/>
+      <point x="115" y="277" type="curve" smooth="yes"/>
+      <point x="115" y="289"/>
+      <point x="120" y="298"/>
+      <point x="130" y="305" type="curve" smooth="yes"/>
+      <point x="455" y="529" type="line" smooth="yes"/>
+      <point x="475" y="543"/>
+      <point x="485" y="538"/>
+      <point x="485" y="513" type="curve" smooth="yes"/>
+      <point x="485" y="501"/>
+      <point x="480" y="492"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>divides</string>
-        </dict>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>1</integer>
-          <key>name</key>
-          <string>lslash.decorator</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

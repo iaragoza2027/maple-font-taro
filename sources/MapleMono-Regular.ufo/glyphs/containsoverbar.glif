@@ -3,21 +3,62 @@
   <advance width="600"/>
   <unicode hex="22FD"/>
   <outline>
-    <component base="elementoverbar" xScale="-1" xOffset="603"/>
+    <contour>
+      <point x="33" y="60" type="curve" smooth="yes"/>
+      <point x="33" y="33"/>
+      <point x="46" y="20"/>
+      <point x="73" y="20" type="curve" smooth="yes"/>
+      <point x="338" y="20" type="line" smooth="yes"/>
+      <point x="463" y="20"/>
+      <point x="560" y="114"/>
+      <point x="568" y="238" type="curve" smooth="yes"/>
+      <point x="571" y="286"/>
+      <point x="571" y="334"/>
+      <point x="568" y="382" type="curve" smooth="yes"/>
+      <point x="560" y="506"/>
+      <point x="463" y="600"/>
+      <point x="338" y="600" type="curve" smooth="yes"/>
+      <point x="73" y="600" type="line" smooth="yes"/>
+      <point x="46" y="600"/>
+      <point x="33" y="587"/>
+      <point x="33" y="560" type="curve" smooth="yes"/>
+      <point x="33" y="533"/>
+      <point x="46" y="520"/>
+      <point x="73" y="520" type="curve" smooth="yes"/>
+      <point x="338" y="520" type="line" smooth="yes"/>
+      <point x="440" y="520"/>
+      <point x="491" y="438"/>
+      <point x="491" y="350" type="curve"/>
+      <point x="73" y="350" type="line" smooth="yes"/>
+      <point x="46" y="350"/>
+      <point x="33" y="337"/>
+      <point x="33" y="310" type="curve" smooth="yes"/>
+      <point x="33" y="283"/>
+      <point x="46" y="270"/>
+      <point x="73" y="270" type="curve" smooth="yes"/>
+      <point x="491" y="270" type="line"/>
+      <point x="491" y="182"/>
+      <point x="440" y="100"/>
+      <point x="338" y="100" type="curve" smooth="yes"/>
+      <point x="73" y="100" type="line" smooth="yes"/>
+      <point x="46" y="100"/>
+      <point x="33" y="87"/>
+    </contour>
+    <contour>
+      <point x="78" y="665" type="curve" smooth="yes"/>
+      <point x="488" y="665" type="line" smooth="yes"/>
+      <point x="518" y="665"/>
+      <point x="533" y="680"/>
+      <point x="533" y="710" type="curve" smooth="yes"/>
+      <point x="533" y="740"/>
+      <point x="518" y="755"/>
+      <point x="488" y="755" type="curve" smooth="yes"/>
+      <point x="78" y="755" type="line" smooth="yes"/>
+      <point x="48" y="755"/>
+      <point x="33" y="740"/>
+      <point x="33" y="710" type="curve" smooth="yes"/>
+      <point x="33" y="680"/>
+      <point x="48" y="665"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>elementoverbar</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

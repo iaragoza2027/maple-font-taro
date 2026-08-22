@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from fontTools.misc.roundTools import otRound
 from fontTools.pens.statisticsPen import StatisticsPen
+
+from scripts.font_ops.fonttools import MetaTable, newTable
 
 if TYPE_CHECKING:
     from scripts.font_ops.fonttools import TTFont
@@ -78,6 +80,18 @@ def set_monospace_metadata(font: TTFont) -> None:
 
     if "CFF " in font:
         font["CFF "].cff.topDictIndex[0].isFixedPitch = True
+
+
+def set_meta_table(
+    font: TTFont, design_languages: str, supported_languages: str
+) -> None:
+    """Set the ScriptLangTags declared in the OpenType META table."""
+    meta = newTable("meta")
+    cast("MetaTable", meta).data = {
+        "dlng": design_languages,
+        "slng": supported_languages,
+    }
+    font["meta"] = meta
 
 
 def strip_name_whitespace(font: TTFont) -> None:

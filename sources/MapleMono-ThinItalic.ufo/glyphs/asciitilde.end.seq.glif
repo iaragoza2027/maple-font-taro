@@ -2,21 +2,28 @@
 <glyph name="asciitilde.end.seq" format="2">
   <advance width="600"/>
   <outline>
-    <component base="asciitilde.sta.seq" xScale="-1" xOffset="440"/>
+    <contour>
+      <point x="-33.45" y="264" type="curve"/>
+      <point x="-42.266" y="214" type="line"/>
+      <point x="129.734" y="214"/>
+      <point x="192.062" y="386"/>
+      <point x="304.062" y="386" type="curve" smooth="yes"/>
+      <point x="360.062" y="386"/>
+      <point x="406.42" y="354"/>
+      <point x="412.782" y="288" type="curve" smooth="yes"/>
+      <point x="416.258" y="251" type="line" smooth="yes"/>
+      <point x="417.908" y="232"/>
+      <point x="418.497" y="224"/>
+      <point x="438.497" y="224" type="curve" smooth="yes"/>
+      <point x="457.497" y="224"/>
+      <point x="472.084" y="233"/>
+      <point x="470.258" y="251" type="curve" smooth="yes"/>
+      <point x="466.606" y="287" type="line" smooth="yes"/>
+      <point x="457.357" y="382"/>
+      <point x="405.879" y="436"/>
+      <point x="312.879" y="436" type="curve" smooth="yes"/>
+      <point x="153.879" y="436"/>
+      <point x="110.55" y="264"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>asciitilde.sta.seq</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

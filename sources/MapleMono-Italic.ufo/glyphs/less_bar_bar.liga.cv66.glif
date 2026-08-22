@@ -2,21 +2,58 @@
 <glyph name="less_bar_bar.liga.cv66" format="2">
   <advance width="600"/>
   <outline>
-    <component base="bar_bar_greater.liga.cv66" xScale="-1" xOffset="-760"/>
+    <contour>
+      <point x="107.947" y="-40" type="curve" smooth="yes"/>
+      <point x="239.311" y="705" type="line" smooth="yes"/>
+      <point x="244.6" y="735"/>
+      <point x="232.245" y="750"/>
+      <point x="202.245" y="750" type="curve" smooth="yes"/>
+      <point x="172.245" y="750"/>
+      <point x="154.6" y="735"/>
+      <point x="149.311" y="705" type="curve" smooth="yes"/>
+      <point x="17.947" y="-40" type="line" smooth="yes"/>
+      <point x="12.657" y="-70"/>
+      <point x="25.012" y="-85"/>
+      <point x="55.012" y="-85" type="curve" smooth="yes"/>
+      <point x="85.012" y="-85"/>
+      <point x="102.657" y="-70"/>
+    </contour>
+    <contour>
+      <point x="-320.085" y="595" type="curve" smooth="yes"/>
+      <point x="-413.186" y="67" type="line" smooth="yes"/>
+      <point x="-419.005" y="34"/>
+      <point x="-434.415" y="26"/>
+      <point x="-459.242" y="44" type="curve" smooth="yes"/>
+      <point x="-832.515" y="309" type="line" smooth="yes"/>
+      <point x="-853.87" y="324"/>
+      <point x="-851.754" y="336"/>
+      <point x="-825.109" y="351" type="curve" smooth="yes"/>
+      <point x="-358.03" y="618" type="line" smooth="yes"/>
+      <point x="-326.856" y="636"/>
+      <point x="-314.09" y="629"/>
+    </contour>
+    <contour>
+      <point x="-932.213" y="254" type="curve" smooth="yes"/>
+      <point x="-482.285" y="-64" type="line" smooth="yes"/>
+      <point x="-458.282" y="-81"/>
+      <point x="-436.988" y="-85"/>
+      <point x="-404.988" y="-85" type="curve" smooth="yes"/>
+      <point x="-374.988" y="-85"/>
+      <point x="-347.343" y="-70"/>
+      <point x="-342.053" y="-40" type="curve" smooth="yes"/>
+      <point x="-210.689" y="705" type="line" smooth="yes"/>
+      <point x="-205.4" y="735"/>
+      <point x="-227.755" y="750"/>
+      <point x="-257.755" y="750" type="curve" smooth="yes"/>
+      <point x="-287.755" y="750"/>
+      <point x="-312.46" y="746"/>
+      <point x="-342.458" y="729" type="curve" smooth="yes"/>
+      <point x="-906.411" y="406" type="line" smooth="yes"/>
+      <point x="-939.761" y="387"/>
+      <point x="-955.817" y="364"/>
+      <point x="-961.812" y="330" type="curve" smooth="yes"/>
+      <point x="-967.807" y="296"/>
+      <point x="-958.863" y="273"/>
+    </contour>
   </outline>
-  <lib>
-    <dict>
-      <key>com.schriftgestaltung.Glyphs.ComponentInfo</key>
-      <array>
-        <dict>
-          <key>alignment</key>
-          <integer>-1</integer>
-          <key>index</key>
-          <integer>0</integer>
-          <key>name</key>
-          <string>bar_bar_greater.liga.cv66</string>
-        </dict>
-      </array>
-    </dict>
-  </lib>
 </glyph>

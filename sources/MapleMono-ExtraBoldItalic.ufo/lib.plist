@@ -781,6 +781,22 @@
       <string>Omegalenisacute</string>
       <string>omegalenisacute</string>
       <string>dtail</string>
+      <string>Gehookcyr</string>
+      <string>gehookcyr</string>
+      <string>Zetailcyr</string>
+      <string>zetailcyr</string>
+      <string>Kaverticalstrokecyr</string>
+      <string>kaverticalstrokecyr</string>
+      <string>Kabashkcyr</string>
+      <string>kabashkcyr</string>
+      <string>Engecyr</string>
+      <string>engecyr</string>
+      <string>Estailcyr</string>
+      <string>estailcyr</string>
+      <string>Chevertcyr</string>
+      <string>chevertcyr</string>
+      <string>Palochkacyr</string>
+      <string>palochkacyr</string>
       <string>zero</string>
       <string>one</string>
       <string>two</string>
@@ -890,7 +906,6 @@
       <string>endash</string>
       <string>emdash</string>
       <string>hyphentwo</string>
-      <string>softhyphen</string>
       <string>underscore</string>
       <string>parenleft</string>
       <string>parenright</string>
@@ -2630,22 +2645,6 @@
       <string>greaterThanWithCircleInside</string>
       <string>doubleSucceeds</string>
       <string>tripleNestedGreaterThan</string>
-      <string>Gehookcyr</string>
-      <string>gehookcyr</string>
-      <string>Zetailcyr</string>
-      <string>zetailcyr</string>
-      <string>Kaverticalstrokecyr</string>
-      <string>kaverticalstrokecyr</string>
-      <string>Kabashkcyr</string>
-      <string>kabashkcyr</string>
-      <string>Engecyr</string>
-      <string>engecyr</string>
-      <string>Estailcyr</string>
-      <string>estailcyr</string>
-      <string>Chevertcyr</string>
-      <string>chevertcyr</string>
-      <string>Palochkacyr</string>
-      <string>palochkacyr</string>
     </array>
     <key>public.postscriptNames</key>
     <dict>
@@ -4409,8 +4408,6 @@
       <string>uni0338</string>
       <key>slashshortcomb</key>
       <string>uni0337</string>
-      <key>softhyphen</key>
-      <string>uni00AD</string>
       <key>softsign-cy</key>
       <string>uni044C</string>
       <key>southEastArrow</key>

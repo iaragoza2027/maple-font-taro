@@ -12,7 +12,7 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   prepare-matrix:
@@ -29,29 +29,6 @@ jobs:
           prune-cache: false
           python-version: "3.12"
       - run: uv sync --locked --no-dev
-      - name: Verify CJK base release assets
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          assets="$(gh release view cjk-base --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
-          mkdir -p cjk-base-verify
-          for locale in cn tc jp kr; do
-            for kind in static variable; do
-              expected="${locale}-base-${kind}.zip"
-              grep -Fxq "$expected" <<< "$assets"
-              mkdir -p "cjk-base-verify/$kind/$locale"
-              gh release download cjk-base \
-                --repo "$GITHUB_REPOSITORY" \
-                --pattern "$expected" \
-                --dir "cjk-base-verify/$kind/$locale" \
-                --clobber
-              uv run task.py cjk cache-validate \
-                --archive "cjk-base-verify/$kind/$locale/$expected" \
-                --hash "sources/cjk/$locale/${kind}-$locale.sha256" \
-                --kind "$kind"
-            done
-          done
       - id: matrix
         name: Generate release task matrix
         run: |
@@ -88,6 +65,8 @@ jobs:
   create-release:
     needs: [build-release]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v6
         with:

@@ -4,12 +4,15 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from scripts.pipeline.cache import (
     CACHE_SCHEMA,
 )
 from scripts.pipeline.cjk_outputs import (
+    CJKStaticMergeJob,
     cjk_static_base_profiles,
+    merge_cached_cjk_static_font_job,
 )
 from scripts.pipeline.orchestrator import MapleBuildPipeline
 from scripts.tests.pipeline_fixtures import (
@@ -21,6 +24,41 @@ from scripts.tests.pipeline_fixtures import (
 
 
 class PipelineCJKOutputsTest(unittest.TestCase):
+    def test_cached_static_merge_removes_extra_overlaps(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            entry = make_custom_entry("JP")
+            runtime_context = make_runtime_context(Path(tmp))
+            font = MagicMock()
+            job = CJKStaticMergeJob(
+                entry=entry,
+                style_compact="Regular",
+                core_path="core.ttf",
+                cjk_base_path="cjk-base.ttf",
+                output_dir=tmp,
+                font_config=make_font_config(),
+                runtime_context=runtime_context,
+                locale_suffix="JP",
+            )
+
+            with (
+                patch(
+                    "scripts.pipeline.cjk_outputs.merge_ttfonts", return_value=font
+                ) as merge,
+                patch(
+                    "scripts.pipeline.cjk_outputs.postprocess_cjk_extended_static_font",
+                    return_value="MapleMono-JP-Regular",
+                ),
+                patch("scripts.pipeline.cjk_outputs.save_font_atomic"),
+            ):
+                merge_cached_cjk_static_font_job(job)
+
+            merge.assert_called_once_with(
+                base_font_path="core.ttf",
+                extra_font_path="cjk-base.ttf",
+                remove_extra_overlaps=True,
+            )
+            font.close.assert_called_once()
+
     def test_cjk_stage_invalidation_preserves_other_records(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "fonts"

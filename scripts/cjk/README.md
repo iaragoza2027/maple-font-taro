@@ -30,7 +30,7 @@ The default NF profile uses `NF-*` and `Variable-NF-*` directories. `--nf-mono` 
 
 The global `use_hinted` setting, exposed by `--hinted` and `--no-hinted`, chooses the Latin static base and the NF static base used before a static CJK merge. It does not itself AutoHint the merged CJK files. The CJK-specific `cjk.use_hinted` setting controls a second step: after the final plain or NF CJK static fonts are instantiated or merged, it runs AutoHint on those files. These settings are independent; variable CJK outputs are not selected by either static AutoHint step.
 
-`task.py cjk` always rebuilds regular and italic variable bases, even when both files already exist. In the main pipeline, `ensure_cjk_variable_fonts` reuses both existing variable files when `clean_cache` is false and falls back to a fresh `vf_only` source build otherwise. `clean_cache` never deletes files and does not bypass a valid static directory digest: a static directory with all required styles and a matching `static-<locale>.sha256` is reused first.
+`task.py cjk` always rebuilds regular and italic variable bases, even when both files already exist. In the main pipeline, `ensure_cjk_variable_fonts` reuses both existing variable files when `clean_cache` is false and falls back to a fresh `vf_only` source build otherwise. `clean_cache` never deletes files and does not bypass a valid static directory digest: a static directory with all required styles and a matching `static-<locale>.sha256` is reused first. Static base fonts preserve their source overlaps so their hashes stay portable; when a cached static base is merged into a final CJK static font, only newly added CJK glyphs have overlaps removed.
 
 ## Source and fallback order
 

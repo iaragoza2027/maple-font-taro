@@ -423,6 +423,7 @@ def merge_cached_cjk_static_font_job(job: CJKStaticMergeJob) -> None:
     static_font = merge_ttfonts(
         base_font_path=job.core_path,
         extra_font_path=job.cjk_base_path,
+        remove_extra_overlaps=True,
     )
     try:
         postscript_name = postprocess_cjk_extended_static_font(

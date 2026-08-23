@@ -8,7 +8,7 @@ from scripts.utils.logging import logger
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from scripts.font_ops.fonttools import SubsetOptions, TTFont
+    from scripts.font_ops.fonttools import TTFont
 
 
 class _OTTables(Protocol):
@@ -122,19 +122,18 @@ def _find_or_add_name_id(font: TTFont, value: str) -> int:
 
 
 def remove_target_glyph(font: TTFont, glyph_name_suffix: str):
-    from fontTools.subset import Options
+    from scripts.font_ops.subset import SubsetConfig, subset_to_glyphs
 
     keep_glyphs = [
         glyph_name
         for glyph_name in font.getGlyphOrder()
         if not glyph_name.endswith(glyph_name_suffix)
     ]
-    from scripts.font_ops.subset import subset_to_glyphs
 
     subset_to_glyphs(
         font,
         keep_glyphs,
-        options=cast("SubsetOptions", Options(hinting=False)),
+        options=SubsetConfig(hinting=False, notdef_outline=True),
     )
 
 

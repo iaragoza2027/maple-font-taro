@@ -121,17 +121,6 @@ class MetricsTable(Protocol):
     def __setitem__(self, glyph_name: str, value: tuple[int, int]) -> None: ...
 
 
-class SubsetOptions(Protocol):
-    layout_features: list[str]
-    name_IDs: list[int | str]
-    name_legacy: bool
-    name_languages: list[int | str]
-    notdef_outline: bool
-    recalc_bounds: bool
-    recalc_timestamp: bool
-    recommended_glyphs: bool
-
-
 class TTFont(FontToolsTTFont):
     """FontTools font with typed access for tables used by the build."""
 
@@ -237,7 +226,6 @@ __all__ = [
     "OS2Table",
     "PanoseTable",
     "PostTable",
-    "SubsetOptions",
     "TTFont",
     "adapt_ttfont",
     "instantiate_variable_font",

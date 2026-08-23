@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypeVar, cast
 from fontTools.misc.transform import Transform
 from fontTools.pens.t2CharStringPen import T2CharStringPen
 from fontTools.pens.transformPen import TransformPen
-from fontTools.subset import Options
 from fontTools.ttLib.scaleUpem import scale_upem
 from ttfautohint import StemWidthMode, ttfautohint
 
@@ -58,14 +57,13 @@ from scripts.external.process import (
 )
 from scripts.font_ops.fonttools import (
     HeadTable,
-    SubsetOptions,
     TTFont,
     instantiate_variable_font,
     load_font,
     save_font_atomic,
 )
 from scripts.font_ops.names import FontNameConfig, set_font_name, update_font_names
-from scripts.font_ops.subset import subset_to_codepoints
+from scripts.font_ops.subset import SubsetConfig, subset_to_codepoints
 from scripts.utils.downloads import resolve_cached_download
 from scripts.utils.files import archive
 from scripts.utils.logging import logger, set_log_task
@@ -460,16 +458,20 @@ def prepare_source_subset(
             for glyph_name in font.getGlyphOrder():
                 if glyph_name not in variations:
                     variations[glyph_name] = []
-        options = cast("SubsetOptions", Options())
-        options.layout_features = []
-        options.name_IDs = ["*"]
-        options.name_legacy = True
-        options.name_languages = ["*"]
-        options.recalc_bounds = True
-        options.recalc_timestamp = False
-        options.notdef_outline = True
-        options.recommended_glyphs = False
-        subset_to_codepoints(font, filtered_codepoints, options=options)
+        subset_to_codepoints(
+            font,
+            filtered_codepoints,
+            options=SubsetConfig(
+                layout_features=(),
+                name_ids=("*",),
+                name_legacy=True,
+                name_languages=("*",),
+                notdef_outline=True,
+                recalc_bounds=True,
+                recalc_timestamp=False,
+                recommended_glyphs=False,
+            ),
+        )
         out_path.parent.mkdir(parents=True, exist_ok=True)
         font.save(out_path)
         return removed

@@ -1,15 +1,17 @@
-import json
+from __future__ import annotations
+
 import re
 from copy import deepcopy
+from dataclasses import dataclass
 from html import escape
 from typing import cast
 
 from scripts.feature import ast
 from scripts.feature.base import get_base_feature_cn_only, get_base_features
 from scripts.feature.base.lang import get_lang_list
-from scripts.feature.calt import get_calt, get_calt_lookup
+from scripts.feature.calt import CaltOptions, get_calt, get_calt_lookup
 from scripts.feature.calt._infinite_utils import InfiniteOptions
-from scripts.feature.catalog import CJK_FEATURES, NORMAL_ENABLED_FEATURES
+from scripts.feature.cv import cv96, cv97, cv98, cv99
 from scripts.feature.italic import (
     class_list_italic,
     cv_list_italic,
@@ -24,13 +26,50 @@ from scripts.feature.regular import (
 )
 from scripts.utils.logging import logger
 
+NORMAL_ENABLED_FEATURES: tuple[str, ...] = (
+    "cv01",
+    "cv02",
+    "cv33",
+    "cv34",
+    "cv35",
+    "cv36",
+    "cv61",
+    "cv62",
+    "ss05",
+    "ss06",
+    "ss07",
+    "ss08",
+)
+
+CJK_FEATURES: tuple[ast.FeatureWithDocs, ...] = (
+    cv96.cv96_feat_cn,
+    cv97.cv97_feat_cn,
+    cv98.cv98_feat_cn,
+    cv99.cv99_feat_cn,
+)
+
 normal_enabled_features = list(NORMAL_ENABLED_FEATURES)
 cv_list_cn = list(CJK_FEATURES)
 
 
+@dataclass(frozen=True)
+class FeatureGenOptions:
+    """Options for OpenType feature source compilation."""
+
+    is_italic: bool = False
+    is_cn: bool = False
+    is_normal: bool = False
+    is_calt: bool = True
+    enable_infinite: bool = True
+    enable_tag: bool = True
+    remove_italic_calt: bool = False
+
+
 def generate_fea_string(
-    is_italic: bool,
-    is_cn: bool,
+    options: FeatureGenOptions | None = None,
+    *,
+    is_italic: bool = False,
+    is_cn: bool = False,
     is_normal: bool = False,
     is_calt: bool = True,
     enable_infinite: bool = True,
@@ -40,6 +79,7 @@ def generate_fea_string(
     """Generate the complete OpenType feature source for one font variant.
 
     Args:
+        options: Feature generation options. If provided, kwargs are ignored.
         is_italic: Whether to generate italic features.
         is_cn: Whether to include Chinese-specific features.
         is_normal: Whether to use the normal glyph preset.
@@ -52,43 +92,57 @@ def generate_fea_string(
         The serialized feature source, including glyph classes, language
         systems, base features, stylistic variants, and contextual rules.
     """
+    if options is None:
+        options = FeatureGenOptions(
+            is_italic=is_italic,
+            is_cn=is_cn,
+            is_normal=is_normal,
+            is_calt=is_calt,
+            enable_infinite=enable_infinite,
+            enable_tag=enable_tag,
+            remove_italic_calt=remove_italic_calt,
+        )
+
     logger.debug(
         "Generate feature string: italic=%s, cn=%s, normal=%s, calt=%s, infinite=%s, tag=%s, remove_italic_calt=%s",
-        is_italic,
-        is_cn,
-        is_normal,
-        is_calt,
-        enable_infinite,
-        enable_tag,
-        remove_italic_calt,
+        options.is_italic,
+        options.is_cn,
+        options.is_normal,
+        options.is_calt,
+        options.enable_infinite,
+        options.enable_tag,
+        options.remove_italic_calt,
     )
-    class_list = class_list_italic if is_italic else class_list_regular
-    infinite_options = InfiniteOptions(enable_infinite)
+    class_list = class_list_italic if options.is_italic else class_list_regular
+    infinite_options = InfiniteOptions(options.enable_infinite)
     cv_list = (
         cv_list_italic(True, infinite_options)
-        if is_italic
+        if options.is_italic
         else cv_list_regular(True, infinite_options)
     )
-    ss_list = ss_list_italic(True) if is_italic else ss_list_regular(True)
+    ss_list = ss_list_italic(True) if options.is_italic else ss_list_regular(True)
 
     if class_list[-2].name != "Var" or class_list[-1].name != "HexLetter":
         raise TypeError("Invalid class_list, must ends with [@Var, @HexLetter]")
 
+    calt_options = CaltOptions(
+        is_italic=options.is_italic,
+        normal=options.is_normal,
+        enable_tag=options.enable_tag,
+        remove_italic_calt=options.remove_italic_calt,
+        infinite_options=infinite_options,
+    )
     calt_feat = get_calt(
         cls_var=class_list[-2],
         cls_hex_letter=class_list[-1],
-        is_italic=is_italic,
-        is_normal=is_normal,
-        enable_tag=enable_tag,
-        remove_italic_calt=remove_italic_calt,
-        infinite_options=infinite_options,
+        options=calt_options,
     )
 
     # clear calt for no ligature
-    if not is_calt:
+    if not options.is_calt:
         calt_feat.content = []
 
-    cv_ss_list = deepcopy(cv_list + (cv_list_cn if is_cn else []) + ss_list)
+    cv_ss_list = deepcopy(cv_list + (cv_list_cn if options.is_cn else []) + ss_list)
 
     # Add placeholder to calt if empty, to prevent fonttools warning
     if not calt_feat.content:
@@ -100,7 +154,9 @@ def generate_fea_string(
         [
             class_list,
             get_lang_list(),
-            get_base_features(calt_feat, is_cn=is_cn, is_italic=is_italic),
+            get_base_features(
+                calt_feat, is_cn=options.is_cn, is_italic=options.is_italic
+            ),
             cv_ss_list,
         ],
     )
@@ -119,12 +175,15 @@ def generate_fea_string_cn_only():
 def get_all_calt_text():
     result: list[str] = []
 
+    calt_options = CaltOptions(
+        is_italic=True,
+        infinite_options=InfiniteOptions(enabled=True),
+    )
     for item in ast.recursive_iterate(
         get_calt_lookup(
             cls_var,
             cls_hex_letter,
-            True,
-            infinite_options=InfiniteOptions(enabled=True),
+            calt_options,
         )
     ):
         if isinstance(item, ast.Lookup) and item.desc:
@@ -163,25 +222,10 @@ def get_all_calt_text():
 zero_desc = "Zero style variant"
 
 
-def get_version_info(
-    features: list[ast.FeatureWithDocs],
-) -> dict[str, dict[str, str]]:
-    result = {}
-    for item in features:
-        if item.version not in result:
-            result[item.version] = {}
-        result[item.version][item.tag] = item.example
-    return dict(sorted(result.items()))
-
-
 def get_cv_desc():
     return "\n".join(
         [cv.desc_item() for cv in cv_list_regular()] + [f"- [v7.0] zero: {zero_desc}"]
     )
-
-
-def get_cv_version_info() -> dict[str, dict[str, str]]:
-    return get_version_info(cv_list_regular())
 
 
 italic_code_pattern = re.compile(r"`([^`]+)`")
@@ -197,18 +241,8 @@ def get_cv_italic_desc():
     )
 
 
-def get_cv_italic_version_info() -> dict[str, dict[str, str]]:
-    return get_version_info(
-        [cv for cv in cv_list_italic() if cv.id > 30 and cv.id < 61]
-    )
-
-
 def get_cv_cn_desc():
     return "\n".join([cv.desc_item() for cv in cv_list_cn])
-
-
-def get_cv_cn_version_info() -> dict[str, dict[str, str]]:
-    return get_version_info(cv_list_cn)
 
 
 def get_ss_desc():
@@ -225,11 +259,6 @@ def get_ss_desc():
             result[ss.id] = desc
 
     return "\n".join(sorted(result.values()))
-
-
-def get_ss_version_info() -> dict[str, dict[str, str]]:
-    ss = list({s.tag: s for s in ss_list_regular() + ss_list_italic()}.values())
-    return get_version_info(sorted(ss, key=lambda x: x.tag))
 
 
 __total_feat_list = (
@@ -251,34 +280,6 @@ def get_total_feat_dict() -> dict[str, str]:
     result["zero"] = "[v7.0] " + zero_desc.replace("`", "'")
 
     return dict(sorted(result.items()))
-
-
-def get_total_feat_ts() -> str:
-    feat_dict = {}
-
-    for item in __total_feat_list:
-        if item.tag not in feat_dict:
-            feat_dict[item.tag] = item.desc
-
-    feat_dict["calt"] = "Default ligatures"
-    feat_dict["zero"] = zero_desc
-
-    feat_dict = dict(sorted(feat_dict.items()))
-
-    ts_def_props = "\n"
-    for key, val in feat_dict.items():
-        ts_def_props += f"  /** {val} */\n  {key}: string\n"
-
-    return f"""// Auto generated by `python task.py fea`
-// @prettier-ignore
-/* eslint-disable */
-
-export interface FeatureDescription {{{ts_def_props}}}
-
-export const featureArray = {json.dumps(list(feat_dict.keys()), indent=2)}
-
-export const normalFeatureArray = {json.dumps(normal_enabled_features, indent=2)}
-"""
 
 
 def get_freeze_moving_rules() -> list[str]:

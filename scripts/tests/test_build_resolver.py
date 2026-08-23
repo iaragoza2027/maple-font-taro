@@ -11,7 +11,7 @@ from typing import Any
 from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 
-from scripts.cjk.cache import write_static_hash
+from scripts.cjk.cache import has_valid_cjk_static_cache, write_static_hash
 from scripts.cjk.config import (
     CJKBuildConfig,
     CJKNamingConfig,
@@ -19,16 +19,17 @@ from scripts.cjk.config import (
     CJKSourceConfig,
 )
 from scripts.cjk.presets import CJKPresetId, get_preset
+from scripts.cjk.resolver import CJKBaseResolver
 from scripts.config.base import CJKCommonBuildOptions, ResolvedCJKBuildEntry
 from scripts.config.cli import parse_args
 from scripts.config.resolver import BuildConfigResolver
 from scripts.config.runtime import BuildRuntimeContext
-from scripts.errors import BuildDependencyError
 from scripts.pipeline.nerd_fonts import (
     ensure_font_patcher_available,
     should_use_font_patcher,
 )
 from scripts.tests.cjk_font_fixtures import build_test_font
+from scripts.utils.errors import BuildDependencyError
 
 
 def make_runtime_context(tmp_path: Path) -> BuildRuntimeContext:
@@ -42,7 +43,6 @@ def make_runtime_context(tmp_path: Path) -> BuildRuntimeContext:
         output_woff2=str(tmp_path / "fonts" / "Woff2"),
         output_nf=str(tmp_path / "fonts" / "NF"),
         ttf_base_dir=str(tmp_path / "fonts" / "TTF-AutoHint"),
-        has_cache=False,
         is_nf_built=False,
         is_cjk_built=False,
         effective_github_mirror="github.com",
@@ -183,19 +183,9 @@ def resolve_quietly(
     entry: ResolvedCJKBuildEntry,
     required_styles: list[str],
 ):
-    def build_variable(
-        config: CJKBuildConfig,
-        *_args,
-        **_kwargs,
-    ) -> None:
-        write_variable_fonts(config)
-
     with redirect_stdout(StringIO()):
-        return runtime_context.resolve_cjk_static_base(
-            entry,
-            required_styles,
-            make_font_config(),
-            build_variable,
+        return CJKBaseResolver(runtime_context, make_font_config()).resolve_static_base(
+            entry, required_styles
         )
 
 
@@ -205,7 +195,7 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
             tmp_path = Path(tmp)
             runtime_context = make_runtime_context(tmp_path)
             entry = make_entry(tmp_path)
-            static_dir = runtime_context.cjk_static_dir(entry.build_config)
+            static_dir = CJKBaseResolver.static_dir(entry.build_config)
             write_static_fonts(
                 static_dir,
                 entry.build_config.naming.static_file_prefix,
@@ -221,9 +211,8 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
     def test_invalid_static_hash_preserves_cache(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
-            runtime_context = make_runtime_context(tmp_path)
             entry = make_entry(tmp_path)
-            static_dir = runtime_context.cjk_static_dir(entry.build_config)
+            static_dir = CJKBaseResolver.static_dir(entry.build_config)
             write_static_fonts(
                 static_dir,
                 entry.build_config.naming.static_file_prefix,
@@ -234,16 +223,13 @@ class BuildRuntimeContextCJKStaticBaseTest(unittest.TestCase):
                 entry.build_config.output.static_hash
             ).write_text("bad-hash", encoding="utf-8")
 
-            result = runtime_context._resolve_local_cjk_static_base(
-                False,
-                entry.build_config,
-                static_dir,
-                entry.build_config.naming.static_file_prefix,
-                ["Regular"],
-                entry.build_config.locale_name,
+            self.assertFalse(
+                has_valid_cjk_static_cache(
+                    entry.build_config,
+                    static_dir,
+                    {"Regular"},
+                )
             )
-
-            self.assertIsNone(result)
             self.assertTrue(static_dir.is_dir())
             self.assertEqual(
                 entry.build_config.output.dir.joinpath(

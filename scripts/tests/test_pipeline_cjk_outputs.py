@@ -66,7 +66,7 @@ class PipelineCJKOutputsTest(unittest.TestCase):
             font_config = make_font_config()
             font_config.behavior.cache = True
             pipeline = MapleBuildPipeline(font_config, make_runtime_context(Path(tmp)))
-            pipeline._cache_record = {
+            pipeline._cache_tracker._cache_record = {
                 "schema": CACHE_SCHEMA,
                 "stages": {
                     "jp-static": {"key": "old-jp"},
@@ -133,6 +133,29 @@ class PipelineCJKOutputsTest(unittest.TestCase):
             pipeline._stage_cache_identity("hk-static"),
             pipeline._stage_cache_identity("jp-static"),
         )
+
+    def test_cjk_cache_record_uses_the_upstream_stage_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            font_config = make_font_config()
+            font_config.behavior.cache = True
+            font_config.behavior.debug = True
+            font_config.cjk.entries = [make_custom_entry("JP")]
+            runtime_context = make_runtime_context(Path(tmp))
+            pipeline = MapleBuildPipeline(font_config, runtime_context)
+            paths = pipeline._cjk_stage_expected_paths("JP")
+            for path in paths:
+                write_test_font(path)
+
+            pipeline._mark_stage_rebuilt("jp-static", paths)
+            pipeline.write_cache_record()
+
+            record = json.loads(
+                (Path(runtime_context.output_root) / "build-cache.json").read_text()
+            )
+            self.assertEqual(
+                record["stages"]["jp-static"]["key"],
+                pipeline._stage_cache_identity("jp-static"),
+            )
 
     def test_static_cjk_profiles_use_nfpropo_directory(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

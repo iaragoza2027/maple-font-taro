@@ -8,8 +8,10 @@ Maple Mono is an open-source monospace font project. Keep changes small, determi
 
 - Write code, comments, documentation, and commit messages in English. Reply to the repository owner in Chinese unless asked otherwise.
 - Preserve unrelated user changes. Run `git status --short` before broad edits and inspect the final diff before finishing.
+- Use `variable` as the default branch when reviewing branch differences.
 - Do not add dependencies or change package managers without a clear need. Use `uv` for Python.
 - Do not manually edit font binaries, UFO sources, or generated outputs when the repository provides a generator.
+- Treat designspace and UFO sources as coupled inputs: every designspace change is accompanied by changes to the corresponding UFO sources.
 - Avoid changing font names, versioning, release packaging, or output layout unless the request explicitly requires it.
 - When adding or changing a `build.py` CLI flag, update the complete translated `build.py --help` section in every root README (`README.md`, `README_CN.md`, `README_TC.md`, `README_JP.md`, and `README_KR.md`) in the same change.
 
@@ -58,7 +60,6 @@ uv run build.py --dry
 uv run build.py --ttf-only --debug
 uv run build.py --ttf-only --cn --debug
 uv run task.py fea
-uv run task.py page
 ```
 
 The downloaded `FontPatcher/` tool are intentionally excluded from root Python Ruff and Pyrefly checks.
@@ -102,7 +103,7 @@ Treat `fonts/` as disposable build output. Do not commit generated churn unless 
 ## Dependencies, Network, and Release Safety
 
 - Python runtime dependencies belong in `pyproject.toml` and `requirements.txt`; Python development tools belong in the uv development dependency group.
-- CN source downloads, Nerd Font assets, FontForge tooling, page package installation, and release actions may require network access. Do not trigger them unless the task needs them.
+- CN source downloads, Nerd Font assets, FontForge tooling, and release actions may require network access. Do not trigger them unless the task needs them.
 - Never run release, publish, push, or destructive cleanup commands unless explicitly requested.
 
 ## Before Finishing
